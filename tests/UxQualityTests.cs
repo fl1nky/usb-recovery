@@ -13,7 +13,7 @@ public static class UxQualityTests
     static void SetupUi()
     {
         using(var form=new RecoveryForm(false)){
-            Show(form);var settings=Field<RecoverySettingsPanel>(form,"searchSettings");var profile=Field<ComboBox>(form,"profile");Check(!form.ExpertMode&&!settings.Visible&&Field<SurfaceCard>(form,"basicSummary").Height<=112,"basic mode default compact summary");Check(Children(settings).OfType<CheckBox>().Count()==23,"23 expert methods/options");
+            Show(form);var settings=Field<RecoverySettingsPanel>(form,"searchSettings");var profile=Field<ComboBox>(form,"profile");Check(!form.ExpertMode&&!settings.Visible&&Field<SurfaceCard>(form,"basicSummary").Height<=164,"basic mode default compact summary");Check(Children(settings).OfType<CheckBox>().Count()==23,"23 expert methods/options");
             foreach(var size in new[]{new Size(850,740),new Size(1040,910),new Size(1280,920)})foreach(bool expert in new[]{false,true}){
                 form.ClientSize=size;form.SetExpertMode(expert);Pump();Check(form.Controls[0].Width<=form.ClientSize.Width&&!form.VerticalScroll.Visible,"no whole-window crop/scroll "+size+" expert="+expert);var start=Field<Button>(form,"start");var results=Field<Button>(form,"fileList");Check(form.RectangleToClient(start.RectangleToScreen(start.ClientRectangle)).Bottom<form.ClientSize.Height&&form.RectangleToClient(results.RectangleToScreen(results.ClientRectangle)).Bottom<form.ClientSize.Height,"scan and results visible "+size+" expert="+expert);Check(settings.Visible==expert,"expert visibility "+expert);
             }

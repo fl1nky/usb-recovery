@@ -35,7 +35,7 @@ namespace UsbRecovery
         ComboBox disks = new ComboBox();
         Button refresh = new Button(), choose = new Button(), start = new Button(), resume = new Button(), stop = new Button(), open = new Button(), gallery = new Button();
         TextBox destination = new TextBox(), log = new TextBox();
-        ProgressBar progress = new ProgressBar();
+        MotionProgressBar progress = new MotionProgressBar();
         Label status = new Label(), sourceHelp = new Label();
         RecoverySettingsPanel searchSettings = new RecoverySettingsPanel();
         Button fileList = new Button();
@@ -53,24 +53,32 @@ namespace UsbRecovery
         const string IdleLogText="Журнал пуст. Здесь появятся этапы чтения, поиска и проверки файлов.";
         readonly Panel settingsHost = new Panel();
         readonly SurfaceCard basicSummary = new SurfaceCard();
-        readonly Label summaryTitle = new Label(), summaryBody = new Label();
         readonly Button expertButton = new Button();
+        readonly RecoveryActivityView activityView=new RecoveryActivityView();
+        readonly CheckBox journalToggle=new CheckBox();
         public bool ExpertMode { get; private set; }
         public void SetExpertMode(bool value)
         {
             ExpertMode=value;
             var layout=Controls.Count==0?null:Controls[0] as TableLayoutPanel;
-            if(layout!=null&&layout.RowStyles.Count>6){layout.SuspendLayout();layout.RowStyles[3].SizeType=value?SizeType.Percent:SizeType.Absolute;layout.RowStyles[3].Height=value?100:112;layout.RowStyles[6].SizeType=value?SizeType.Absolute:SizeType.Percent;layout.RowStyles[6].Height=value?140:100;layout.ResumeLayout(true);}
+            if(layout!=null&&layout.RowStyles.Count>6){layout.SuspendLayout();layout.RowStyles[3].SizeType=value?SizeType.Percent:SizeType.Absolute;layout.RowStyles[3].Height=value?100:ClientSize.Height>=820?164:112;layout.RowStyles[6].SizeType=value?SizeType.Absolute:SizeType.Percent;layout.RowStyles[6].Height=value?140:100;layout.ResumeLayout(true);}
             searchSettings.Visible=value;basicSummary.Visible=!value;
             expertButton.Text=value?"Свернуть методы":"Все методы…";
             if(value)searchSettings.BringToFront();else basicSummary.BringToFront();
         }
         void UpdateSearchSummary()
         {
-            var options=searchSettings.Selection();int methods=(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0);
-            summaryTitle.Text="Выбран профиль: "+Convert.ToString(profile.SelectedItem);
-            summaryBody.Text="Способов извлечения: "+methods+". Поиск по рабочему образу; результаты сохраняются отдельно.\r\nПараметры и типы файлов — в «Все методы».";
+            var options=searchSettings.Selection();int methods=(options.LostPartitions?1:0)+(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0);
+            if(!busy)activityView.SetPhase("Готово к поиску",methods+" способов · "+Convert.ToString(profile.SelectedItem)+" · выбери источник");
         }
+        void PresentActivity(RecoveryStageProgress update)
+        {
+            activityView.SetPhase(update.Title,update.State=="reused"?"Проверенный результат этапа используется повторно":update.Key=="finished"?"Открой найденные файлы, проверь и сохрани нужное":"Поиск по рабочей копии · исходный носитель не изменяется");
+            activityView.CandidateCaption=update.Key=="finished"?"ВСЕГО КАНДИДАТОВ":"НАЙДЕНО НА ЭТАПЕ";activityView.SetProgress(update.Completed,update.Total);activityView.FoundCandidates=update.Candidates;
+            if(update.Key=="finished"){activityView.IsActive=false;activityView.IsComplete=true;}
+        }
+        void BeginActivity(string title,string detail)
+        {activityView.CandidateCaption="НАЙДЕНО НА ЭТАПЕ";activityView.ClearProgress();activityView.FoundCandidates=-1;activityView.SetPhase(title,detail);activityView.IsActive=true;}
         public RecoveryForm(bool autoDiscover)
         {
             Text = "Флешки и образы"; Font = new Font("Segoe UI", 10F);
@@ -96,12 +104,12 @@ namespace UsbRecovery
             profile.SelectedIndexChanged+=delegate{if(applyingProfile||profile.SelectedIndex==5)return;applyingProfile=true;try{string[] codes={"standard","quick","photos","format","maximum"};searchSettings.ApplyProfile(codes[Math.Max(0,profile.SelectedIndex)]);profileHint.Text=profile.SelectedIndex==4?"Долгий поиск, включая фрагменты JPEG. Ошибки чтения включаются отдельно.":profile.SelectedIndex==1?"Только метаданные FAT/NTFS. При отсутствии результата выбери другой профиль.":profile.SelectedIndex==3?"Разделы, резервные записи, вторая FAT и потерянные каталоги.":profile.SelectedIndex==2?"По содержимому ищутся фотографии. Метаданные сохраняют все типы.":"Сбалансированный поиск. Дополнительные методы можно включить ниже.";UpdateSearchSummary();}finally{applyingProfile=false;}};
             searchSettings.SelectionChanged+=delegate{if(!applyingProfile){applyingProfile=true;profile.SelectedIndex=5;applyingProfile=false;profileHint.Text="Индивидуальный набор методов. Наведи на настройку для подробностей.";}UpdateSearchSummary();};
             settingsHost.Dock=DockStyle.Fill;settingsHost.Margin=new Padding(0,0,0,10);searchSettings.Dock=DockStyle.Fill;searchSettings.Margin=Padding.Empty;settingsHost.Controls.Add(searchSettings);
-            basicSummary.Dock=DockStyle.Fill;basicSummary.Margin=Padding.Empty;basicSummary.Padding=new Padding(20,14,20,14);summaryTitle.Dock=DockStyle.Top;summaryTitle.Height=26;summaryTitle.AutoEllipsis=true;summaryTitle.Font=new Font("Segoe UI",11F,FontStyle.Bold);summaryBody.Dock=DockStyle.Fill;summaryBody.Font=new Font("Segoe UI",9.5F);summaryBody.ForeColor=UiTheme.Muted;summaryBody.Padding=new Padding(0,8,0,0);basicSummary.Controls.Add(summaryBody);basicSummary.Controls.Add(summaryTitle);settingsHost.Controls.Add(basicSummary);layout.Controls.Add(settingsHost,0,3);UpdateSearchSummary();SetExpertMode(false);
+            basicSummary.Dock=DockStyle.Fill;basicSummary.Margin=Padding.Empty;basicSummary.Padding=Padding.Empty;activityView.Dock=DockStyle.Fill;activityView.Name="recovery-activity";basicSummary.Controls.Add(activityView);settingsHost.Controls.Add(basicSummary);layout.Controls.Add(settingsHost,0,3);UpdateSearchSummary();SetExpertMode(false);
             var actions=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,Margin=new Padding(0,0,0,8)};actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,174));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,136));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,110));
             Configure(start,"Начать восстановление",delegate{StartCapture();});start.Tag="primary";actions.Controls.Add(start,0,0);Configure(resume,"Открыть образ…",delegate{ResumeImage();});actions.Controls.Add(resume,1,0);Configure(stop,"Остановить",delegate{if(cancellation!=null){cancellation.Cancel();stop.Enabled=false;status.Text="Остановка после завершения текущего чтения…";}});stop.Enabled=false;actions.Controls.Add(stop,2,0);var guide=new Button();Configure(guide,"Справка",delegate{OpenPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"USB-DEEP-GUIDE.md"));});actions.Controls.Add(guide,3,0);layout.Controls.Add(actions,0,4);
             var state=new Panel{Dock=DockStyle.Fill,Margin=new Padding(0,0,0,10)};progress.Dock=DockStyle.Top;progress.Height=5;status.Text="Готово. Для первого запуска подходит стандартный профиль.";status.Dock=DockStyle.Bottom;status.Height=36;status.Font=new Font("Segoe UI",9F);status.ForeColor=UiTheme.Muted;state.Controls.Add(status);state.Controls.Add(progress);layout.Controls.Add(state,0,5);
-            var footer=new SurfaceCard{Dock=DockStyle.Fill,Padding=new Padding(14),Margin=Padding.Empty};var footerLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,RowCount=3};for(int i=0;i<4;i++)footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,23));footerLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,38));footer.Controls.Add(footerLayout);footerLayout.Controls.Add(new Label{Text="ХОД ОПЕРАЦИИ",AutoSize=true,Font=new Font("Segoe UI",8F,FontStyle.Bold),ForeColor=UiTheme.Muted},0,0);footerLayout.SetColumnSpan(footerLayout.GetControlFromPosition(0,0),4);
-            log.Multiline=true;log.ReadOnly=true;log.Text=IdleLogText;log.ScrollBars=ScrollBars.Vertical;log.Dock=DockStyle.Fill;log.Font=new Font("Consolas",8.5F);log.Margin=new Padding(0,0,0,8);footerLayout.Controls.Add(log,0,1);footerLayout.SetColumnSpan(log,4);
+            var footer=new SurfaceCard{Dock=DockStyle.Fill,Padding=new Padding(14),Margin=Padding.Empty};var footerLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,RowCount=3};for(int i=0;i<4;i++)footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,23));footerLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,38));footer.Controls.Add(footerLayout);journalToggle.Text="Подробности операции";journalToggle.AutoSize=true;journalToggle.Name="operation-details";journalToggle.Font=new Font("Segoe UI",9F);footerLayout.Controls.Add(journalToggle,0,0);footerLayout.SetColumnSpan(journalToggle,4);
+            log.Multiline=true;log.ReadOnly=true;log.Text=IdleLogText;log.ScrollBars=ScrollBars.Vertical;log.Dock=DockStyle.Fill;log.Font=new Font("Consolas",8.5F);log.Margin=new Padding(0,0,0,8);var journalBody=new Panel{Dock=DockStyle.Fill,Padding=new Padding(0,0,0,8),Margin=Padding.Empty};journalBody.Controls.Add(log);footerLayout.Controls.Add(journalBody,0,1);footerLayout.SetColumnSpan(journalBody,4);log.Visible=false;var journalHint=new Label{Text="Сначала выбери источник. Здесь появятся сведения о ходе поиска.",Dock=DockStyle.Fill,ForeColor=UiTheme.Muted,Font=new Font("Segoe UI",9F),Name="operation-hint"};journalBody.Controls.Add(journalHint);journalToggle.CheckedChanged+=delegate{log.Visible=journalToggle.Checked;journalHint.Visible=!journalToggle.Checked;if(journalToggle.Checked)log.BringToFront();else journalHint.BringToFront();};status.TextChanged+=delegate{journalHint.Text=status.Text;};Resize+=delegate{if(!ExpertMode)SetExpertMode(false);};
             Configure(open,"Папка результатов",delegate{OpenPath(lastDirectory);});open.Enabled=false;footerLayout.Controls.Add(open,0,2);Configure(gallery,"Фотографии",delegate{OpenPath(lastGallery);});gallery.Enabled=false;footerLayout.Controls.Add(gallery,1,2);Configure(fileList,"Все файлы и экспорт",delegate{ShowRecoveredFiles();});fileList.Enabled=true;footerLayout.Controls.Add(fileList,2,2);Configure(continueJob,"Продолжить…",delegate{ChooseSavedJob();});continueJob.Name="continue-recovery-job";footerLayout.Controls.Add(continueJob,3,2);layout.Controls.Add(footer,0,6);
             UiTheme.ApplyTree(this);badge.BackColor=Color.FromArgb(231,243,237);badge.ForeColor=Color.FromArgb(41,117,85);
             sourceHelp.AutoEllipsis=true;disks.SelectedIndexChanged+=delegate{var selected=disks.SelectedItem as DiskInfo;if(selected!=null)sourceHelp.Text=String.Format("{0:0.0} ГБ · {1} · только чтение",selected.Size/1000000000.0,String.IsNullOrEmpty(selected.Letters)?"без буквы диска":selected.Letters);};
@@ -131,13 +139,13 @@ namespace UsbRecovery
         {
             if(IsBusy)return false;
             if(!Directory.Exists(folder)||(!File.Exists(Path.Combine(folder,"result.json"))&&!File.Exists(Path.Combine(folder,"capture.json"))&&!File.Exists(Path.Combine(folder,"source-image.json")))){status.Text="Выбери папку результатов программы с result.json, capture.json или source-image.json.";return false;}
-            busy=true;lastDirectory=Path.GetFullPath(folder);cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;progress.Style=ProgressBarStyle.Marquee;status.Text="Подготовка уже найденных файлов. Поиск по носителю не продолжается.";Append("Отдельная подготовка каталога: "+lastDirectory);bool complete=false;
+            BeginActivity("Подготовка найденного","Проверка файлов и создание каталога");busy=true;lastDirectory=Path.GetFullPath(folder);cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;progress.Style=ProgressBarStyle.Marquee;status.Text="Подготовка уже найденных файлов. Поиск по носителю не продолжается.";Append("Отдельная подготовка каталога: "+lastDirectory);bool complete=false;
             try{
                 string galleryFile=await Task.Run(()=>{string value=PhotoCatalog.Build(lastDirectory,token,text=>Post(()=>{status.Text=text;Append(text);}));RecoveryCatalog.Build(lastDirectory,token,text=>Post(()=>{status.Text=text;Append(text);}));return value;});
-                lastGallery=galleryFile;complete=true;status.Text="Каталог найденного готов. Состояние исходного поиска сохранено в отчёте.";Append("Каталог подготовлен. result.json и состояние исходного поиска не изменены.");
+                lastGallery=galleryFile;complete=true;activityView.IsComplete=true;status.Text="Каталог найденного готов. Состояние исходного поиска сохранено в отчёте.";Append("Каталог подготовлен. result.json и состояние исходного поиска не изменены.");
             }catch(OperationCanceledException){status.Text="Подготовка остановлена. Найденные файлы сохранены; каталог можно подготовить позже.";Append(status.Text);}
             catch(Exception e){status.Text="Не удалось подготовить каталог: "+e.Message;Append(status.Text);}
-            finally{busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;progress.Style=ProgressBarStyle.Continuous;open.Enabled=Directory.Exists(lastDirectory);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);UpdateResultAction();}
+            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;progress.Style=ProgressBarStyle.Continuous;open.Enabled=Directory.Exists(lastDirectory);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);UpdateResultAction();}
             return complete;
         }
         void ChooseDirectory()
@@ -200,7 +208,7 @@ namespace UsbRecovery
         {
             if(IsBusy)return false;string folder=Path.GetFullPath(directory);
             if(!File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName))&&!File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json"))){status.Text="В этой папке нет сохранённой сессии или сведений о съёме.";return false;}
-            busy=true;cancellation=new CancellationTokenSource();var token=cancellation.Token;bool complete=false;lastDirectory=folder;lastGallery=null;
+            BeginActivity("Продолжение поиска","Проверка сохранённой сессии");busy=true;cancellation=new CancellationTokenSource();var token=cancellation.Token;bool complete=false;lastDirectory=folder;lastGallery=null;
             start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;
             workflow.Current=1;workflow.Invalidate();status.Text="Проверка сохранённой сессии и результатов…";progress.Style=ProgressBarStyle.Marquee;Append("Продолжение: "+folder+". Используются сохранённые параметры поиска.");
             try{
@@ -208,29 +216,30 @@ namespace UsbRecovery
                     Action<string> update=text=>Post(()=>{status.Text=text;Append(text);});
                     if(File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json")))RecoveryCore.ValidateSavedCaptureDestination(folder);
                     ScanResult found;
-                    if(File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName)))found=RecoveryPipeline.Resume(folder,token,update);
+                    if(File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName)))found=RecoveryPipeline.Resume(folder,token,update,state=>Post(()=>PresentActivity(state)));
                     else {
                         string optionsFile=RecoveryCatalog.SafeFile(folder,"search-options.json");if(!File.Exists(optionsFile)||new FileInfo(optionsFile).Length>64*1024)throw new IOException("Не найдены сохранённые параметры. Заверши съём и открой полный образ отдельным поиском.");
                         var options=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<RecoveryOptions>(File.ReadAllText(optionsFile));if(options==null)throw new IOException("Параметры поиска повреждены.");options.Validate();
                         string image=RecoveryCatalog.SafeFile(folder,"usb.dd");
-                        if(File.Exists(image))image=RecoveryCore.CompleteSavedCapture(folder,token);else if(File.Exists(RecoveryCatalog.SafeFile(folder,"capture-resume.json"))&&new[]{"complete","complete_with_read_errors"}.Contains(ResumableCapture.Inspect(RecoveryCatalog.SafeFile(folder,"capture-resume.json")).Status))image=RecoveryCore.CompleteSavedCapture(folder,token);else image=RecoveryCore.ResumeCapture(folder,token,(done,total)=>Post(()=>{progress.Style=ProgressBarStyle.Continuous;progress.Value=(int)Math.Min(100,done*100/Math.Max(1,total));status.Text="Продолжение образа: "+progress.Value+"%";}));
+                        if(File.Exists(image))image=RecoveryCore.CompleteSavedCapture(folder,token);else if(File.Exists(RecoveryCatalog.SafeFile(folder,"capture-resume.json"))&&new[]{"complete","complete_with_read_errors"}.Contains(ResumableCapture.Inspect(RecoveryCatalog.SafeFile(folder,"capture-resume.json")).Status))image=RecoveryCore.CompleteSavedCapture(folder,token);else image=RecoveryCore.ResumeCapture(folder,token,(done,total)=>Post(()=>{progress.Style=ProgressBarStyle.Continuous;progress.Value=(int)Math.Min(100,done*100/Math.Max(1,total));status.Text="Продолжение образа: "+progress.Value+"%";activityView.SetPhase("Создание образа",status.Text);activityView.SetProgress(done,total);}));
                         string baseline=null;
-                        found=RecoveryPipeline.Run(image,folder,options,token,update,baseline);
+                        found=RecoveryPipeline.Run(image,folder,options,token,update,baseline,state=>Post(()=>PresentActivity(state)));
                     }
                     RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(folder,"result.json"),new{status=found.HasWarnings?"finished_with_warnings":"finished",resumed=true,utc=DateTime.UtcNow.ToString("o"),candidates=found.Candidates,uniqueFiles=found.UniqueFiles,resumedStages=found.ResumedStages});return found;
                 });
-                lastGallery=result.Gallery;workflow.Current=2;workflow.Invalidate();progress.Style=ProgressBarStyle.Continuous;progress.Value=100;status.Text="Продолжение завершено. Файлов: "+result.UniqueFiles+". Проверенных этапов использовано повторно: "+result.ResumedStages+(result.HasWarnings?". Есть замечания.":".");Append(status.Text);complete=true;
+                lastGallery=result.Gallery;workflow.Current=2;workflow.Invalidate();progress.Style=ProgressBarStyle.Continuous;progress.Value=100;status.Text="Продолжение завершено. Файлов: "+result.UniqueFiles+". Проверенных этапов использовано повторно: "+result.ResumedStages+(result.HasWarnings?". Есть замечания.":".");Append(status.Text);complete=true;activityView.IsComplete=true;
             }catch(OperationCanceledException){status.Text="Остановлено. Сессия и уже найденные файлы сохранены; можно продолжить позже.";Append(status.Text);RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(folder,"result.json"),new{status="cancelled",resumed=true,utc=DateTime.UtcNow.ToString("o")});}
             catch(Exception error){status.Text="Продолжение остановлено: "+error.Message;Append(status.Text);}
-            finally{busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;open.Enabled=Directory.Exists(folder);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);progress.Style=ProgressBarStyle.Continuous;UpdateResultAction();}
+            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;open.Enabled=Directory.Exists(folder);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);progress.Style=ProgressBarStyle.Continuous;UpdateResultAction();}
             return complete;
         }
 
         async void BeginRecovery(DiskInfo selected, string existingImage)
         {
             string runDirectory = null;
+            bool searchFinished=false,searchWarnings=false;
             RecoveryOptions options=searchSettings.Selection();try{options.Validate();}catch(ArgumentException e){MessageBox.Show(this,e.Message,"Способы поиска");return;}
-            busy = true; start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = continueJob.Enabled = false; stop.Enabled = true; open.Enabled = gallery.Enabled = fileList.Enabled = false;
+            BeginActivity("Подготовка поиска","Проверка источника и папки результатов");busy = true; start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = continueJob.Enabled = false; stop.Enabled = true; open.Enabled = gallery.Enabled = fileList.Enabled = false;
             workflow.Current=1;workflow.Invalidate();
             cancellation = new CancellationTokenSource(); var token = cancellation.Token;
             try
@@ -256,7 +265,7 @@ namespace UsbRecovery
                         long lastUpdate = 0;
                         image = RecoveryCore.Capture(selected, runDirectory, token, (done, total) => {
                             long now = Environment.TickCount & Int32.MaxValue;
-                            if (done == total || now - lastUpdate >= 250) { lastUpdate = now; Post(() => { progress.Value = (int)(done * 100 / total); status.Text = String.Format("Копирование: {0:0.0} из {1:0.0} ГБ ({2}%)", done / 1000000000.0, total / 1000000000.0, done * 100 / total); }); }
+                            if (done == total || now - lastUpdate >= 250) { lastUpdate = now; Post(() => { activityView.SetPhase("Создание образа","Копирование на другой физический диск");activityView.SetProgress(done,total);progress.Value = (int)(done * 100 / total); status.Text = String.Format("Копирование: {0:0.0} из {1:0.0} ГБ ({2}%)", done / 1000000000.0, total / 1000000000.0, done * 100 / total); }); }
                         }, options.TolerateReadErrors);
                         Post(() => Append("Полная копия сохранена. Проверяется её контрольная сумма."));
                     }
@@ -266,14 +275,14 @@ namespace UsbRecovery
                     }
                     Post(() => { status.Text = "Проверяется копия флешки…"; progress.Style = ProgressBarStyle.Marquee; });
                     string lastMessage = null;
-                    ScanResult result = RecoveryPipeline.Run(image, runDirectory, options, token, text => Post(() => { status.Text = text; if (text != lastMessage && !text.Contains("%") && !text.StartsWith("PhotoRec:") && !text.StartsWith("Каталог:")) { Append(text); lastMessage = text; } }),imageChecksum);
+                    ScanResult result = RecoveryPipeline.Run(image, runDirectory, options, token, text => Post(() => { status.Text = text; if (text != lastMessage && !text.Contains("%") && !text.StartsWith("PhotoRec:") && !text.StartsWith("Каталог:")) { Append(text); lastMessage = text; } }),imageChecksum,state=>Post(()=>PresentActivity(state)));
                     lastGallery = result.Gallery;Post(()=>{workflow.Current=2;workflow.Invalidate();});
                     if (File.Exists(HelperClient.Executable))
                     {
                         string photoOutput = Path.Combine(runDirectory, "photo-archive");
                         try
                         {
-                            Post(() => { status.Text = "Дополнительные предпросмотры WebP и HEIC…"; });
+                            Post(() => { BeginActivity("Подготовка предпросмотра","Изображения WebP и HEIC · обработка локально");status.Text = "Дополнительные предпросмотры WebP и HEIC…"; });
                             HelperResult previews = HelperClient.Photos(runDirectory, photoOutput, token);
                             string extendedGallery = Path.Combine(photoOutput, "Фотографии.html");
                             if (previews.Status != "error" && File.Exists(extendedGallery)) lastGallery = extendedGallery;
@@ -283,8 +292,10 @@ namespace UsbRecovery
                         catch (IOException) { result.HasWarnings = true; Post(() => Append("Дополнительные предпросмотры не завершены. Сохранена основная галерея.")); }
                     }
                     RecoveryCore.SaveJson(Path.Combine(runDirectory, "result.json"), new { status = result.HasWarnings ? "finished_with_warnings" : "finished", utc = DateTime.UtcNow.ToString("o"), candidates = result.Candidates,uniqueFiles=result.UniqueFiles,options=options, image = image, gallery = lastGallery.Substring(runDirectory.Length + 1).Replace('\\', '/') });
+                    searchWarnings=result.HasWarnings;
                     Post(() => { progress.Style = ProgressBarStyle.Continuous; progress.Value = 100; status.Text = result.HasWarnings ? "Поиск закончен с замечаниями. Смотри журнал; уже найденные файлы сохранены." : "Поиск завершён. Кандидатов: " + result.Candidates + ". Открой галерею с проверкой фотографий."; Append("Галерея показывает размеры и состояние изображений и группирует одинаковые файлы. Файлы на диске не удаляются."); });
                 });
+                searchFinished=true;
             }
             catch (OperationCanceledException)
             {
@@ -300,7 +311,7 @@ namespace UsbRecovery
             }
             finally
             {
-                busy = false; cancellation.Dispose(); cancellation = null;
+                activityView.IsActive=false;activityView.IsComplete=searchFinished;activityView.SetPhase(searchFinished?(searchWarnings?"Поиск завершён с замечаниями":"Поиск завершён"):"Поиск не завершён",searchFinished?"Открой «Все файлы и экспорт», проверь и сохрани нужное":"Подробности — в ходе операции");busy = false; cancellation.Dispose(); cancellation = null;
                 start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = continueJob.Enabled = true; stop.Enabled = false;
                 progress.Style = ProgressBarStyle.Continuous; open.Enabled = lastDirectory != null && Directory.Exists(lastDirectory); gallery.Enabled = lastGallery != null && File.Exists(lastGallery);
                 fileList.Enabled=true;UpdateResultAction();

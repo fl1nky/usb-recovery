@@ -136,6 +136,9 @@ namespace UsbRecovery
         readonly Button choose = new Button(), analyze = new Button(), search = new Button(), previous = new Button(), next = new Button(), cancelButton = new Button(), openAttachment = new Button(), copy = new Button();
         readonly Label count = new Label();
         readonly TextBox analysisStatus = new TextBox();
+        readonly RecoveryActivityView analysisActivity=new RecoveryActivityView();
+        readonly Panel analysisState=new Panel();
+        TableLayoutPanel contentLayout;
         readonly CheckBox regexMode = new CheckBox();
         readonly Button analysisSource = new Button();
         readonly DataGridView grid = new DataGridView();
@@ -153,7 +156,7 @@ namespace UsbRecovery
         public ArchiveSearchPanel()
         {
             Dock = DockStyle.Fill; BackColor = Color.FromArgb(246, 246, 246); Font = new Font("Segoe UI", 10F);
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 1, RowCount = 8 };
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20), ColumnCount = 1, RowCount = 8 };contentLayout=layout;
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 78)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 98));
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 145)); layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 80)); Controls.Add(layout);
             var heading = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0, 0, 0, 14) };
@@ -167,7 +170,7 @@ namespace UsbRecovery
             Configure(choose, "Открыть архив", delegate { ChooseArchive(); }); folders.Controls.Add(choose, 2, 0);
             archive.ReadOnly = true; archive.Dock = DockStyle.Fill; archive.Font = new Font("Consolas", 9F); archive.Margin = new Padding(8, 5, 0, 0); archive.Name = "telegram-archive"; folders.Controls.Add(archive, 3, 0); layout.Controls.Add(folders, 0, 1);
             analysisStatus.Multiline = true; analysisStatus.ReadOnly = true; analysisStatus.Dock = DockStyle.Fill; analysisStatus.ScrollBars = ScrollBars.Vertical; analysisStatus.Name = "telegram-analysis-status"; analysisStatus.Tag = "muted"; analysisStatus.Margin = new Padding(0, 3, 0, 8);
-            analysisStatus.Text = "Нажми «Анализировать»: программа найдёт доступные локальные данные Telegram. Закрытый кэш будет отмечен отдельно."; layout.Controls.Add(analysisStatus, 0, 2);
+            analysisStatus.Text = "Нажми «Анализировать»: программа найдёт доступные локальные данные Telegram. Закрытый кэш будет отмечен отдельно.";analysisState.Dock=DockStyle.Fill;analysisState.Margin=Padding.Empty;analysisActivity.Dock=DockStyle.Fill;analysisActivity.Name="telegram-activity";analysisActivity.Visible=false;analysisState.Controls.Add(analysisStatus);analysisState.Controls.Add(analysisActivity);layout.Controls.Add(analysisState, 0, 2);
             var filters = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 3, RowCount = 3, Margin = new Padding(0) };
             filters.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185)); filters.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
             filters.Controls.Add(new Label { Text = "Ключевые слова", AutoSize = true, Margin = new Padding(0, 0, 0, 5) }, 0, 0);
@@ -207,6 +210,9 @@ namespace UsbRecovery
             if (value && busy) throw new InvalidOperationException("SEARCH_IN_PROGRESS");
             analysisBusy = value;
             if (!String.IsNullOrEmpty(message)) analysisStatus.Text = message;
+            analysisActivity.IsActive=value;analysisActivity.SetPhase("Анализ Telegram",message??"Чтение доступных локальных файлов");analysisActivity.Visible=value;analysisStatus.Visible=!value;
+            if(contentLayout!=null)contentLayout.RowStyles[2].Height=value?124:50;
+            if(value)analysisActivity.BringToFront();else analysisStatus.BringToFront();
             if (value) { ClearResults(); archive.Clear(); count.Text = "Анализ локальных данных…"; }
             SetBusy(busy || analysisBusy);
         }

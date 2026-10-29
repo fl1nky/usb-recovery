@@ -134,7 +134,8 @@ def verify(root=ROOT):
     reports = {name: verify_offline(name + "Offline-validation.json", root, ready) for name in ("Quality", "Telegram", "Usb")}
     required = {"ContentQualityTests", "ArchiveSalvageTests", "MetadataRescueTests", "NewEngineIntegrationTests",
                 "ResumableCaptureTests", "RecoverySessionTests", "FolderProvenanceTests", "FolderExportTests",
-                "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests"}
+                "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests",
+                "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests"}
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
     require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")

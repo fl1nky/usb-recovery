@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -22,6 +22,7 @@ namespace UsbRecovery
         readonly Dictionary<string, Button> navigation = new Dictionary<string, Button>();
         readonly bool automaticDiscovery;
         CancellationTokenSource telegramAnalysis;
+        readonly CheckBox motionToggle=new CheckBox();
         
         public RecoveryHub() : this(true) { }
         public RecoveryHub(bool automaticDiscovery)
@@ -42,6 +43,7 @@ namespace UsbRecovery
             Section(links, "ИСТОЧНИКИ");
             Link(links, "Android", "Android"); Link(links, "iPhone", "iPhone"); Link(links, "files", "Импорт и кэш");
             sidebar.Controls.Add(links); var footer = new Label { Text = "Локальная обработка\r\nБез подписки и облака", Dock = DockStyle.Bottom, Height = 48, Tag = "muted-dark", Font = new Font("Segoe UI", 9F) }; sidebar.Controls.Add(footer);
+            motionToggle.Text="Анимации";motionToggle.Name="motion-toggle";motionToggle.Checked=MotionSettings.Enabled;motionToggle.Dock=DockStyle.Bottom;motionToggle.Height=34;motionToggle.Tag="muted-dark";motionToggle.CheckedChanged+=delegate{MotionSettings.Enabled=motionToggle.Checked;};sidebar.Controls.Add(motionToggle);sidebar.Controls.SetChildIndex(motionToggle,1);
             workspace.Dock = DockStyle.Fill; workspace.Margin = Padding.Empty;
             frame.Controls.Add(sidebar, 0, 0); frame.Controls.Add(workspace, 1, 0); Controls.Add(frame);
             archive.Dock = logical.Dock = DockStyle.Fill; workspace.Controls.Add(logical); workspace.Controls.Add(archive); logical.Visible = false;
@@ -106,7 +108,7 @@ namespace UsbRecovery
         readonly TreeView tree = new TreeView();
         readonly Label help = new Label(), state = new Label();
         readonly CheckBox deep = new CheckBox();
-        readonly ProgressBar progress = new ProgressBar();
+        readonly MotionProgressBar progress = new MotionProgressBar();
         readonly TabControl results = new TabControl();
         CancellationTokenSource cancellation;
         bool busy, loading; string runDirectory, analysisDirectory, sourceReport;

@@ -12,7 +12,7 @@ $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular image files 
 try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
     $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests')
-    foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
+    foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
         $taskSources=@((Join-Path $PSScriptRoot ($taskName+'.cs')))
