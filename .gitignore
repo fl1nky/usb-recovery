@@ -1,0 +1,50 @@
+# Source repository: recovered data, generated runtimes and build caches stay local
+/*
+!/*.cs
+!/*.md
+!/*.ps1
+!/*.manifest
+!/.gitignore
+!/.gitattributes
+!/НАЧНИ ЗДЕСЬ.txt
+!/docs/
+!/helpers/
+!/tests/
+
+# Keep only maintained helper sources and dependency inventories
+/helpers/*
+!/helpers/recovery_engine/
+/helpers/recovery_engine/*
+!/helpers/recovery_engine/*.py
+!/helpers/recovery_engine/*.txt
+!/helpers/recovery_engine/*.json
+
+# Test source and small explicitly synthetic fixtures, never generated recoveries
+/tests/*
+!/tests/*.cs
+!/tests/*.py
+!/tests/*.ps1
+!/tests/TelegramNativeFixtures/
+!/tests/TelegramMediaFixtures/
+!/tests/photorec-20261011T231546120952Z/
+/tests/photorec-20261011T231546120952Z/*
+!/tests/photorec-20261011T231546120952Z/fixtures/
+/tests/photorec-20261011T231546120952Z/fixtures/*
+!/tests/photorec-20261011T231546120952Z/fixtures/expected.png
+
+**/__pycache__/
+**/*.pyc
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+**/*.partial
+**/.DS_Store
+/build-signal-helpers.ps1
+/docs/local/
+
+# Portable builds and offline third-party sources are attached to GitHub Releases
+/.build/
+/tools/
+/vendor/
+/Готовая программа/

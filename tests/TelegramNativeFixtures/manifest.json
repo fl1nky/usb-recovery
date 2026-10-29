@@ -1,0 +1,57 @@
+{
+  "synthetic": true,
+  "telegram_source_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "files": [
+    {
+      "path": "corrupt-wal/cache4.db",
+      "size": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    {
+      "path": "corrupt-wal/cache4.db-wal",
+      "size": 28872,
+      "sha256": "1be077e5d9af70c5a10da91f9ebdcb452df228b322305833ffbf205800ad7ec2"
+    },
+    {
+      "path": "cross-account/account-a/cache4.db",
+      "size": 12288,
+      "sha256": "8769bb880e6727b30ac26b98fe40d9b890947f6a9dadc3d8c6068263dfe12094"
+    },
+    {
+      "path": "cross-account/account-b/cache4.db",
+      "size": 12288,
+      "sha256": "8769bb880e6727b30ac26b98fe40d9b890947f6a9dadc3d8c6068263dfe12094"
+    },
+    {
+      "path": "missing-preimage/cache4.db",
+      "size": 12288,
+      "sha256": "397fb49eb11930c22699bd6271ab0baa536aa824b050b27bed36881d1d4776d3"
+    },
+    {
+      "path": "missing-preimage/cache4.db-wal",
+      "size": 16512,
+      "sha256": "382b6d584ddb0f4a5a440f0c2ec3db53bb5b8b409c7a6508bf6f5dd9997d1f2e"
+    },
+    {
+      "path": "valid/cache4.db",
+      "size": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    {
+      "path": "valid/cache4.db-wal",
+      "size": 28872,
+      "sha256": "36f6680dd0dfb608607f9acfd6b5b4b74931d2d1d5cbe6b433846fcaca51dc9d"
+    }
+  ],
+  "valid": {
+    "backup": [
+      "Current recipe"
+    ],
+    "previous": [
+      "Old recipe before edit",
+      "Deleted recipe before removal"
+    ]
+  },
+  "missing_preimage_messages": 0,
+  "cross_account_messages": 2
+}

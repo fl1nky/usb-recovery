@@ -1,0 +1,34 @@
+{
+  "synthetic": true,
+  "files": [
+    {
+      "path": "input/cache4.db",
+      "size": 12288,
+      "sha256": "2320463c93496e8875d0e2722905dedb65638851c0bcfa5aeda38bd937754abf"
+    },
+    {
+      "path": "expected-thumbnail.jpg",
+      "size": 645,
+      "sha256": "0d0a893eea1ece265155436aefb528225fe16addab914966a2009f2f3d18164c"
+    },
+    {
+      "path": "history/cache4.db",
+      "size": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    {
+      "path": "history/cache4.db-wal",
+      "size": 24752,
+      "sha256": "c5c809193a6887bd2c0463e15c4b9943cec79dbb94f919e1afdd62b0cdfa5cf8"
+    }
+  ],
+  "expected_typed_records": 5,
+  "thumbnail_sha256": "0d0a893eea1ece265155436aefb528225fe16addab914966a2009f2f3d18164c",
+  "thumbnail_bytes": 645,
+  "full_original_recovered": false,
+  "history_current_text": "Current photo caption",
+  "history_previous_text": "Prior photo caption",
+  "history_current_records": 1,
+  "history_previous_records": 1,
+  "source_commit": "4de548e79fed27f1a66fbdff84223321838fe925"
+}
