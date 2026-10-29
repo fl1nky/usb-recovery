@@ -22,3 +22,9 @@ pywin32-ctypes==0.2.3
 setuptools==84.0.0
 tqdm==4.70.1
 webencodings==0.6.1
+dissect.apfs==1.1
+dissect.fve==4.6
+dissect.cstruct==4.7
+dissect.util==3.24
+dissect.volume==3.18
+asn1crypto==1.5.1

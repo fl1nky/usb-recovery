@@ -135,7 +135,8 @@ def verify(root=ROOT):
     required = {"ContentQualityTests", "ArchiveSalvageTests", "MetadataRescueTests", "NewEngineIntegrationTests",
                 "ResumableCaptureTests", "RecoverySessionTests", "FolderProvenanceTests", "FolderExportTests",
                 "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests",
-                "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests"}
+                "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests",
+                "RaidRecoveryTests", "StorageUiTests", "StoragePipelineTests", "HelperMemoryTests", "AtomicJsonSaveTests"}
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
     require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")

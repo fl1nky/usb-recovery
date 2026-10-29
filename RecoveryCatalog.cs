@@ -9,7 +9,7 @@ using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
-    public sealed class OriginalLocation { public string Path,Status,Evidence,CandidatePath;public long? VolumeOffset; }
+    public sealed class OriginalLocation { public string Path,Status,Evidence,CandidatePath,FileSystem,VolumeId,SnapshotId,CheckpointId;public long? VolumeOffset;public List<string> Components; }
     public sealed class RecoveredItem
     {
         public string Name, Path, Extension, Category, Method, Status, Sha256, Note;
@@ -71,7 +71,7 @@ namespace UsbRecovery
                     }else old.Copies.Add(relative);continue;
                 }
                 string ext=System.IO.Path.GetExtension(file),status;photos.TryGetValue(relative,out status);
-                string method=LogicalPath(relative).StartsWith("user-signatures/",StringComparison.Ordinal)?"Своя сигнатура":LogicalPath(relative).StartsWith("filesystem/",StringComparison.Ordinal)?"FAT/exFAT":LogicalPath(relative).StartsWith("ntfs/",StringComparison.Ordinal)?"NTFS":LogicalPath(relative).StartsWith("metadata-rescue/",StringComparison.Ordinal)?"Независимые записи NTFS":LogicalPath(relative).StartsWith("fragmented-archives/",StringComparison.Ordinal)?"Сборка ZIP / Office":LogicalPath(relative).StartsWith("salvage-content/",StringComparison.Ordinal)?"Часть ZIP / Office":LogicalPath(relative).StartsWith("extra-photos/",StringComparison.Ordinal)?"JPEG/PNG внутри данных":LogicalPath(relative).StartsWith("containers/",StringComparison.Ordinal)?"Контейнер по смещению":"PhotoRec";
+                string method=LogicalPath(relative).StartsWith("apfs-files/",StringComparison.Ordinal)?"APFS":LogicalPath(relative).StartsWith("user-signatures/",StringComparison.Ordinal)?"Своя сигнатура":LogicalPath(relative).StartsWith("filesystem/",StringComparison.Ordinal)?"FAT/exFAT":LogicalPath(relative).StartsWith("ntfs/",StringComparison.Ordinal)?"NTFS":LogicalPath(relative).StartsWith("metadata-rescue/",StringComparison.Ordinal)?"Независимые записи NTFS":LogicalPath(relative).StartsWith("fragmented-archives/",StringComparison.Ordinal)?"Сборка ZIP / Office":LogicalPath(relative).StartsWith("salvage-content/",StringComparison.Ordinal)?"Часть ZIP / Office":LogicalPath(relative).StartsWith("extra-photos/",StringComparison.Ordinal)?"JPEG/PNG внутри данных":LogicalPath(relative).StartsWith("containers/",StringComparison.Ordinal)?"Контейнер по смещению":"PhotoRec";
                 var item=new RecoveredItem { Name=System.IO.Path.GetFileName(file),Path=relative,Extension=ext,Category=Category(ext),Method=method,Bytes=new FileInfo(file).Length,Sha256=sha,Status=status=="decoded"?"Изображение открывается":status=="partial"||status=="damaged_candidate"?"Повреждённый кандидат":"Требует проверки",Note="Наличие файла не доказывает целостность или факт удаления. Сравни содержимое с ожидаемым. Все копии сохранены." };
                 if(method=="Контейнер по смещению")item.Note="Найдена структура контейнера; содержимое/CRC и фрагментация полностью не подтверждены. Имя и дата неизвестны.";
                 if(LogicalPath(relative).StartsWith("text-fragments/",StringComparison.Ordinal)){item.Method="Текстовый остаток";item.Status="Фрагмент, не документ";item.Note="Только найденная строка. Границы документа, автор, дата и факт удаления неизвестны. Позиция и исходная кодировка: text-search.json.";}
@@ -159,13 +159,15 @@ namespace UsbRecovery
         static IEnumerable<ExportLocation> ExportLocations(RecoveredItem item)
         {
             var seen=new HashSet<string>(StringComparer.Ordinal);if(item.OriginalLocations!=null)foreach(var location in item.OriginalLocations){
-                if(location==null||location.Status!="verified_parent_chain"||!location.VolumeOffset.HasValue||location.VolumeOffset.Value<0||String.IsNullOrEmpty(location.Path)||String.IsNullOrEmpty(location.Evidence)||String.IsNullOrEmpty(location.CandidatePath))continue;
+                if(location==null||(location.Status!="verified_parent_chain"&&location.Status!="apfs_referenced_path"&&location.Status!="apfs_snapshot_path"&&location.Status!="apfs_checkpoint_path")||!location.VolumeOffset.HasValue||location.VolumeOffset.Value<0||String.IsNullOrEmpty(location.Path)||String.IsNullOrEmpty(location.Evidence)||String.IsNullOrEmpty(location.CandidatePath))continue;
                 // Metadata paths are virtual root paths. Windows drive, UNC and
                 // traversal forms must never become filesystem instructions.
-                string path=location.Path.Replace('\\','/');if(path.StartsWith("//",StringComparison.Ordinal)||path.IndexOf(':')>=0||path.Length>32768)continue;
-                string[] parts=path.TrimStart('/').Split('/');if(parts.Length==0||parts.Length>256||parts.Any(x=>x.Length==0||x=="."||x==".."))continue;
-                string identity=location.VolumeOffset.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)+":"+path;if(!seen.Add(identity))continue;
-                yield return new ExportLocation{Relative="Том-"+location.VolumeOffset.Value.ToString("X16")+"/"+String.Join("/",parts.Select((x,i)=>ExportComponent(x,i==parts.Length-1?100:64))),Original=location.Path,Status=location.Status,Volume=location.VolumeOffset};
+                string path=location.Path;string[] parts;
+                if(location.FileSystem=="APFS"&&location.Components!=null){parts=location.Components.ToArray();if(parts.Any(x=>x==null||x.IndexOf('/')>=0||x.IndexOf('\0')>=0))continue;path=String.Join("/",parts);}
+                else{path=path.Replace('\\','/');if(path.StartsWith("//",StringComparison.Ordinal)||path.IndexOf(':')>=0||path.Length>32768)continue;parts=path.TrimStart('/').Split('/');}
+                if(parts.Length==0||parts.Length>256||parts.Any(x=>x.Length==0||x=="."||x==".."))continue;
+                string scope=location.FileSystem=="APFS"?"APFS-"+ExportComponent(location.VolumeId??"unknown",48)+"/"+ExportComponent(!String.IsNullOrEmpty(location.SnapshotId)?"Снимок-"+location.SnapshotId:!String.IsNullOrEmpty(location.CheckpointId)?"Состояние-"+location.CheckpointId:"Текущее состояние",48):"Том-"+location.VolumeOffset.Value.ToString("X16");string identity=scope+":"+location.VolumeOffset.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)+":"+path;if(!seen.Add(identity))continue;
+                yield return new ExportLocation{Relative=scope+"/"+String.Join("/",parts.Select((x,i)=>ExportComponent(x,i==parts.Length-1?100:64))),Original=location.Path,Status=location.Status,Volume=location.VolumeOffset};
             }
             if(seen.Count==0)yield return new ExportLocation{Relative="Без подтверждённой папки/"+ExportComponent(item.Name,100),Status="unknown_or_unconfirmed"};
         }

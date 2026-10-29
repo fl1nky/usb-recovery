@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +12,8 @@ namespace UsbRecovery
     {
         public string Path,Kind,Note,VerifiedSha256,VerificationStatus;
         public string OriginalPath,OriginalPathStatus,PathEvidence;
+        public string FileSystem,VolumeId,SnapshotId,CheckpointId;
+        public List<string> Components;
         public long? VolumeOffset;
         public long VerifiedBytes=-1;
         public List<FileExtent> Ranges=new List<FileExtent>();
@@ -49,12 +51,17 @@ namespace UsbRecovery
         static Dictionary<string,object> Read(string root,string relative)
         {
             string file=RecoveryCatalog.SafeFile(root,relative);if(!File.Exists(file)||new FileInfo(file).Length>128L*1024*1024)return null;
-            try{return Json().Deserialize<Dictionary<string,object>>(File.ReadAllText(file));}catch(ArgumentException){return null;}catch(InvalidOperationException){return null;}
+            try{object raw=Json().DeserializeObject(File.ReadAllText(file));var record=raw as Dictionary<string,object>;if(record!=null)return record;if(relative=="storage-candidates.json"&&raw is IEnumerable&&!(raw is string))return new Dictionary<string,object>{{"files",raw}};return null;}catch(ArgumentException){return null;}catch(InvalidOperationException){return null;}
         }
         static IEnumerable<Dictionary<string,object>> Rows(Dictionary<string,object> record,string key)
         {
             object values;if(record==null||!record.TryGetValue(key,out values)||!(values is IEnumerable)||values is string)yield break;
             foreach(object value in (IEnumerable)values){var row=value as Dictionary<string,object>;if(row!=null)yield return row;}
+        }
+        static List<string> Components(Dictionary<string,object> row)
+        {
+            object raw;if(!row.TryGetValue("original_path_components",out raw)||!(raw is IEnumerable)||raw is string)return null;
+            var result=new List<string>();foreach(object value in (IEnumerable)raw){string part=value as string;if(part==null||part.Length==0||part.Length>1024||part=="."||part==".."||part.IndexOf('/')>=0||part.IndexOf('\0')>=0||result.Count>=256)return null;result.Add(part);}return result.Count>0?result:null;
         }
         public static FileEvidence Load(string root)
         {return Load(root,0);}
@@ -67,6 +74,11 @@ namespace UsbRecovery
             if(map!=null&&Number(map,"unreadBytes",-1)!=result.Unread.Sum(x=>x.Length))result.Unread.Clear();
             foreach(var row in Rows(Read(root,"container-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"bytes"),"container");
             foreach(var row in Rows(Read(root,"extra-photo-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"size"),"embedded_photo");
+            foreach(var row in Rows(Read(root,"storage-candidates.json"),"files")){
+                string path=Value(row,"path"),original=Value(row,"original_path"),sha=Value(row,"sha256");long bytes=Number(row,"bytes",-1),offset=Number(row,"source_offset_bytes",-1);bool previous=Value(row,"origin")=="previous-version",fallback=Value(row,"checkpoint_fallback")=="True";
+                if(path==null||!path.StartsWith("apfs-files/",StringComparison.Ordinal)||original==null||sha==null||bytes<0||offset<0||Value(row,"filesystem")!="APFS"||Value(row,"validation")!="metadata-checksum-and-readable-stream")continue;
+                result.entries[path]=new EvidenceEntry{Path=path,Kind=fallback?"apfs_checkpoint":previous?"apfs_snapshot":"apfs_referenced_file",OriginalPath=original,OriginalPathStatus=fallback?"apfs_checkpoint_path":previous?"apfs_snapshot_path":"apfs_referenced_path",PathEvidence="APFS reference; volume="+Value(row,"volume_id")+"; snapshot="+Value(row,"snapshot_id")+"; checkpoint="+Value(row,"checkpoint_xid")+"; inode="+Value(row,"record_id"),VolumeOffset=offset,VerifiedSha256=sha,VerifiedBytes=bytes,FileSystem="APFS",VolumeId=Value(row,"volume_id"),SnapshotId=String.IsNullOrEmpty(Value(row,"snapshot_id"))?null:Value(row,"snapshot_id"),CheckpointId=fallback?Value(row,"checkpoint_xid"):null,Components=Components(row)};
+            }
             foreach(var row in Rows(Read(root,"user-signatures.json"),"Files")){
                 string path=Value(row,"Path");long offset=Number(row,"Offset",-1),size=Number(row,"Bytes",-1);if(String.IsNullOrEmpty(path)||Value(row,"Status")!="signature_candidate")continue;
                 result.Add(path,offset,size,"user_signature");EvidenceEntry proof;if(result.entries.TryGetValue(path.Replace('\\','/'),out proof)){proof.VerifiedSha256=Value(row,"Sha256");proof.VerifiedBytes=size;proof.VerificationStatus="signature_candidate";proof.Note=Value(row,"Boundary");}
@@ -127,9 +139,9 @@ namespace UsbRecovery
             item.OriginalLocations=new List<OriginalLocation>();item.OriginalPath=item.OriginalPathStatus=item.OriginalPathEvidence=item.SourceCandidatePath=null;item.SourceVolumeOffset=null;item.SourceOffset=null;item.SourceRanges=new List<FileExtent>();item.UnreadBytes=null;
             foreach(string candidate in new[]{item.Path}.Concat(item.Copies)){
                 var origin=For(candidate);if(origin==null||origin.OriginalPath==null||origin.VerifiedSha256==null||!String.Equals(origin.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||origin.VerifiedBytes!=item.Bytes)continue;
-                item.OriginalLocations.Add(new OriginalLocation{Path=origin.OriginalPath,Status=origin.OriginalPathStatus,Evidence=origin.PathEvidence,VolumeOffset=origin.VolumeOffset.HasValue&&origin.VolumeOffset.Value>=0?origin.VolumeOffset:null,CandidatePath=candidate});
+                item.OriginalLocations.Add(new OriginalLocation{Path=origin.OriginalPath,Status=origin.OriginalPathStatus,Evidence=origin.PathEvidence,VolumeOffset=origin.VolumeOffset.HasValue&&origin.VolumeOffset.Value>=0?origin.VolumeOffset:null,CandidatePath=candidate,FileSystem=origin.FileSystem,VolumeId=origin.VolumeId,SnapshotId=origin.SnapshotId,CheckpointId=origin.CheckpointId,Components=origin.Components});
             }
-            var preferred=item.OriginalLocations.FirstOrDefault(x=>x.Status=="verified_parent_chain")??item.OriginalLocations.FirstOrDefault();
+            var preferred=item.OriginalLocations.FirstOrDefault(x=>x.Status=="verified_parent_chain")??item.OriginalLocations.FirstOrDefault(x=>x.Status=="apfs_referenced_path")??item.OriginalLocations.FirstOrDefault();
             if(preferred!=null){item.OriginalPath=preferred.Path;item.OriginalPathStatus=preferred.Status;item.OriginalPathEvidence=preferred.Evidence;item.SourceVolumeOffset=preferred.VolumeOffset;}
             var record=For(preferred==null?item.Path:preferred.CandidatePath);
             if(record!=null&&record.VerifiedSha256!=null&&(!String.Equals(record.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||record.VerifiedBytes!=item.Bytes)){
@@ -138,6 +150,7 @@ namespace UsbRecovery
             if(record!=null){item.SourceCandidatePath=record.Path;item.SourceOffset=record.Offset;item.SourceRanges=record.Ranges;item.IntegrityDetail+=(String.IsNullOrEmpty(item.IntegrityDetail)?"":" ")+"Происхождение: "+record.Kind+"; диапазонов в образе: "+record.Ranges.Count+".";}
             if(record!=null&&record.Kind=="ntfs_record"&&!record.MappingComplete)item.IntegrityDetail+=" Для resident-данных восстановлены USA-байты записи; указан адрес записи, а точная физическая карта содержимого не заявляется.";
             if(record!=null&&record.Kind=="encoded_zip_entry")item.IntegrityDetail+=" Диапазон относится к закодированной ZIP-записи с заголовком, а не к несжатому содержимому.";
+            if(record!=null&&(record.Kind=="apfs_snapshot"||record.Kind=="apfs_checkpoint"||record.Kind=="apfs_referenced_file")){if(record.Components!=null&&record.Components.Count>0){item.Name=record.Components[record.Components.Count-1];int dot=item.Name.LastIndexOf('.');item.Extension=dot>=0?item.Name.Substring(dot):"";item.Category=RecoveryCatalog.Category(item.Extension);}item.Method=record.Kind=="apfs_checkpoint"?"APFS · предыдущее состояние":record.Kind=="apfs_snapshot"?"APFS · снимок":"APFS · файл";item.Status=record.Kind=="apfs_referenced_file"?"Сохранившийся файл APFS":"Предыдущая версия APFS";item.Note="Файл прочитан по сохранившейся записи APFS; факт удаления не устанавливается. Снимок, том и запись приведены в происхождении. SHA256 удостоверяет полученные байты, а не исходную полноту.";item.IntegrityDetail+=" "+record.PathEvidence+"; физическая карта блоков не установлена.";}
             if(record!=null&&record.Kind=="reassembled_zip")item.IntegrityDetail+=" ZIP собран из раздельных записей; проверены размеры и CRC элементов. Исходное имя, факт удаления и подлинность содержимого неизвестны.";
             if(record!=null&&(record.Note=="partial"||record.Note=="partial_candidate")){item.Quality="partial";item.QualityLabel="Восстановлена часть файла";item.IntegrityDetail+=" Карта метаданных показывает неполное восстановление; открытие файла не доказывает полноту.";}
             if(!HasReadErrors)return;

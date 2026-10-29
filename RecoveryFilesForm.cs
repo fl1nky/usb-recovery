@@ -80,8 +80,8 @@ namespace UsbRecovery
         }
         static string FolderKey(OriginalLocation location)
         {
-            string path=location.Path.Replace('\\','/');int end=path.LastIndexOf('/');string directory=end<=0?"":path.Substring(0,end).TrimEnd('/');
-            return (location.Status=="verified_parent_chain"?"NTFS":"FAT-exFAT")+":"+(location.VolumeOffset.HasValue?location.VolumeOffset.Value.ToString():"unknown")+directory;
+            string path=location.FileSystem=="APFS"&&location.Components!=null?String.Join("/",location.Components.Select(x=>x.Replace("%","%25").Replace("\\","%5C"))):location.Path.Replace('\\','/');int end=path.LastIndexOf('/');string directory=end<=0?"":path.Substring(0,end).TrimEnd('/');
+            return (location.FileSystem=="APFS"?"APFS:"+location.VolumeId+":"+location.SnapshotId+":"+location.CheckpointId:location.Status=="verified_parent_chain"?"NTFS":"FAT-exFAT")+":"+(location.VolumeOffset.HasValue?location.VolumeOffset.Value.ToString():"unknown")+directory;
         }
         bool FolderMatches(RecoveredItem item)
         {
@@ -97,7 +97,7 @@ namespace UsbRecovery
             folders.BeginUpdate();folders.Nodes.Clear();var allNode=folders.Nodes.Add("Все найденные файлы");allNode.Tag="";var nodes=new Dictionary<string,TreeNode>(StringComparer.OrdinalIgnoreCase);int countNodes=1;bool limited=false;
             foreach(var item in index.Items){foreach(var location in Locations(item)){
                 string key=FolderKey(location);string[] parts=key.Split('/');string at=parts[0];TreeNode node;
-                if(!nodes.TryGetValue(at,out node)){if(countNodes++>=20000){limited=true;break;}node=folders.Nodes.Add((location.Status=="verified_parent_chain"?"NTFS":"FAT/exFAT")+" · "+(location.VolumeOffset.HasValue?"смещение "+location.VolumeOffset.Value:"том неизвестен"));node.Tag=at;nodes.Add(at,node);}
+                if(!nodes.TryGetValue(at,out node)){if(countNodes++>=20000){limited=true;break;}node=folders.Nodes.Add((location.FileSystem=="APFS"?"APFS · "+location.VolumeId+(!String.IsNullOrEmpty(location.SnapshotId)?" · снимок "+location.SnapshotId:!String.IsNullOrEmpty(location.CheckpointId)?" · состояние "+location.CheckpointId:" · текущее"):location.Status=="verified_parent_chain"?"NTFS":"FAT/exFAT")+" · "+(location.VolumeOffset.HasValue?"смещение "+location.VolumeOffset.Value:"том неизвестен"));node.Tag=at;nodes.Add(at,node);}
                 foreach(string component in parts.Skip(1).Where(x=>x.Length>0).Take(64)){at+="/"+component;TreeNode child;if(!nodes.TryGetValue(at,out child)){if(countNodes++>=20000){limited=true;break;}child=node.Nodes.Add(component);child.Tag=at;nodes.Add(at,child);}node=child;}
                 if(limited)break;
             }if(limited)break;}

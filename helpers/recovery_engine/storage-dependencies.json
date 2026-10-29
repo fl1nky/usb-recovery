@@ -1,0 +1,50 @@
+[
+  {
+    "name": "dissect.apfs",
+    "version": "1.1",
+    "source": "dissect_apfs-1.1.tar.gz",
+    "sha256": "eeb42b1d862119cfa3a9006e44af39ed1f9fbad0ef03540249481b9879ac7332",
+    "url": "https://files.pythonhosted.org/packages/d5/d6/e3ad008c51d7a2e55d5fdd3e26d3c09d4ad55b6c60a29fc07a3649c00c77/dissect_apfs-1.1.tar.gz",
+    "bytes": 20929160
+  },
+  {
+    "name": "dissect.fve",
+    "version": "4.6",
+    "source": "dissect_fve-4.6.tar.gz",
+    "sha256": "49141e62cd3cc735c324f3c76c8635b3fbd0613316b2f823ee78a481c7c543fe",
+    "url": "https://files.pythonhosted.org/packages/82/ea/95c419eaee9183fe0b38d2d5b11bce3e604ba51ac50799e7a1a8566f94fa/dissect_fve-4.6.tar.gz",
+    "bytes": 3214926
+  },
+  {
+    "name": "dissect.cstruct",
+    "version": "4.7",
+    "source": "dissect_cstruct-4.7.tar.gz",
+    "sha256": "4bf821a381312b9b2fdefea307f7e33548158d39d7d154f1b3007472c51a1fc4",
+    "url": "https://files.pythonhosted.org/packages/57/fe/17aa5abfc62017918e11c8f40d1f936cd9d84a4b72b0a5e99c1c75b26c64/dissect_cstruct-4.7.tar.gz",
+    "bytes": 85324
+  },
+  {
+    "name": "dissect.util",
+    "version": "3.24",
+    "source": "dissect_util-3.24.tar.gz",
+    "sha256": "56ae08decaf4112d7fa9b9a575e5203b6dc85d9efe9a56d74ba34e0c2878c575",
+    "url": "https://files.pythonhosted.org/packages/fb/bc/40b3c60455517a26cb31d4c3a25ea78f0c50e05e9ea25e47d9981dbafa4f/dissect_util-3.24.tar.gz",
+    "bytes": 84123
+  },
+  {
+    "name": "dissect.volume",
+    "version": "3.18",
+    "source": "dissect_volume-3.18.tar.gz",
+    "sha256": "79647740f1a4ba360afa9f3f77620ed016b0026a44386b3cdc31fddcf0142d9c",
+    "url": "https://files.pythonhosted.org/packages/85/63/e57f1e8eea0614b96317e97c713455188218e282cb1e1cfb79b499bb455e/dissect_volume-3.18.tar.gz",
+    "bytes": 199590
+  },
+  {
+    "name": "asn1crypto",
+    "version": "1.5.1",
+    "source": "asn1crypto-1.5.1.tar.gz",
+    "sha256": "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c",
+    "url": "https://files.pythonhosted.org/packages/de/cf/d547feed25b5244fcb9392e288ff9fdc3280b10260362fc45d37a798a6ee/asn1crypto-1.5.1.tar.gz",
+    "bytes": 121080
+  }
+]

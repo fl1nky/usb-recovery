@@ -53,12 +53,21 @@ if "--skip-rebuild-bundle" not in sys.argv:
     (rebuild / "tests").mkdir(exist_ok=True)
     for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    for name in ("ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py"):
+        if (ROOT / "tests" / name).is_file():
+            shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"
         "Run build-engine.ps1 -Python312 <absolute interpreter path>.\n"
         "No package index is used: fixed wheels, source packages and SHA256 inventory are bundled.\n"
         "Runtime use requires no Python or network installation.\n"
         "Current messenger support is Telegram only.\n", encoding="utf-8")
+    (rebuild / "STORAGE-SOURCE.txt").write_text(
+        "Storage components use Dissect APFS/FVE (AGPL-3.0-or-later).\n"
+        "Dependency sources: helpers/recovery_engine/dependency-sources.\n"
+        "Versions, URLs and hashes: storage-dependencies.json; wheels: requirements-wheel-lock.txt.\n"
+        "New storage_*.py adapters carry SPDX AGPL-3.0-or-later and are supplied in full.\n"
+        "No network or separately installed interpreter is required at runtime.\n", encoding="utf-8")
 files = []
 for file in sorted(DEST.rglob("*")):
     if file.is_file() and file.name != "runtime-SHA256.json" and "__pycache__" not in file.parts and file.suffix != ".pyc":

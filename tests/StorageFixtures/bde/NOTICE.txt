@@ -1,0 +1,8 @@
+Published Dissect FVE 4.6 test fixtures
+Source commit: c03d2dc5ece7a53cb6ef76c3567d63e6c9ab12ee
+https://github.com/fox-it/dissect.fve/tree/4.6/tests/_data/bde
+Compressed fixtures are copied byte-for-byte from that pinned source tree.
+Copyright and AGPL-3.0-or-later terms are preserved in COPYRIGHT and LICENSE.
+Credentials in manifest.json are published upstream fixture credentials, not user secrets.
+The fixture images contain only an available prefix of the declared NTFS volume.
+No user data or user credentials are included.

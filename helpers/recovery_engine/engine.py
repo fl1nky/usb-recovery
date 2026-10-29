@@ -1418,6 +1418,29 @@ def main():
     try:
         line = sys.stdin.readline(1024 * 1024)
         request = json.loads(line)
+        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker"):
+            protocol_stdout = sys.stdout
+            def storage_emit(event, **fields):
+                protocol_stdout.write(json.dumps({"protocol": 1, "type": event, **fields}, ensure_ascii=False) + "\n")
+                protocol_stdout.flush()
+            # Dependency diagnostics must not escape into the protocol or logs.
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                try:
+                    if request["operation"] == "storage_probe":
+                        from storage_probe import probe
+                        result = probe(request, storage_emit)
+                    elif request["operation"] == "apfs":
+                        from storage_apfs import handle_apfs
+                        result = handle_apfs(request, storage_emit)
+                    else:
+                        from storage_bitlocker import handle_bitlocker
+                        result = handle_bitlocker(request, storage_emit)
+                except ImportError:
+                    result = {"status": "error", "code": "DEPENDENCY_MISSING"}
+                except Exception:
+                    result = {"status": "error", "code": "IO_ERROR"}
+            storage_emit("result", **result)
+            return 2 if result["status"] == "error" else 0
         if request.get("protocol") == 1 and request.get("operation") == "telegram_analyze":
             from telegram_auto import analyze, AutoError
             try:

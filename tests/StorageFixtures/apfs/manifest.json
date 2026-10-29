@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "package": "dissect.apfs",
+  "version": "1.1",
+  "source_commit": "badd7a83b00791d9ede741e300de2295c2527dd1",
+  "source_url": "https://github.com/fox-it/dissect.apfs/tree/1.1/tests/_data",
+  "source_archive": "dissect_apfs-1.1.tar.gz",
+  "source_archive_sha256": "eeb42b1d862119cfa3a9006e44af39ed1f9fbad0ef03540249481b9879ac7332",
+  "license": "AGPL-3.0-or-later",
+  "license_sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+  "copyright_sha256": "9b63987e0e4d02c0578163c6067e29f60e7e168d305620bae58918b053546899",
+  "fixtures": [
+    {
+      "id": "case_sensitive",
+      "file": "case_sensitive.bin.gz",
+      "compressed_bytes": 344365,
+      "compressed_sha256": "0c2cf324cf6cd8d7b8e1f75e3c1c0f70a107479f30cfc601ebe0d4e357f7d019",
+      "raw_bytes": 4194304,
+      "raw_sha256": "8e7ae7cb2b6d27c48f465635d000aa4a5004cbc21cf5777b681f7369c414ccc2",
+      "upstream_path": "tests/_data/case_sensitive.bin.gz"
+    },
+    {
+      "id": "encrypted",
+      "file": "encrypted.bin.gz",
+      "compressed_bytes": 452052,
+      "compressed_sha256": "9780647470fd4a818c0c7ae86f70f2b7d39c48a5ccf2f89f0f2bd47d35915f1d",
+      "raw_bytes": 4194304,
+      "raw_sha256": "fbf5c6854f37b7f8b9170aef5aaaba60cd91c4ecb80e121479370c486a68d21f",
+      "upstream_path": "tests/_data/encrypted.bin.gz"
+    },
+    {
+      "id": "snapshot",
+      "file": "snapshot.bin.gz",
+      "compressed_bytes": 2891525,
+      "compressed_sha256": "63dedb8142c17e6ab6709c9fe2c37c695f1caa617946bc8d499087c5299dcf2b",
+      "raw_bytes": 33554432,
+      "raw_sha256": "21fc98a4708ed18542b20177d1c6bae3a6dc07bdf742a747fceecfe284d33019",
+      "upstream_path": "tests/_data/snapshot.bin.gz"
+    },
+    {
+      "id": "corrupt",
+      "file": "corrupt.bin.gz",
+      "compressed_bytes": 595750,
+      "compressed_sha256": "672c556cb370c4ae547e69b822d1896a2327fcb392eeba19f3d73414382cc80f",
+      "raw_bytes": 4194304,
+      "raw_sha256": "a11d94826610518f797d51b2a8838cdb9fdf101eec8d4a132c60a0735d977e08",
+      "upstream_path": "tests/_data/corrupt.bin.gz"
+    }
+  ],
+  "known_plaintext": {
+    "path": "/dir/file",
+    "utf8": " File System\n",
+    "lzfse_fork_sha256": "5f46d97f947137dcf974fc19914c547acd18fcdb25124c846c1100f8b3fbca5f"
+  },
+  "public_fixture_credential": {
+    "encrypted": "password"
+  },
+  "scope": "Published upstream test data only, unchanged compressed bytes. No user data or devices.",
+  "known_snapshot_fixture": {
+    "published_snapshots": 512,
+    "bounded_recent_examples": [
+      "Snapshot 509",
+      "Snapshot 510",
+      "Snapshot 511"
+    ],
+    "known_payload": "UTF-8 snapshot name followed by newline"
+  }
+}

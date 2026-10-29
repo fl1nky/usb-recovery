@@ -1,0 +1,7 @@
+Published Dissect APFS 1.1 test fixtures
+Source commit: badd7a83b00791d9ede741e300de2295c2527dd1
+https://github.com/fox-it/dissect.apfs/tree/1.1/tests/_data
+Compressed fixtures are copied byte-for-byte from the pinned source distribution.
+Copyright and AGPL-3.0-or-later terms are preserved in COPYRIGHT and LICENSE.
+The published password "password" belongs only to this test fixture.
+No user data or user credentials are included.

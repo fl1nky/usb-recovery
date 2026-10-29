@@ -256,7 +256,16 @@ namespace UsbRecovery
             try {
                 byte[] bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=256*1024*1024}.Serialize(data));
                 using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}
-                if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);
+                for(int attempt=0;;attempt++){
+                    try{if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);break;}
+                    catch(IOException error){
+                        uint code=unchecked((uint)error.HResult);
+                        if(attempt>=3||!File.Exists(temporary)||(code!=0x80070020U&&code!=0x80070021U&&code!=0x80070497U))throw;
+                        // Brief readers/security filters may deny delete sharing.
+                        // Retry the same atomic operation; never delete the target.
+                        Thread.Sleep(25<<attempt);
+                    }
+                }
             } finally {if(File.Exists(temporary))File.Delete(temporary);}
         }
 
@@ -363,6 +372,7 @@ namespace UsbRecovery
             string fs = Path.Combine(runDirectory, "filesystem", "files"), extra = Path.Combine(runDirectory, "extra-photos"), ntfs = Path.Combine(runDirectory, "ntfs");
             if (Directory.Exists(fs)) roots.Add(fs);
             if (Directory.Exists(extra)) roots.Add(extra);
+            string apfs=Path.Combine(runDirectory,"apfs-files");if(Directory.Exists(apfs))roots.Add(apfs);
             string containers = Path.Combine(runDirectory, "containers"); if (Directory.Exists(containers)) roots.Add(containers);
             string fragments = Path.Combine(runDirectory, "text-fragments"); if (Directory.Exists(fragments)) roots.Add(fragments);
             string records = Path.Combine(runDirectory, "metadata-rescue", "files"); if (Directory.Exists(records)) roots.Add(records);

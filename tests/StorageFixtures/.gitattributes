@@ -1,0 +1,5 @@
+*.bin.gz -text
+LICENSE -text
+COPYRIGHT -text
+*.json text eol=lf
+*.txt text eol=lf

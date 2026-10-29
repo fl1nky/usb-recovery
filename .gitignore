@@ -48,3 +48,6 @@
 /tools/
 /vendor/
 /Готовая программа/
+
+# Pinned public upstream storage parser test images, never user recovery data
+!/tests/StorageFixtures/

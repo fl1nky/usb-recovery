@@ -18,6 +18,7 @@ namespace UsbRecovery
         RecoveryForm disks;
         readonly LogicalRecoveryPanel logical = new LogicalRecoveryPanel();
         readonly ArchiveSearchPanel archive = new ArchiveSearchPanel();
+        readonly StorageRecoveryPanel storage=new StorageRecoveryPanel();
         readonly Panel workspace = new Panel();
         readonly Dictionary<string, Button> navigation = new Dictionary<string, Button>();
         readonly bool automaticDiscovery;
@@ -37,7 +38,7 @@ namespace UsbRecovery
             var links = new FlowLayoutPanel { Dock = DockStyle.Fill,Tag="sidebar", FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
             links.Controls.Add(new Label { Text = "Recovery",Tag="on-dark", Font = new Font("Segoe UI", 21F, FontStyle.Bold), AutoSize = true, Margin = new Padding(8, 0, 0, 5) });
             links.Controls.Add(new Label { Text = "ВОССТАНОВЛЕНИЕ ДАННЫХ", Tag = "muted-dark", Font=new Font("Segoe UI",8F),AutoSize = true, Margin = new Padding(9, 0, 0, 32) });
-            Section(links, "ВОССТАНОВЛЕНИЕ");Link(links, "usb", "Флешки и образы");
+            Section(links, "ВОССТАНОВЛЕНИЕ");Link(links, "usb", "Флешки и образы");Link(links,"storage","APFS · RAID · BitLocker");
             Section(links, "ПЕРЕПИСКИ");
             Link(links, "Telegram", "Telegram");
             Section(links, "ИСТОЧНИКИ");
@@ -46,23 +47,23 @@ namespace UsbRecovery
             motionToggle.Text="Анимации";motionToggle.Name="motion-toggle";motionToggle.Checked=MotionSettings.Enabled;motionToggle.Dock=DockStyle.Bottom;motionToggle.Height=34;motionToggle.Tag="muted-dark";motionToggle.CheckedChanged+=delegate{MotionSettings.Enabled=motionToggle.Checked;};sidebar.Controls.Add(motionToggle);sidebar.Controls.SetChildIndex(motionToggle,1);
             workspace.Dock = DockStyle.Fill; workspace.Margin = Padding.Empty;
             frame.Controls.Add(sidebar, 0, 0); frame.Controls.Add(workspace, 1, 0); Controls.Add(frame);
-            archive.Dock = logical.Dock = DockStyle.Fill; workspace.Controls.Add(logical); workspace.Controls.Add(archive); logical.Visible = false;
+            archive.Dock = logical.Dock = DockStyle.Fill; workspace.Controls.Add(logical); workspace.Controls.Add(archive);workspace.Controls.Add(storage);storage.Visible=false; logical.Visible = false;
             archive.AnalyzeRequested += delegate { AnalyzeTelegram(); };
             archive.AnalysisCancelRequested += delegate { if (telegramAnalysis != null) telegramAnalysis.Cancel(); };
             logical.ArchiveCreated += path => {
                 if (archive.IsBusy) { MessageBox.Show(this, "Дождись завершения текущего поиска."); return; }
-                archive.SelectArchive(path); logical.Visible = false; if (disks != null) disks.Visible = false; archive.Visible = true; archive.BringToFront(); Highlight("Telegram"); archive.FocusQuery();
+                archive.SelectArchive(path);storage.Visible=false; logical.Visible = false; if (disks != null) disks.Visible = false; archive.Visible = true; archive.BringToFront(); Highlight("Telegram"); archive.FocusQuery();
             };
             UiTheme.ApplyTree(this); Highlight("Telegram");
             Shown+=delegate{Navigate("usb");};
             FormClosing += delegate(object sender, FormClosingEventArgs e) {
-                if (logical.IsBusy || archive.IsBusy || (disks != null && disks.IsBusy)) { e.Cancel = true; MessageBox.Show(this, "Заверши или останови текущую операцию.", "Идёт обработка"); }
+                if (storage.IsBusy || logical.IsBusy || archive.IsBusy || (disks != null && disks.IsBusy)) { e.Cancel = true; MessageBox.Show(this, "Заверши или останови текущую операцию.", "Идёт обработка"); }
             };
         }
         void Section(FlowLayoutPanel parent, string text) { parent.Controls.Add(new Label { Text = text, AutoSize = true, Font = new Font("Segoe UI", 8F), Tag = "muted-dark", Margin = new Padding(9, 22, 0, 9) }); }
         void Link(FlowLayoutPanel parent, string key, string text) {
-            var button = new NavigationButton { Text = text,Glyph=key=="usb"?"USB":key=="Telegram"?"TG":key=="Android"?"A":key=="iPhone"?"iOS":"DIR", Width = 190, Height = 46, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 2, 0, 2), Tag = "nav", Name = "nav-" + key };
-            button.Click += delegate { Navigate(key); }; parent.Controls.Add(button); navigation.Add(key, button);
+            var button = new NavigationButton { Text = text,Glyph=key=="usb"||key=="storage"?"USB":key=="Telegram"?"TG":key=="Android"?"A":key=="iPhone"?"iOS":"DIR", Width = 190, Height = 46, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 2, 0, 2), Tag = "nav", Name = "nav-" + key };
+            if(key=="storage")button.Font=new Font("Segoe UI",9F);button.Click += delegate { Navigate(key); }; parent.Controls.Add(button); navigation.Add(key, button);
         }
         void Highlight(string key) {
             foreach (var item in navigation) {var button=item.Value as NavigationButton;if(button!=null){button.Selected=item.Key==key;button.Invalidate();}}
@@ -75,8 +76,8 @@ namespace UsbRecovery
             if ((source && logical.IsBusy) || (!source && key != "usb" && archive.IsBusy)) return;
             if (source) logical.SetMode(key);
             if (key == "usb" && disks == null) { disks = new RecoveryForm(false) { TopLevel = false, FormBorderStyle = FormBorderStyle.None, MinimumSize = Size.Empty, Dock = DockStyle.Fill }; workspace.Controls.Add(disks); UiTheme.ApplyTree(disks); }
-            logical.Visible = source; archive.Visible = !source && key != "usb"; if (disks != null) disks.Visible = key == "usb";
-            if (source) { logical.BringToFront(); if (automaticDiscovery && IsHandleCreated && Visible) logical.Discover(); }
+            storage.Visible=key=="storage";logical.Visible = source; archive.Visible = !source && key != "usb"&&key!="storage"; if (disks != null) disks.Visible = key == "usb";
+            if(key=="storage")storage.BringToFront();else if (source) { logical.BringToFront(); if (automaticDiscovery && IsHandleCreated && Visible) logical.Discover(); }
             else if (key == "usb") { disks.Show(); disks.BringToFront(); if (automaticDiscovery && IsHandleCreated && Visible) disks.RefreshSources(); }
             else { archive.SetApplication("Telegram"); archive.BringToFront(); archive.FocusQuery(); }
             Highlight(key);

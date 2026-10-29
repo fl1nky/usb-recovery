@@ -26,7 +26,7 @@ foreach ($taskStale in 'tools\recovery-helper','tools\signal','helpers','vendor'
     }
 }
 if (Test-Path -LiteralPath (Join-Path $taskReady 'build-signal-helpers.ps1')) { Remove-Item -LiteralPath (Join-Path $taskReady 'build-signal-helpers.ps1') }
-foreach ($taskPattern in '*.cs','*.manifest','build*.ps1','package.ps1','README.md','VALIDATION.md','V3-VALIDATION.md','V3-STATUS.md','UI-UPGRADE.md','THIRD-PARTY.md','TELEGRAM-RELEASE.md','USB-DEEP-GUIDE.md','USB-DEEP-VALIDATION.md','MODERN-RECOVERY.md','QUALITY-RELEASE.md','COMPETITOR-COMPARISON.md','COMPETITIVE-UPDATE.md','RECOVERY-UPGRADE.md','RECOVERY-OCT30.md') {
+foreach ($taskPattern in '*.cs','*.manifest','build*.ps1','package.ps1','README.md','VALIDATION.md','V3-VALIDATION.md','V3-STATUS.md','UI-UPGRADE.md','THIRD-PARTY.md','TELEGRAM-RELEASE.md','USB-DEEP-GUIDE.md','USB-DEEP-VALIDATION.md','MODERN-RECOVERY.md','QUALITY-RELEASE.md','COMPETITOR-COMPARISON.md','COMPETITIVE-UPDATE.md','RECOVERY-UPGRADE.md','RECOVERY-OCT30.md','STORAGE-SUPPORT.md') {
     Get-ChildItem -LiteralPath $taskRoot -Filter $taskPattern -File | Where-Object { $_.Name -ne 'build-signal-helpers.ps1' } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $taskReady $_.Name) -Force }
 }
 Copy-Item -LiteralPath (Join-Path $taskRoot 'USB-Recovery.exe') -Destination (Join-Path $taskReady 'USB-Recovery.exe') -Force
@@ -53,6 +53,7 @@ $taskTelegramFixtures = Join-Path $taskRoot 'tests\TelegramNativeFixtures'
 if (-not (Test-Path -LiteralPath (Join-Path $taskTelegramFixtures 'manifest.json') -PathType Leaf)) { throw 'Missing synthetic Telegram native fixtures.' }
 Copy-TaskTree $taskTelegramFixtures (Join-Path $taskReady 'tests\TelegramNativeFixtures')
 Copy-TaskTree (Join-Path $taskRoot 'tests\TelegramMediaFixtures') (Join-Path $taskReady 'tests\TelegramMediaFixtures')
+if(Test-Path -LiteralPath (Join-Path $taskRoot 'tests\StorageFixtures')){Copy-TaskTree (Join-Path $taskRoot 'tests\StorageFixtures') (Join-Path $taskReady 'tests\StorageFixtures')}
 Copy-Item -LiteralPath (Join-Path $taskRoot 'НАЧНИ ЗДЕСЬ.txt') -Destination (Join-Path $taskReady 'НАЧНИ ЗДЕСЬ.txt') -Force
 $taskHashes = Get-ChildItem -LiteralPath $taskReady -Recurse -File | Where-Object { $_.Extension -in @('.exe','.dll','.pyd') } | ForEach-Object {
     [pscustomobject]@{ path=$_.FullName.Substring($taskReady.Length+1).Replace('\','/'); sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=$_.Length }

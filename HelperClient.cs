@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -12,6 +13,13 @@ using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
+    public sealed class StorageVolumeInfo
+    {
+        public string Kind,Name,Identifier;
+        public long OffsetBytes,LengthBytes;
+        public override string ToString(){return Kind+" · "+Name+" · "+LengthBytes.ToString("N0")+" Б";}
+    }
+    public sealed class HelperProgress { public long Completed,Total; }
     public sealed class HelperResult
     {
         public string Status, Code;
@@ -20,6 +28,9 @@ namespace UsbRecovery
         public long DiscoveredSources, ReadableSources, EncryptedSources, BlockedSources;
         public long HistoryMessages, NotificationRecords, FragmentRecords, NativeRecords, PreviousRecords;
         public string[] Warnings;
+        public string Image;
+        public long Files,Bytes;
+        public StorageVolumeInfo[] Volumes=new StorageVolumeInfo[0];
     }
 
     // Only the controlled protocol is exposed to the UI. Worker stderr and exception
@@ -54,7 +65,7 @@ namespace UsbRecovery
             folder.Delete(false);
         }
 
-        public static HelperResult Run(string executable, object request, CancellationToken cancel, Action<string> progress)
+        public static HelperResult Run(string executable, object request, CancellationToken cancel, Action<string> progress,Action<HelperProgress> activity=null)
         {
             cancel.ThrowIfCancellationRequested();
             if (!File.Exists(executable)) throw new IOException("HELPER_MISSING");
@@ -80,13 +91,16 @@ namespace UsbRecovery
                         try { record = serializer.Deserialize<Dictionary<string, object>>(line); }
                         catch { continue; }
                         if (record == null || !record.ContainsKey("type")) continue;
-                        if (Convert.ToString(record["type"]) == "progress") { if (progress != null) progress("Анализ рабочей копии…"); continue; }
+                        if (Convert.ToString(record["type"]) == "progress") { if (progress != null) progress("Анализ рабочей копии…");if(activity!=null)activity(new HelperProgress{Completed=Count(record,record.ContainsKey("completed")?"completed":"done"),Total=Count(record,"total")}); continue; }
                         if (Convert.ToString(record["type"]) != "result" || result != null) continue;
                         string state = Value(record, "status"), code = Value(record, "code");
                         if (state != "complete" && state != "partial" && state != "error") continue;
                         if (!SafeCode(code)) code = "HELPER_FAILED";
-                        object notices; var values = record.TryGetValue("warnings", out notices) ? notices as object[] : null;
-                        result = new HelperResult { Status = state, Code = code, Messages = Count(record, "messages"), Media = Count(record, "media"), Archive = Value(record, "archive"), FragmentRecords = Count(record, "fragment_records"), HistoryMessages = Count(record, "history_messages"), NativeRecords = Count(record, "native_records"), PreviousRecords = Count(record, "previous_records"), NotificationRecords = Count(record, "notification_records"), DiscoveredSources = Count(record, "discovered_sources"), ReadableSources = Count(record, "readable_sources"), EncryptedSources = Count(record, "encrypted_sources"), BlockedSources = Count(record, "blocked_sources"), Warnings = values == null ? new string[0] : System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(values, Convert.ToString)) };
+                        object notices; var values = record.TryGetValue("warnings", out notices) ? notices is string?null:notices as IEnumerable : null;
+                        result = new HelperResult { Status = state, Code = code, Messages = Count(record, "messages"), Media = Count(record, "media"), Archive = Value(record, "archive"), FragmentRecords = Count(record, "fragment_records"), HistoryMessages = Count(record, "history_messages"), NativeRecords = Count(record, "native_records"), PreviousRecords = Count(record, "previous_records"), NotificationRecords = Count(record, "notification_records"), DiscoveredSources = Count(record, "discovered_sources"), ReadableSources = Count(record, "readable_sources"), EncryptedSources = Count(record, "encrypted_sources"), BlockedSources = Count(record, "blocked_sources"), Warnings = values == null ? new string[0] : System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Cast<object>(values), Convert.ToString)) };
+                        result.Image=Value(record,"image");result.Files=Count(record,"files");result.Bytes=Count(record,"bytes");var volumes=new List<StorageVolumeInfo>();object volumeRows;
+                        if(record.TryGetValue("volumes",out volumeRows)&&volumeRows is IEnumerable&&!(volumeRows is string))foreach(var raw in (IEnumerable)volumeRows){var row=raw as Dictionary<string,object>;if(row==null||volumes.Count>=256)continue;long offset,length;if(!Int64.TryParse(Value(row,"offset_bytes"),out offset)||!Int64.TryParse(Value(row,"length_bytes"),out length)||offset<0)continue;string kind=Value(row,"kind");if((kind=="APFS"||kind=="BitLocker")&&length>0&&offset<=Int64.MaxValue-length)volumes.Add(new StorageVolumeInfo{Kind=kind,Name=Value(row,"name"),Identifier=Value(row,"identifier"),OffsetBytes=offset,LengthBytes=length});}
+                        result.Volumes=volumes.ToArray();
                     }
                 });
                 using (cancel.Register(() => job.Stop()))
@@ -137,13 +151,15 @@ namespace UsbRecovery
         [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
         [DllImport("kernel32.dll")] static extern bool TerminateJobObject(IntPtr job, uint code);
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
-        public ProcessJob()
+        public ProcessJob(long maximumProcessBytes=1536L*1024*1024)
         {
+            if(maximumProcessBytes<32L*1024*1024||maximumProcessBytes>8L*1024*1024*1024)throw new ArgumentOutOfRangeException("maximumProcessBytes");
             handle = CreateJobObject(IntPtr.Zero, null);
             if (handle == IntPtr.Zero) throw new IOException("HELPER_START_FAILED");
-            var limits = new Limits { Basic = new Basic { Flags = 0x2000 } };
+            var limits = new Limits { Basic = new Basic { Flags = 0x2000|0x100 },ProcessMemory=new UIntPtr((ulong)maximumProcessBytes) };
             IntPtr data = Marshal.AllocHGlobal(Marshal.SizeOf(limits));
             try { Marshal.StructureToPtr(limits, data, false); if (!SetInformationJobObject(handle, 9, data, (uint)Marshal.SizeOf(limits))) throw new IOException("HELPER_START_FAILED"); }
+            catch {CloseHandle(handle);handle=IntPtr.Zero;throw;}
             finally { Marshal.FreeHGlobal(data); }
         }
         public void Attach(Process process) { if (!AssignProcessToJobObject(handle, process.Handle)) { try { process.Kill(); } catch { } throw new IOException("HELPER_START_FAILED"); } }
