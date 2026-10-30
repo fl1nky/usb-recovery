@@ -9,3 +9,5 @@
 *.jpg binary
 *.db binary
 *.db-wal binary
+# Preserve the exact bytes referenced by immutable benchmark hash indexes.
+/tests/benchmarks/evidence-v7-telegram/** -text
