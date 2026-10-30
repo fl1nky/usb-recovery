@@ -1,0 +1,631 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/final-audio-pipeline-provenance-03.json",
+    "source_sha256": "679b6d7cb2936099f8ba4fc6bc5c1dddde81ac0f8e8d513cc77ef798bd66b8ed",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "status": "passed",
+    "application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+    "helper_sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+    "run_sha256": "48bce81ec706913c3953994e67566403bd730ae9700268e63e2d03ac5fd95a24",
+    "manifest_sha256": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "verifier_sha256": "c32c25abd436d01a40527f8258dc34df07e9c388d415b308476df037e8a30122",
+    "pipeline_used": true,
+    "cases": [
+      {
+        "name": "avc-aac-faststart-contiguous",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "avc-aac-faststart-chunk-islands",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "source_candidate": "fragmented-media/candidate-642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39.mp4",
+            "source_ranges": [
+              {
+                "Offset": 2392064,
+                "Length": 32
+              },
+              {
+                "Offset": 2392096,
+                "Length": 1926
+              },
+              {
+                "Offset": 2394022,
+                "Length": 8
+              },
+              {
+                "Offset": 2394030,
+                "Length": 8
+              },
+              {
+                "Offset": 294912,
+                "Length": 100
+              },
+              {
+                "Offset": 295012,
+                "Length": 3000
+              },
+              {
+                "Offset": 298012,
+                "Length": 930
+              },
+              {
+                "Offset": 298942,
+                "Length": 1219
+              },
+              {
+                "Offset": 1605632,
+                "Length": 942
+              },
+              {
+                "Offset": 1606574,
+                "Length": 1172
+              },
+              {
+                "Offset": 1607746,
+                "Length": 992
+              },
+              {
+                "Offset": 1608738,
+                "Length": 1041
+              },
+              {
+                "Offset": 2654208,
+                "Length": 1062
+              },
+              {
+                "Offset": 2655270,
+                "Length": 1163
+              },
+              {
+                "Offset": 2656433,
+                "Length": 1019
+              },
+              {
+                "Offset": 2657452,
+                "Length": 916
+              },
+              {
+                "Offset": 2719744,
+                "Length": 927
+              },
+              {
+                "Offset": 2720671,
+                "Length": 3094
+              },
+              {
+                "Offset": 2723765,
+                "Length": 1034
+              },
+              {
+                "Offset": 2724799,
+                "Length": 1053
+              },
+              {
+                "Offset": 688128,
+                "Length": 1039
+              },
+              {
+                "Offset": 689167,
+                "Length": 939
+              },
+              {
+                "Offset": 690106,
+                "Length": 1019
+              },
+              {
+                "Offset": 691125,
+                "Length": 855
+              },
+              {
+                "Offset": 524288,
+                "Length": 1041
+              },
+              {
+                "Offset": 525329,
+                "Length": 1010
+              },
+              {
+                "Offset": 526339,
+                "Length": 919
+              },
+              {
+                "Offset": 527258,
+                "Length": 760
+              },
+              {
+                "Offset": 1769472,
+                "Length": 1038
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-4k-islands",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "avc-aac-faststart-all-chunks",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 3,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "source_candidate": "fragmented-media/candidate-642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39.mp4",
+            "source_ranges": [
+              {
+                "Offset": 3112960,
+                "Length": 32
+              },
+              {
+                "Offset": 2654208,
+                "Length": 1926
+              },
+              {
+                "Offset": 2656134,
+                "Length": 8
+              },
+              {
+                "Offset": 2656142,
+                "Length": 8
+              },
+              {
+                "Offset": 884736,
+                "Length": 100
+              },
+              {
+                "Offset": 1376256,
+                "Length": 3000
+              },
+              {
+                "Offset": 1572864,
+                "Length": 930
+              },
+              {
+                "Offset": 2097152,
+                "Length": 1219
+              },
+              {
+                "Offset": 2490368,
+                "Length": 942
+              },
+              {
+                "Offset": 98304,
+                "Length": 1172
+              },
+              {
+                "Offset": 983040,
+                "Length": 992
+              },
+              {
+                "Offset": 1638400,
+                "Length": 1041
+              },
+              {
+                "Offset": 32768,
+                "Length": 1062
+              },
+              {
+                "Offset": 2752512,
+                "Length": 1163
+              },
+              {
+                "Offset": 2293760,
+                "Length": 1019
+              },
+              {
+                "Offset": 3702784,
+                "Length": 916
+              },
+              {
+                "Offset": 3440640,
+                "Length": 927
+              },
+              {
+                "Offset": 2621440,
+                "Length": 3094
+              },
+              {
+                "Offset": 2916352,
+                "Length": 1034
+              },
+              {
+                "Offset": 327680,
+                "Length": 1053
+              },
+              {
+                "Offset": 1933312,
+                "Length": 1039
+              },
+              {
+                "Offset": 1605632,
+                "Length": 939
+              },
+              {
+                "Offset": 131072,
+                "Length": 1019
+              },
+              {
+                "Offset": 1900544,
+                "Length": 855
+              },
+              {
+                "Offset": 2883584,
+                "Length": 1041
+              },
+              {
+                "Offset": 688128,
+                "Length": 1010
+              },
+              {
+                "Offset": 2326528,
+                "Length": 919
+              },
+              {
+                "Offset": 1998848,
+                "Length": 760
+              },
+              {
+                "Offset": 2981888,
+                "Length": 1038
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-audio-overwrite",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "avc-aac-tailmoov-contiguous",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "avc-aac-tailmoov-chunk-islands",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "source_candidate": "fragmented-media/candidate-8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2.mp4",
+            "source_ranges": [
+              {
+                "Offset": 2392064,
+                "Length": 32
+              },
+              {
+                "Offset": 2392096,
+                "Length": 8
+              },
+              {
+                "Offset": 2392104,
+                "Length": 8
+              },
+              {
+                "Offset": 2785280,
+                "Length": 100
+              },
+              {
+                "Offset": 2785380,
+                "Length": 3000
+              },
+              {
+                "Offset": 2788380,
+                "Length": 930
+              },
+              {
+                "Offset": 2789310,
+                "Length": 1219
+              },
+              {
+                "Offset": 1605632,
+                "Length": 942
+              },
+              {
+                "Offset": 1606574,
+                "Length": 1172
+              },
+              {
+                "Offset": 1607746,
+                "Length": 992
+              },
+              {
+                "Offset": 1608738,
+                "Length": 1041
+              },
+              {
+                "Offset": 1867776,
+                "Length": 1062
+              },
+              {
+                "Offset": 1868838,
+                "Length": 1163
+              },
+              {
+                "Offset": 1870001,
+                "Length": 1019
+              },
+              {
+                "Offset": 1871020,
+                "Length": 916
+              },
+              {
+                "Offset": 3407872,
+                "Length": 927
+              },
+              {
+                "Offset": 3408799,
+                "Length": 3094
+              },
+              {
+                "Offset": 3411893,
+                "Length": 1034
+              },
+              {
+                "Offset": 3412927,
+                "Length": 1053
+              },
+              {
+                "Offset": 163840,
+                "Length": 1039
+              },
+              {
+                "Offset": 164879,
+                "Length": 939
+              },
+              {
+                "Offset": 165818,
+                "Length": 1019
+              },
+              {
+                "Offset": 166837,
+                "Length": 855
+              },
+              {
+                "Offset": 655360,
+                "Length": 1041
+              },
+              {
+                "Offset": 656401,
+                "Length": 1010
+              },
+              {
+                "Offset": 657411,
+                "Length": 919
+              },
+              {
+                "Offset": 658330,
+                "Length": 760
+              },
+              {
+                "Offset": 3080192,
+                "Length": 1038
+              },
+              {
+                "Offset": 3081230,
+                "Length": 1926
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-4k-islands",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "avc-aac-tailmoov-all-chunks",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 3,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "source_candidate": "fragmented-media/candidate-8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2.mp4",
+            "source_ranges": [
+              {
+                "Offset": 786432,
+                "Length": 32
+              },
+              {
+                "Offset": 786464,
+                "Length": 8
+              },
+              {
+                "Offset": 786472,
+                "Length": 8
+              },
+              {
+                "Offset": 229376,
+                "Length": 100
+              },
+              {
+                "Offset": 2064384,
+                "Length": 3000
+              },
+              {
+                "Offset": 1245184,
+                "Length": 930
+              },
+              {
+                "Offset": 2621440,
+                "Length": 1219
+              },
+              {
+                "Offset": 589824,
+                "Length": 942
+              },
+              {
+                "Offset": 1802240,
+                "Length": 1172
+              },
+              {
+                "Offset": 1572864,
+                "Length": 992
+              },
+              {
+                "Offset": 3899392,
+                "Length": 1041
+              },
+              {
+                "Offset": 65536,
+                "Length": 1062
+              },
+              {
+                "Offset": 1966080,
+                "Length": 1163
+              },
+              {
+                "Offset": 425984,
+                "Length": 1019
+              },
+              {
+                "Offset": 884736,
+                "Length": 916
+              },
+              {
+                "Offset": 2097152,
+                "Length": 927
+              },
+              {
+                "Offset": 917504,
+                "Length": 3094
+              },
+              {
+                "Offset": 3670016,
+                "Length": 1034
+              },
+              {
+                "Offset": 688128,
+                "Length": 1053
+              },
+              {
+                "Offset": 1343488,
+                "Length": 1039
+              },
+              {
+                "Offset": 2752512,
+                "Length": 939
+              },
+              {
+                "Offset": 1277952,
+                "Length": 1019
+              },
+              {
+                "Offset": 3375104,
+                "Length": 855
+              },
+              {
+                "Offset": 3407872,
+                "Length": 1041
+              },
+              {
+                "Offset": 3702784,
+                "Length": 1010
+              },
+              {
+                "Offset": 1703936,
+                "Length": 919
+              },
+              {
+                "Offset": 3440640,
+                "Length": 760
+              },
+              {
+                "Offset": 2457600,
+                "Length": 1038
+              },
+              {
+                "Offset": 3768320,
+                "Length": 1926
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-audio-overwrite",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      }
+    ],
+    "scope": "Actual public RecoveryPipeline results and persisted catalog/session. Every strict media candidate is rebound to its current image ranges byte for byte. This verifies provenance and observed candidate classification, not historical ownership or CABAC authenticity."
+  }
+}

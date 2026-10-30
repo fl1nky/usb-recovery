@@ -11,7 +11,7 @@ $taskSourceProofs=@{}
 $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular image files only; actual packaged managed recovery modules. No user profiles or physical devices.' $PSCommandPath
 try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
-    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests')
+    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests')
     foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests','RaidRecoveryTests','StorageUiTests','StoragePipelineTests','HelperMemoryTests','AtomicJsonSaveTests','ExportTempCollisionTests','StorageWorkflowTests','CaptureProvenanceTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
@@ -32,6 +32,7 @@ try {
         $taskLog=Join-Path $PSScriptRoot ($taskName+'.packaged.result.txt')
         $taskInput=if($taskName-eq'ArchiveSalvageTests'){Join-Path $taskProject '.build\archive-salvage-tests'}else{$taskProject}
         if($taskName-eq'FragmentedZipRecoveryTests'){$taskInput=Join-Path $taskProject '.build\fragmented-zip-tests'}
+        if($taskName-eq'HevcSampleValidatorTests'){$taskInput=Join-Path $taskProject '.build\hevc-validation-fixtures-current'}
         $taskExtraArguments=@()
         if($taskName-eq'Ext4RecoveryTests'){$taskInput=Join-Path $taskProject '.build\ext4-fixtures-current';$taskExtraArguments=@((Join-Path $taskProject ('.build\ext4-offline-'+[Guid]::NewGuid().ToString('N'))))}
         $taskStartedUtc=[DateTime]::UtcNow.ToString('o')

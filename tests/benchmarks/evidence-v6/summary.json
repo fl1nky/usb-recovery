@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+  "helper_sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+  "exporter_sha256": "3bfc3128258a6a235773cad5eac00f396923ea809d5fb51be908947c14abfeb1",
+  "media": {
+    "cases": 19,
+    "expected_targets": 18,
+    "exact": 11,
+    "decoded_equivalent": 11,
+    "all_original_bytes_present": 15,
+    "complete_cases": 11
+  },
+  "audio": {
+    "cases": 10,
+    "expected_targets": 10,
+    "exact": 6,
+    "decoded_equivalent": 6,
+    "all_original_bytes_present": 8,
+    "complete_cases": 6
+  },
+  "actual_v5_audio": {
+    "cases": 10,
+    "expected_targets": 10,
+    "exact": 2,
+    "decoded_equivalent": 2,
+    "all_original_bytes_present": 8,
+    "complete_cases": 2
+  },
+  "actual_v5_application_sha256": "3cf2e885eb66b546dce95bf5b2f1b40fbf2a9b9dbca794e64aa4c1cca89e6734",
+  "actual_v5_helper_sha256": "7dac184deae17081d90a05a2ee16d392f6d62801b02db504c4562c1a7a9a87cc",
+  "hevc_pipeline": {
+    "cases": 10,
+    "expected_targets": 10,
+    "exact": 5,
+    "decoded_equivalent": 5,
+    "all_original_bytes_present": 6,
+    "complete_cases": 5
+  },
+  "hevc_engine_checks": 163,
+  "hevc_engine_scope": "direct application engine, not the public pipeline",
+  "hevc_pipeline_scope": "actual public pipeline plus persisted catalog and byte-for-byte source maps",
+  "commercial_subsets": [
+    {
+      "tool": "R-Studio",
+      "previously_tested_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-avc-dual",
+        "raw-scattered-mjpeg-dual",
+        "raw-scattered-png-chunks",
+        "raw-scattered-restart"
+      ],
+      "old_exports_rescored": true,
+      "fresh_gui_run": false,
+      "commercial": {
+        "cases": 5,
+        "expected_targets": 5,
+        "exact": 1,
+        "decoded_equivalent": 1,
+        "all_original_bytes_present": 5,
+        "complete_cases": 1
+      },
+      "recovery_on_same_cases": {
+        "cases": 5,
+        "expected_targets": 5,
+        "exact": 5,
+        "decoded_equivalent": 5,
+        "all_original_bytes_present": 5,
+        "complete_cases": 5
+      },
+      "media_not_tested_cases": [
+        "fat16-deleted-cleared-chain",
+        "fat16-deleted-retained-chain",
+        "fat16-live-chain",
+        "ntfs-deleted-data-runs",
+        "raw-contiguous-avc-single",
+        "raw-contiguous-mjpeg-single",
+        "raw-contiguous-png",
+        "raw-malformed-decoys",
+        "raw-overwritten-avc-dual",
+        "raw-overwritten-mjpeg-dual",
+        "raw-overwritten-png-crc",
+        "raw-scattered-baseline",
+        "raw-scattered-png-crc-decoy",
+        "raw-scattered-progressive"
+      ],
+      "audio_status": "not_tested",
+      "hevc_status": "not_tested"
+    },
+    {
+      "tool": "DMDE",
+      "previously_tested_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-restart"
+      ],
+      "old_exports_rescored": true,
+      "fresh_gui_run": false,
+      "commercial": {
+        "cases": 2,
+        "expected_targets": 2,
+        "exact": 0,
+        "decoded_equivalent": 1,
+        "all_original_bytes_present": 2,
+        "complete_cases": 1
+      },
+      "recovery_on_same_cases": {
+        "cases": 2,
+        "expected_targets": 2,
+        "exact": 2,
+        "decoded_equivalent": 2,
+        "all_original_bytes_present": 2,
+        "complete_cases": 2
+      },
+      "media_not_tested_cases": [
+        "fat16-deleted-cleared-chain",
+        "fat16-deleted-retained-chain",
+        "fat16-live-chain",
+        "ntfs-deleted-data-runs",
+        "raw-contiguous-avc-single",
+        "raw-contiguous-mjpeg-single",
+        "raw-contiguous-png",
+        "raw-malformed-decoys",
+        "raw-overwritten-avc-dual",
+        "raw-overwritten-mjpeg-dual",
+        "raw-overwritten-png-crc",
+        "raw-scattered-avc-dual",
+        "raw-scattered-baseline",
+        "raw-scattered-mjpeg-dual",
+        "raw-scattered-png-chunks",
+        "raw-scattered-png-crc-decoy",
+        "raw-scattered-progressive"
+      ],
+      "audio_status": "not_tested",
+      "hevc_status": "not_tested"
+    }
+  ],
+  "runtime_files_unchanged": 823,
+  "limits": [
+    "Owned synthetic regular files only; mostly 0xCC filler and short encoder clips.",
+    "Surviving original bytes do not imply uniquely recoverable geometry.",
+    "AAC search: 512-byte aligned starts and surviving video/container affine offsets; no arbitrary within-sample reconstruction.",
+    "Opaque syntactically valid AAC/CABAC changes cannot be authenticated without an independent original/hash.",
+    "Commercial values are existing limited demo exports rescored on shared cases; new AAC/HEVC commercial comparisons were not executed.",
+    "No physical-device recovery rate, speed superiority or universal replacement claim."
+  ],
+  "pipeline_cases_with_incomplete_methods": [
+    {
+      "corpus": "media",
+      "case": "raw-scattered-baseline",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-live-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-retained-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-cleared-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "ntfs-deleted-data-runs",
+      "methods": [
+        "ntfs",
+        "fragmented-photos"
+      ]
+    }
+  ]
+}

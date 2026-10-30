@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections;
 using System.Diagnostics;
@@ -19,7 +19,11 @@ namespace UsbRecovery
         public long OffsetBytes,LengthBytes;
         public override string ToString(){return Kind+" · "+Name+" · "+LengthBytes.ToString("N0")+" Б";}
     }
-    public sealed class HelperProgress { public long Completed,Total; }
+    public sealed class HelperProgress
+    {
+        public long Completed,Total,CheckpointSequence;
+        public string Phase,CheckpointPath,CheckpointSha256;
+    }
     public sealed class HelperResult
     {
         public string Status, Code;
@@ -91,7 +95,8 @@ namespace UsbRecovery
                         try { record = serializer.Deserialize<Dictionary<string, object>>(line); }
                         catch { continue; }
                         if (record == null || !record.ContainsKey("type")) continue;
-                        if (Convert.ToString(record["type"]) == "progress") { if (progress != null) progress("Анализ рабочей копии…");if(activity!=null)activity(new HelperProgress{Completed=Count(record,record.ContainsKey("completed")?"completed":"done"),Total=Count(record,"total")}); continue; }
+                        if(result!=null)continue;
+                        if (Convert.ToString(record["type"]) == "progress") { if (progress != null) progress("Анализ рабочей копии…");if(activity!=null)activity(new HelperProgress{Completed=Count(record,record.ContainsKey("completed")?"completed":"done"),Total=Count(record,"total"),Phase=Value(record,"phase"),CheckpointPath=Value(record,"checkpoint_path"),CheckpointSha256=Value(record,"checkpoint_sha256"),CheckpointSequence=Count(record,"checkpoint_sequence")}); continue; }
                         if (Convert.ToString(record["type"]) != "result" || result != null) continue;
                         string state = Value(record, "status"), code = Value(record, "code");
                         if (state != "complete" && state != "partial" && state != "error") continue;
@@ -111,7 +116,10 @@ namespace UsbRecovery
                         byte[] input = new UTF8Encoding(false).GetBytes(serializer.Serialize(request) + "\n");
                         try { process.StandardInput.BaseStream.Write(input, 0, input.Length); process.StandardInput.BaseStream.Flush(); }
                         finally { Array.Clear(input, 0, input.Length); process.StandardInput.Close(); }
-                        while (!process.WaitForExit(200)) cancel.ThrowIfCancellationRequested();
+                        while (!process.WaitForExit(200)) {
+                            cancel.ThrowIfCancellationRequested();
+                            if(reader.IsFaulted||errors.IsFaulted)throw new IOException("HELPER_PROTOCOL_ERROR");
+                        }
                         Task.WaitAll(reader, errors);
                         cancel.ThrowIfCancellationRequested();
                         if (result == null || (process.ExitCode != 0 && result.Status != "error")) throw new IOException("HELPER_PROTOCOL_ERROR");
@@ -136,7 +144,7 @@ namespace UsbRecovery
         }
         static string Value(Dictionary<string, object> record, string key) { object value; return record.TryGetValue(key, out value) ? Convert.ToString(value) : ""; }
         static long Count(Dictionary<string, object> record, string key) { long value; return Int64.TryParse(Value(record, key), out value) && value >= 0 ? value : 0; }
-        static bool SafeCode(string code) { return new HashSet<string>(new[] { "OK", "COMPLETE", "PARTIAL", "PARTIAL_DATA", "SOURCE_UNAVAILABLE", "AUTH_FAILED", "AUTHENTICATION_FAILED", "DECRYPTION_FAILED", "WRONG_KEY", "UNSUPPORTED_VERSION", "UNSUPPORTED_FORMAT", "SECRET_REQUIRED", "KEY_REQUIRED", "PASSWORD_REQUIRED", "INVALID_SOURCE", "SOURCE_ERROR", "CANCELLED", "HELPER_FAILED", "DEPENDENCY_MISSING", "NO_DATA", "NO_READABLE_TELEGRAM_HISTORY", "REGEX_INVALID", "REGEX_TIMEOUT", "INVALID_REQUEST", "IO_ERROR" }, StringComparer.Ordinal).Contains(code ?? ""); }
+        static bool SafeCode(string code) { if(code!=null&&System.Text.RegularExpressions.Regex.IsMatch(code,@"\APHOTO_CHECKPOINT_[A-Z_]{1,44}\z"))return true;return new HashSet<string>(new[] { "OK", "COMPLETE", "PARTIAL", "PARTIAL_DATA", "SOURCE_UNAVAILABLE", "AUTH_FAILED", "AUTHENTICATION_FAILED", "DECRYPTION_FAILED", "WRONG_KEY", "UNSUPPORTED_VERSION", "UNSUPPORTED_FORMAT", "SECRET_REQUIRED", "KEY_REQUIRED", "PASSWORD_REQUIRED", "INVALID_SOURCE", "SOURCE_ERROR", "CANCELLED", "HELPER_FAILED", "DEPENDENCY_MISSING", "NO_DATA", "NO_READABLE_TELEGRAM_HISTORY", "REGEX_INVALID", "REGEX_TIMEOUT", "INVALID_REQUEST", "IO_ERROR" }, StringComparer.Ordinal).Contains(code ?? ""); }
     }
 
     // Closing the job also terminates native importers started by the Python worker.

@@ -1,0 +1,4130 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/final-freeze-before-03.json",
+    "source_sha256": "6ec4c2f634812aad2c96ebed8735e551e4ab96fd7cc243055ff2abbb6af12ce5",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "app": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+    "helper": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+    "files": [
+      {
+        "path": "MediaBenchmark.exe",
+        "sha256": "ed7629e543ef5463e1deca5ab0164baec4a70198d2c78292b98ca11d98af2a32",
+        "bytes": 21504
+      },
+      {
+        "path": "USB-Recovery.exe",
+        "sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+        "bytes": 892416
+      },
+      {
+        "path": "tools/recovery-helper/dependencies.json",
+        "sha256": "1839655807f463384e5f5690268df91afd337bae9b04a35c716b1de859a66296",
+        "bytes": 6055
+      },
+      {
+        "path": "tools/recovery-helper/recovery-helper.exe",
+        "sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+        "bytes": 6794718
+      },
+      {
+        "path": "tools/recovery-helper/runtime-SHA256.json",
+        "sha256": "9bdb48170d5d6e79c902ed9ed47e8ee963592eda1fa22d441a7939fa86210944",
+        "bytes": 131898
+      },
+      {
+        "path": "tools/recovery-helper/licenses/Python-LICENSE.txt",
+        "sha256": "886a0ead2d89030ee62dbff52b04e47ab91998341295bb9c56fb952b4e081c7a",
+        "bytes": 25066
+      },
+      {
+        "path": "tools/recovery-helper/licenses/altgraph/LICENSE",
+        "sha256": "6c194d6db0c64d45535d10c95142b9b0cda7b7dcc7f1ddee302b3d536f3dbe46",
+        "bytes": 1002
+      },
+      {
+        "path": "tools/recovery-helper/licenses/asn1crypto/LICENSE",
+        "sha256": "29c3425e5da53ab842273e5f2f2f068ce2e35df4260f7fa156aa1ac6bed02433",
+        "bytes": 1075
+      },
+      {
+        "path": "tools/recovery-helper/licenses/bleach/AUTHORS.rst",
+        "sha256": "0eb3403227e80e9b90c899fe296f87e8af13b766b9aca9d5d94178f8346b1942",
+        "bytes": 983
+      },
+      {
+        "path": "tools/recovery-helper/licenses/bleach/LICENSE",
+        "sha256": "16a39991619e92f18680932da2a9199fdf7d95df3ecaedc52ea06218aabafd6f",
+        "bytes": 1084
+      },
+      {
+        "path": "tools/recovery-helper/licenses/bleach/licenses/LICENSE",
+        "sha256": "bec2238c149a632b8fb26813f687aceabab80327f3270769c2c16157883d3130",
+        "bytes": 569
+      },
+      {
+        "path": "tools/recovery-helper/licenses/bleach/licenses/bleach/_vendor/html5lib-1.1.dist-info/LICENSE",
+        "sha256": "16a39991619e92f18680932da2a9199fdf7d95df3ecaedc52ea06218aabafd6f",
+        "bytes": 1084
+      },
+      {
+        "path": "tools/recovery-helper/licenses/colorama/licenses/LICENSE.txt",
+        "sha256": "cac35c02686e5d04a5a7140bfb3b36e73aed496656e891102e428886d7930318",
+        "bytes": 1491
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.apfs/licenses/COPYRIGHT",
+        "sha256": "9b63987e0e4d02c0578163c6067e29f60e7e168d305620bae58918b053546899",
+        "bytes": 299
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.apfs/licenses/LICENSE",
+        "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "bytes": 34523
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.cstruct/licenses/COPYRIGHT",
+        "sha256": "1fed7c4577ec85d1fd01d1f05b678ed576bee6cead6397a2a47879734c210eee",
+        "bytes": 316
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.cstruct/licenses/LICENSE",
+        "sha256": "3e152a8b0ea3021d8a6c175544f06afe17c0bdf7130629fb9d9dc22bb3506d33",
+        "bytes": 11341
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.fve/licenses/COPYRIGHT",
+        "sha256": "4a1cddf84494c0fb297f73a7ff7bc670cc3ddff88ac01fcb5f78076a8f86689f",
+        "bytes": 303
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.fve/licenses/LICENSE",
+        "sha256": "e0eedba615d5cd1b986afb6c5b3a4b1ae33713e7e9dc74d19daec5e3221f9d2e",
+        "bytes": 35184
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.util/licenses/COPYRIGHT",
+        "sha256": "4bf2a771a1ec3ed59b978e6553a01ff405d929891b1aa624b07913330bad1bca",
+        "bytes": 318
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.util/licenses/LICENSE",
+        "sha256": "a7e0d142d62272bee15afee2ca2338e1cd81ebe6f704cbbc3791f9b3487cdadb",
+        "bytes": 11542
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.volume/licenses/COPYRIGHT",
+        "sha256": "4bc6e53d5e56f5b617a56962c1e7700bfb3cdaef153c0427e90435b239971efe",
+        "bytes": 301
+      },
+      {
+        "path": "tools/recovery-helper/licenses/dissect.volume/licenses/LICENSE",
+        "sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "bytes": 34523
+      },
+      {
+        "path": "tools/recovery-helper/licenses/iniconfig/licenses/LICENSE",
+        "sha256": "3409fa91f7ace557894632676656e32264fe5ef7581535725dc9a23774551bd4",
+        "bytes": 1098
+      },
+      {
+        "path": "tools/recovery-helper/licenses/iphone-backup-decrypt/LICENSE.txt",
+        "sha256": "3573b44b64cbaf3ecfeb0333968acec43512eefc521a18191a77e813992fdc08",
+        "bytes": 2782
+      },
+      {
+        "path": "tools/recovery-helper/licenses/iphone_backup_decrypt/licenses/LICENSE.txt",
+        "sha256": "3573b44b64cbaf3ecfeb0333968acec43512eefc521a18191a77e813992fdc08",
+        "bytes": 2782
+      },
+      {
+        "path": "tools/recovery-helper/licenses/javaobj-py3/licenses/LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "bytes": 11358
+      },
+      {
+        "path": "tools/recovery-helper/licenses/Jinja2/licenses/LICENSE.txt",
+        "sha256": "3b49dcee4105eb37bac10faf1be260408fe85d252b8e9df2e0979fc1e094437b",
+        "bytes": 1475
+      },
+      {
+        "path": "tools/recovery-helper/licenses/MarkupSafe/licenses/LICENSE.txt",
+        "sha256": "4631ec0db5fd90a547e336817264c6798214338146f8ac94b4a57f96ee8c9ec4",
+        "bytes": 1503
+      },
+      {
+        "path": "tools/recovery-helper/licenses/packaging/licenses/LICENSE",
+        "sha256": "cad1ef5bd340d73e074ba614d26f7deaca5c7940c3d8c34852e65c4909686c48",
+        "bytes": 197
+      },
+      {
+        "path": "tools/recovery-helper/licenses/packaging/licenses/LICENSE.APACHE",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+        "bytes": 10174
+      },
+      {
+        "path": "tools/recovery-helper/licenses/packaging/licenses/LICENSE.BSD",
+        "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+        "bytes": 1344
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pefile/LICENSE",
+        "sha256": "b44409c067c6da52bfb54bb6624fb11a7b52157c3a13ae1400232f8196e86ad3",
+        "bytes": 1083
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pillow/licenses/LICENSE",
+        "sha256": "4f7866a74802c6326f81faff59a56546b6aec2b10b91973e0e9308de95e79857",
+        "bytes": 78016
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pillow_heif/licenses/LICENSE.txt",
+        "sha256": "9e2635f155b00af5a46cb2f2c9b052072ec546d59837ee74efc9cba2cbb83f3d",
+        "bytes": 1546
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pillow_heif/licenses/LICENSES_bundled.txt",
+        "sha256": "7c5eab5b0bc4ed21688891149081b38432b2bbe8e8b49c12708a8ddcf7d700d8",
+        "bytes": 1147
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pip/AUTHORS.txt",
+        "sha256": "1eace90552df4f5941b61a907e20e555e16483ae6127b650bef5a1a2af8102c0",
+        "bytes": 11018
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pip/LICENSE.txt",
+        "sha256": "634300a669d49aeae65b12c6c48c924c51a4cdf3d1ff086dc3456dc8bcaa2104",
+        "bytes": 1093
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pluggy/licenses/LICENSE",
+        "sha256": "d6b65e6c213a5d0b577911d34d6e5949b9f59d76c238c5071a2f3fc16cfb2606",
+        "bytes": 1110
+      },
+      {
+        "path": "tools/recovery-helper/licenses/protobuf/LICENSE",
+        "sha256": "6e5e117324afd944dcf67f36cf329843bc1a92229a8cd9bb573d7a83130fea7d",
+        "bytes": 1732
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pycryptodome/AUTHORS.rst",
+        "sha256": "ac94de284f1522aee4f3e7e301e68af190786b4c8388d1a60cba4a3a1bbe3465",
+        "bytes": 815
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pycryptodome/LICENSE.rst",
+        "sha256": "60b8958a9ef9b7ec512087b725555372175ed2b02b969f8725b8534fde48acdd",
+        "bytes": 2987
+      },
+      {
+        "path": "tools/recovery-helper/licenses/Pygments/licenses/AUTHORS",
+        "sha256": "71a83872ad82f57be692cf827e048e2cd51d45169cfa1ea3f28706d97a872c0f",
+        "bytes": 11048
+      },
+      {
+        "path": "tools/recovery-helper/licenses/Pygments/licenses/LICENSE",
+        "sha256": "a9d66f1d526df02e29dce73436d34e56e8632f46c275bbdffc70569e882f9f17",
+        "bytes": 1331
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pyinstaller/licenses/COPYING.txt",
+        "sha256": "0598064c7d2718e38d7914a7d08343b2fa008e3bea9ebba2aa7a6ffa5900dd64",
+        "bytes": 32604
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pyinstaller-hooks-contrib/licenses/LICENSE",
+        "sha256": "91d0baaff00773038e72c0a1fc9d5d2d38706b7a2b9c04f34296608f931b9cd0",
+        "bytes": 27666
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pytest/licenses/LICENSE",
+        "sha256": "ca836a5f9ecca3b2f350230faa20a48fb8b145653b5568d784862df864706b9b",
+        "bytes": 1091
+      },
+      {
+        "path": "tools/recovery-helper/licenses/pywin32-ctypes/LICENSE.txt",
+        "sha256": "dfa83b3e2709adfcdb838d9ad55823ca674abb780e60563d9dd9544ccbf785e9",
+        "bytes": 1644
+      },
+      {
+        "path": "tools/recovery-helper/licenses/regex/licenses/LICENSE.txt",
+        "sha256": "3d220c06594b826bbabf110312f60f385f99e57e529fa4b9e536f79091f8b4c7",
+        "bytes": 11792
+      },
+      {
+        "path": "tools/recovery-helper/licenses/setuptools/LICENSE",
+        "sha256": "86da0f01aeae46348a3c3d465195dc1ceccde79f79e87769a64b8da04b2a4741",
+        "bytes": 1023
+      },
+      {
+        "path": "tools/recovery-helper/licenses/setuptools/licenses/LICENSE",
+        "sha256": "5a57cb4db85e2a2dd88c290628908add57e3451449e0a9a71fdfb38776fd759d",
+        "bytes": 1076
+      },
+      {
+        "path": "tools/recovery-helper/licenses/setuptools/licenses/LICENSE.APACHE",
+        "sha256": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
+        "bytes": 10174
+      },
+      {
+        "path": "tools/recovery-helper/licenses/setuptools/licenses/LICENSE.BSD",
+        "sha256": "b70e7e9b742f1cc6f948b34c16aa39ffece94196364bc88ff0d2180f0028fac5",
+        "bytes": 1344
+      },
+      {
+        "path": "tools/recovery-helper/licenses/setuptools/licenses/LICENSE.txt",
+        "sha256": "30c23618679108f3e8ea1d2a658c7ca417bdfc891c98ef1a89fa4ff0c9828654",
+        "bytes": 1107
+      },
+      {
+        "path": "tools/recovery-helper/licenses/tqdm/licenses/LICENCE",
+        "sha256": "fcff87c3a47ce8028a8512aa182d4fcf0ad1c90544ee75cf9b343684cac194de",
+        "bytes": 1985
+      },
+      {
+        "path": "tools/recovery-helper/licenses/webencodings/licenses/LICENSE",
+        "sha256": "e06ef33485e7498ad592887c41fa79cc8a7fecde576c7210e11bfdddef58040e",
+        "bytes": 1519
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/REBUILD.txt",
+        "sha256": "929029f4248c829cbd6748d075d4b6f0aa14646fe12d8770b5b4a6e9a15d4763",
+        "bytes": 312
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/STORAGE-SOURCE.txt",
+        "sha256": "8b596a4a5fe46a128973c1af8f04ef1798b433ab2f05b8e3a365ff28c93ab00c",
+        "bytes": 373
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/android_heap.py",
+        "sha256": "08d4850d9f17b80a20ca505fb8226107faddb0e5b4b52310f7dacc4efce0ca7e",
+        "bytes": 20567
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/archive_search.py",
+        "sha256": "fd37496e85af81f38751876cf460deb045766034ade0be2e68b4ced6ef89ef5b",
+        "bytes": 13629
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/engine.py",
+        "sha256": "4c54d52684dc9af83ac5375f102a368f127e669ca8d7e8e4995a16f6c4cc7151",
+        "bytes": 88312
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/fragmented_photos.py",
+        "sha256": "4b9ec5734193a4e8a2de85474083a3c2dc2f67577fb1d1b3d734fe094ed62246",
+        "bytes": 41183
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/jpeg_fragments.py",
+        "sha256": "825b791201f9f5817b71501ff556bd0389a8e38d0e118de8800f6dabdb1aaad5",
+        "bytes": 43974
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/memory_fragments.py",
+        "sha256": "2d9e15e993550c555ec5657136b45bab8d35c2881db0f5a8cb54e9e2c9c35947",
+        "bytes": 4919
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/package_runtime.py",
+        "sha256": "9a3c64931c43623160e17dcf82579f8d79f594c39a404432c128def0b597e894",
+        "bytes": 5290
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/recovery_checkpoint.py",
+        "sha256": "0e54bbfce9532fbe398cf40706a27547ae583966f9b165606e1c0113987ac950",
+        "bytes": 11133
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/requirements-lock.txt",
+        "sha256": "5c159164c9675565211885eee63e78bbc31195b4474575c3c157b2c160253307",
+        "bytes": 572
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/requirements-wheel-lock.txt",
+        "sha256": "d55c6db54ac0fed78fb32c2770d779d4ed10d520597ac2c26f2994d60e6e0a2b",
+        "bytes": 3039
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/sqlite_deleted.py",
+        "sha256": "1d068f2b15a9b828d2d499d1217ad69aca70fab8a27ec80b50df47916779334f",
+        "bytes": 32298
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/sqlite_history.py",
+        "sha256": "74de92c1222896f3899107a17eff606e9c0c6c81a261695647229041628f5eb6",
+        "bytes": 17074
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/storage_apfs.py",
+        "sha256": "60dae28c817af44638c6e20d05d8a9bb059ebfc3790fc4095578d8374ef65588",
+        "bytes": 39988
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/storage_bitlocker.py",
+        "sha256": "c9935521ffb805d4d685c313faf671887aba63117c924e8cc529d6da0aa1b618",
+        "bytes": 14343
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/storage_probe.py",
+        "sha256": "acb5e1fa37384fc6aaa9959b58eeed2ecf75e77c42ccca5c9c9adc0468f36e67",
+        "bytes": 4730
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/storage-dependencies.json",
+        "sha256": "d47f27cc32975d3d256a379cb770e7dfe195d53c7a5c3c70f0f3ee2a6a9b9834",
+        "bytes": 2154
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/telegram_auto.py",
+        "sha256": "e86bd3641dc6593529b59a53d2302aeef16aa754b6b087d177c5e3dfdc86c863",
+        "bytes": 62948
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/telegram_tl.py",
+        "sha256": "7714c7bafd67d3fe396385eb7c1761fa91ce11938937ffd97ea23f9b473bbe88",
+        "bytes": 21136
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/text_match.py",
+        "sha256": "e98e09cbe084422e4d2f6c2b8f9cd9fb6ab980bf628fdb1f478ee622298f2165",
+        "bytes": 1423
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/vendor-pins.json",
+        "sha256": "844f4dde3ba41cc381139a254b71e08704a37734e1bc935b00b09171f29e75c8",
+        "bytes": 232
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/asn1crypto-1.5.1.tar.gz",
+        "sha256": "13ae38502be632115abf8a24cbe5f4da52e3b5231990aff31123c805306ccb9c",
+        "bytes": 121080
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/dissect_apfs-1.1.tar.gz",
+        "sha256": "eeb42b1d862119cfa3a9006e44af39ed1f9fbad0ef03540249481b9879ac7332",
+        "bytes": 20929160
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/dissect_cstruct-4.7.tar.gz",
+        "sha256": "4bf821a381312b9b2fdefea307f7e33548158d39d7d154f1b3007472c51a1fc4",
+        "bytes": 85324
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/dissect_fve-4.6.tar.gz",
+        "sha256": "49141e62cd3cc735c324f3c76c8635b3fbd0613316b2f823ee78a481c7c543fe",
+        "bytes": 3214926
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/dissect_util-3.24.tar.gz",
+        "sha256": "56ae08decaf4112d7fa9b9a575e5203b6dc85d9efe9a56d74ba34e0c2878c575",
+        "bytes": 84123
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/dependency-sources/dissect_volume-3.18.tar.gz",
+        "sha256": "79647740f1a4ba360afa9f3f77620ed016b0026a44386b3cdc31fddcf0142d9c",
+        "bytes": 199590
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/altgraph-0.17.5-py2.py3-none-any.whl",
+        "sha256": "f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597",
+        "bytes": 21228
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/asn1crypto-1.5.1-py2.py3-none-any.whl",
+        "sha256": "db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67",
+        "bytes": 105045
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/bleach-6.4.0-py3-none-any.whl",
+        "sha256": "4b6b6a54fff2e69a3dde9d21cc6301220bee3c3cb792187d11403fd795031081",
+        "bytes": 165109
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/colorama-0.4.6-py2.py3-none-any.whl",
+        "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+        "bytes": 25335
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/dissect_apfs-1.1-py3-none-any.whl",
+        "sha256": "0e73884d54efdcf9a0c2ad68e49d0aaf80849a6f60f0a9837030a8a36555945b",
+        "bytes": 68263
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/dissect_cstruct-4.7-py3-none-any.whl",
+        "sha256": "0427621ce67baa3106df2dc63a320d0a7f5c2da88ba3faf2ef5886a1a6b458fd",
+        "bytes": 54225
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/dissect_fve-4.6-cp310-abi3-win_amd64.whl",
+        "sha256": "f85fd8724f3e6bb4ca3796664b3fd6a8ce7316170909e9b87ab764b211f71f34",
+        "bytes": 196841
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/dissect_util-3.24-cp310-abi3-win_amd64.whl",
+        "sha256": "5bc368d495afeb867b8bf5711f752bd023ae22334b474b375f5ac9a326fea89c",
+        "bytes": 160500
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/dissect_volume-3.18-py3-none-any.whl",
+        "sha256": "f8f321adccacbd948c503cf14a14d4a6626d1b86ddcbe55c532b59caad833d79",
+        "bytes": 81974
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/iniconfig-2.3.1-py3-none-any.whl",
+        "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+        "bytes": 7552
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/javaobj_py3-0.6.1-py2.py3-none-any.whl",
+        "sha256": "da97c61cb050bad37cca00523b1a617cc26ed2b698b6322cbc118820a4f52b30",
+        "bytes": 94957
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/jinja2-3.1.6-py3-none-any.whl",
+        "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+        "bytes": 134899
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+        "sha256": "11935df9bf455ed0c04eb87bcd720f02b1fe5e02128a9430f23aed6f93336fc7",
+        "bytes": 14303
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/packaging-26.3-py3-none-any.whl",
+        "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+        "bytes": 129956
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pefile-2024.8.26-py3-none-any.whl",
+        "sha256": "76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f",
+        "bytes": 74766
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pillow_heif-1.8.1-cp312-cp312-win_amd64.whl",
+        "sha256": "ce0ff957ad901a5a6bf8cd22ea26c4304bab7cf2f93d0a2f03046487e5711910",
+        "bytes": 6604108
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pillow-12.3.0-cp312-cp312-win_amd64.whl",
+        "sha256": "a2b55dd6b2a4c4b7d87ffa56bdb33fdc5fdb9a462173861a7bc097f17d91cb09",
+        "bytes": 7227137
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pip-25.0.1-py3-none-any.whl",
+        "sha256": "c46efd13b6aa8279f33f2864459c8ce587ea6a1a59ee20de055868d8f7688f7f",
+        "bytes": 1841526
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pluggy-1.6.0-py3-none-any.whl",
+        "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746",
+        "bytes": 20538
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/protobuf-7.36.2-cp310-abi3-win_amd64.whl",
+        "sha256": "a300819d441e078a5608c0d3c709796bb548136058fda017ae51d425b44fd353",
+        "bytes": 456514
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pycryptodome-3.24.1-cp37-abi3-win_amd64.whl",
+        "sha256": "c00aa444033bac0379413728e92223c7e2f2b5b85fb3e9284fee19239b6ad8a4",
+        "bytes": 1822462
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pycryptodomex-3.24.1-cp37-abi3-win_amd64.whl",
+        "sha256": "82eb0dd8a95be97f03527b108ee49f9b86a7c534fa47fa7a510be3eab8ea9acd",
+        "bytes": 1825955
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pygments-2.21.0-py3-none-any.whl",
+        "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+        "bytes": 1250147
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pyinstaller_hooks_contrib-2026.8-py3-none-any.whl",
+        "sha256": "6d21d65323ea4467753afc21f52d7d0e69416ae8101dd88269bf273ad48db084",
+        "bytes": 462145
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pyinstaller-6.22.3-py3-none-win_amd64.whl",
+        "sha256": "500bd58c7bf7e584a8435adccbd763a0b918d5c12b08d74ff50fd79b2915458b",
+        "bytes": 1454907
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pytest-9.1.1-py3-none-any.whl",
+        "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c",
+        "bytes": 386536
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/pywin32_ctypes-0.2.3-py3-none-any.whl",
+        "sha256": "8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8",
+        "bytes": 30756
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/regex-2026.9.29-cp312-cp312-win_amd64.whl",
+        "sha256": "fdd88ed5e20b1bcdd234421e454962c971aa44b653bdb7f1ea9ef683e90fb649",
+        "bytes": 280334
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/setuptools-84.0.0-py3-none-any.whl",
+        "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+        "bytes": 818216
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/SHA256.json",
+        "sha256": "c60eafca7069cfae7930a72ceb0d058179c1b2bc44f4766e7998908794123203",
+        "bytes": 5207
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/tqdm-4.70.1-py3-none-any.whl",
+        "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73",
+        "bytes": 80199
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/helpers/recovery_engine/wheels/webencodings-0.6.1-py3-none-any.whl",
+        "sha256": "7fab6269c8bf237c657876b52058ccb182e861518d1c695c1a9aaa8c1c105d5b",
+        "bytes": 8745
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/scripts/build-helper.ps1",
+        "sha256": "4f61b4cd9d515cfbcd9ff3769bb006c444f12ccf537e0bd2823166d1abce6a91",
+        "bytes": 4438
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/scripts/ProjectPaths.ps1",
+        "sha256": "f588ba646a080d319adbdc1611cee414be6254745a13e521049388dc3349e7c9",
+        "bytes": 767
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/AndroidHeapAuditTests.py",
+        "sha256": "ae1f6d3e212b05794552a828c29741504d18d0eb0fcff2c5e1f65608b2bac8b6",
+        "bytes": 14215
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/AndroidHeapTests.py",
+        "sha256": "ec4739cef640a140af13954350496110f294b988386b11a54f253da69a3c3fe4",
+        "bytes": 13535
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/ApfsRecoveryTests.py",
+        "sha256": "fca109661f2d14b031137bc32172ed82802b8a7cd838f827a85e66b97a233030",
+        "bytes": 28024
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/ArchiveSearchTests.py",
+        "sha256": "ebe17f0f6b4ad8d05211a703ed8bd17c358b29249d7f767f5e7a5c504ef89340",
+        "bytes": 9170
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/BitLockerRecoveryTests.py",
+        "sha256": "337c4949cc72fa4acbb7c950e6f41ba4725310da21102f5f1f1b14d5a33641a3",
+        "bytes": 18847
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/build_progressive_jpeg_fixtures.py",
+        "sha256": "0b3b985ade0026c4dbdf3109c540628c90c249dac4571352ffb86550cbe17f53",
+        "bytes": 5409
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/build_telegram_heap_fixtures.py",
+        "sha256": "1cd8e346b2c7b7d39cab3176fde1735322372ba97e4d601a0340ed546d56ce9f",
+        "bytes": 3787
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/build_telegram_media_fixtures.py",
+        "sha256": "671982bd96e9be858f9287e08d01f84757d146668a9ba3ede06596b31c8f93bc",
+        "bytes": 4102
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/build_telegram_native_fixtures.py",
+        "sha256": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3",
+        "bytes": 6125
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/DeletedArchiveSearchTests.py",
+        "sha256": "bdca271962b9edde92215c7413b9e78eb717a6eb8be3c8d789eb0b83f2bddf8e",
+        "bytes": 3040
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/FragmentedPhotoAuditTests.py",
+        "sha256": "a92fe9cafb22a5974114c4b178eb483dc4334de7d555d999a0f3627a348558f9",
+        "bytes": 5324
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/FragmentedPhotoTests.py",
+        "sha256": "e8545c1df3bff98069e883c80524b047b0efb322a9afc6af914d49fa3d1775b1",
+        "bytes": 13091
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/JpegFragmentRecoveryTests.py",
+        "sha256": "22a0eb919a637162bb9e865713885557c81e2e8052d31b93cb9e74d4db6ea951",
+        "bytes": 9564
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/JpegProgressiveRecoveryTests.py",
+        "sha256": "ac30f930539dbd9f3c0b104e0452e779d8d4f14d9880fe12fe776eeb9fc7eb30",
+        "bytes": 13347
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/Oct30IndependentReviewTests.py",
+        "sha256": "71107b6a3a842bf18a8ea297983d7dbb355d21eac95091725f0b8b1ef3757c68",
+        "bytes": 7254
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/PhotoCheckpointAuditTests.py",
+        "sha256": "5c8adba0a01595aafba129b7d4b56dcb6600e2e043b7c37fb4d1c24fd5db38a7",
+        "bytes": 9864
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/PhotoCheckpointTests.py",
+        "sha256": "fe6216e5d864dbc772adfdbb70633fc1dd9f04c4dd0b68f2ea31de69b23722a9",
+        "bytes": 19060
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/PngContextAuditTests.py",
+        "sha256": "c70409a01f19f8183cc5f2332ba84106a0b0d67c5eaf3fa3a5159aed14a8e8c2",
+        "bytes": 7162
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/SqliteHistoryTests.py",
+        "sha256": "ba42772c0a5a0b0331a64947fb8b067a314ef187d06b561f90fc48c46a5e6dc7",
+        "bytes": 11491
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/StorageProbeTests.py",
+        "sha256": "6f4408cc1430fcfac495bb71e1b094fe691b38fe440a16c22d424e5cc8d3819a",
+        "bytes": 9482
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramAutoTests.py",
+        "sha256": "6fbafc0b4f51ccd105099efccf119b471374dfd7d6f1d9d893f1511e840e066a",
+        "bytes": 22828
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramDeletedTests.py",
+        "sha256": "d05e348ffca7442d3b96ce47770c92812941bcd13de5db3422bbc6d12bf2df8d",
+        "bytes": 24017
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramMediaTests.py",
+        "sha256": "3f34995151215e46440a1f66258daacfe6b9af859b65a31c592e454838429f5b",
+        "bytes": 18065
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramMemoryTests.py",
+        "sha256": "f6eaafd0dc88e585b6cf40d15989e6ddba6634b03c3d855ccc4a413e998dbc2a",
+        "bytes": 11037
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramResidualProvenanceTests.py",
+        "sha256": "0f46e858926297b69c2f0c7d636c1f8e79bfae70068d8ec59bf966bb59396636",
+        "bytes": 8961
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/tests/TelegramTlTests.py",
+        "sha256": "114ceab441e777d3967e6a7674a99397bf409ca8f448d5a34d36a03da74e0296",
+        "bytes": 12041
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/.gitignore",
+        "sha256": "1ac6ce35b9da37b16aca8538d2029c712ee1e7e95223792f5b23a4580695ee10",
+        "bytes": 79
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/Dockerfile",
+        "sha256": "79ee31d3fe289cb0355d85578d405141454a706a661efea950193eab41d38c67",
+        "bytes": 289
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/LICENSE.txt",
+        "sha256": "3573b44b64cbaf3ecfeb0333968acec43512eefc521a18191a77e813992fdc08",
+        "bytes": 2782
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/pyproject.toml",
+        "sha256": "72bdd188337da7bc007d000b94f23c88acfaf5cdf1efd10232316e91ccad4301",
+        "bytes": 886
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/README.md",
+        "sha256": "292ae556f6033677405a2a8cf4461964ea90cfd2e615fc9ec32f39f5f49df80b",
+        "bytes": 4959
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/SECURITY.md",
+        "sha256": "b222ee82a8c462751b3293b2e7907cd87767c4eb0077123bcd825242fca0a9b8",
+        "bytes": 582
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/.github/workflows/release.yml",
+        "sha256": "4eb8a8197bf0eb66b9742e48745374c46cc360407feb39234e599c7ee26f8fe1",
+        "bytes": 1151
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/src/iphone_backup_decrypt/__init__.py",
+        "sha256": "2a45d638e585181d2c49301f0a5cba800e317237bf7d77dc812d6210e6213813",
+        "bytes": 408
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/src/iphone_backup_decrypt/exceptions.py",
+        "sha256": "1660a1610d67b5a0cdff34588f7626f231d0e43cddf33ae65205c5d5c429721f",
+        "bytes": 599
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/src/iphone_backup_decrypt/google_iphone_dataprotection.py",
+        "sha256": "c9f657bd13312d6f1b520bc7ec7be13b5db5aa1b6a22b8c91d52bc01b9da1a8a",
+        "bytes": 5464
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/src/iphone_backup_decrypt/iphone_backup.py",
+        "sha256": "70b26d522bc196c62409009239756a282273c037f59e48ff488301dc2b8b0bea",
+        "bytes": 31971
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/src/iphone_backup_decrypt/utils.py",
+        "sha256": "0f84bc810fbaab6bbc9d68160ae77bd09cbc7cf4d7dcbb5670404d1d5bcabb0a",
+        "bytes": 20342
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/tests/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/tests/test_file_id_security.py",
+        "sha256": "27f8d7cf850339413380cf7c1a88eedd3f1d8cb95c50d9dc5c1b0fa01c2d70a2",
+        "bytes": 1698
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/tests/test_kdf_resource_limits.py",
+        "sha256": "4ab70e28e48c753c9ebdf9e1709988ebb58a5f979bdfa98e5883667439f2c2a3",
+        "bytes": 2099
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/tests/test_manifest_memory.py",
+        "sha256": "8145bd23cd2c7f7b4bc36611dce36fddbbcaba68e0984ddb207a9d62964ee305",
+        "bytes": 3154
+      },
+      {
+        "path": "tools/recovery-helper/rebuild/vendor/iphone-backup-decrypt/tests/test_output_path_security.py",
+        "sha256": "2cfc26688e0b60be63958067fc0f135256e540f4afe874c257febd381817310a",
+        "bytes": 962
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_asyncio.pyd",
+        "sha256": "adbd1824715d687a6c6feb67e10d85df0b25d5d93a8fbbaeebeda3f7e0d3128b",
+        "bytes": 75056
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_bz2.pyd",
+        "sha256": "0340f3174fc34c0efbedc15de67dcc866546d02e443d1c8b5e754145f209950e",
+        "bytes": 88880
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_ctypes.pyd",
+        "sha256": "d397aa56ad7e07087afcfcd15bc631d9f47e1427dd26eddc88afc718f817350d",
+        "bytes": 131888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_decimal.pyd",
+        "sha256": "f2b2cefc9a8763bcacdd83cd8e20e99bcd7fa4608b2c3e2df375bd46f5e754df",
+        "bytes": 263984
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_elementtree.pyd",
+        "sha256": "dbba5881f69b5af264d2289152c5ed83ee607eb7a6571aafc8451b871b55b6e0",
+        "bytes": 137520
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_hashlib.pyd",
+        "sha256": "ca1fced813287db1650c62b2952ecf649462722deb7ab3b6f9bc99dcc5a84c9e",
+        "bytes": 70448
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_lzma.pyd",
+        "sha256": "14982c6bc064b178dececfa0d59be5b1fd6071f8f5ee40c91cbb48c7dcefdf8c",
+        "bytes": 168240
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_multiprocessing.pyd",
+        "sha256": "6737dbd73b70decbc388a65f5c111881825b4a509b625b13c091b275ae6be37b",
+        "bytes": 39728
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_overlapped.pyd",
+        "sha256": "1c7fbaa860cc0f75c26d6522252965f4867b5dfed5f1f6e1ebe720deec83a52d",
+        "bytes": 59696
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_pillow_heif.cp312-win_amd64.pyd",
+        "sha256": "f7847ec74ebdf131b69c1f57c83928f1e3921c96f26c7d67c8f2ed0767c92613",
+        "bytes": 59904
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_queue.pyd",
+        "sha256": "52b8cc3dec3ea80fbc9350c28fe5e74817b292bdc26d16876078e761d2fcd59b",
+        "bytes": 36144
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_socket.pyd",
+        "sha256": "ccfe6815df1dffb5381260911843b462e67a6ff44607c80caa024e44b333822a",
+        "bytes": 87344
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_sqlite3.pyd",
+        "sha256": "a2424a47f7c9e1390d6f62bec5e572038e901098aca8aab29375ed66d1e47813",
+        "bytes": 127792
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_ssl.pyd",
+        "sha256": "aa7f2f5ff9db002b9748bc40e7be28fcd75867ada94464f4be6b87f74a9b0a0e",
+        "bytes": 180528
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_uuid.pyd",
+        "sha256": "bf6181eec863915486e672efd55374de81c6ef1723fb88c06a20dfcb88c67bca",
+        "bytes": 29488
+      },
+      {
+        "path": "tools/recovery-helper/_internal/_wmi.pyd",
+        "sha256": "c5c770ffc9ecc5077d79f3ffd7804f9eab2a1a26a3314a9ffa1b4d252732b664",
+        "bytes": 41264
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-console-l1-1-0.dll",
+        "sha256": "015bd08815c7b934a8952c3a7578e9ce59f21136e8a880d42bbd414bec2c6058",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-datetime-l1-1-0.dll",
+        "sha256": "5534812cdbdae94ba45cb216e5eb9af686b853948df54365103555abbbaf9d9a",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-debug-l1-1-0.dll",
+        "sha256": "837d2b1b2cd03e03fc6ccb050698b6b5763af17c201304872342a5eae9e0a2d2",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-errorhandling-l1-1-0.dll",
+        "sha256": "de43b165f568c276c00e95acd454e3092f352a18e95874595f4f4658c06d2ec7",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-fibers-l1-1-0.dll",
+        "sha256": "3cebc45bf479ad74cfabf2c6bfd4994d7ad639ed1221025981d19cedf9ce0416",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-fibers-l1-1-1.dll",
+        "sha256": "5ef70308bcca628ce6b0e2856b15b1c7ae340c3f9bbbc4c1071d8c191a34a5c3",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-file-l1-1-0.dll",
+        "sha256": "250ac829f2617bcac1c6e5b8c4f630462e20765863ba573526a3e11bbfb94a9a",
+        "bytes": 27008
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-file-l1-2-0.dll",
+        "sha256": "ae14079a114733f60ce87b92cba42acd8083c2cd67594e53bc37dc0b97a4b465",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-file-l2-1-0.dll",
+        "sha256": "914bf26a298713119477ea0a8e7bd43171b91344ebe24fb47ad77c49686e3d87",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-handle-l1-1-0.dll",
+        "sha256": "ab5489955e371b15f77906c08ec3c7affe2c7a46a08c514ca628768b4478974b",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-heap-l1-1-0.dll",
+        "sha256": "c70f9644d8377fa39c5b71f2e9734c1400d7598904fdeb772e8502099982dcb7",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-interlocked-l1-1-0.dll",
+        "sha256": "f8129710188e407bb0e6f46d30aeba277d67b947ece5fe09e883fde2323f3ae6",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-kernel32-legacy-l1-1-1.dll",
+        "sha256": "5200b16cb2ddc61cfc07373a9a84aa85a3ab50806ca96c879c883275832944c1",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-libraryloader-l1-1-0.dll",
+        "sha256": "48786fb88b001dcd1f63acea903d3ca9cc0b3060d5a325e3f2f3cbc3bfd53166",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-localization-l1-2-0.dll",
+        "sha256": "9ec3898f7eba91faa28b51616c211a2689e3a13aeef8de6e13cb674e49d689eb",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-memory-l1-1-0.dll",
+        "sha256": "3a6cbc524c99e1cd80d5368f5601402a37ad602528b1ab628093573ef638eb3b",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-namedpipe-l1-1-0.dll",
+        "sha256": "97145ef89c44949fcf0f04ac834a8bc7d687ef49ee73ae9fc32f3c11136b7201",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-processenvironment-l1-1-0.dll",
+        "sha256": "8bc7c10b1851aea644e9c9f381cdb935e091fee6b0be3d3aedc6fffaac96adb7",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-processthreads-l1-1-0.dll",
+        "sha256": "d8030b777617c71f0f94564607699dbf7561487d779db9756aed378c5675213f",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-processthreads-l1-1-1.dll",
+        "sha256": "f5e676713340f73a03a3d41a6ec9883b431da7d16c7f07bd0a920fb80e6c0753",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-profile-l1-1-0.dll",
+        "sha256": "f023d47e44d3eea6b0743580f57e8c6ba81e79d5ebfa7da26250076c647b980e",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-rtlsupport-l1-1-0.dll",
+        "sha256": "9746d8930704153578a628c010638a5f818ffe5a927e25591b108e256dc6afca",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-string-l1-1-0.dll",
+        "sha256": "7c53ae24c982d16ffd1bf7f918d115b11b7f30e57bc7feaa18cb9781e4abb926",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-synch-l1-1-0.dll",
+        "sha256": "56d9d62ca5dba79a6581b8d574a7d8b2a64a5ecb71e47dcf06ed0285708b1859",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-synch-l1-2-0.dll",
+        "sha256": "f6482bbec5612c39ecb4822787a333f2b7570f7a5f922a4059be41ba957bb372",
+        "bytes": 22888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-sysinfo-l1-1-0.dll",
+        "sha256": "272d02765fdd3582618236c2d309abba069642f9bc1062ede069d0c144e17007",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-sysinfo-l1-2-0.dll",
+        "sha256": "8a0900788859d0eb51c2f48f50cc6ed376a120b518100fa20e11d7702ccde260",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-timezone-l1-1-0.dll",
+        "sha256": "ff35de6c03812b332e140f17dade25c5dd4775156da9eeb1eaae3fddd27236ec",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-core-util-l1-1-0.dll",
+        "sha256": "191ef3e98641a57296f19d572d8eb62489470ff1ef6030d136af170c2f835173",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-conio-l1-1-0.dll",
+        "sha256": "54ee5ec719a051496ff60aa00dbeaa94b9a7d2cdac27fe9b7317f1a666b6a2aa",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-convert-l1-1-0.dll",
+        "sha256": "8b94662429171019fcd63c70bbf2095a075170599704a5e7dcdbe3da13f3a429",
+        "bytes": 26992
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-environment-l1-1-0.dll",
+        "sha256": "39e5929593709e8af3bc9e0a75ec1155778d6f4a247f4cdfc58928ad6db88434",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-filesystem-l1-1-0.dll",
+        "sha256": "5a8ecebac32edf4e1f3c5c6c1c8ea1a1add6cda4f9c9cb26f752fb295bea6865",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-heap-l1-1-0.dll",
+        "sha256": "c71080cbcb43bf1f8f3e391deb12a582eb0abefc80946f340675a2c616e4feb4",
+        "bytes": 22872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-locale-l1-1-0.dll",
+        "sha256": "6c68648e524187e03c4ad9aaa4a99113c6ee9f29fb39cc0ed93f951975138e63",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-math-l1-1-0.dll",
+        "sha256": "d4fbcccbe29371cbce431e43b2eb4f7ba9a6f04a3d740a071f02457a505e9dc8",
+        "bytes": 31064
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-process-l1-1-0.dll",
+        "sha256": "47c1935942e3ac0812e4dcf18c0e265e565f0194a3349111c299712f5565f7ac",
+        "bytes": 22896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-runtime-l1-1-0.dll",
+        "sha256": "72adc1b3677e0814d9c4ebf0964000e84bb2acf67336c8963061665e44f78029",
+        "bytes": 26968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-stdio-l1-1-0.dll",
+        "sha256": "900afc3989673c9bb1a687ed38c192f46db9e6ba6d11a668898a539e7fc23798",
+        "bytes": 26968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-string-l1-1-0.dll",
+        "sha256": "fcf12466cc12fd3b73611fc0763a5a1f9d44e90349513c34a0c83b0f36421793",
+        "bytes": 26968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-time-l1-1-0.dll",
+        "sha256": "886e57c4a6adb299b38f02945369f590a67da4e79a798359fc60aaa067212d7c",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/api-ms-win-crt-utility-l1-1-0.dll",
+        "sha256": "5f8f26b216ade615b67a41f6fbbb910972fc6153315a65bb8f09912be50215b1",
+        "bytes": 22912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/base_library.zip",
+        "sha256": "874fd44c31a727a11ef95cb1bea170dbcbfc48d063b4a0223e9b7ab4c198bd57",
+        "bytes": 1333490
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libcrypto-3-x64.dll",
+        "sha256": "1a3a14e9043e6c0a598308ee77f910e7b46f2d55590266088a27f13d01ca77fc",
+        "bytes": 8003376
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libde265-0-da04b6b2448c39c0b7f218769dedb2f1.dll",
+        "sha256": "41b02f2431e2fa6b268957eb9872b84feafce8f279611772cb4809e09f7a2645",
+        "bytes": 960000
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libffi-8.dll",
+        "sha256": "148e3720f0d56ea23b6a6c7031a31380bc6e31d605eba4227d5c586b2310832e",
+        "bytes": 43824
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libgcc_s_seh-1-60817ff87b1fa8e35c12cd1a333734a3.dll",
+        "sha256": "cf4e3bf58021159dc25a76b6cbee77e6403e756688937476a575203d1715cc5c",
+        "bytes": 147968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libheif-18c57b017b404cb1ef96dee8a6eef027.dll",
+        "sha256": "180d93f1f5f8954ebca2d5d67ca06efa0dd0d3629e4bbfe0f9f18e985db0e176",
+        "bytes": 2176000
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libssl-3-x64.dll",
+        "sha256": "e294c7e7c4488c24e5fe1d06fb982aaaf76ca6488676adbc8092ffb1474d60c7",
+        "bytes": 1599280
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libstdc++-6-e4d43a335d57132a6ec3004cece76b4f.dll",
+        "sha256": "815e046ec8ccf046c637abe6c718d3e0f608540bb4792207248296791edebfe9",
+        "bytes": 2652672
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libwinpthread-1-71c5c74678606753e0a2f79ceb8c68f9.dll",
+        "sha256": "71c5c74678606753e0a2f79ceb8c68f928e6bb679163b0341c9e2d568a9c9360",
+        "bytes": 62976
+      },
+      {
+        "path": "tools/recovery-helper/_internal/libx265-217-276e7d75772a32bd086b54d54e01fd11.dll",
+        "sha256": "44df67a67937277dc37c1fab3424c756ce3afd29ed55191f81234242048b2e59",
+        "bytes": 22658560
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pyexpat.pyd",
+        "sha256": "12273e7b375322cdbb079902a772be452c9500d4172fa2f78d4e9273b0ad34aa",
+        "bytes": 226096
+      },
+      {
+        "path": "tools/recovery-helper/_internal/python3.dll",
+        "sha256": "e55eb0cac3d115985ddbba7edf3ea21591535ef2887e8418acdbc0c6c21e8805",
+        "bytes": 71984
+      },
+      {
+        "path": "tools/recovery-helper/_internal/python312.dll",
+        "sha256": "8bef88d50ad9c3a7e0163c79b3e8a6d7c21487133e1fe083de3c27b2e2c44a6e",
+        "bytes": 6985520
+      },
+      {
+        "path": "tools/recovery-helper/_internal/select.pyd",
+        "sha256": "348576ab74780a657250c5851db30345ce4598787790e0c83a8e7553bd4ec0e1",
+        "bytes": 34608
+      },
+      {
+        "path": "tools/recovery-helper/_internal/sqlite3.dll",
+        "sha256": "373034573a924478f70917602b4a8a06410a4c351daed2868e6e54920ea1932d",
+        "bytes": 1623344
+      },
+      {
+        "path": "tools/recovery-helper/_internal/ucrtbase.dll",
+        "sha256": "3239227d27667ba20d10a880751924e5719de0078f9fce232d149d383f7681f6",
+        "bytes": 1362264
+      },
+      {
+        "path": "tools/recovery-helper/_internal/unicodedata.pyd",
+        "sha256": "612e6354e800f2b92c288b1584cf23360d0846e2b6cfdb9fb5c163587c2a2365",
+        "bytes": 1143600
+      },
+      {
+        "path": "tools/recovery-helper/_internal/VCRUNTIME140_1.dll",
+        "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+        "bytes": 49792
+      },
+      {
+        "path": "tools/recovery-helper/_internal/VCRUNTIME140.dll",
+        "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+        "bytes": 124544
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/__init__.py",
+        "sha256": "6bef152c96b37317de70e065c561f5217e02ae6e8dbd1f8b864a3d193a6f9cfd",
+        "bytes": 1219
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_errors.py",
+        "sha256": "bf5bf255674ee3db4bba054b9cabed8ebf5975d2e978aa01fb2ac13833b0d2d8",
+        "bytes": 1070
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_inet.py",
+        "sha256": "cf62bc08ac527c443777450c208817c3936e80a2d9c914bffc29f5d22bdb8863",
+        "bytes": 4661
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_int.py",
+        "sha256": "a1eddcc62721e738f78109040a5e999c03829fe3f26131e41b5d7b6c0976d536",
+        "bytes": 494
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_iri.py",
+        "sha256": "da420ff2018887c057b75abfd12e4a867333514408bee4f414301837229ea9b6",
+        "bytes": 8733
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_ordereddict.py",
+        "sha256": "e550182dbc7112d7dd6462a08f320dc6598d91883d77fec99990057ebd047009",
+        "bytes": 4533
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_teletex_codec.py",
+        "sha256": "2e10e9913a6b3daa1ced427d8bdbb09cffb9026d344956c74908b33e908ba6a1",
+        "bytes": 5053
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/_types.py",
+        "sha256": "3b0b17df47a9bfe11323d786acb5bd18baafd0a7a889246725c8cdf76ae8aa14",
+        "bytes": 939
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/algos.py",
+        "sha256": "c4293e8e701a4b043b6ba9e0b0a9175429717b3d2ff05b8fad78edb5bd2c97f0",
+        "bytes": 35867
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/cms.py",
+        "sha256": "969ce571327dee0f1dab544f858b0e49ba502205a423c1346726d0b24977f616",
+        "bytes": 27776
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/core.py",
+        "sha256": "d7cc8f6a0057180b6c982153baa45b58a9c8cb56a9c28880123fe2d99c1cf45d",
+        "bytes": 170716
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/crl.py",
+        "sha256": "2892ee127d480c93b5f57e1e2d8851c9a33e0029f12a48a6a06b32027cc67600",
+        "bytes": 16104
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/csr.py",
+        "sha256": "6ab9d81abbbd4b63d80a60545c16462a939788645b878bf138d35d2ce8bdee75",
+        "bytes": 3542
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/keys.py",
+        "sha256": "58e88ef7f2a88253eba27d71dc55204666f41288698f8d2c8bb2ce4c223688b4",
+        "bytes": 37863
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/ocsp.py",
+        "sha256": "daac431a00a9d97289e71147131d2394b1641d859d2afaed5017462eb5153db1",
+        "bytes": 19024
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/parser.py",
+        "sha256": "801ecffeda781aa263810bf9cca9153a681d9a29b97097f1c8889df932080f52",
+        "bytes": 9171
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/pdf.py",
+        "sha256": "1cdc9b9e76b9586d9fb666fc371fd3e6b7b22c9d04ee1257a23dfb0ee2dba57d",
+        "bytes": 2250
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/pem.py",
+        "sha256": "b38eabfca090f61d4710d5cc8780062935deb22bd0aca9d6cd4dfe82893be6e2",
+        "bytes": 6145
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/pkcs12.py",
+        "sha256": "abe2867ef68eef607c01fbe8970b2a8404298eeaa79047333dd75760b0455121",
+        "bytes": 4566
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/tsp.py",
+        "sha256": "0e329e644e35dee9011937d854b9ce621b0ce66346052379da9da9bb194f6a99",
+        "bytes": 7825
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/util.py",
+        "sha256": "b213291c3bdc398c83712ae51681aa4cb5211e9b131da9b8e6ee0a7513b7cb0c",
+        "bytes": 21873
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/version.py",
+        "sha256": "a968033a6d5ac83fbd189d5076cdb64b76c183240014f5397953e0d693fc1426",
+        "bytes": 152
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto/x509.py",
+        "sha256": "a1c351e3563e0b9d3ee79a12b4e1a76d56ed71b877909e9dbe7c853be712afed",
+        "bytes": 93778
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/INSTALLER",
+        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+        "bytes": 4
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/LICENSE",
+        "sha256": "29c3425e5da53ab842273e5f2f2f068ce2e35df4260f7fa156aa1ac6bed02433",
+        "bytes": 1075
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/METADATA",
+        "sha256": "29112bfcab83d0af2e494a5de4e95e71c51e1113255d7f82536160366550f194",
+        "bytes": 13184
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/RECORD",
+        "sha256": "d0061cffa5e58717d032e0b2e794f4fbde8e0ca75f81f2dde294d2c99a9f9182",
+        "bytes": 3485
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/REQUESTED",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/top_level.txt",
+        "sha256": "cfcfa317f43e8e0cc6a31ed3d976226a7dfec9ea6d2d2d88ecc8e824b05aab56",
+        "bytes": 11
+      },
+      {
+        "path": "tools/recovery-helper/_internal/asn1crypto-1.5.1.dist-info/WHEEL",
+        "sha256": "cfd8f4c406bf26650a3299b3ef62b464600b48cfe7fb04159866e5797c765478",
+        "bytes": 110
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/__init__.py",
+        "sha256": "c5378d6244f60ebdc6d2667c00daf461374aaec29fddda6ae1032f18c3840fae",
+        "bytes": 191
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/__init__.pyi",
+        "sha256": "748d33339311187c619df8eaa40c8f1a8b4a4eb3e59de4cdd90fa30105cd8351",
+        "bytes": 103
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/py.typed",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/__init__.py",
+        "sha256": "d473aba5b1d98b834c34bb3b734e2495055bcddb0d5660f058f73cd759db633f",
+        "bytes": 3681
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/__init__.pyi",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_ARC4.pyd",
+        "sha256": "82f803d93808a45cbf5b0faa5ca05662d9eaff7b6d5dbb2fcc3ab78146433f4b",
+        "bytes": 11264
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_chacha20.pyd",
+        "sha256": "39d7bfdf02b731197ffc502de9b1f6f42041f0273eb902a06fb0d84011c1d7e6",
+        "bytes": 13312
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_EKSBlowfish.py",
+        "sha256": "26b7450998b5e04410a77486c695457c58dcbc8db24f50cc685651d223f3be8e",
+        "bytes": 5336
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_EKSBlowfish.pyi",
+        "sha256": "4917140d2eae01669b206beab2164796d2df836cfbd8accc9189cf4e6eebedb2",
+        "bytes": 281
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_cbc.py",
+        "sha256": "4707cd383304e7b5a84330f45eb3e49c72e905072e825859b54d033c87a0afe7",
+        "bytes": 11181
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_cbc.pyi",
+        "sha256": "bcd20f1e0c545f56f186640614feb8b125a2627f7a56f36da2a3b2040efe6ffc",
+        "bytes": 712
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ccm.py",
+        "sha256": "2adc50f715b0bf67aab34c48da20af3516699a7fe5b79a743ba583b6590a570b",
+        "bytes": 25950
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ccm.pyi",
+        "sha256": "0f134c396e824cbf0c5706faf704a9186ce9e2e01aff9eaef7f8dd5f3274d662",
+        "bytes": 1722
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_cfb.py",
+        "sha256": "813d8a9659151c4834b488257c205dbad70bfee9e45ed6c18cfb9b9010bf23da",
+        "bytes": 11014
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_cfb.pyi",
+        "sha256": "fa48d3431da67394394bcfc79afa506311a5579e9234299215b06514ec72edea",
+        "bytes": 753
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ctr.py",
+        "sha256": "d551abe5513851007168d8f23047b26cf0f3bc184fe60977d773c7f53296dc0d",
+        "bytes": 16207
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ctr.pyi",
+        "sha256": "d5ead8152a6d1da357a8b3b4d79e468b3a1201cb4406e83951f7b32f48a2fd1d",
+        "bytes": 827
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_eax.py",
+        "sha256": "8643c44ab29f164fbc9f76686ce8d8203a8f9e685acfd0f8fc22af9643782e83",
+        "bytes": 14861
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_eax.pyi",
+        "sha256": "c5246506d2ff0e2b13bae3a5d47467c47994932c24499fefcf32126c39bf9611",
+        "bytes": 1590
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ecb.py",
+        "sha256": "beb1d881c681295ae01316e857a5ab8d289a4a1b30dcf97ed405fea5c694892a",
+        "bytes": 8529
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ecb.pyi",
+        "sha256": "652c427e0bbca4838334715c3bf18979f96eb0b3fcfba8d67992a9d8f7a3ca4d",
+        "bytes": 611
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_gcm.py",
+        "sha256": "0b26c3654b72170544c880332814b04adb1c2b639cc8881b75ef97a1ac4c4faf",
+        "bytes": 21961
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_gcm.pyi",
+        "sha256": "49b6a847d2c71da556387d1987946edd0c259ccf3952c63c9d1061cb4eb731fe",
+        "bytes": 1586
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_kw.py",
+        "sha256": "29aa76fe618534422a5e6e358d99caf14953af3c162f43c48712b66c34fe76d9",
+        "bytes": 4618
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_kwp.py",
+        "sha256": "74fe27c77e9c2ad3943c4d09bd0f8f60d2cfddb53a90d36f7384bb183ee87cd4",
+        "bytes": 4070
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ocb.py",
+        "sha256": "3b85f66b106e11abff974d8c0505286d895f7a586770ed65317335cd0eef2fd7",
+        "bytes": 20467
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ocb.pyi",
+        "sha256": "e0c136e3762dd93c24793daf989d94061af30a300d7308bc8ad2ef69e73a92e5",
+        "bytes": 1267
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ofb.py",
+        "sha256": "670b77041005e3e61fa2e3a80e23e454051039fe3f310c8b53a7a8f02a56b986",
+        "bytes": 10491
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_ofb.pyi",
+        "sha256": "c3f9cfe344be5b88677256a584ac428d271a23b45e856a77165844787980b63f",
+        "bytes": 716
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_openpgp.py",
+        "sha256": "3f71e4528bd24f3cc96bdea89bc1cac2fe69fc198c4db07bfd0a1c997827fae4",
+        "bytes": 7259
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_openpgp.pyi",
+        "sha256": "5e1521b1ea98d146374597a94ff5df82fbe49f7c3dc06f6db03379e1ea79d7e5",
+        "bytes": 576
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_siv.py",
+        "sha256": "beb9b03ee0819457c449970767bc7fe3f671a385bed8b7c018bbd3edd2f9c45d",
+        "bytes": 14369
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_mode_siv.pyi",
+        "sha256": "80dae2a187b04f2e3729bcdf78de0db31e22ca0922ad420f65077c448f1538e5",
+        "bytes": 1299
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_pkcs1_decode.pyd",
+        "sha256": "c1ab4069447c986b7431547edb41ea4465824b43f282642eb16586535dbcd68e",
+        "bytes": 13824
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_pkcs1_oaep_decode.py",
+        "sha256": "9f8950feeb6be54c20fe83b79d18b33c773591e4bfd2f6ed85865e4e12677616",
+        "bytes": 1865
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_aes.pyd",
+        "sha256": "122538e845c945d8efd86a092dd78727fc18e2d74ea1b2a00a9f1b8e8cefd2ea",
+        "bytes": 36864
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_aesni.pyd",
+        "sha256": "2f43949960c3c05666fc7331d2aad383a32eb0d95caad2e074f9bf496bc95c52",
+        "bytes": 15360
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_arc2.pyd",
+        "sha256": "e5736c85c2fc3202d39d910df66b5b178a4a528136f733ae840577721a9c03b2",
+        "bytes": 15872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_blowfish.pyd",
+        "sha256": "ec89ced7b7e6ab2cab0c10581f7992a61aa7bbfd0e4179c7acfaa0cb29f799f8",
+        "bytes": 19456
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_cast.pyd",
+        "sha256": "634822b757bffb428584d4311948dde2a180233523afca5f23dd6e8c73c137ee",
+        "bytes": 24064
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_cbc.pyd",
+        "sha256": "6ea3b966fafc3317c90b9951c239190d48ea787919e98546bdfbf429e56332f3",
+        "bytes": 12288
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_cfb.pyd",
+        "sha256": "40a0bd3bf507aef9bf76f9205848f3ae50f35de088d0cabe2a76091226325c23",
+        "bytes": 13312
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_ctr.pyd",
+        "sha256": "b70f5f832dd39c625438c973c39a9b07dfa1e96f0803ac27e72be4a84b91e349",
+        "bytes": 14848
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_des.pyd",
+        "sha256": "e63974c2eb9fe5110bb8ba2dacf7ca76baf90b8cdd0faa84ae53bf2cda13870e",
+        "bytes": 52736
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_des3.pyd",
+        "sha256": "0c00eea6332ffd22c2ac320c145b1f7768f0a8bd702e21202cc2da4c8e1cb666",
+        "bytes": 53248
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_ecb.pyd",
+        "sha256": "a51f64287b5c9dbdcb0228c8e1ce6156aba51bb17f18a4e2550b2c5ff6e13fac",
+        "bytes": 10752
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_eksblowfish.pyd",
+        "sha256": "206d082cd16dda5e11454b3303d67ecfbc5aeee82f7c63cb7c5f0ef5f592ac93",
+        "bytes": 21504
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_ocb.pyd",
+        "sha256": "3035c134ac904360d8f11b59789565c37e3f13255c880897a44bc2c74c061b44",
+        "bytes": 18432
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_raw_ofb.pyd",
+        "sha256": "a5ebdc04f467c4f55870e343e4e603c27ee9f2056100cf15577be831288131a3",
+        "bytes": 12288
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/_Salsa20.pyd",
+        "sha256": "fce14c5d3f4bdd16e622c422913ca4a931f83fcf71c1db49a14153cb09801b8d",
+        "bytes": 13312
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/AES.py",
+        "sha256": "24af7918b87ca1c3025348200ade01b17a2c8310237ac25d097d266cff577fd6",
+        "bytes": 9264
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/AES.pyi",
+        "sha256": "4c566b7a5caf75f0a79bc4e89c2a5c885ee55633b834e972c0a12e8e68e29bc3",
+        "bytes": 4176
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ARC2.py",
+        "sha256": "cf808c3951f83d9e86799e02a564661d6c372216656dc5d40fd9e19b21d84a53",
+        "bytes": 7185
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ARC2.pyi",
+        "sha256": "605dd941f8ed380f3cf8906b995fcf9cfd8d801668e85b8fc889d72ec00087cd",
+        "bytes": 1020
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ARC4.py",
+        "sha256": "717b865cc7a4417aeaf0efa70b60ef7c42cbfdae4433bd704eab9ddf75c50486",
+        "bytes": 5252
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ARC4.pyi",
+        "sha256": "28855bc2ff6531efd40c42075eb5e506ad8a5f8d98b8041fb218725c7c484054",
+        "bytes": 438
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/Blowfish.py",
+        "sha256": "9e71714f41ad4fc6499b83ff0199d1ff75d73d551a740cffdc077d13ad930edf",
+        "bytes": 6123
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/Blowfish.pyi",
+        "sha256": "c108d97babee0989438f29a01b0b0b95ae54118434a49ae832fd0eb2310fb73f",
+        "bytes": 1056
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/CAST.py",
+        "sha256": "2e59e547baf132e8553fc76e9ae2151b48c0610483e54130b0b6262a03f95903",
+        "bytes": 6230
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/CAST.pyi",
+        "sha256": "a017c351d0bf5aefc610a60ee41b968bc5c1fa5e78b9fa593fe3c9c278ce9550",
+        "bytes": 1021
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ChaCha20_Poly1305.py",
+        "sha256": "51a6580a63c4487bcd0df401999a5c4497416cf251e2e935c950dc2a59422271",
+        "bytes": 11855
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ChaCha20_Poly1305.pyi",
+        "sha256": "6d880a3628c47d9bce851019c82720d570f44699e1b453af432ae4a7b20a1273",
+        "bytes": 1107
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ChaCha20.py",
+        "sha256": "ddf406689b55741bc914e9acd426f4a42918f37983367711f5bb4e148a282934",
+        "bytes": 11130
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/ChaCha20.pyi",
+        "sha256": "ce31a7182e4369dc8f65d929813ce67e7afa67eceed9821b124bbeab13d9e668",
+        "bytes": 798
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/DES.py",
+        "sha256": "bae52d7a7d2cd509d466156dc2878d7e4194bb304a8cb555f353ec00108c9186",
+        "bytes": 6105
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/DES.pyi",
+        "sha256": "98bbda18a15e4757ab66cc049eada7fe944ff2d1093ee70f643d634caf296e7e",
+        "bytes": 1001
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/DES3.py",
+        "sha256": "70d9b525599d85146924ef8dbdf0980c42a03f4fbb2d01a2cadbf7ed2d43cd93",
+        "bytes": 7112
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/DES3.pyi",
+        "sha256": "9005cb3f60f682b7840f7112d940128ae8ea1777dac8c1f3a4b8f0e17f6a398b",
+        "bytes": 1073
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/PKCS1_OAEP.py",
+        "sha256": "aaa02c53c239af8e009072723e809d54e7013ea5022bea6538a9017970c2bfaa",
+        "bytes": 9054
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/PKCS1_OAEP.pyi",
+        "sha256": "dfeae2746defd28744873401d008462c4c1ef4899b7bafaeae14fca12a5bb73e",
+        "bytes": 1214
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/PKCS1_v1_5.py",
+        "sha256": "8bbd80adf2035ded54365eb2076468d32e6bf9a5007c19557afeae19932a685f",
+        "bytes": 7208
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/PKCS1_v1_5.pyi",
+        "sha256": "219be400169e585320c518a50540eda12e3c4f489322c42d56fdad283d07a021",
+        "bytes": 706
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/Salsa20.py",
+        "sha256": "80a7769de32a81b8fb8cbe362066ff80711d630c0beb39235246e4fd53e11870",
+        "bytes": 6516
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Cipher/Salsa20.pyi",
+        "sha256": "edcd33b9365ad546cf6b01c7fefc73f1e7558bb50bfdb47fef26212c2e027ae6",
+        "bytes": 770
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/__init__.py",
+        "sha256": "79aa947f1c29d838adf9fb696fe5efc169fa67c73ccee8abb89fd65985d6b440",
+        "bytes": 3008
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/__init__.pyi",
+        "sha256": "a4763996875b02499733ba1336240470992d9b7c5b1af986dd0fe6ffc52f5642",
+        "bytes": 2085
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_BLAKE2b.pyd",
+        "sha256": "2f3a3e94235150694f11f20b6a4237f434e815911ba07fab9fc6f8f7fb8c0496",
+        "bytes": 14848
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_BLAKE2s.pyd",
+        "sha256": "1ab22ebb94a00085adf407d1d3ea2fdade798bf917292617f4121f1b711797fb",
+        "bytes": 14336
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_ghash_clmul.pyd",
+        "sha256": "de4eac4441156c26346cb022da756b6725d681790957a7434dd69a2ce2a9c5ff",
+        "bytes": 12800
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_ghash_portable.pyd",
+        "sha256": "6b3ca353aa7fcfcb6b36f3448bcb57c9055395df99cfdaac112a520c4457e752",
+        "bytes": 12288
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_keccak.pyd",
+        "sha256": "0b54d8da032404bb4cff055e8dd975d3e6799f0ce45ea1afecf5fc46beda06de",
+        "bytes": 16896
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_MD2.pyd",
+        "sha256": "c0c97cd90d6398db62219ad4585265c9e040a6bc5c8021539eada8d6ed6bd7b5",
+        "bytes": 15360
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_MD4.pyd",
+        "sha256": "27019c30cfd3c182fd14779a073f3bc44daaefbcda3b848d22cb0a938368f31a",
+        "bytes": 13824
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_MD5.pyd",
+        "sha256": "27cb620eba39ca8507b3da10105f40beabd62fd0cf5261f02811c8dee9f8d41d",
+        "bytes": 15872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_poly1305.pyd",
+        "sha256": "00f83b3d46a84e40405d360c91e8deb4f10d019a3179c097cf9587adf7878f7b",
+        "bytes": 14336
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_RIPEMD160.pyd",
+        "sha256": "26ad09bba6eaffd39355adac4c75ff6470e12d1e4a016bbef34fd61c6ddd4506",
+        "bytes": 17920
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_SHA1.pyd",
+        "sha256": "9be017329a06c9c3872cc064337bcc9e81a4f1d8d6fe5871c9a321d631f918a7",
+        "bytes": 18432
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_SHA224.pyd",
+        "sha256": "95213904f80cae7a0578514120f7ee21b3a4501cf39a3c2f584c94314301e703",
+        "bytes": 22528
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_SHA256.pyd",
+        "sha256": "58d484074ed7097a1869adecf7cdbdae7ecd846cd77d408ec787ffc952e96836",
+        "bytes": 22528
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_SHA384.pyd",
+        "sha256": "0d01c4e9956ce6f100e8ac86d4dbce4875c5a2ffa774faac36cd7996e9c08dd9",
+        "bytes": 26624
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/_SHA512.pyd",
+        "sha256": "24e0399ee766b8bb76234d4a777462e3365994ad9d1c8caf167a66c62bc829a3",
+        "bytes": 27136
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/BLAKE2b.py",
+        "sha256": "0cab4bc8f9ee36cb23b987090e71a7f13e327237d404ff3d6dfe2e08cbb629bf",
+        "bytes": 9675
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/BLAKE2b.pyi",
+        "sha256": "2f79fa6d217978db2c5a7cf297e73e555c2100e86fa5b2cb4c1deffccae353df",
+        "bytes": 938
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/BLAKE2s.py",
+        "sha256": "d7dcf6c05525fab54aeed3917c2b9ccc2559ec9bf169b32dcfbaf5a54c00b5dc",
+        "bytes": 9681
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/BLAKE2s.pyi",
+        "sha256": "25933f08745028c43450b44e6926a00942023e68bf934d2a4d032b8f9557c251",
+        "bytes": 765
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/CMAC.py",
+        "sha256": "b61e587e5aa8fd5f958f2c3daa7e8f8914c3d33d162a3ee4ccf7dcd8277ab56d",
+        "bytes": 10810
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/CMAC.pyi",
+        "sha256": "8a9787a689f900e660207c419a0c2b66d3d40db46d09f4ea9c19543640d26f57",
+        "bytes": 852
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/cSHAKE128.py",
+        "sha256": "25255524b26d401f859a162e6271277370f87f2ad42b94bfa27fa98bf15536b7",
+        "bytes": 6550
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/cSHAKE128.pyi",
+        "sha256": "996de23b6a41d7158b3c0dd8b3de5de532f6953706640866cbe19243a882f3a3",
+        "bytes": 513
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/cSHAKE256.py",
+        "sha256": "32810b278fb43848bedbf75d04afc4c081d544bc512feb2ce119ed010301c964",
+        "bytes": 2258
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/cSHAKE256.pyi",
+        "sha256": "c4b4b0e07985f4c8338d8abf9803ac1a46f8d1d579b237e207d06d47d1199c18",
+        "bytes": 239
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/HMAC.py",
+        "sha256": "bf5bdb55739bc144ffd51be8696df86fddb749efc794105122ba6882062d1f77",
+        "bytes": 8383
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/HMAC.pyi",
+        "sha256": "c2c617969e9c441dcc4f844e9b8ba9767f49999272c239bde88d5f4faf6a672c",
+        "bytes": 649
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KangarooTwelve.py",
+        "sha256": "6fe86d2ac869a20ae472ad8fb607de75fa9e85e2f8555dd13b16d8180f6c4d69",
+        "bytes": 12641
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KangarooTwelve.pyi",
+        "sha256": "408945c89b54a2cc8eebf041dbd2f8db88adb46ce71f3eaaf7e091ac4baf597e",
+        "bytes": 941
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/keccak.py",
+        "sha256": "284dbb8186152459bab4e39b9691a03ccd6aea1ec72adddbb8c78179f3a51ce7",
+        "bytes": 7895
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/keccak.pyi",
+        "sha256": "3a1db3e7321efb30c4aaf0fad5728728c7aadcebbbe91e4272940db1f9a677f9",
+        "bytes": 764
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KMAC128.py",
+        "sha256": "2784c94afd4e41e49e3370af0334d1578402e2cf51bfa1e57561d74eafb5d9a4",
+        "bytes": 6128
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KMAC128.pyi",
+        "sha256": "383b57b62578122cd924bfa4dcb324233ed0d7a847f89d16bdbd3ed8251240c2",
+        "bytes": 936
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KMAC256.py",
+        "sha256": "5df6b48163bbbea77d5b624e1e07b95f25390db1430d45ad5cab902e477a64a4",
+        "bytes": 2980
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/KMAC256.pyi",
+        "sha256": "b220806e584ff8fa9c4a28733f1a096b631b700096020eadcf766b96f86a82e7",
+        "bytes": 236
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD2.py",
+        "sha256": "2b2cb2d01b12395ddbea6ec5d66e3cdc8fd5b99bcb81e112fe127299ee24922c",
+        "bytes": 6277
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD2.pyi",
+        "sha256": "3b3c9e78a4313ac9d7935d4ae92c650879be8f55007478154429919b4794bb42",
+        "bytes": 511
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD4.py",
+        "sha256": "26196b146e61c65278c91c066b7460febc3200dc14fb5e842c471e6d56c39783",
+        "bytes": 6767
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD4.pyi",
+        "sha256": "0602da2a342d9ef1f7c015f953b2df27f51c25a5e99f89044e71579662eba5ff",
+        "bytes": 551
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD5.py",
+        "sha256": "5b3966f7457db844be069e442139f2863b2407d9c803edca064ce878bbd263e5",
+        "bytes": 6802
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/MD5.pyi",
+        "sha256": "8a3e274302454bff4450c1df6da89a048f13eb048e64c6781408f18066f8430b",
+        "bytes": 511
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/Poly1305.py",
+        "sha256": "f837e4153ed4e178f518f71a87315c172c3b60cb4f132a6f19f68af9bca336f7",
+        "bytes": 8291
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/Poly1305.pyi",
+        "sha256": "7da8b1db291f97f8751ebe26aafb6663571467c4a13827f8114895990e3dd81a",
+        "bytes": 689
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/RIPEMD.py",
+        "sha256": "e811e75c7b6a01cdfaf40c3ef330bdaf01edd45aaf449396a669eb1ff78c8cc6",
+        "bytes": 1225
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/RIPEMD.pyi",
+        "sha256": "4e4a85e6bc544386180faab57b719d40c8b07d04ff1ad0a222aedefd81a29dd4",
+        "bytes": 97
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/RIPEMD160.py",
+        "sha256": "cbccb75e5f0647e5c18b743266d00300eea5d15d164e3008acbd934894a4ab43",
+        "bytes": 6567
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/RIPEMD160.pyi",
+        "sha256": "84f643a25df20e6a761ad4e1ecdc6f04493db5ccaf6108254b944a31662a00e7",
+        "bytes": 535
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA.py",
+        "sha256": "c86bad9d4affeac58ce3884195e177e1418721c8e3b70684acddc36e74bc943f",
+        "bytes": 1172
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA.pyi",
+        "sha256": "0aea71662b258a56912f1274d95677a727f619a48604d1b1b991891f22ed047d",
+        "bytes": 165
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA1.py",
+        "sha256": "6c3ce9b0e7b65218814ceb19987644c776d4c36495c2875470fc94149a8a0015",
+        "bytes": 6875
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA1.pyi",
+        "sha256": "4fc9652243b1b4a443c08c6b22f5c5343c63453405a13fbe9cc9dd12de6951ea",
+        "bytes": 555
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA224.py",
+        "sha256": "d872af137da84299b930fbfd1fc433fc86e0b38e0046e3d5f981f7eed9bb8cb8",
+        "bytes": 7087
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA224.pyi",
+        "sha256": "a3fbcee498c3c4cadc8d5136aced4c69de9b941802aea4aef8c6b272df1e054a",
+        "bytes": 563
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA256.py",
+        "sha256": "da3433adaebe699670076abb87b264f30b568692279e535240ee76d65a33a4b9",
+        "bytes": 7082
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA256.pyi",
+        "sha256": "07892d70c0fa32a19dda232203bd7ff0d25b19f30e599924836a8d4bb6161a71",
+        "bytes": 630
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_224.py",
+        "sha256": "26ca1c9f197f6b87e4f727a612ceda108d0a9c56d101efb51bc9295270dfa16c",
+        "bytes": 6353
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_224.pyi",
+        "sha256": "ab9abf3623247f77fde55038c8531ff4c22e70532cdef140fa9f0b645a15ac36",
+        "bytes": 624
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_256.py",
+        "sha256": "5f7bca81167fe52f31335bb83cc924990dae60a7aed2552c248f20f911c234c6",
+        "bytes": 6353
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_256.pyi",
+        "sha256": "7eef366e028519327074aadf07fef65fd87564deae82a1de1e03634a928047ab",
+        "bytes": 624
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_384.py",
+        "sha256": "b804f3ab70381fa5b7140e10f95ab9d95bd62a445bdc7400fcc3db44869b8ae1",
+        "bytes": 6453
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_384.pyi",
+        "sha256": "d328a5327c257aca3516c7c11b617d30d5e0c7c9915a32f4c6b3ddfe269dcf7f",
+        "bytes": 624
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_512.py",
+        "sha256": "14062988382cae40f806020ce67a33d9726df2d23dee63d00a99c592d3f2ace0",
+        "bytes": 6305
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA3_512.pyi",
+        "sha256": "5699b054358a0c556096c132c09c8b3052e5efe815a26edabc5ad5e896bf8e9c",
+        "bytes": 624
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA384.py",
+        "sha256": "c9264e99e50f4d958a133f2dd00b90384767753a0bc0c8345beba0b22cd46ff0",
+        "bytes": 7085
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA384.pyi",
+        "sha256": "102f8dcec4b3e3e3e019f6ce2b165c0fddc41b70eb2e3169270be35f227f2d5f",
+        "bytes": 563
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA512.py",
+        "sha256": "f4346feb42803d175a2b4cb2a45fe82882c426a67a64c12ac1d723268d3e7726",
+        "bytes": 7924
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHA512.pyi",
+        "sha256": "bb0e0df4f3fffb4a2b9efe5b674d7407bbd248678b0bf2a44ff0aa07d247dbda",
+        "bytes": 644
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHAKE128.py",
+        "sha256": "edf3f0f1c642e93e62a2ecf84826aa26cc3500479bbef56720c2dfe542fbe07e",
+        "bytes": 5402
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHAKE128.pyi",
+        "sha256": "00caa4065ad97561e5cd6f89916bdfdda4766aec85c462aba8b608a7fcd8a282",
+        "bytes": 491
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHAKE256.py",
+        "sha256": "b28f44027b2834793942f049b03156f9aa4cd79f29a2664fe46564e6de61cd7f",
+        "bytes": 5404
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/SHAKE256.pyi",
+        "sha256": "d96adc2383419787bf7af4fc5c0ea95b75592ab6832b4021c7ed96f3996d7504",
+        "bytes": 491
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TupleHash128.py",
+        "sha256": "36051ea4794aa6687e689974f315ce9ce9620ec1f9b1ab4c2f0f9c8099d87bbf",
+        "bytes": 4888
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TupleHash128.pyi",
+        "sha256": "b5671e5e8fc4513c2e0c9f072c1a9c868656f0cd66783dc011fc4556c1bd2306",
+        "bytes": 688
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TupleHash256.py",
+        "sha256": "96bb2970b54cc270de193fb71155affbf54f9acf21310ac4ad968893a478b3df",
+        "bytes": 2902
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TupleHash256.pyi",
+        "sha256": "0b014a808207e4c2a6375dfd6ade40c97b5802c8f9ea76748f333c1386c6704c",
+        "bytes": 149
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TurboSHAKE128.py",
+        "sha256": "512a0d196efedab1e320041d54bffbf7366c4d35ea95d7290732db1fd8a946ea",
+        "bytes": 3947
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TurboSHAKE128.pyi",
+        "sha256": "b7617049d0b2131180ea0b73ae8cac73839a27d394be6b4d9796f9d0198de6b7",
+        "bytes": 591
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TurboSHAKE256.py",
+        "sha256": "ad79e152a2c83ee90ac61ff7245df570673fbe28720d9de8e07e2fddbf0e51db",
+        "bytes": 779
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Hash/TurboSHAKE256.pyi",
+        "sha256": "86dea501f8ed56bae7652415243b38845ab1c94a1e4ad0e737a98a37a80235ea",
+        "bytes": 318
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/__init__.py",
+        "sha256": "655dbe52f138022ccdaef6db28569eba1d513617d12ad88685d793e40c21f5fa",
+        "bytes": 1571
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/_PBES.py",
+        "sha256": "f3f25fa30ab01b9083c190e3337ced50a990b96c4523cb17880dc3ffb3ec1d5d",
+        "bytes": 22898
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/_PBES.pyi",
+        "sha256": "47f4fd8c81c49bc886bcc7ceee74bb61d5d92b2962bd50a5137393be82874730",
+        "bytes": 818
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/PEM.py",
+        "sha256": "c11901c7937f8e12f54052628c8948cb695e0acb861829b3c23f33d5ee0d1a57",
+        "bytes": 7228
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/PEM.pyi",
+        "sha256": "fd17de9b1d9eeb3950223be5e5b16a8ca3ee0a7e4822557f0b882bff3d67a1d0",
+        "bytes": 313
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/PKCS8.py",
+        "sha256": "1309e8ea8fc75fd89a5256d91187900b42cf73ee0c46ab1cb15e5ef87a5f3a8d",
+        "bytes": 8651
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/IO/PKCS8.pyi",
+        "sha256": "17c9a6398cec2b74df62786b9a84553ecfe8660dbfbeec47663bbef0ebd8e167",
+        "bytes": 617
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerBase.py",
+        "sha256": "f51738ef5459c02a5cdd445d2eb46ee410ca625a348fc825d89a374efb86095e",
+        "bytes": 11681
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerBase.pyi",
+        "sha256": "c8a26aff672f06b9c4d80286e0ef8dde8b2b41ff4c317ab75aca0fd0d01c751e",
+        "bytes": 3810
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerCustom.py",
+        "sha256": "a4ddfdeb17daaaa6c77f417677e01545115dacf477c77e99f2b4e9b69a836a60",
+        "bytes": 5893
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerCustom.pyi",
+        "sha256": "baf20195fdb64efab526fe676151ce94716dce7ef897edfbf92bc744e53aecfd",
+        "bytes": 143
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerGMP.py",
+        "sha256": "d49374035696b8f624d46e6cc07144a491baeef176b8f5afdbf4b657e9dc21d9",
+        "bytes": 29604
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerGMP.pyi",
+        "sha256": "32d4d0b0b2fd179f5dfd1a04c22a2d3fd4d178d5c7645ecf15754fc073c7e508",
+        "bytes": 81
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerNative.py",
+        "sha256": "376093405d5e3409afe56daf27c0626f4da3293bd1ad75501a9f2146aa1fffbb",
+        "bytes": 11712
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_IntegerNative.pyi",
+        "sha256": "ca1dd04ecac1474b1fbdad15ab86881fb10e182a32c3aeb88c3f9f1b468e62e7",
+        "bytes": 84
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/_modexp.pyd",
+        "sha256": "aabb89025b002d1be9df9880050186ada4c6cfc5d592f2acda494ff31eec94ef",
+        "bytes": 32256
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/Numbers.py",
+        "sha256": "3f57f855c528f661974be4a749955c67877b340ef1bfbf2567e2b6e5bb69e2eb",
+        "bytes": 2155
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/Numbers.pyi",
+        "sha256": "37e4e3aa463400ef4a3f01217b46a3237d2fda2795c78f936cc936aab1875701",
+        "bytes": 84
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/Primality.py",
+        "sha256": "038b088d41f46e28054bdaa8b87c02cf000373236262ddc9339ea04b00c792d2",
+        "bytes": 11740
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Math/Primality.pyi",
+        "sha256": "f73daea86e4577fde3b6e314a1da38441a8f0ca8ac64a018821e10706b80c903",
+        "bytes": 841
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/__init__.py",
+        "sha256": "5e519ac6fbc45fdc85a460e0ddad070baf48bc16c1ba2906a67168f89e3f0899",
+        "bytes": 1585
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/__init__.pyi",
+        "sha256": "d17ff2840e82e8bdf3fc2378b27b824fe0c97506473295746c18253407fda61b",
+        "bytes": 44
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/_scrypt.pyd",
+        "sha256": "7934ac99e97a836b1960a1ab62c4d8ab1874a674b89afb000c39837b3a2fab1c",
+        "bytes": 12288
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/DH.py",
+        "sha256": "6fa8f0be62f07c3b1316140b3152baf31f1d0d4791042c903e6891784ef584df",
+        "bytes": 5812
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/DH.pyi",
+        "sha256": "53448e639bf34e48bca0ae3a8b1ca49f364aafbef4ab0abaf2a135c299756bde",
+        "bytes": 724
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/HPKE.py",
+        "sha256": "f885384590283ed46a4cb4a2873903daa1d5f5c830213613e522cd6fb9bebfcd",
+        "bytes": 17441
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/KDF.py",
+        "sha256": "d0954525e750c1e7924a5bc9f7c7d91ad8d0eefbc3aef968c5a6b517bba37859",
+        "bytes": 23020
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/KDF.pyi",
+        "sha256": "2bb0a80795e8ab20b2078d7317dc0e76aa6cd7b6263fedc4d8f45b0c6b75b204",
+        "bytes": 2196
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/SecretSharing.py",
+        "sha256": "5d9bad4b48166bac19330d472dea26045a8accf8b8ee63fe4c2bc31b3e5045fd",
+        "bytes": 9419
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Protocol/SecretSharing.pyi",
+        "sha256": "17bb4b071a5baab986780546a7b0f506f186a683cb2a2a9c9c3b727c3d9c0921",
+        "bytes": 820
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/__init__.py",
+        "sha256": "ee62ed1363ae2633b7498b8ae333e525ceba8af94cba9f1c6df4939581c759d8",
+        "bytes": 3236
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/__init__.pyi",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_curve.py",
+        "sha256": "5ccc3bc94e70a3fcb0d5ed0ea47b1211d3bf4e4ee0286bb8d2c2078b60caa14a",
+        "bytes": 1849
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_curve25519.pyd",
+        "sha256": "8ded9969426e3b886d38688f14859034284b5f56db08937124a5f3258a77f4e3",
+        "bytes": 20992
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_curve448.pyd",
+        "sha256": "02f7f6d98839f9725e2a775c6f750910105c97ecf95654114bcd446eccd788b1",
+        "bytes": 59392
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_ec_ws.pyd",
+        "sha256": "8bc315f1cc78fa6dbe5292aeb188a7ba18aff62029eb16c525a1521ac605f9a9",
+        "bytes": 756736
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_ed25519.pyd",
+        "sha256": "f285c2c33a3bc2eed920a5667410c7868cdcf8fa5e5c4c597cd7ea631ad33817",
+        "bytes": 25088
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_ed448.pyd",
+        "sha256": "2b46fad4e785edca84c5e69603c5b7159783101db068c3744cdde5de2d5b8b8c",
+        "bytes": 75776
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_edwards.py",
+        "sha256": "1f001ab4ed9b6b7c0bb1b0d04dd4637d547af01406e51ce9d2d381ff71e5beb9",
+        "bytes": 4779
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_montgomery.py",
+        "sha256": "3dd4b003b6471646f2565d0a7444d57f86611bf4891523610d13a0a2b7c60a50",
+        "bytes": 5379
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_nist_ecc.py",
+        "sha256": "85aee37f53183859adfd441979f7a1246850d352d7fce24b706efb3e715365ef",
+        "bytes": 10407
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_openssh.py",
+        "sha256": "b92d60974ef5ff39314516c2fa7adf20886c4201c9aea68ec633f921d4ed4b63",
+        "bytes": 5261
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_openssh.pyi",
+        "sha256": "564c2b01dc5d096bf508761db881e201172e2d60e939ba2f78e20be46a74dda0",
+        "bytes": 331
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_point.py",
+        "sha256": "7123e8748c293714333583adfadb4953723050a237220db9c1f940768722b65b",
+        "bytes": 17235
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/_point.pyi",
+        "sha256": "ffea643854c6ba98a8538193ddcd5ba2d454fb9f80541537a30b7dcac474d412",
+        "bytes": 1770
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/DSA.py",
+        "sha256": "12c8b04782f678c47818010e97f24f7f754b55a7e4b6fb50275bbb9dd1ab444d",
+        "bytes": 24013
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/DSA.pyi",
+        "sha256": "7e2d92cc91313869ffb9acbde0f4628f6bb9995ff154bcc0e8c2f1f733e96c4f",
+        "bytes": 1412
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/ECC.py",
+        "sha256": "9bdf8aff45ff990fea5dd044b87dd23f05d3ada04ca8eb8477b27e8538ddd773",
+        "bytes": 49233
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/ECC.pyi",
+        "sha256": "3d0bc259f5db4df011fa240ed41a718e0dfb1fb4e0109fb1254976210701d4be",
+        "bytes": 2712
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/ElGamal.py",
+        "sha256": "54f3ab21742989ad8bc1aa56d34505f1601e1dbfaea89a121f981784ff339db5",
+        "bytes": 8901
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/ElGamal.pyi",
+        "sha256": "701c7ca660a0ecbf8b633fbb1a080f447fc693e128965d369c6165f621cd80b6",
+        "bytes": 692
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/RSA.py",
+        "sha256": "419011be4bddbe4761c40b6c63542bf430aedc32473acd24b116a0b614ce2379",
+        "bytes": 31962
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/PublicKey/RSA.pyi",
+        "sha256": "5cba0d3c44217538026d4585aca8f592fc0b21ad618ab11d45715539a365e024",
+        "bytes": 2599
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Random/__init__.py",
+        "sha256": "05e8d3e5d2b18c1731189db337b04cb83e966dc385930836fa22e9ee0f376fb9",
+        "bytes": 1866
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Random/__init__.pyi",
+        "sha256": "3a9548ef07a83c2f2bf7db05edb776bd788b9d9c112ea8155333242839cc27d7",
+        "bytes": 386
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Random/random.py",
+        "sha256": "01adbd3f51a22f71edd8b3fb3f45bb849c9d9a46e00a7cfd25c28ea780512e3c",
+        "bytes": 5372
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Random/random.pyi",
+        "sha256": "043aeda2f263a42a0086fcbb0ca801ff1d9bf396ffcc966452ff25dd5030a013",
+        "bytes": 854
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/__init__.py",
+        "sha256": "a5195de8f0fd1855c9fe4170915bc36c9c9f85df5b8e14feaf817c570f9c25f1",
+        "bytes": 3311
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/__main__.py",
+        "sha256": "165a0ba1e31bec7c6e80633f113d3882cc2ac98e37f51e9224aaae8b3df93d67",
+        "bytes": 1612
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/loader.py",
+        "sha256": "0adbab2a91e660439c0b0f0baa4c2bf4d56ce69f96bb3ef41202455e4ecb3f25",
+        "bytes": 8768
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/st_common.py",
+        "sha256": "aa5eb6ddee38bf49097c0af6262c8b90ca0cd366ac0826dd8aae37b63cd8b045",
+        "bytes": 2000
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/__init__.py",
+        "sha256": "2cba1e7116b373aacf346347f7321bf14a20796c5a93ffe602d473bfaac13ba9",
+        "bytes": 3774
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/common.py",
+        "sha256": "272ce80b0a9eee51b59d4376d5c01b571569a83d0f20b9520400db8dfcae8af2",
+        "bytes": 17778
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_AES.py",
+        "sha256": "c63e2f372bcc41ec2c4667a8c8036378d920f96e66ea6e74f1061ae18fc2c181",
+        "bytes": 73082
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_ARC2.py",
+        "sha256": "82c1fe3f3e2a2056eefe5c7a2ff0db52a8ba12012411ba8692636044b5d47d14",
+        "bytes": 6621
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_ARC4.py",
+        "sha256": "4b5535377c5f07e7a2beb41443beae9e340c3f0e0c2cce7770bba489cff57e20",
+        "bytes": 25450
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_Blowfish.py",
+        "sha256": "91f26b656b58ba5c73c57da0ae5b48f5a911d82db12738b59ae5c8b82f96270c",
+        "bytes": 7390
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_CAST.py",
+        "sha256": "98a16555489559e0b93f6338a7ca46516232df195093859cfaf3efb05b9ab7fa",
+        "bytes": 3380
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_CBC.py",
+        "sha256": "c2d96ea70e4ca1a31c148e7e1a3a44f696596df00992d51a4868d96465b2e332",
+        "bytes": 20758
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_CCM.py",
+        "sha256": "4693d7061e018fee218f09dba8afd91df49b176a5b061921674d6cf8ce64768a",
+        "bytes": 39451
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_CFB.py",
+        "sha256": "9ea26eebf360b5271b9a4ffb3a961cb19114903906d37fb1def604e25bf433eb",
+        "bytes": 16472
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_ChaCha20_Poly1305.py",
+        "sha256": "15f3b00a1bc049c62c9e26ef3a06d91fdd800028bd4cbe2a82fa521efcab336e",
+        "bytes": 31490
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_ChaCha20.py",
+        "sha256": "15ec0ccbe86a0910d0416230fac536fc59ae0a86ed59d866e6c584ae1306e23e",
+        "bytes": 20845
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_CTR.py",
+        "sha256": "4a24dab89ed26a137bb8ed94b121623fdfe98b1e1582a1b259d8f8a4c9febffe",
+        "bytes": 21786
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_DES.py",
+        "sha256": "2ff59ab811c58999da679b0d9f25d666ebae2ff1f1745a1044fc3dbd0e303a4f",
+        "bytes": 16317
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_DES3.py",
+        "sha256": "1b98bd98c3d586ff6c16a0c281c5e16ae56f6e6b1d2742cb82d071cf6f54afaa",
+        "bytes": 6756
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_EAX.py",
+        "sha256": "dbc39cea208c0a3d8963c29360393e485fedb9a8f66c0a9cad285014c96fdf58",
+        "bytes": 29594
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_GCM.py",
+        "sha256": "fbd00f487173d330c461dc53f14cb971bdc708630515bf343864f83a7dd98c1a",
+        "bytes": 38227
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_KW.py",
+        "sha256": "105854fd4cdc4ba0a521c3dd8f0e0dc37f9c6fec2be4f4f28e8b0253a9c17cf3",
+        "bytes": 5785
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_OCB.py",
+        "sha256": "05d877e5930ee6784fd584014dc9f96f5022b788b18902907cf8283153fa252d",
+        "bytes": 33484
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_OFB.py",
+        "sha256": "d6e8220e8f383c767a2eac33a812b5b63962a7bae8ed083c72ea32eb39440bc2",
+        "bytes": 9605
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_OpenPGP.py",
+        "sha256": "4ab75e51f66dd9c80b9b893c7eb35eee23d93e14a6368099337987e3692d1b2b",
+        "bytes": 8695
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_pkcs1_15.py",
+        "sha256": "a33f4341d43d86ce8f8c87f2bccc5de1300ca223e2a53279b20348886c17f0c7",
+        "bytes": 11227
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_pkcs1_oaep.py",
+        "sha256": "22da3ec31421a2552198ef2ae00e6019df85cbeac74d428a50df9cd6ab7210ca",
+        "bytes": 22796
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_Salsa20.py",
+        "sha256": "f99cc569b39f3163a2025a128a4323e3454bc32473624627920287ec0dbb667e",
+        "bytes": 16958
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Cipher/test_SIV.py",
+        "sha256": "ac2b287f231294e23e8037a25773bd7a67a54a72ab1fd6fd4d2652244e985d9a",
+        "bytes": 20491
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/__init__.py",
+        "sha256": "62225a7df06d003a465c3ba5612f695badb31559152c1492354b5c44a0a63bb5",
+        "bytes": 3879
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/common.py",
+        "sha256": "63b4610f9f13e674821a83a40fa26ea9d87323f9147719fb7ad2e69b9f7543b7",
+        "bytes": 10144
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_BLAKE2.py",
+        "sha256": "bc8cd297b30f768d238b0423c73942c8def634890e8d707eff395758fd0f3831",
+        "bytes": 16968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_CMAC.py",
+        "sha256": "9158ffbc96e70a527a5d5758a3e9d98d9dc8905818fb747a1a800a294a17d320",
+        "bytes": 13808
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_cSHAKE.py",
+        "sha256": "aded756fb81f8601c093433f2a8549d91033c2fdc632f5d0a96e82d65bbcabb3",
+        "bytes": 6970
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_HMAC.py",
+        "sha256": "1f8ad7d399ce6d2449f3413e26bf73403860c79114807776da866e29e764606a",
+        "bytes": 20489
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_KangarooTwelve.py",
+        "sha256": "5484d380a232a7adbce5c066df8c693a0f325c1cb7e8822fe5c25d44463df0d3",
+        "bytes": 17487
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_keccak.py",
+        "sha256": "f75f0ddb0190f6b0177dfcd321931ac8bcf9b0a6bf0539b413d719a3e104656e",
+        "bytes": 9139
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_KMAC.py",
+        "sha256": "3bd587ff74064862e669cdfb0afc6ef1489e751c9f67746757f0cc3f4f62d0e3",
+        "bytes": 12050
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_MD2.py",
+        "sha256": "a909bd63262259ef3e795aa112faaa10fdd71c713948834cace1619818b2dbba",
+        "bytes": 2386
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_MD4.py",
+        "sha256": "a2149f6db57f2e73130c7ec05f8895c6df475a46df25c860ec3801d97c630cb0",
+        "bytes": 2411
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_MD5.py",
+        "sha256": "4cf30101b12752c5921278cc8c04b52b8a603e3bc2736cbf5e7166c38210c805",
+        "bytes": 3378
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_Poly1305.py",
+        "sha256": "2973b56cfc48f62ba1fec363877340bcce4c99ad7870733389996b2404c454c9",
+        "bytes": 18839
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_RIPEMD160.py",
+        "sha256": "7349c09c56ba9a32364240ea09f439f0857ca8373ecf0ae72e4b5e352f64a5ab",
+        "bytes": 2734
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA1.py",
+        "sha256": "dbd7878b214acc6d24164b67b5161bf6af4edcca3bc498dccb6b27a360d7f3cc",
+        "bytes": 3010
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA224.py",
+        "sha256": "ddee3a1a84db48ff22767cf608328da5a29fecaf3200da8ed96dd3742108ec88",
+        "bytes": 2596
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA256.py",
+        "sha256": "3f4bebb1db2b687741c27ac9d56e16972660af0a74b21417c4cb50a1a001edfb",
+        "bytes": 3711
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA3_224.py",
+        "sha256": "c50486c345952d8fd5be518f43c618db8d586f374cfdc382c005a38006b4ef29",
+        "bytes": 2909
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA3_256.py",
+        "sha256": "872c11a1795c3cf07aaaca69a85f622d045e317d7401efd9194a762dce149e31",
+        "bytes": 2911
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA3_384.py",
+        "sha256": "fca402667ae407801ec05e7ee90bfcb43253ce564a9f2748c6c2bb839dc4388f",
+        "bytes": 2909
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA3_512.py",
+        "sha256": "c0d24363a1ee4144a234fb31ab7febdf1d99bd16e5859dd90d79d8e1acf045dd",
+        "bytes": 2910
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA384.py",
+        "sha256": "6c12d0636052ac571f310aecfe96011410c6cdfab71eb8fca5264997f3d03f49",
+        "bytes": 2775
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHA512.py",
+        "sha256": "66cc1c34ebbb0775a0ee58206fd09d9cafe4ac46114112340c0a8def95e24e06",
+        "bytes": 5338
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_SHAKE.py",
+        "sha256": "0cbe6654dc08e7f2844377a97aae5830db9f1244cf9b4ea9e894adf6d5f07184",
+        "bytes": 5065
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_TupleHash.py",
+        "sha256": "996817f0c1ff6be9642c71b0c64fe8b2b783df516dfc289c950e7212db2651e5",
+        "bytes": 9000
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Hash/test_TurboSHAKE.py",
+        "sha256": "1ad796b5a7ac7c12aaaeccd151cdf0ab312b28621fd09a047f974f9367a30b7e",
+        "bytes": 15477
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/IO/__init__.py",
+        "sha256": "e0feabc0079fd763084043fc5c8be120e43d75e0d12770e73cae0781423b2f20",
+        "bytes": 2041
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/IO/test_PBES.py",
+        "sha256": "ad193ca9c3e7eaa172a1481fbbc562de3a5a126682bbc4ebc055517e212850e0",
+        "bytes": 10586
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/IO/test_PKCS8.py",
+        "sha256": "0f02942929784ab768bdac13a9ff91baf09e949fe9a4e94b72664f86a71e07ee",
+        "bytes": 19565
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Math/__init__.py",
+        "sha256": "73d30940d7505a54b81211bb5bfb364cf389486220f3749a1b3783588ae316c9",
+        "bytes": 2253
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Math/test_modexp.py",
+        "sha256": "0fea1e2f8e4285dee62676c7e87d438ef421f948bdb8b412ec453a0d4deca6d5",
+        "bytes": 8304
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Math/test_modmult.py",
+        "sha256": "8b83a8374c7929213ac42bc379dd2e3923b015203bfdab61efcc2ae7e8986c6d",
+        "bytes": 4980
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Math/test_Numbers.py",
+        "sha256": "cfa1e3dfd1f93173dabc32a112c6111138cd62a294e0d3254b6ae1acb1949b48",
+        "bytes": 33222
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Math/test_Primality.py",
+        "sha256": "9e2ba49b922820dfa0ad60532e98747dbbd03796f3df2b3701b0373d1a254f09",
+        "bytes": 4999
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/__init__.py",
+        "sha256": "1266861fcb7200c848c3ef4f1f6ee47543c86e4bbc7aa39d0db915932a8da412",
+        "bytes": 1947
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/test_ecdh.py",
+        "sha256": "afa3a2740773b6e479325d5647d83e3888f8faafe1706744a887ae1bb13ebae4",
+        "bytes": 31314
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/test_HPKE.py",
+        "sha256": "faae0ec9919ae02651e5ef9e51fcff7ba33467fa5c6dfcc0ec58e20e1fb1413b",
+        "bytes": 18133
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/test_KDF.py",
+        "sha256": "4741919eb1c94cb6a569cf033df7aa4b5ee1a36f5b1ec265c42bb5fb2a09cedf",
+        "bytes": 37616
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/test_rfc1751.py",
+        "sha256": "5ba5cf5c2665263df853e60ce4a6ecfd8e74910c13fa92f7b32841501bf90c59",
+        "bytes": 2270
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Protocol/test_SecretSharing.py",
+        "sha256": "d8cec10fc9583bf30bc738a55b3152e89bc77a86d7f3a812efdfb7d3e6b614b6",
+        "bytes": 10468
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/__init__.py",
+        "sha256": "9318c85c142e6fb74d93058755d17f2ef4fbb1fa86ed0345ae75a978525a90a7",
+        "bytes": 2743
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_DSA.py",
+        "sha256": "60f3faf47612a9df1b4d89b06b38e1b6286d3cf2d77f4493fe7ebaf664a087b1",
+        "bytes": 9847
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ECC_Curve25519.py",
+        "sha256": "116cd515fafda5b113bc50719b431ce5421b0311ceabc6eb62b3cbdf820e4a60",
+        "bytes": 12270
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ECC_Curve448.py",
+        "sha256": "220207d94fb32f20c4caf2fd07d473295b8717802200216847b368fe980c24ce",
+        "bytes": 10443
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ECC_Ed25519.py",
+        "sha256": "98da92985a5646178c2e64e577a1e132deb18e541e47e18121dc4d4c18d58420",
+        "bytes": 14265
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ECC_Ed448.py",
+        "sha256": "e83a7edef10f0a28250a3131b0c2ce8173d25088c94f82faeb5e6b80ad6000a2",
+        "bytes": 15328
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ECC_NIST.py",
+        "sha256": "4a980934b7504f7f745fb27c0d9bf5e58491a84ba24893ef3fc635cf0c83cc41",
+        "bytes": 53262
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_ElGamal.py",
+        "sha256": "de68dd99c82d04f99b7a8dc246f9aa626b97aebb0266d237b3f97212ac9a7f2f",
+        "bytes": 8865
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_import_Curve25519.py",
+        "sha256": "0284c13e2f9d91dea5dcc7aa4fc398f27061441008ffba9c81390270816b13d9",
+        "bytes": 14749
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_import_Curve448.py",
+        "sha256": "a6b7e2a16986e114ca6b1c20e1c2fbcbdd54384b7af0763a540a6f38332e5103",
+        "bytes": 12843
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_import_DSA.py",
+        "sha256": "ae72ff476a6edf11f5c87833e61c3fa22b636ffd9a40bba216dbe4eaaf375734",
+        "bytes": 26063
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_import_ECC.py",
+        "sha256": "203c62a46c1a2bbaf3f783ce92f489e147ac5086d4af6f499ea400ef7347f475",
+        "bytes": 111929
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_import_RSA.py",
+        "sha256": "79d977968f538799f13983b1ef0f422c900645b1dd7922d9b12ecf48ffb3634e",
+        "bytes": 27659
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/PublicKey/test_RSA.py",
+        "sha256": "c21a130afcc95fe9c7399b96843457360412e2af6f880502b9da6961cff05dd1",
+        "bytes": 12948
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Random/__init__.py",
+        "sha256": "468cd14e0b72874b146c15413d0aa19b9d1cece91d74924f5b746142ce14ee41",
+        "bytes": 1581
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Random/test_random.py",
+        "sha256": "8a94fe4391e4615b8fb5f4115830bd8addabb05cef1e8f74f7bb9ae5f8e367f7",
+        "bytes": 7157
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Signature/__init__.py",
+        "sha256": "ee9d77a0f03e91170605ee5bbc1fdd351030504b68840e5d1ac87c688b2bdaed",
+        "bytes": 1599
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Signature/test_dss.py",
+        "sha256": "7799d1033253d48f162a878a4646183cdaead21cb68b2bb39a42af7ed331f7e2",
+        "bytes": 59025
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Signature/test_eddsa.py",
+        "sha256": "8a602b39dfb26903c7cfb22cb9aee25aea9f56d1a9e72b0411fb576dc7ebf9d6",
+        "bytes": 25646
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Signature/test_pkcs1_15.py",
+        "sha256": "30ef738e57068c05379b9e12b435a777b3fc0010935de6befd01fa4c8c0c33e8",
+        "bytes": 13889
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Signature/test_pss.py",
+        "sha256": "42cbeb606342c984b33629aa0c2d0fe9659a9518c8bb502e9ab7e23063dbe8fa",
+        "bytes": 16188
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/__init__.py",
+        "sha256": "83ae64e7e2a6d6a1e0cc643404157ad938d8a84ea9a7442f4210e10e9d5fd69e",
+        "bytes": 2043
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_asn1.py",
+        "sha256": "33ee3596c53755388dd219d425de8f1d65f3cf64346adfa51a2de46846a5950b",
+        "bytes": 32107
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_Counter.py",
+        "sha256": "f4dfe661669a43868a44fbdc01a60dfdded11fc5a770e8b2554152dec251f2d3",
+        "bytes": 2339
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_number.py",
+        "sha256": "948547b6db811911aa4e75e5e336ced60a3be1036d4fd6c5ac68ff86662981af",
+        "bytes": 8710
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_Padding.py",
+        "sha256": "b538c3ac1decc35d92ee3e0c606a23ea4c35c3c28883cf0bff066be3ad98ecb8",
+        "bytes": 5930
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_rfc1751.py",
+        "sha256": "4bad1c6f40bb00f3551bcc1f1849e895178b15133e6dfcc0f10657ff1c5367a9",
+        "bytes": 1151
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/SelfTest/Util/test_strxor.py",
+        "sha256": "94a8d7005dafc4f46c6dd73d758471e2e13ccaa4666d135c3f64db04ec1e51d0",
+        "bytes": 10495
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/__init__.py",
+        "sha256": "2567d9dade66c8ce9981c1b3856398708fff5037e6abbf4c0a9d60afbd1e8678",
+        "bytes": 1731
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/DSS.py",
+        "sha256": "941524d7240961010aa0fdc6460369271f1d08c3bc563940232036fcdeca4d9b",
+        "bytes": 15707
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/DSS.pyi",
+        "sha256": "bb3a920b06532d4aa7363f205556243f2b71014e1fa0851de64840cd26c9ad50",
+        "bytes": 1121
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/eddsa.py",
+        "sha256": "8fbc96392257c1cc367172477915f9aba68153a42715e04f3b9d1604ed81b3a0",
+        "bytes": 12787
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/eddsa.pyi",
+        "sha256": "ab1b0bbe6df0b563e17cf22eb3dce37dac436c836f19a3498647b6a167bc2c45",
+        "bytes": 747
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/pkcs1_15.py",
+        "sha256": "2e59c1bb1c7a738f51343213c94f49503cb91bad07d906272fa44bcc1cedd8fa",
+        "bytes": 9088
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/pkcs1_15.pyi",
+        "sha256": "e2ce13431a88dd8206d23ef6c0e1935b61795a97166309ca8fbed78d68af6fed",
+        "bytes": 581
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/PKCS1_PSS.py",
+        "sha256": "b54b24be5330b4eb23a8d0bef242bd785dfb0f1b31dcbaceb87af47b73db5a32",
+        "bytes": 2154
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/PKCS1_PSS.pyi",
+        "sha256": "2b2fb1983b8866d1ca635cda145bf4639196a83a0f9b8aa7a6d0f0d39913f8f0",
+        "bytes": 895
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/PKCS1_v1_5.py",
+        "sha256": "0653be50072749b16247cbb4905bb79fbd877ffc93f51c5b3e59edc5feb48e07",
+        "bytes": 2042
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/PKCS1_v1_5.pyi",
+        "sha256": "fca639e57c49a12ae306a309b29e2d2f49730f65aa23c5ff7dbc031a9ee8d378",
+        "bytes": 467
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/pss.py",
+        "sha256": "47736bfbb2762dea089be962e283e1e1155c51a2280c1839f5494b5ba9b72973",
+        "bytes": 13970
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Signature/pss.pyi",
+        "sha256": "0a62fc61a9c9a60fdadefbcf20bcad59140d16c09e4485a28820f9d14b156ace",
+        "bytes": 1071
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/__init__.py",
+        "sha256": "98831540f44ab7137a0de53a8a8c818dec32f0dc9c2731912424aecce04c07fa",
+        "bytes": 1968
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_cpu_features.py",
+        "sha256": "38d65295dd3e4506c462350e7766fb7d16635cc7e6a234fe0e4b14c7af6089c6",
+        "bytes": 2035
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_cpu_features.pyi",
+        "sha256": "72fd9c4bbff5954c58e3ae5c421334e7a570e5e8108dcb45499f8b497b359f5e",
+        "bytes": 61
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_cpuid_c.pyd",
+        "sha256": "95dd43cac1261e71dbd411cb2c08cc01a81b746009ef2cadcacb4018fea79e81",
+        "bytes": 10240
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_file_system.py",
+        "sha256": "b8ff883aa293f99710ea591a58aa8d0d03feeedd5aa49c560b60a05fd3d413e1",
+        "bytes": 2225
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_file_system.pyi",
+        "sha256": "2f8b0576992c17d8191119b78cf52f73540f11f2502360f71266f5ff848fb5b5",
+        "bytes": 103
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_raw_api.py",
+        "sha256": "9f3a9fac1c9885ee934838bf7940786deefd57a4ad48b24025aebf3dab04ae87",
+        "bytes": 10954
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_raw_api.pyi",
+        "sha256": "83c6b0310c82b4193830d59b3dabe23544acf53ff2b53e0f918f2e8db01f7485",
+        "bytes": 933
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/_strxor.pyd",
+        "sha256": "78a36278c5dcc118ef2c78fe6af52c96665f86f03689a744abbdc9673e118444",
+        "bytes": 10240
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/asn1.py",
+        "sha256": "72206ce1e9e4efdffff7493e9ef9c834d8ff3bfd54dc76dc7825bfab1f0ac721",
+        "bytes": 37233
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/asn1.pyi",
+        "sha256": "4db889724654605ff759c5b7d754174d13f71b3b621792e48ad0f9be0cfccc57",
+        "bytes": 3885
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/Counter.py",
+        "sha256": "3bf557288883a4d778ad2156b5ad5f20f4e111aeae00d26b05b2676fa592e7df",
+        "bytes": 3292
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/Counter.pyi",
+        "sha256": "7a86661370c3b894aeb4edad8755466de52226588608a530f63f3e3379585ad0",
+        "bytes": 295
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/number.py",
+        "sha256": "878c1d7732e0cf54f4319af007a0aa290f8c79051076107c0545e379863103ed",
+        "bytes": 97872
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/number.pyi",
+        "sha256": "6bd67e3a908997245fb373bc1c4971bac0cfdd5fc17d4b7cdbd3f51ad6774af1",
+        "bytes": 994
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/Padding.py",
+        "sha256": "2909193fed3f1748b393bbf2797e7b2379ff88e2289ef732e6b000b4b1b65adc",
+        "bytes": 4467
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/Padding.pyi",
+        "sha256": "ed464b7b39d2481d2c4de1ff908308adf7f035b21b3f7a242e469f1bd173def6",
+        "bytes": 243
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/py3compat.py",
+        "sha256": "2cf7955872d7d8a23f12b9340ac867e8e342102fed7b80dba25b6303d7992155",
+        "bytes": 6010
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/py3compat.pyi",
+        "sha256": "a1913976f178c28b8a7c117093233aac0d3e772c4876da9c084382bb95f2ac2d",
+        "bytes": 870
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/RFC1751.py",
+        "sha256": "dfdb8cd578e00e485ad2070f24a3cfd7b0e75c972eba73912b0bb59d8d67193b",
+        "bytes": 21578
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/RFC1751.pyi",
+        "sha256": "76b2da534877f2226ea2d41ec36651ea9b0344f541b7b127dd6c51994f90f2c5",
+        "bytes": 166
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/strxor.py",
+        "sha256": "3e36ae472ce5cfba3b02dbf0cc2a132f868c6da8002f5b8e895c873ddb79a029",
+        "bytes": 5587
+      },
+      {
+        "path": "tools/recovery-helper/_internal/Crypto/Util/strxor.pyi",
+        "sha256": "ca7d073c74998cffb501a2e6e1c99af62f49272a5fdfb3527769e2a632dfe1a0",
+        "bytes": 249
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/__init__.py",
+        "sha256": "e22840b5633a43edf7d5f3387928a5a24d6cd6c785350a22de7d86b6efe8ea1d",
+        "bytes": 269
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/apfs.py",
+        "sha256": "cd9cc60f1d584f7488e8ed2ab05ea7cae9e9bf476645d8a341649ced5fbe9808",
+        "bytes": 2575
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/c_apfs.py",
+        "sha256": "46afaff5d91f0ecc77d6964f90f03bf58fe2a553138713d31151da9a61bdd606",
+        "bytes": 52189
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/c_apfs.pyi",
+        "sha256": "b82f1ec52a3864f006d7d50d0ec04a6987bf0f3a3555d9a67b81f6b756df5dde",
+        "bytes": 95421
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/cursor.py",
+        "sha256": "c0dd36171122a5cc548f0eeba0b7136bfc0a8eec57a1fc0d527beb06b0f4e1a7",
+        "bytes": 5747
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/exception.py",
+        "sha256": "ad52fe334d4206993be1df1579e7aa42ec03e4fd561e5baf35b0278f90fc041c",
+        "bytes": 263
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/stream.py",
+        "sha256": "0c88d1d70f33b0fb7eff27b7c7d9ec500d8ab212633ac7ec06501370027f4136",
+        "bytes": 7550
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/util.py",
+        "sha256": "6b7e8a6ee2db73be7de15e7f22ef32820492605e34e7b6121ddd73e673b4fe4a",
+        "bytes": 4688
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/__init__.py",
+        "sha256": "77bf422462b11eb5ce74b3a11a9f1c7efa7fd00d13c62e4ac8573a87d162ee3c",
+        "bytes": 1793
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/base.py",
+        "sha256": "82bfbc3c64b33fb9cf37b0a401d6f5c76b61b852b6c2efb94be0e2f6e0fa5ceb",
+        "bytes": 6316
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/btree_node.py",
+        "sha256": "de312150458524383c573f9eda7484825f2fe63b74205f8236796cfe31880d8c",
+        "bytes": 2157
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/btree.py",
+        "sha256": "6a520c9cc52a6d14c6e3cb7b81c853764e9a862b91bba91e5633be5ff0113146",
+        "bytes": 7127
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/checkpoint_map.py",
+        "sha256": "b08adbf11e536181425bff04b2b8c3ac71aa61b5277ad3a7c03b5ae8acaf563f",
+        "bytes": 322
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/efi_jumpstart.py",
+        "sha256": "57d8dbf1fd326dc91f46a4dc7b352ac5a718582ab361ff9c737190fbddd5e85f",
+        "bytes": 313
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/er_recovery_block.py",
+        "sha256": "a80d81a06e121371753070ae6f3bbf9f7f4ca1d07ed1c50a19366e90aa1518fb",
+        "bytes": 367
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/er_state.py",
+        "sha256": "ccd536df0785937593ad6218fdc5a7d15f16c3f2d759a2bd084d411874a772d6",
+        "bytes": 323
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/fs.py",
+        "sha256": "db1e308cfb07aafa3a2884dbe97f60489142826200a708f0fa50a8bac91b04a1",
+        "bytes": 30958
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/gbitmap_block.py",
+        "sha256": "7ab058b10e183d809efcbc17f1349f1c37ff51896b19198a16f97a3fb08abae9",
+        "bytes": 324
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/gbitmap.py",
+        "sha256": "44c55af5ed66c6c6abb2173492e36cf47ab0bf923cc5f7f55fb4581d991c612f",
+        "bytes": 295
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/integrity_meta.py",
+        "sha256": "20541ee44dc82344cbe223f74718e92e208bef26b276ee49a751ba8791335a0a",
+        "bytes": 322
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/keybag.py",
+        "sha256": "89ca0c8de8b7c47122899182a08a9e176af0cda9f0e01daacfa9b8b9632da959",
+        "bytes": 9258
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/nx_fusion_wbc_list.py",
+        "sha256": "d9163a6b61f38c0c281c0ca9d0c25544d75b1bc204c81825ed2206bc170c12e8",
+        "bytes": 344
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/nx_fusion_wbc.py",
+        "sha256": "1ceae98986c469063cde8e2ad4ce97bf0c002258d6313b5a2db13b4598b5904e",
+        "bytes": 320
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/nx_reap_list.py",
+        "sha256": "3fc63d68fb53797656cae626c01415a19f8a0a8a008924abe2063f3b4610d796",
+        "bytes": 311
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/nx_reaper.py",
+        "sha256": "c953c2f5c286bcd7c3f98d5b5c0238757fa13af815282abbbb7d28ba4233cf88",
+        "bytes": 297
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/nx_superblock.py",
+        "sha256": "2f6ff3c535646a4896183074d773a70965038e8babe8b849951279882f78d778",
+        "bytes": 5276
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/omap.py",
+        "sha256": "317163fa91be550178f370c2340b327f5cd91623abde168e1238d968c1e7058b",
+        "bytes": 1438
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/snap_meta_ext.py",
+        "sha256": "ed00b1955942665e9a8a913e955a92d6445772ebad8c2586ded761457d0d0c23",
+        "bytes": 338
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/spaceman_bitmap.py",
+        "sha256": "17889d255026c36ffaca98c7f8ebddf94fbfc9c043bd175c4064cd0720c3535c",
+        "bytes": 242
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/spaceman_cab.py",
+        "sha256": "a5ff6d34f36825367949a7b89f7518722ef95ef60327e2f42abc1f1c3674a854",
+        "bytes": 345
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/spaceman_cib.py",
+        "sha256": "c4aa083dbf98e1bae04d9ce94f0d91a9fe7ae1bd1d01965a95c0ed3bafb7dba6",
+        "bytes": 334
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/apfs/objects/spaceman.py",
+        "sha256": "2cdf161d103f40786841575389dfb9f8221791881cab71ce3303f955a5040c36",
+        "bytes": 293
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/__init__.py",
+        "sha256": "9882d716fb5a8cb1b912a00f49e089da0e649594a745bbbbbaac86707fc31769",
+        "bytes": 1344
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/bitbuffer.py",
+        "sha256": "6e277f37866c693782df1e45cecf2f894ae5753f3addd30fb440e2876d0db7a9",
+        "bytes": 2644
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/compiler.py",
+        "sha256": "5aa90edb7104fe23a956e57b16a0853d7d10d0c71f934a323da715f9a0862a99",
+        "bytes": 14153
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/cstruct.py",
+        "sha256": "ff00aa8481cd0257560d05a58507d7112e0b07b0182995636141a79eb6aab517",
+        "bytes": 19428
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/exceptions.py",
+        "sha256": "5aab145b83a222944b40bbe2c5f2eb7ca974aedbd4d6ac7ba6f7c1af3f52cfe2",
+        "bytes": 293
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/expression.py",
+        "sha256": "747a70895432725299dc801a8e91bb52cbd7d6f981236ceb26aafe27508cb7e2",
+        "bytes": 10842
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/parser.py",
+        "sha256": "c2a0b26cd3edbbb7db03a7b1fa57e6bfc2aa6cd6aaf097cb533c25e1ce5b9187",
+        "bytes": 24450
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/utils.py",
+        "sha256": "e9c5354074d99c75d068fa31307f7710b930208520630f93b7189e11c56f62fc",
+        "bytes": 10537
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/tools/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/tools/stubgen.py",
+        "sha256": "c2f974ee1dd59c96567bdca05f840cc63107d59716688ffafe949d009a0e1179",
+        "bytes": 7820
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/__init__.py",
+        "sha256": "07ea8c022eaff0f64774f9e938355002895d26a5086e1f4efd407087b98bf2a6",
+        "bytes": 875
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/base.py",
+        "sha256": "f8d626a17e2f11f685b27008c10d27642cfc5f6a8a1289a0a6779fda30789254",
+        "bytes": 9708
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/char.py",
+        "sha256": "f576028c21740ffe68dc46279887237affb9188d8dcf13a177572dd7117a4803",
+        "bytes": 2457
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/enum.py",
+        "sha256": "b9201ac8e61f1307c366b975b45199b5e15c7aa7536d6ff6193b43cb3ba21b73",
+        "bytes": 7523
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/flag.py",
+        "sha256": "ef1c508c51033c74903b104781c73be56ccf880c5f94eaaec2bed9edcddeacb1",
+        "bytes": 2347
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/int.py",
+        "sha256": "306b1d53126dfa58f79e5f70cc08065fc71bfef24eb462e2087c1866cd63fc80",
+        "bytes": 1156
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/leb128.py",
+        "sha256": "9039ac5865d7eafaf56e6e2e25c8a5b2b43b24005d4118a8d7aac1655db5a67a",
+        "bytes": 2243
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/packed.py",
+        "sha256": "b696696fcb6248c5ebd67a7aa74fa766a4f8b18ef389e3bee04d7a966326a890",
+        "bytes": 2128
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/pointer.py",
+        "sha256": "3ea7893a834151f31de6e3b692917a387796ed0e91d4dd56d55e2ad4c6a43782",
+        "bytes": 3912
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/structure.py",
+        "sha256": "150bfac7ebd79ba876ec56aa4415bb24a615c2d28c0a0e2323864321b60a130a",
+        "bytes": 33029
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/void.py",
+        "sha256": "1af8741ea23a8d04a3dae7ac768dc9f3e1b8d5bad60b3f2998fd7a97cc530711",
+        "bytes": 1074
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/cstruct/types/wchar.py",
+        "sha256": "37d63f5d7dbf85911ed83c1ea498f1b01eb1b9127acc83516a5714a1f479f646",
+        "bytes": 2608
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/__init__.py",
+        "sha256": "6bc8c72ea5f8ca40149b416dc6cf8dc66843ae7a0833b12dd050928ab07c01b8",
+        "bytes": 73
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/_build.py",
+        "sha256": "a0ab3575d5087668460b9066b51642756745a49bfa9a4b9b8d02d205fa782d2a",
+        "bytes": 642
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/_native.pyd",
+        "sha256": "793310c5c3d1b64b976c7ec623995fdafd171119f8e854e7f8004710be3e2104",
+        "bytes": 334336
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/exception.py",
+        "sha256": "ef17c6c369058e1faa3be34ec4483d4dc5646ae05c7a49fbcac2888d5de68c3b",
+        "bytes": 83
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/__init__.py",
+        "sha256": "8034399816ef15a72b4eb0dd16b7995bb8fe0755215a0246f0c83c07365488db",
+        "bytes": 104
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/bde.py",
+        "sha256": "4bb7bc2047d3dbc1df9def624d97819d53942337b1d0fbd6ec6fd4b7a27426a1",
+        "bytes": 22005
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/c_bde.py",
+        "sha256": "43ca5cbee0d1080d10b6415d9c8343879096b4da3bea822d6f2470f1de1de936",
+        "bytes": 11130
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/eow.py",
+        "sha256": "8b3d28e82bf0edbedd44c0b878b105d941e52a4dc072d8a73b7c0f6272708e4b",
+        "bytes": 6747
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/information.py",
+        "sha256": "cc7fbd7bd73d123cbc44dc173533f6770797c2232c18592457e993d4895c5059",
+        "bytes": 24707
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/bde/key.py",
+        "sha256": "326abde31e044d651d1426cd70fb5907d82ab9f9af74f7cbe969719ba9caa7ee",
+        "bytes": 2398
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/__init__.py",
+        "sha256": "b5aed7912a554c99dbca6dabc324003dedb4f4938a0add93a4b443445c654ca2",
+        "bytes": 3479
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/_pycryptodome.py",
+        "sha256": "dc19710544169ada8d08b22b9b25c4cfb8151fc2f16cdc34d80cd5343bf11d6e",
+        "bytes": 9816
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/argon2.py",
+        "sha256": "28ddc77b132a54f8eca40e70bc4d2f462686fbe05fc77e2b72b4070a0c40f902",
+        "bytes": 1227
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/base.py",
+        "sha256": "ac8b17d120fbdd59117158bdc42127c8b08114dfbd8b5d67e87b812f3ce4e583",
+        "bytes": 3736
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/dmcrypt.py",
+        "sha256": "34b8450d94388ea2e1baccbf55e01a1f924f3e18ad1e655e8804a564409062a6",
+        "bytes": 1660
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/elephant.py",
+        "sha256": "70d1d4cdfe735f6cc3423c8df0f96cf1caef716ddc1710c3372c5ab2b57658bb",
+        "bytes": 1879
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/crypto/util.py",
+        "sha256": "331f480becca652fbd634625d5ac0fc7e35e64866809a9f4932b6fb9b7d69764",
+        "bytes": 653
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/luks/__init__.py",
+        "sha256": "979e1f5182f3e8ff21b35cb2cefbc90e12b7d6d1c8037ee3bc32047ef1ab7884",
+        "bytes": 110
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/luks/af.py",
+        "sha256": "0af136a74e2835f83b4f3ac8f63132326454ffd7ca5f71c937d7475f7985512c",
+        "bytes": 1490
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/luks/c_luks.py",
+        "sha256": "453d700cd5bd20632ab25b6ba2f7deeb9b65ca7367dabb76c3bdb5c92dcd3434",
+        "bytes": 4337
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/luks/luks.py",
+        "sha256": "b420d25186b5828f06a94e26d28d808ea94766775dd63d3ec136330375eb3d56",
+        "bytes": 9756
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/luks/metadata.py",
+        "sha256": "82ddc9bb5088e1139d46162f6ef5f611f231927fbbc545da7dd3afb95a7071ba",
+        "bytes": 6631
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/tools/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/tools/dd.py",
+        "sha256": "3e2e30071a65bbd45534610d91a32a1d5710f679b67761e921c55524277cb76a",
+        "bytes": 7605
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/_native/__init__.pyi",
+        "sha256": "99a148b2b20da2c97f077172a88485ccdf43a89ddf6e965c9544e9fc0d207723",
+        "bytes": 64
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/_native/crypto/__init__.pyi",
+        "sha256": "a4a4a5edbd024b3ec97e29421b22139d581597ba2025a313d9eb2ece98c01c67",
+        "bytes": 71
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/fve/_native/crypto/argon2.pyi",
+        "sha256": "da83c849979d2326e4ec6b740a8bf17476c0ac343ee866ab387f2aa99d8bfceb",
+        "bytes": 149
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/__init__.py",
+        "sha256": "d849892b6c4d461538af57b05e2aaa348e5f6f949c92566b5796ee32dc05a0ef",
+        "bytes": 321
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_build.py",
+        "sha256": "a0ab3575d5087668460b9066b51642756745a49bfa9a4b9b8d02d205fa782d2a",
+        "bytes": 642
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native.pyd",
+        "sha256": "b322ed8bc516d0940af0743711b9073640c2c58e8478861b8a082968b5eeee8b",
+        "bytes": 237056
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/cpio.py",
+        "sha256": "0fd154311f9cc5dca0d52b1caf2e4fb06cfa44f15c4798c38f1f455416715122",
+        "bytes": 7802
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/exceptions.py",
+        "sha256": "25b6fd697390329d7ecffe6645ea6d119f5d3456c6cd2de2899e9df375eee775",
+        "bytes": 81
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/ldap.py",
+        "sha256": "3f5b4890487ae147a20fa8f76c453ffb0fd5e7207b9fb5bec95fb67d407b4c34",
+        "bytes": 7601
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/plist.py",
+        "sha256": "349ccfc20aa6f99d8566fb35ff9b06e68ad158e7138fde112d2eaee1b6e92e98",
+        "bytes": 4707
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/sid.py",
+        "sha256": "31533e6a4e10c13fb262cec514dc60ec2fa0bd72f1bd0b6d144e38c0a1a07e4a",
+        "bytes": 2679
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/stream.py",
+        "sha256": "da978c0d379c7ec945b4c7d9d444571da56c01c57e6ebd9ff5fe5d256e48b7a2",
+        "bytes": 26666
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/ts.py",
+        "sha256": "8834885e9a7dce62862d3504201ae7fc555342552257eebef52d8fc2eb2a160e",
+        "bytes": 8498
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/xmemoryview.py",
+        "sha256": "0b6ff784648c1d6828ad0ba79f1edfcb6428d99542b2d420651ed13b84bfebfd",
+        "bytes": 4202
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/__init__.py",
+        "sha256": "8444a3473983dfb460f347762024700504cbd9730f6815198d13cc3fb96c9ec6",
+        "bytes": 1326
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lz4.py",
+        "sha256": "033cee114020b1cbd4aa59d665dda188e69387c67b471fa05a3ad6ba4c1ee72e",
+        "bytes": 2846
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzbitmap.py",
+        "sha256": "360c2bc24999b541cf666eb5aeedc77f961df714d141fd3b6ebbdfd4f75722d3",
+        "bytes": 4630
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzfse.py",
+        "sha256": "3011bd7d206b70a730efde740e1b06a52ffde9454bd85d9db1f89ac57c55bcf8",
+        "bytes": 16572
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lznt1.py",
+        "sha256": "c4e9a51303a4f43eb70b059c972dc92cf42ebebb09620838236aa4d8bba97fae",
+        "bytes": 2775
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzo.py",
+        "sha256": "6ba2513fee5cf783018256db3aff7ccfefa7ebd251c91e62b59cddfa79802b60",
+        "bytes": 3865
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzvn.py",
+        "sha256": "8ca723a1fb1ef9e9433e38bc061db5b5d1091074d89437ced2ad2d5eccb66b19",
+        "bytes": 8208
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzxpress_huffman.py",
+        "sha256": "dec1733bbcedb698f469701d21be6e6b2de256944523900df679c021b97f72b3",
+        "bytes": 4867
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/lzxpress.py",
+        "sha256": "51fe726460aaf5da66d3bff1f8093c3cdb52250c99f3e6393a2e99089f1c660e",
+        "bytes": 2564
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/sevenbit.py",
+        "sha256": "241d5c1ce40997a899014ef110a4321022a1d85ba0b6a836f776d80c2cbb6fe2",
+        "bytes": 1587
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/snappy.py",
+        "sha256": "a6ec06eae07e688d6dcd3439d971444a8237592d16b7d4a12b814b2ea0c86f0b",
+        "bytes": 2457
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/compression/xz.py",
+        "sha256": "74fcff6c67a345d5ecead23aa8f4bdc144b2b42ad59680beed5f1d0b8f080230",
+        "bytes": 3891
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/encoding/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/encoding/surrogateescape.py",
+        "sha256": "c9c2fd245fd75bacc1614e93e3c591bdd809c4258496d3b6b2e45dd9be27aba8",
+        "bytes": 513
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/hash/__init__.py",
+        "sha256": "e040a61f5ad3db92a3c3405df02704dcd771291f6a40d562f97c84962657cba3",
+        "bytes": 767
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/hash/crc32.py",
+        "sha256": "e68ffb5dbce1dcc375ec08f9d6365f456d5fdf460bb0128625210f41c21527f4",
+        "bytes": 2035
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/hash/crc32c.py",
+        "sha256": "bed75be5d3fd0ca70fa7fffae1eef89ece9b6d5da03e13ed47db347ebc5c6a68",
+        "bytes": 3978
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/hash/jenkins.py",
+        "sha256": "256985cce032ed32f40e21538bc158750b0dacb126a83944d9f0855dabe2a0fb",
+        "bytes": 3629
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/tools/__init__.py",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/tools/dump_nskeyedarchiver.py",
+        "sha256": "0fe7f21ed4739ce6b10175c77d7d73415e8ef5cbf5fb869d7a7919d75c856668",
+        "bytes": 1515
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/__init__.pyi",
+        "sha256": "51a44fac0c53d71788f02f42596b52095827fe59f9e15f4195612bd28a8a2bb9",
+        "bytes": 89
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/compression/__init__.pyi",
+        "sha256": "d0b7fc30b5afc7153a16f3cefbbbfb8c73fed70e08f72d7b7a40955aea10e25b",
+        "bytes": 83
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/compression/lz4.pyi",
+        "sha256": "575ade7ffedd05473519046e3de527468a13b8f506da48b2293b8fab226e6636",
+        "bytes": 184
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/compression/lzo.pyi",
+        "sha256": "f91a6e73e3b9a8139e50122edc5a6a917e25b63e4e526b6672eeff9752293833",
+        "bytes": 123
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/hash/__init__.py",
+        "sha256": "657f85400c411e12e20398e89dc5398f64b164d315aafd1453840230916b4b43",
+        "bytes": 70
+      },
+      {
+        "path": "tools/recovery-helper/_internal/dissect/util/_native/hash/crc32c.py",
+        "sha256": "cd922a8a374bcf3e8439cb39a9fb772aed0ccb6be0abbb59b26eea2287318181",
+        "bytes": 100
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_avif.cp312-win_amd64.pyd",
+        "sha256": "6731dce52baab0b96b0eeb3c664844b5b42c2168ea8668af2430e2fbdd2dfbd8",
+        "bytes": 7893504
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_imaging.cp312-win_amd64.pyd",
+        "sha256": "c8c519ec72bf75b2945b4fc4afa854af2fca8b970a403134f9ddda3e164d85e9",
+        "bytes": 2632704
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_imagingcms.cp312-win_amd64.pyd",
+        "sha256": "c89c633ae1bf3f26a327d14ff688db66628e19c9866ab925479f27dcb60a2d6f",
+        "bytes": 272384
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_imagingmath.cp312-win_amd64.pyd",
+        "sha256": "82ac45c41a008854d05f67deda298b65a7bed850d0d79a3af861ed583f6e7d62",
+        "bytes": 21504
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_imagingtk.cp312-win_amd64.pyd",
+        "sha256": "690cc1cae4a2dc8594a342b9241e691dcc89d81dad4cddcefdf285275365a2b1",
+        "bytes": 14848
+      },
+      {
+        "path": "tools/recovery-helper/_internal/PIL/_webp.cp312-win_amd64.pyd",
+        "sha256": "9823cebb84f425af3ac1e7437259bc176e7ad7e25d7fa829b0e1a3e55c11be70",
+        "bytes": 416256
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/__init__.py",
+        "sha256": "c0ae3d20396d4d671b5f1c068e9beaf39b406f70afc97b79c46715fe1bc3d977",
+        "bytes": 1497
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/_deffered_error.py",
+        "sha256": "7b4da9579c84f9319ba031b961360b120adf0f7a34167106a4ae56049529bff8",
+        "bytes": 325
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/_lib_info.py",
+        "sha256": "fb1ac7e41382672fa733033ac493b57f44a52f6afa08826db9bc28439aae64e2",
+        "bytes": 1001
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/_version.py",
+        "sha256": "efdc05e9a1a39c1664015750a1911ee9f5429a8fb4ac3dd8d1b9617a19307774",
+        "bytes": 53
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/as_plugin.py",
+        "sha256": "f3da9de33d2d0ea7448c0cea4d93a6221470a5237ab7658341d7ae06c00789cf",
+        "bytes": 12633
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/constants.py",
+        "sha256": "0111feab3afc75c32eb68794375cbb37c0637470f14d6b7b308f0666a803ba57",
+        "bytes": 5065
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/heif.py",
+        "sha256": "e20cf59e4284f3611da911343f16a005790c297cc2313083e34ca54bca8e5ae4",
+        "bytes": 26818
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/HeifImagePlugin.py",
+        "sha256": "91a6ae530634caad427289b3219a20c7650c553526fc59ba40c229d1b4084bcc",
+        "bytes": 135
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/misc.py",
+        "sha256": "5bea570f4f4bee4c0ef0f7941b16164eccbff5e610bca49720168f7fac524e56",
+        "bytes": 31076
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/options.py",
+        "sha256": "0209ae71a9fe9a0cf08a7914562b18b764caaf3da4806eaf8b46ac244712c5cc",
+        "bytes": 4210
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif/py.typed",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/DELVEWHEEL",
+        "sha256": "b4544d35497628fc2f0304294b471527c7311da1e56fa7635f3c95926a5d537d",
+        "bytes": 455
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/INSTALLER",
+        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+        "bytes": 4
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/METADATA",
+        "sha256": "4d732fb0b02b5a2911e7a405fa3ae13d1b73ac9f7e77e0acfc84e9e6dfc53ade",
+        "bytes": 9901
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/RECORD",
+        "sha256": "23592d6d04fab134350b125b8ab645a55509c6e6eb9b2e5e36cd471f6a3ef898",
+        "bytes": 2546
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/REQUESTED",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/top_level.txt",
+        "sha256": "897fa44c50d03d1c1116caa3e5ce8f81981eb6bb9e9a3b7a5e4c3d0e06fdefca",
+        "bytes": 25
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/WHEEL",
+        "sha256": "547199cfb31450578b25778938b82f94e190e69e750e6c850e3b6d657fa1a30f",
+        "bytes": 101
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/zip-safe",
+        "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+        "bytes": 2
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/licenses/LICENSE.txt",
+        "sha256": "9e2635f155b00af5a46cb2f2c9b052072ec546d59837ee74efc9cba2cbb83f3d",
+        "bytes": 1546
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pillow_heif-1.8.1.dist-info/licenses/LICENSES_bundled.txt",
+        "sha256": "7c5eab5b0bc4ed21688891149081b38432b2bbe8e8b49c12708a8ddcf7d700d8",
+        "bytes": 1147
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/AUTHORS.rst",
+        "sha256": "ac94de284f1522aee4f3e7e301e68af190786b4c8388d1a60cba4a3a1bbe3465",
+        "bytes": 815
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/INSTALLER",
+        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+        "bytes": 4
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/LICENSE.rst",
+        "sha256": "60b8958a9ef9b7ec512087b725555372175ed2b02b969f8725b8534fde48acdd",
+        "bytes": 2987
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/METADATA",
+        "sha256": "3146d9cbc59a313d2860fd7bb140fe809a6233dbf82301f817e4cd8a63ef5ecd",
+        "bytes": 3484
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/RECORD",
+        "sha256": "f35461078bee5b23a4e809020fb5e7a38e64dfeb0f1b16b2a4122d8ee508161c",
+        "bytes": 30382
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/top_level.txt",
+        "sha256": "f96db04ed9317354273d43d1a816746ccc2b843f31443d771c8a1b157fb00ceb",
+        "bytes": 7
+      },
+      {
+        "path": "tools/recovery-helper/_internal/pycryptodome-3.24.1.dist-info/WHEEL",
+        "sha256": "daf7c2177bb571a95bc653eb6cebfc46c3b805949e625d12f781f73bade870fb",
+        "bytes": 99
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex/__init__.py",
+        "sha256": "2b40f3a1696a161e74dfd3ee8eb926d4d67fadcdb18517a76df06d841d3a5b8f",
+        "bytes": 78
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex/_main.py",
+        "sha256": "4c1d431b261f9d9e360023f8b597a098f6ebe0cd48e59454c1133e16fa62cbac",
+        "bytes": 34169
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex/_regex_core.py",
+        "sha256": "baf7b83f394d41b4b5e93ef645b49bcf211140757928cfe283e8dff1bb8e7866",
+        "bytes": 152010
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex/_regex.cp312-win_amd64.pyd",
+        "sha256": "4beee916c5d638552d1a71c6fd25e45d83ae8369ac9cb38009060e8bedcdc5dc",
+        "bytes": 736768
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex/tests/test_regex.py",
+        "sha256": "e9e4d35c1601d7608d5489250cbb383e9621833955ffb1f2b01802070aac6ada",
+        "bytes": 230349
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/INSTALLER",
+        "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508",
+        "bytes": 4
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/METADATA",
+        "sha256": "726c658b5d0ee420e773f9e6c843918e8a2ad7c27577d20c8f502c08eccb211e",
+        "bytes": 41625
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/RECORD",
+        "sha256": "69af3cd295036dc78ffc1d7c9df27a53ddc50bfdad28a25f3ebfd1088feaa907",
+        "bytes": 1191
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/REQUESTED",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/top_level.txt",
+        "sha256": "6909a20cc84d4c5dba7022b8ffb0fea9a56f85bc42946d30c824e7121933601b",
+        "bytes": 6
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/WHEEL",
+        "sha256": "547199cfb31450578b25778938b82f94e190e69e750e6c850e3b6d657fa1a30f",
+        "bytes": 101
+      },
+      {
+        "path": "tools/recovery-helper/_internal/regex-2026.9.29.dist-info/licenses/LICENSE.txt",
+        "sha256": "3d220c06594b826bbabf110312f60f385f99e57e529fa4b9e536f79091f8b4c7",
+        "bytes": 11792
+      },
+      {
+        "path": "tools/recovery-helper/_internal/setuptools/_vendor/jaraco/text/Lorem ipsum.txt",
+        "sha256": "37fedcffbf73c4eb9f058f47677cb33203a436ff9390e4d38a8e01c9dad28e0b",
+        "bytes": 1335
+      },
+      {
+        "path": "tools/testdisk-7.2/AUTHORS.txt",
+        "sha256": "24f8f773d2f79b50b15acb86c2960a63eb87236bb9498358540289a116688c90",
+        "bytes": 220
+      },
+      {
+        "path": "tools/testdisk-7.2/COPYING.txt",
+        "sha256": "9f2e250993c6206fac643824e05e5a0d7d3e0895d9e09a5ce4b12bc2610afc11",
+        "bytes": 18326
+      },
+      {
+        "path": "tools/testdisk-7.2/cygewf-2.dll",
+        "sha256": "e904b5a3f55572fec2d08d222a6c1a54dd768bbb72e666f8eebffa0c68c19214",
+        "bytes": 5457751
+      },
+      {
+        "path": "tools/testdisk-7.2/cyggcc_s-seh-1.dll",
+        "sha256": "38425ee608500b6808bcfe4569ea7f6387a436e8b779979c9c3c045201b87260",
+        "bytes": 491530
+      },
+      {
+        "path": "tools/testdisk-7.2/cygiconv-2.dll",
+        "sha256": "b5674bb002302ab874521499ca07edc30ace5a6beded599591743a2d9656a9cf",
+        "bytes": 1380305
+      },
+      {
+        "path": "tools/testdisk-7.2/cygjpeg-8.dll",
+        "sha256": "49c02ebeeb3d02ae5ef7760aba80b07f070e27100b7ac48fd5cd3fc77323df04",
+        "bytes": 1994733
+      },
+      {
+        "path": "tools/testdisk-7.2/cygncursesw-10.dll",
+        "sha256": "b2f0f7b56356244a4530934d95de622c58772b66bd356963ab345741a21d41a9",
+        "bytes": 3785114
+      },
+      {
+        "path": "tools/testdisk-7.2/cygwin1.dll",
+        "sha256": "52062be7ef8f14445a81a5dff3b3ac3c7b74466159fffd542b22a83af8ac6b86",
+        "bytes": 3693153
+      },
+      {
+        "path": "tools/testdisk-7.2/cygz.dll",
+        "sha256": "78d499f1d956edf00dd988c95f7f76174425c0fb47e3ddb56ba6af447f18f4f1",
+        "bytes": 306623
+      },
+      {
+        "path": "tools/testdisk-7.2/documentation.html",
+        "sha256": "7dfdf954fd87e01ea09dc2e929ac66a8d7d7df9948a0a17040783a89fc9ea876",
+        "bytes": 504
+      },
+      {
+        "path": "tools/testdisk-7.2/fidentify_win.exe",
+        "sha256": "22d8aabc5c90d661c8a40ac48893771e9b715d7b15651c05e10c70e9a1fd13ad",
+        "bytes": 332328
+      },
+      {
+        "path": "tools/testdisk-7.2/iconv.dll",
+        "sha256": "56a7c5e6f67da7aa083426c115993bffe5db5f416e45ca63927dce6d130bd6d5",
+        "bytes": 38426
+      },
+      {
+        "path": "tools/testdisk-7.2/INFO",
+        "sha256": "45c3a355cd86b60f4647c715dc9c6a5fd8216047416f04b32cf273b1216ed442",
+        "bytes": 117
+      },
+      {
+        "path": "tools/testdisk-7.2/libbz2-1.dll",
+        "sha256": "8f5992efe8fb53f4d758a3ee69ba45bb6946bd423f7fcc26f82e14fdd5656b82",
+        "bytes": 105838
+      },
+      {
+        "path": "tools/testdisk-7.2/libewf-2.dll",
+        "sha256": "239961d0c468ce6c632345abb703c5424e723b32c1a86e7e61e4639a1ce0ab11",
+        "bytes": 8067913
+      },
+      {
+        "path": "tools/testdisk-7.2/libfreetype-6.dll",
+        "sha256": "8ba4f47a486ddc5b45e96972b1e32a72be3ed62e613eeed8505d7738807d675a",
+        "bytes": 794104
+      },
+      {
+        "path": "tools/testdisk-7.2/libgcc_s_seh-1.dll",
+        "sha256": "26b4e0c252d1334d99d86fac26a1532ba749e184cd59b9136de043bd5270dc13",
+        "bytes": 521356
+      },
+      {
+        "path": "tools/testdisk-7.2/libglib-2.0-0.dll",
+        "sha256": "0e6003293133caf2ff3b8d873cfdfc414fed79cfd09ed42e5973723bd21b5951",
+        "bytes": 1446843
+      },
+      {
+        "path": "tools/testdisk-7.2/libharfbuzz-0.dll",
+        "sha256": "2fa5115554c602aaff4634a480cfa3cbe4959bdbbeee42d6d321e9460d512706",
+        "bytes": 1062910
+      },
+      {
+        "path": "tools/testdisk-7.2/libintl-8.dll",
+        "sha256": "269b6768f4f852c126359533f0c7e8cdc858951db17c2201b67e926f12a9370a",
+        "bytes": 103685
+      },
+      {
+        "path": "tools/testdisk-7.2/libjpeg-62.dll",
+        "sha256": "5dab29d2a5521d81d9ad30874fc495507c070996532b15886d0db6fe929956dd",
+        "bytes": 783485
+      },
+      {
+        "path": "tools/testdisk-7.2/libpcre-1.dll",
+        "sha256": "63017cff2af6c1fd7fd2c0b3eb9790b5c4d9c710bdec3151e96a7462bf994558",
+        "bytes": 284109
+      },
+      {
+        "path": "tools/testdisk-7.2/libpcre2-16-0.dll",
+        "sha256": "c0841da8789e9faa1d853216163478eb90299254dc3f441fd55b2f60121b5ac8",
+        "bytes": 597829
+      },
+      {
+        "path": "tools/testdisk-7.2/libpng16-16.dll",
+        "sha256": "c21e93636d0752bae17aed23d45dae65dcf08a31d59fe24245e18d7e0713ede3",
+        "bytes": 257185
+      },
+      {
+        "path": "tools/testdisk-7.2/libssp-0.dll",
+        "sha256": "2be3afa998237a39e86f0f035bfc6abdcd51c3733efedfa18217f6c30f852627",
+        "bytes": 89041
+      },
+      {
+        "path": "tools/testdisk-7.2/libstdc++-6.dll",
+        "sha256": "3567182fddf2139f5d794ff1db3f454e8b9b1f48b8617e6143352851f664c87a",
+        "bytes": 22916288
+      },
+      {
+        "path": "tools/testdisk-7.2/libwinpthread-1.dll",
+        "sha256": "13014d3b7ee5194f0269d6bb15556f4b0924808c52f0536155811daf41c7a27c",
+        "bytes": 68933
+      },
+      {
+        "path": "tools/testdisk-7.2/NEWS.txt",
+        "sha256": "6cd6b0d6c2ac3a413ccba78533105b3987df50017569dc0481fa72311c9432d8",
+        "bytes": 20971
+      },
+      {
+        "path": "tools/testdisk-7.2/photorec_win.exe",
+        "sha256": "d75b9a6ff60f91479085a578aca518abb1cd7405f24506a61afa2f7e222147bf",
+        "bytes": 971816
+      },
+      {
+        "path": "tools/testdisk-7.2/qphotorec_win.exe",
+        "sha256": "561a06050c8b1303706d6d33558ccc81cfb9137393fc040f25405316243bd7eb",
+        "bytes": 912424
+      },
+      {
+        "path": "tools/testdisk-7.2/qt.conf",
+        "sha256": "6c6eed542fd955f532bdadf0e7136aefa8def2a8dc0f8629ff61e2a6ed684dc7",
+        "bytes": 55
+      },
+      {
+        "path": "tools/testdisk-7.2/Qt5Core.dll",
+        "sha256": "03e09d9dd941233b87e96fd0e6a117790a621f3afb971265d65be80334f831e0",
+        "bytes": 6324655
+      },
+      {
+        "path": "tools/testdisk-7.2/Qt5Gui.dll",
+        "sha256": "bdcc621a04568db6c1b765083addbd1f817e32f59f8d1679cc64b6f06a0d98c5",
+        "bytes": 6921855
+      },
+      {
+        "path": "tools/testdisk-7.2/Qt5Widgets.dll",
+        "sha256": "925cbe1bcfc9f049b778691584187afd0bdcdfb6274dc1951bc8d96786d44611",
+        "bytes": 7303411
+      },
+      {
+        "path": "tools/testdisk-7.2/readme.txt",
+        "sha256": "68af43175eeba5e1104074600f807492391f2928da944786ea1acc507dc5ce02",
+        "bytes": 647
+      },
+      {
+        "path": "tools/testdisk-7.2/testdisk_win.exe",
+        "sha256": "025ea8936765169966fe497b8c46bd5ad16b98b189ee90d6854f063200c95f0c",
+        "bytes": 765992
+      },
+      {
+        "path": "tools/testdisk-7.2/testdisk.pdf",
+        "sha256": "34173fdb5503df7925ac6c78d66ac40e1972223e65d91c96f7b91ce56b2ef37c",
+        "bytes": 563321
+      },
+      {
+        "path": "tools/testdisk-7.2/THANKS.txt",
+        "sha256": "12b2bd649cdb8df8a649ffed716af77570982194b96a1fffabc18d830153ccc5",
+        "bytes": 350
+      },
+      {
+        "path": "tools/testdisk-7.2/VERSION.txt",
+        "sha256": "81bdb4615fad4dd3953406c3505ed2bea8cd550274bd16cbe9576f45a786a385",
+        "bytes": 37
+      },
+      {
+        "path": "tools/testdisk-7.2/zlib1.dll",
+        "sha256": "65aee53b03ea7b0182130346598318a095abd682ccb925a8aa233a59bf29bd81",
+        "bytes": 125108
+      },
+      {
+        "path": "tools/testdisk-7.2/63/cygwin",
+        "sha256": "1a9b75481dba09d8f73b9b13f39d52db026bfc7ae8eb4de1d250388756445dbc",
+        "bytes": 1518
+      },
+      {
+        "path": "tools/testdisk-7.2/platforms/qwindows.dll",
+        "sha256": "02f0d11790f35187f5a5c2b698dc4ba57c9f2d1ce8e584ebce6e862133e4674d",
+        "bytes": 1362156
+      },
+      {
+        "path": "tools/testdisk-7.2/source/SHA256.txt",
+        "sha256": "0ab39cb6ff5f2cd9b180c1bda5f249fc76eb5bcba115e63f106606231560925c",
+        "bytes": 152
+      },
+      {
+        "path": "tools/testdisk-7.2/source/testdisk-7.2-source.tar.bz2",
+        "sha256": "f8343be20cb4001c5d91a2e3bcd918398f00ae6d8310894a5a9f2feb813c283f",
+        "bytes": 855781
+      }
+    ]
+  }
+}

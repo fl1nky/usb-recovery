@@ -82,13 +82,40 @@ public static class RecoveryStageProgressTests
         try{RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),CancellationToken.None,null,null,updates.Add);}catch(IOException){rejected=true;}
         Check(rejected&&updates.All(x=>x.Key=="verify")&&!updates.Any(x=>x.Key=="finished"),"failed image verification never starts extraction or announces finished");Check(Hash(sample.Source)==sample.Before&&!Directory.Exists(sample.Output),"checksum failure preserves input and publishes no results");
     }
+    static void ChecksumBinding()
+    {
+        var sample=Fixture("checksum-binding",false);string checksum=sample.Source+".sha256";bool attempted=false,writeBlocked=false,renameBlocked=false;
+        RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),CancellationToken.None,null,null,update=>{
+            if(attempted||update.Key!="verify"||update.Total==0||update.Completed!=update.Total)return;attempted=true;
+            try{File.WriteAllText(checksum,new string('0',64));}catch(IOException){writeBlocked=true;}
+            try{File.Move(checksum,checksum+".moved");}catch(IOException){renameBlocked=true;}
+        });
+        Check(attempted&&writeBlocked&&renameBlocked,"checksum writes and rename are blocked through final verification progress");
+        Check(File.ReadAllText(checksum)==sample.Before,"sidecar bytes remain the verified checksum");
+        var saved=RecoverySession.Read(sample.Output);Check(saved.Status=="finished"&&saved.SourceSha256==sample.Before,"published source SHA is the checksum actually verified");
+        Check(Hash(sample.Source)==sample.Before,"checksum binding preserves source bytes");
+        sample=Fixture("oversized-checksum",false);checksum=sample.Source+".sha256";File.WriteAllText(checksum,sample.Before+new string(' ',4097-64));bool rejected=false;
+        try{RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),CancellationToken.None,null);}catch(IOException){rejected=true;}
+        Check(rejected&&!Directory.Exists(sample.Output),"oversized sidecar is rejected before hashing or creating results");Check(Hash(sample.Source)==sample.Before,"oversized checksum rejection preserves source");
+        sample=Fixture("boundary-checksum",false);checksum=sample.Source+".sha256";File.WriteAllText(checksum,sample.Before+new string(' ',4096-64));
+        RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),CancellationToken.None,null);
+        Check(new FileInfo(checksum).Length==4096&&RecoverySession.Read(sample.Output).SourceSha256==sample.Before,"4096-byte valid checksum remains supported");
+        sample=Fixture("checksum-lock-alias",true);checksum=Path.Combine(sample.Output,"recovery-run.lock");File.WriteAllText(checksum,sample.Before);
+        RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),CancellationToken.None,null,checksum);
+        Check(RecoverySession.Read(sample.Output).Status=="finished_with_warnings"&&RecoverySession.Read(sample.Output).SourceSha256==sample.Before&&File.ReadAllText(checksum)==sample.Before,"sidecar guard releases before run lock acquisition and preserves existing lock bytes");
+        sample=Fixture("checksum-cancel-release",false);checksum=sample.Source+".sha256";bool cancelled=false;
+        using(var cancellation=new CancellationTokenSource()){
+            try{RecoveryPipeline.Run(sample.Source,sample.Output,OnlyPhotos(),cancellation.Token,null,null,update=>{if(update.Key=="verify"&&update.Total>0)cancellation.Cancel();});}catch(OperationCanceledException){cancelled=true;}
+        }
+        Check(cancelled&&!Directory.Exists(sample.Output),"verification cancellation creates no result directory");File.WriteAllText(checksum,sample.Before);Check(File.ReadAllText(checksum)==sample.Before&&Hash(sample.Source)==sample.Before,"verification cancellation releases checksum handle and preserves image");
+    }
     public static int Main(string[] args)
     {
         try{
             project=Path.GetFullPath(args.Length>0?args[0]:Directory.GetCurrentDirectory());work=Path.Combine(project,".build","recovery-stage-progress-"+Guid.NewGuid().ToString("N").Substring(0,8));Directory.CreateDirectory(work);
             using(var bitmap=new Bitmap(48,32))using(var stream=new MemoryStream()){using(var graphics=Graphics.FromImage(bitmap))graphics.Clear(Color.FromArgb(79,117,181));bitmap.Save(stream,ImageFormat.Png);photo=stream.ToArray();}
             image=new byte[12*1024*1024];Buffer.BlockCopy(photo,0,image,123,photo.Length);
-            CompleteAndReuse();CancelledScan();EarlyStops();Console.WriteLine("PASS RecoveryStageProgress: "+checks+" checks; measured byte totals, real candidates, catalog publication, cancellation, verified reuse and tamper rejection; synthetic regular images only.");return 0;
+            CompleteAndReuse();CancelledScan();EarlyStops();ChecksumBinding();Console.WriteLine("PASS RecoveryStageProgress: "+checks+" checks; measured progress, source/checksum binding, bounded sidecars, cancellation, verified reuse and tamper rejection; synthetic regular images only.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
         finally{
             if(work!=null&&project!=null&&Path.GetFullPath(work).StartsWith(Path.Combine(project,".build","recovery-stage-progress-"),StringComparison.OrdinalIgnoreCase)&&Directory.Exists(work))try{Directory.Delete(work,true);}catch(IOException){}catch(UnauthorizedAccessException){}

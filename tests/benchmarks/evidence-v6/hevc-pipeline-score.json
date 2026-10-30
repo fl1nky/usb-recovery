@@ -1,0 +1,803 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/final-hevc-pipeline-score-03.json",
+    "source_sha256": "adb24e8b7cb4d5c95433eeb1c29deafdb50f5ebd28b2a72bf50081385033ba27",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "tool": "Recovery",
+    "edition": "source build",
+    "label": "recovery-v6-release-hevc-pipeline",
+    "manifest_sha256": "4e3292ec536021dc0ff65ea73eae245cf3e933c09f3be921ea6979d6dcb569b5",
+    "run_sha256": "0abf460254d1fe12526361f272f2b22bdeaf5dd2a967fbfda0b7af3f69d6cf15",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "main-hvc1-scattered",
+        "status": "completed",
+        "elapsed_ms": 3579,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "main-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\files.1\\f0003328_moov.mov",
+            "sha256": "b7d2d8a1fa19cbce0b263ebddab35585555f866e1c28233084e7c5ea7ecda1b7",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000017793db3d40] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000017793db3d40] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\files.1\\f0005376_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000019580e49d40] moov atom not found\r\n[in#0 @ 0000019580de3f80] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\files.1\\f0005376_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\files.1\\f0006400.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000026655ee2cc0] moov atom not found\r\n[in#0 @ 0000026655ee2b40] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\files.1\\f0006400.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main-hvc1-scattered\\fragmented-media\\candidate-2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c.mp4",
+            "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+            "bytes": 17173,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "main-hvc1-scattered.original.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "main10-hev1-scattered",
+        "status": "completed",
+        "elapsed_ms": 3517,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "main10-hev1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\files.1\\f0001024.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001b54ad23200] moov atom not found\r\n[in#0 @ 000001b54ad22500] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\files.1\\f0001024.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\files.1\\f0002048_moov.mov",
+            "sha256": "9a55be0dbcf67e3f2c1ee73fc5dedb64ada7f21d26bdbbc4159c21bbd3d14b5a",
+            "bytes": 3394,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001f4bfa15a80] stream 0, offset 0xd6e: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001f4bfa15a80] stream 0, offset 0x1ec8: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\files.1\\f0003328_mdat.mov",
+            "sha256": "653764d73cdfad78d3c3f896a8f2cbdcc12ee01bbadc7c2aa60fa51426d2aadc",
+            "bytes": 18325,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000176819d9ac0] moov atom not found\r\n[in#0 @ 0000017681975100] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\files.1\\f0003328_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\main10-hev1-scattered\\fragmented-media\\candidate-a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706.mp4",
+            "sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+            "bytes": 21755,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "d1f1c470b38e6011ff6e539e4eb0ac356683a147d324c3e5150cd809823ed823",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "main10-hev1-scattered.original.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "two-slices-hvc1-scattered",
+        "status": "completed",
+        "elapsed_ms": 3784,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "two-slices-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\files.1\\f0005632_mdat.mov",
+            "sha256": "fd0fa481eb227907f8c3ffe3eb48742b332584857ab5b3db142f9cecd21631a4",
+            "bytes": 24920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000022b1fea3f80] moov atom not found\r\n[in#0 @ 0000022b1fea3e00] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\files.1\\f0005632_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\files.1\\f0008448_moov.mov",
+            "sha256": "f0ed5e3762dd9c1eda2a48404a7d9f24dc0b872002cdb5cd1db9062f266f35b2",
+            "bytes": 3407,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000024305105400] stream 0, offset 0xd7b: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000024305105400] stream 0, offset 0x1b7f: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\files.1\\f0009216.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001b0b77b2e40] moov atom not found\r\n[in#0 @ 000001b0b77b2cc0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\files.1\\f0009216.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\two-slices-hvc1-scattered\\fragmented-media\\candidate-a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12.mp4",
+            "sha256": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+            "bytes": 28363,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "f63d7943046ce66bea3023d4369174d226b91bb02285bf9e27124c6c3da37f69",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "two-slices-hvc1-scattered.original.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "dual-hvc1-scattered",
+        "status": "completed",
+        "elapsed_ms": 3459,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "dual-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\files.1\\f0002816.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000016a433259c0] moov atom not found\r\n[in#0 @ 0000016a43325840] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\files.1\\f0002816.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\files.1\\f0011008_mdat.mov",
+            "sha256": "dde0b694513191c64b306f2ad647fdc8bba6304408fa430abcd591b0b528938d",
+            "bytes": 17576,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001bd22295c00] moov atom not found\r\n[in#0 @ 000001bd22295a80] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\files.1\\f0011008_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\files.1\\f0012544_moov.mov",
+            "sha256": "3af78ce580f675b58d051a2ae987e60f5388e8a5157afb188542799b4b9072d6",
+            "bytes": 6679,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000014878a82340] stream 0, offset 0x1a43: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000014878a82340] stream 1, offset 0x2230: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\dual-hvc1-scattered\\fragmented-media\\candidate-333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c.mp4",
+            "sha256": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+            "bytes": 24291,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "3848cb2a942f7fd5cce93c5d960baaf2ded95ebd5d1d87cb1dcbead0b4875cbb",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "dual-hvc1-scattered.original.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "nal-prefix-overwritten",
+        "status": "completed",
+        "elapsed_ms": 3315,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "nal-prefix-overwritten.original.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\nal-prefix-overwritten\\files.1\\f0004352_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000020a24a35ac0] moov atom not found\r\n[in#0 @ 0000020a24a35940] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\nal-prefix-overwritten\\files.1\\f0004352_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\nal-prefix-overwritten\\files.1\\f0013824.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000283fe0b5800] moov atom not found\r\n[in#0 @ 00000283fe0b5680] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\nal-prefix-overwritten\\files.1\\f0013824.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\nal-prefix-overwritten\\files.1\\f0014080_moov.mov",
+            "sha256": "b7d2d8a1fa19cbce0b263ebddab35585555f866e1c28233084e7c5ea7ecda1b7",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001c27b7027c0] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001c27b7027c0] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "foreign-configuration-constraint",
+        "status": "completed",
+        "elapsed_ms": 3691,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "foreign-configuration-constraint.original.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-configuration-constraint\\files.1\\f0004864.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000022a896e3480] moov atom not found\r\n[in#0 @ 0000022a89745d00] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-configuration-constraint\\files.1\\f0004864.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-configuration-constraint\\files.1\\f0005376_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000019f2a642b00] moov atom not found\r\n[in#0 @ 0000019f2a642980] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-configuration-constraint\\files.1\\f0005376_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-configuration-constraint\\files.1\\f0011264_moov.mov",
+            "sha256": "9797af5af7ea82161af87c9dd258a3c0839035803afd0334389fe33faa663857",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001aff54e3440] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001aff54e3440] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "foreign-inband-set",
+        "status": "completed",
+        "elapsed_ms": 3417,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "foreign-inband-set.original.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-inband-set\\files.1\\f0008192.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000023173932b80] moov atom not found\r\n[in#0 @ 0000023173932a00] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-inband-set\\files.1\\f0008192.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-inband-set\\files.1\\f0009728_moov.mov",
+            "sha256": "9a55be0dbcf67e3f2c1ee73fc5dedb64ada7f21d26bdbbc4159c21bbd3d14b5a",
+            "bytes": 3394,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000029924415900] stream 0, offset 0xd6e: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000029924415900] stream 0, offset 0x1ec8: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-inband-set\\files.1\\f0010240_mdat.mov",
+            "sha256": "653764d73cdfad78d3c3f896a8f2cbdcc12ee01bbadc7c2aa60fa51426d2aadc",
+            "bytes": 18325,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000027e38272b00] moov atom not found\r\n[in#0 @ 0000027e38272980] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\foreign-inband-set\\files.1\\f0010240_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "distinct-syntax-assignments",
+        "status": "completed",
+        "elapsed_ms": 3246,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "distinct-syntax-assignments.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\distinct-syntax-assignments\\files.1\\f0008704_moov.mov",
+            "sha256": "b7d2d8a1fa19cbce0b263ebddab35585555f866e1c28233084e7c5ea7ecda1b7",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001bb646224c0] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001bb646224c0] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\distinct-syntax-assignments\\files.1\\f0009728_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001b860113800] moov atom not found\r\n[in#0 @ 000001b860113680] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\distinct-syntax-assignments\\files.1\\f0009728_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\distinct-syntax-assignments\\files.1\\f0010496.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001d3e3d36240] moov atom not found\r\n[in#0 @ 000001d3e3d360c0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\distinct-syntax-assignments\\files.1\\f0010496.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "identical-chunk-duplicate",
+        "status": "completed",
+        "elapsed_ms": 3560,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "identical-chunk-duplicate.original.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\files.1\\f0002048.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001a2978524c0] moov atom not found\r\n[in#0 @ 000001a2978b6380] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\files.1\\f0002048.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\files.1\\f0008960_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000002a1d0f240c0] moov atom not found\r\n[in#0 @ 000002a1d0f23f40] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\files.1\\f0008960_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\files.1\\f0013568_moov.mov",
+            "sha256": "b7d2d8a1fa19cbce0b263ebddab35585555f866e1c28233084e7c5ea7ecda1b7",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001e6392d34c0] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001e6392d34c0] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\identical-chunk-duplicate\\fragmented-media\\candidate-2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c.mp4",
+            "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+            "bytes": 17173,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "identical-chunk-duplicate.original.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "opaque-cabac-overwrite-candidate",
+        "status": "completed",
+        "elapsed_ms": 3514,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "opaque-cabac-overwrite-candidate.original.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 1,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\files.1\\f0004352.mp4",
+            "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70",
+            "bytes": 28,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000017216465a00] moov atom not found\r\n[in#0 @ 0000017216465880] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\files.1\\f0004352.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\files.1\\f0006144_moov.mov",
+            "sha256": "b7d2d8a1fa19cbce0b263ebddab35585555f866e1c28233084e7c5ea7ecda1b7",
+            "bytes": 3405,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001c1c44d8840] stream 0, offset 0xd79: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001c1c44d8840] stream 0, offset 0x1566: partial file\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\files.1\\f0011776_mdat.mov",
+            "sha256": "c2e53e75f7add2fc35193602a146cb0e84c95cdd375d681417e64572047f1d10",
+            "bytes": 13732,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000121cfcb3700] moov atom not found\r\n[in#0 @ 00000121cfcb3580] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\files.1\\f0011776_mdat.mov.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v6\\final-hevc-pipeline-results-03\\opaque-cabac-overwrite-candidate\\fragmented-media\\candidate-2afebea808a5d12773c8b24043ca70af048ec53ac0684cdac7c458b51c56b382.mp4",
+            "sha256": "2afebea808a5d12773c8b24043ca70af048ec53ac0684cdac7c458b51c56b382",
+            "bytes": 17173,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "aa725c94547b22688b94217c01816c9166ea09539a406442ebca81ad95ef0eaf",
+            "valid": true,
+            "decoded_audio_sha256": null,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": []
+          }
+        ]
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+  }
+}

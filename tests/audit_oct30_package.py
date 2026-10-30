@@ -103,7 +103,7 @@ def audit():
     archive = CArchiveReader(str(helper / "recovery-helper.exe"))
     pyz = archive.open_embedded_archive("PYZ.pyz")
     embedded = []
-    for name in ("engine", "telegram_auto", "telegram_tl", "sqlite_history", "archive_search", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "jpeg_fragments", "android_heap"):
+    for name in ("engine", "telegram_auto", "telegram_tl", "sqlite_history", "archive_search", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "jpeg_fragments", "android_heap", "recovery_checkpoint"):
         code = marshal.loads(archive.extract(name)) if name == "engine" else pyz.extract(name)
         source = ROOT / "helpers/recovery_engine" / (name + ".py")
         reference = compile(source.read_bytes(), str(source), "exec", optimize=0)
@@ -114,7 +114,7 @@ def audit():
     rebuild_tests = []
     required_tests = ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "TelegramTlTests.py",
                       "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py",
-                      "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py", "ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py')
+                      "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py", "ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py')
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})

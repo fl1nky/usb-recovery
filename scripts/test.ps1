@@ -28,6 +28,20 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_heap_fixtures.py') $taskHeapFixtures
  if($LASTEXITCODE-ne0){throw 'Owned JVM fixture generation failed; developer JDK required for this control only.'}
 }
+& $Python312 (Join-Path $taskLayout.Tests 'FixtureBundleTests.py')
+if($LASTEXITCODE-ne0){throw 'Offline fixture safety checks failed.'}
+foreach($taskHevcKind in 'validation','recovery'){
+ $taskHevcTarget=Join-Path $taskLayout.Root ('.build\hevc-'+$taskHevcKind+'-fixtures-current')
+ if(-not(Test-Path -LiteralPath (Join-Path $taskHevcTarget 'manifest.json'))){
+  & $Python312 (Join-Path $taskLayout.Tests 'fixture_bundle.py') extract (Join-Path $taskLayout.Tests ('fixtures\hevc-'+$taskHevcKind)) $taskHevcTarget
+  if($LASTEXITCODE-ne0){throw 'HEVC offline fixture extraction failed.'}
+ }
+}
+$taskAacTarget=Join-Path $taskLayout.Root '.build\aac-recovery-fixtures-current'
+if(-not(Test-Path -LiteralPath (Join-Path $taskAacTarget 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_aac_recovery_fixtures.py') --extract (Join-Path $taskLayout.Tests 'fixtures\aac-islands') --destination $taskAacTarget
+ if($LASTEXITCODE-ne0){throw 'AAC offline fixture extraction failed.'}
+}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {

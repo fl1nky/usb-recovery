@@ -1,0 +1,1 @@
+Synthetic data generated for USB-Recovery with independently pinned encoders. Original generator manifests are included in the bundle. No personal data or third-party program binaries. This file grants no separate license.

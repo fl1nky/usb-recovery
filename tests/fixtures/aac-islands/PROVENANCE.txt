@@ -1,0 +1,1 @@
+Synthetic media generated for USB-Recovery using FFmpeg, plus documented byte mutations and source-layout changes. No personal data, third-party authored media or program binaries. No separate license grant is defined by this file.

@@ -1,0 +1,98 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/trial-dmde-rescore.json",
+    "source_sha256": "42381b204be90b3c71cae060da0e05a3a5ece6d70d9d2f7eb354066ad7afe838",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "tool": "DMDE",
+    "edition": "Console Free 4.4.4.842",
+    "label": "actual observed exports",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "run_sha256": "41df3e0fd9d102a452a648a21164581abc2f2a8c852ef4862851e7050bb858cf",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "status": "completed",
+        "elapsed_ms": null,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v4\\dmde-results\\raw-contiguous-baseline\\f256.jpeg",
+            "bytes": 8257536,
+            "sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f256.jpeg",
+            "kind": "image",
+            "decoded_sha256": "f3c395b508241f92103f0c7f2ce05bebcd3a99b9f151b69ae52a784ab8a03b86",
+            "valid": true,
+            "benchmark_class": "decoded_equivalent",
+            "matches": [
+              "baseline.jpg"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-restart",
+        "status": "completed",
+        "elapsed_ms": null,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v4\\dmde-results\\raw-scattered-restart\\f2816.jpeg",
+            "bytes": 6946816,
+            "sha256": "ce3a498b1d9346586a27090962115f73dc463b00b59a660b968d53e95f2a34ef",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f2816.jpeg",
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[mjpeg @ 0000019e1bb890c0] overread 8\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+  }
+}

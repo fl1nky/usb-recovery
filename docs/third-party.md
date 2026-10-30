@@ -21,7 +21,7 @@ WhatsApp и Signal исключены из текущего интерфейса
 
 `package-sha256.json` — контрольные суммы исполняемых частей текущей готовой папки. `tools/recovery-helper/runtime-SHA256.json` — runtime, исходники и лицензии. `dependencies.json` включает также установленные пакеты сборочного окружения, а не только выполняемые модули. `requirements-wheel-lock.txt` и `wheels/SHA256.json` фиксируют локальные wheel-файлы.
 
-Разработчик: `build.ps1` использует встроенный .NET Framework 4 compiler; `build-engine.ps1 -Python312 <путь>` — Python 3.12 x64, локальные wheels и vendor/iphone-backup-decrypt. Исходники helper и офлайн-зависимости пересборки также находятся в `tools/recovery-helper/rebuild`. Для запуска готовой программы установка Python/Rust не требуется.
+Разработчик: `build.ps1` использует встроенный .NET Framework 4 compiler; `build.ps1 -Action Helper -Python312 <путь>` — Python 3.12 x64, локальные wheels и vendor/iphone-backup-decrypt. Исходники helper и офлайн-зависимости пересборки также находятся в `tools/recovery-helper/rebuild`. Для запуска готовой программы установка Python/Rust не требуется.
 
 ## Исходники компонентов хранения
 
@@ -36,3 +36,7 @@ Dissect APFS/FVE/volume поставляются с AGPL-3.0-or-later, cstruct/u
 - `RaidRecovery.cs` и `tests/RaidRecoveryTests.cs` — собственная сборка RAID и её воспроизводимые проверки
 
 Публичные тестовые ключи опубликованных fixtures не являются ключами по умолчанию для пользовательских данных. Форматы и реально проверенные варианты описаны отдельно в [STORAGE-SUPPORT.md](guides/storage.md)
+
+## Константы AAC
+
+`src/Recovery/Recovery/Engines/AacSyntaxTables.cs` адаптирует числовые Huffman/scalefactor-band таблицы официального FFmpeg n8.0 `libavcodec/aactab.c` под LGPL-2.1-or-later. Сохранены авторство, URL и SHA256 источника, описание изменения формата; полный текст лицензии — `AacSyntaxTables.LICENSE.txt`. Оба файла включены в исходники готового комплекта. Исполняемый FFmpeg для работы приложения не требуется

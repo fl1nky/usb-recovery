@@ -113,7 +113,11 @@ namespace UsbRecovery
                         if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0) yield return path;
                     }
                     foreach (string child in Directory.EnumerateDirectories(current).OrderByDescending(d => d, StringComparer.OrdinalIgnoreCase))
-                        if ((File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) pending.Push(child);
+                    {
+                        string[] components=child.Substring(root.Length+1).Replace('\\','/').Split('/');
+                        bool checkpointHistory=components.Length==3&&components[0].Equals("attempt-history",StringComparison.OrdinalIgnoreCase)&&components[2].Equals("fragmented-photos.state",StringComparison.OrdinalIgnoreCase);
+                        if (!checkpointHistory&&(File.GetAttributes(child) & FileAttributes.ReparsePoint) == 0) pending.Push(child);
+                    }
                 }
             }
         }

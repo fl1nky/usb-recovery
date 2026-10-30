@@ -86,7 +86,7 @@ class FragmentedPhotos(unittest.TestCase):
         before = hashlib.sha256(source.read_bytes()).hexdigest()
         result = recover(source, output, options)
         self.assertEqual(before, hashlib.sha256(source.read_bytes()).hexdigest())
-        self.assertFalse((output / "job.incomplete").exists())
+        self.assertEqual((output / "job.incomplete").exists(), result['Status'] != 'complete')
         return result, output
 
     def test_exact_disordered_idat_and_metadata(self):

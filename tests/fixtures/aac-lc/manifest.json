@@ -1,0 +1,1438 @@
+{
+  "schema": 1,
+  "scope": "Synthetic audio, real FFmpeg AAC-LC packets. No recovery implementation used to create references.",
+  "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "ffprobe_sha256": "f0d36ecbbdd3bcfac3efa078c96c7271c2e68b3810595552ac3b7f17e9a65c52",
+  "generator_sha256": "56c6cc22439184f63dc050fb044616f5ad670e77a03ae6eb29a2152c39e32552",
+  "ffmpeg_version": "ffmpeg version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+  "cases": [
+    {
+      "path": "aac-lc-96000-1ch-000.rawaac",
+      "bytes": 194,
+      "sha256": "bd51cc54ec0630b93e478c67a617b98bb78e06fe810e66bbbba3aa5f414697bc",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-001.rawaac",
+      "bytes": 181,
+      "sha256": "5fe29b91846c9209061c37ed6632c1d8892df384a8c635de17b219784b3dd14b",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-002.rawaac",
+      "bytes": 117,
+      "sha256": "03e1037c32f929903ffafc590a13849df40a0189b77856d1068e7860d2435902",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-003.rawaac",
+      "bytes": 110,
+      "sha256": "55f44f03fef41043359e00053923f1723c497c3ad5768163135b436ee6334305",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-004.rawaac",
+      "bytes": 143,
+      "sha256": "4b94750e2d932c4e1762534e3a892fe788116fa0ad8556c2091cfba6dc775b88",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-005.rawaac",
+      "bytes": 131,
+      "sha256": "c5af60f959496bbe6f54560af1a8c3e80f34f8f2772438adb8fb6d3e99bfc2ac",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-006.rawaac",
+      "bytes": 119,
+      "sha256": "4a39eda343086d7a7fc98e711bf39d6531cc5ab7e73c30a48144b18743b62de9",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-007.rawaac",
+      "bytes": 176,
+      "sha256": "d1ffedbd3b228ad0732949cbdde963363f631334cd13cc3c0fff1541ebe9f618",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-008.rawaac",
+      "bytes": 119,
+      "sha256": "94df7a9bb84a475c232e363d5ce3dfe2b382eae25f2853140d42e610d460b907",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-009.rawaac",
+      "bytes": 133,
+      "sha256": "54e5e9125629d28caf1365953e2c22edd555511729a299b600b6b8393e6f17a1",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-010.rawaac",
+      "bytes": 134,
+      "sha256": "5c288a833844e9965a6a3c6346f2d0c79d6ec40218b98bf8dd3ecb431e5c38b9",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-011.rawaac",
+      "bytes": 137,
+      "sha256": "239e86c14801f238b98a60af30aaf825731671731597cf6a2e49b5a797cbb32a",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-012.rawaac",
+      "bytes": 126,
+      "sha256": "c8f3a1f02231ccfe97bc67582082e91d1ddde8749c41ebb570e3601c75ffadaa",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-013.rawaac",
+      "bytes": 129,
+      "sha256": "cd165764dc3c05668ddd8290e17507f12d8b05474e2ed720692bcb4e0aed9b88",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-014.rawaac",
+      "bytes": 120,
+      "sha256": "ffcf9911fbfd826767bdecfdb2fbd33ab107341e9204837407b40b56b4823c11",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-015.rawaac",
+      "bytes": 128,
+      "sha256": "4f0dfff689047b146dd41b4704443df5e797a85ea1217b090cb8b4d1574528f8",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-016.rawaac",
+      "bytes": 129,
+      "sha256": "84efb962de9a0594d957fbb5f055a324773408e2f56da4fc0309186b3983764d",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-1ch-017.rawaac",
+      "bytes": 127,
+      "sha256": "3b080841cb9c9c19427a95b0f9e4991a8c630f6111a15bb855c82b3723f9fc4e",
+      "channels": 1,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-000.rawaac",
+      "bytes": 95,
+      "sha256": "a2b4b0e8d1c7a58741f026c66c0d6c56015e85cebc48988eb48f45019b7e1493",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-001.rawaac",
+      "bytes": 187,
+      "sha256": "bc9a9b79f2c49adde1ffd9b0c8f2d11da98f9c4366259fb719cbf2936537d64a",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-002.rawaac",
+      "bytes": 110,
+      "sha256": "16d2d5d43c75a278354afa5eaf620853263b6aa7cc1be270945bea387ef4ab71",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-003.rawaac",
+      "bytes": 92,
+      "sha256": "8392f36c3b9fe6fab9d59f20f766af91de06ace8721d37e4b1d5bcdad89f0893",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-004.rawaac",
+      "bytes": 109,
+      "sha256": "37bbdada2ece7110f9b0cf6064a3fba71af1a46174c75b8c9e934141a4cd69ee",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-005.rawaac",
+      "bytes": 118,
+      "sha256": "f68d62a93a659fb96a2fc07471ab30c06f29828f0ea90bbdda8f4f98f32de1a5",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-006.rawaac",
+      "bytes": 128,
+      "sha256": "ff811b9cb44162ee98ee329e3906e2335a5210359bb736bcf40395694035434e",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-007.rawaac",
+      "bytes": 169,
+      "sha256": "cfc4e011c856000962f63fd53bd773ea3f94d5752303488d2af160c2c3d6b1eb",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-008.rawaac",
+      "bytes": 123,
+      "sha256": "31e2fa487fed4b7517751053c5dcf50ebed2cf7edc6399de83de8d43f8c0240d",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-009.rawaac",
+      "bytes": 128,
+      "sha256": "2c842597cdb020caea55048b45c745e03ac9dee8a2bfd5df9c3dc750c1dcf1cf",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-010.rawaac",
+      "bytes": 122,
+      "sha256": "ff324aad6ac66db0a1178e88e3d090dac017a7ff70e201393a5421d27e2146fd",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-011.rawaac",
+      "bytes": 135,
+      "sha256": "ba5e17e27a586cf48c1d477caac4f11f44da294e5b41ba0d164e5fbe50113d7e",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-012.rawaac",
+      "bytes": 111,
+      "sha256": "58dc4d089fa5cdc45d2d3554a9b0404605fd9585b5a93a05f1e95766f92417a2",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-013.rawaac",
+      "bytes": 139,
+      "sha256": "a01f1a102adec2bc3575c980940002da77b0dcd2c7d485cd58700e4181d3f36a",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-014.rawaac",
+      "bytes": 118,
+      "sha256": "8bcd6198f2c11bf8fcba6a244ba0a836446cefed97a268599c9eaaa19566fa0c",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-015.rawaac",
+      "bytes": 120,
+      "sha256": "5e3c0219d07fca7e3d31e8b411dc4a6ea23e2befd602495c05ef4b256bd632f6",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-016.rawaac",
+      "bytes": 141,
+      "sha256": "7ba6fdfc14adb4672d90a666834ead571ab2a0907319a00eab0a0674a4345f2f",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-96000-2ch-017.rawaac",
+      "bytes": 152,
+      "sha256": "f5a046b3cf5f510d974a3e3b602e62481ab59589a61a74ab939e88634e658a86",
+      "channels": 2,
+      "frequency_index": 0
+    },
+    {
+      "path": "aac-lc-88200-1ch-000.rawaac",
+      "bytes": 173,
+      "sha256": "265ae2e2b8d1c3c2cf17dac21109128d9bcfbf1f2efafaa3a4e83b7e1f4d194a",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-001.rawaac",
+      "bytes": 185,
+      "sha256": "8d5eb749625b828d7558a8cf4b2070ff3ac95e4e88af95d0b42d4549ab9c5b31",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-002.rawaac",
+      "bytes": 162,
+      "sha256": "bb5c5eb4bb6b54ba9dbf4343b22734f0ada9508ab149b3b35883af0c88872f43",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-003.rawaac",
+      "bytes": 134,
+      "sha256": "4a0868e40f0961709650771f04ffd0b033b2c88bdf1ed5e822f75534c6ffa5be",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-004.rawaac",
+      "bytes": 147,
+      "sha256": "5a3b4569fb0398afb53fc4aee265c5e3bfa33e77fae9c9821d703f5b5a29a667",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-005.rawaac",
+      "bytes": 137,
+      "sha256": "8719a068d8bc50238a9250210773bbe4d03cb232eca46ee7d05ad57a05af5d53",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-006.rawaac",
+      "bytes": 152,
+      "sha256": "4ac02a554986cefe5d19d0c3ff6912abb75504807a0c42f13bb48fd251894e52",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-007.rawaac",
+      "bytes": 190,
+      "sha256": "166054ad092f0f5157e602c5c054f9feb8b6ede7a13a780a84e7bc070cf839fd",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-008.rawaac",
+      "bytes": 117,
+      "sha256": "8ee0903ab9efa6b7e29ff83478bf3c1b71d2435a4f1272a0db6c186b4ff7c7ad",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-009.rawaac",
+      "bytes": 123,
+      "sha256": "64f8c348f874affb6283cb984594c7996fd48e1518f142c435038e623b3436cd",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-010.rawaac",
+      "bytes": 130,
+      "sha256": "698f0b48131a8baff8326686cba314242745343f14667a261d12a1db05183806",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-011.rawaac",
+      "bytes": 131,
+      "sha256": "1d52e4a6f6d3ce5f212019fa0110685d025dc7ddd009110d8918663f77384f01",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-012.rawaac",
+      "bytes": 147,
+      "sha256": "1d43d27ddee03b24124d8b16aa4476482fa6a85a4fa1cd9e07038826bc32f69d",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-013.rawaac",
+      "bytes": 140,
+      "sha256": "180a84574c267aed4b84c7467a9fb90b4a7e661e47ea0e9762412dcbde5da087",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-014.rawaac",
+      "bytes": 133,
+      "sha256": "f77d8188b82a19ad5f7c606b67622afed1935b4878830e1798395153f93a4b55",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-015.rawaac",
+      "bytes": 150,
+      "sha256": "df2422a7ccad576eac1604bd86ced014efeca9979efde7d5490aacce036092df",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-1ch-016.rawaac",
+      "bytes": 152,
+      "sha256": "8f1d5ea77cb660b4dd5910f8ba82b14ed33868a11304cdfb99a8ef8e70443aaa",
+      "channels": 1,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-000.rawaac",
+      "bytes": 103,
+      "sha256": "a329c68f8cc6804ea9e99e208d9e6351f7ecbf3846d837f3e849126a3a532d25",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-001.rawaac",
+      "bytes": 188,
+      "sha256": "9a5b044a4183efb850b3ecd384dec4adfa6c1f2b1de1ef3379408eca73d8e14a",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-002.rawaac",
+      "bytes": 99,
+      "sha256": "8d53aa6f83ddd246e207057be42f30756ba6cbbaae646496835b7e14b6d41fd3",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-003.rawaac",
+      "bytes": 99,
+      "sha256": "1448800b2ddb58bf825be9fd441081cb1863902724baa745a3f76686b83a25a4",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-004.rawaac",
+      "bytes": 116,
+      "sha256": "6b55af5e52e74cc96d994fdc9458959db9e8ddee7134878c26acf12f4e42c584",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-005.rawaac",
+      "bytes": 126,
+      "sha256": "6bdb0d9531e74b1e439f2525b60faae77bb64e2cb38fe25d6ae4767219f636d4",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-006.rawaac",
+      "bytes": 141,
+      "sha256": "62ac2982b13800c56a4b215a27de36107e24ac139a12e027281db3dd73fcb0c9",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-007.rawaac",
+      "bytes": 212,
+      "sha256": "6a2b2d20e3c990f34e1c97d485f503998386f512528cc0d58f8ea32f938854ae",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-008.rawaac",
+      "bytes": 134,
+      "sha256": "d79ffb414cf75cadfaf297e961c0b96a3ecb5cf42035631ff427a56bdce346b8",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-009.rawaac",
+      "bytes": 127,
+      "sha256": "f5ef2988ef6903123c276d0cc6221ff897f950f9d19a382acf7de44b1a437b9c",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-010.rawaac",
+      "bytes": 156,
+      "sha256": "0ccf99373e914ef5a79767f8853b837d31d7e8742307eb8ac2f514c6e8cf96f1",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-011.rawaac",
+      "bytes": 151,
+      "sha256": "1195758cec088591da87a9fcd4adbb60127aa6bc7306451cebbb4547b70fd0b3",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-012.rawaac",
+      "bytes": 135,
+      "sha256": "9ee430aa2c795fee837bf75e948548cb1a68c7af996f2494ddb521a8d3136318",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-013.rawaac",
+      "bytes": 144,
+      "sha256": "40e065699c7ead1eb4ef9418f2335e031ceb06063dd1bc9143baddebe086da2d",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-014.rawaac",
+      "bytes": 125,
+      "sha256": "05089bbee4185676df9e19d0668a13e6fb9e95ade8be5859ea8f75e0214d9156",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-015.rawaac",
+      "bytes": 145,
+      "sha256": "8095ca1e860beb2bb9a7aa6de09b85c3338ff9b879691afdce24f353a49d5265",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-88200-2ch-016.rawaac",
+      "bytes": 128,
+      "sha256": "6c11e5ae6af6f67eb0c1872bc3a27e009c24fee037be10fa49abd847b60695c5",
+      "channels": 2,
+      "frequency_index": 1
+    },
+    {
+      "path": "aac-lc-64000-1ch-000.rawaac",
+      "bytes": 282,
+      "sha256": "9098a6558b43022f35a3936e775459460253aa0986b840078e2e02def64249a4",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-001.rawaac",
+      "bytes": 290,
+      "sha256": "d3435ed01ef6da03d5556a242059c1f4ab20ab9a69992e30da4756d7b70b3b40",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-002.rawaac",
+      "bytes": 152,
+      "sha256": "5c63e7df2f6d0c46c36b54417204b07e144ba85365ff56339ec2caedfe45ca96",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-003.rawaac",
+      "bytes": 183,
+      "sha256": "386c8493991d09a84e4f6905e09daf2951bcd00131556116cd9aa17e0f29631d",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-004.rawaac",
+      "bytes": 176,
+      "sha256": "c2b9f420c66e42f48a0581bff58601afe835f06448566e88aeea91e0098c1ae0",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-005.rawaac",
+      "bytes": 285,
+      "sha256": "9257141211a5faf62c94d7e6a461409e25f403fc7e3b352216ad6dc9a02d114b",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-006.rawaac",
+      "bytes": 138,
+      "sha256": "fb74690b0f78bd0f50ac38c559e52d82fdc0aeeb62fef9b8bae1b46ee2fe5954",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-007.rawaac",
+      "bytes": 172,
+      "sha256": "e9cba3433c96898e293705e00191f590610cea65c93d94f090384af79a620ab1",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-008.rawaac",
+      "bytes": 202,
+      "sha256": "f3dc4138f7bfe4ea226aa0213d22249b8630da9d30b5141ff1561f5e5b57ea1f",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-009.rawaac",
+      "bytes": 166,
+      "sha256": "c6d24ad527b494099d75a057dfafb57acfdcb91aaebf7bbd1ae57e2bf3ef356e",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-010.rawaac",
+      "bytes": 182,
+      "sha256": "317344f07c1be92ce9402fecdf87ba1d5a3991237a177c00ccc29a04affb4510",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-011.rawaac",
+      "bytes": 252,
+      "sha256": "63dbce92a286f5ad72bf3b6aedcb4be870126ac73e0bfe9d8786f298baec3674",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-1ch-012.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-000.rawaac",
+      "bytes": 160,
+      "sha256": "7e922aa4300c1e707af45085211993a82e399c7afaa326bb9c91a353c88b7156",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-001.rawaac",
+      "bytes": 218,
+      "sha256": "aa293b4971f6f0e3a6279c85842186344f5cb20e722648175b4193e5cf4e672f",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-002.rawaac",
+      "bytes": 182,
+      "sha256": "2aad12c9ea49c2d35f01c09ccb8a39254198c2a96e2307a36704eded6ce98d9d",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-003.rawaac",
+      "bytes": 163,
+      "sha256": "0a14df01354ffcc449f1edfe2dc1f5a3c7f7a73d7d6f5e70dbea7bf26769a9a0",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-004.rawaac",
+      "bytes": 170,
+      "sha256": "c9cf19963944a38941dd4facd0c180e5aee33ab01a5fc43da10b3a8b05222c76",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-005.rawaac",
+      "bytes": 226,
+      "sha256": "7f7845ce9397acfc1386111e5632dc03bfa575f529901722fccf180212bfbf75",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-006.rawaac",
+      "bytes": 169,
+      "sha256": "227a38cdd99784474945f3e19177629f0d10f9cb8c11459d4a0f14cb454ba9bb",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-007.rawaac",
+      "bytes": 185,
+      "sha256": "4356dbf91f731548a32bf4d45b3ecaa171af3aa3b338b748080ba85f6991bc6b",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-008.rawaac",
+      "bytes": 175,
+      "sha256": "bc7ac9429e98d7836ca89c526122702278f39b054c4e9aa8477e28fef0dc85be",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-009.rawaac",
+      "bytes": 185,
+      "sha256": "183ddfcbbda31890bedf10622cbd221257f056dc5be02764d58cfcb3d257ae85",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-010.rawaac",
+      "bytes": 188,
+      "sha256": "eadcdf36c1de721404b506268b22f28ccf265b444f7bdef484b50c1010cba1e0",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-011.rawaac",
+      "bytes": 205,
+      "sha256": "9f4e73f153ff21c13e7b5c518ef24115a46474e50eb30e2759c4de55e779b2f9",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-64000-2ch-012.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 2
+    },
+    {
+      "path": "aac-lc-48000-1ch-000.rawaac",
+      "bytes": 355,
+      "sha256": "e978013814a41dad657ecdd7e2c7a0261d7af3289d8a06846234c674e4af9573",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-001.rawaac",
+      "bytes": 374,
+      "sha256": "53bf26883c3d8ac0e3a27d1e57103743102a16ffb7dfb0df52d0966b003bbeb1",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-002.rawaac",
+      "bytes": 179,
+      "sha256": "39111821e3fa56613177ec76a2bc7ec6362e405879a80f1f2de8df69f7893774",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-003.rawaac",
+      "bytes": 218,
+      "sha256": "8eece4005a591b759ab2f5071461d1faa2d77462ad04349fdb2838a581fa18f8",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-004.rawaac",
+      "bytes": 310,
+      "sha256": "8b73e6444cdb9294c71025e1265e9a466d19f19c3e16f7f8790d74d67e36e03a",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-005.rawaac",
+      "bytes": 251,
+      "sha256": "34b4d32ed12f8fd3c7bd5aa261b0b80f9bc3e43672452accf7f8ad6b484bb798",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-006.rawaac",
+      "bytes": 287,
+      "sha256": "9c36a8f657425a984d502c89d27adbc6f2600b85381d2f0afc28e1886f482c5f",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-007.rawaac",
+      "bytes": 241,
+      "sha256": "0bf5f01048e69e2c19920bbaddd77b13c6189152e1e680da412ccb46a0f2a188",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-008.rawaac",
+      "bytes": 340,
+      "sha256": "5e7f352438e9edd32b256031125b483b115e55b17ef93851d8ec6a968d34688b",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-1ch-009.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-000.rawaac",
+      "bytes": 176,
+      "sha256": "4a30c715cf19167ea3acf79d0110a0675da32628a6572d6a2b34100a44212064",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-001.rawaac",
+      "bytes": 222,
+      "sha256": "a0c1885a74c87ab5b9f2713807de8072634a9ffc6b20b541a0cb7862cd2f9920",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-002.rawaac",
+      "bytes": 244,
+      "sha256": "c112341c55cca909bf2572f2e8065a07047b3674503011b35ab1ee10d4212f56",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-003.rawaac",
+      "bytes": 260,
+      "sha256": "290c3c31d7cf08b60e87fdda4035ea6b717f1af8a2cd7b9553318f0a09dcff19",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-004.rawaac",
+      "bytes": 285,
+      "sha256": "e9f82399a5e6d6ace049f5af5f5e195b56e821e70812c02098bb456e2e2831de",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-005.rawaac",
+      "bytes": 270,
+      "sha256": "a1faaf3fabe61f2d5954b3c609d222cfc1cecf3f77fb73ca36983240ebe2399b",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-006.rawaac",
+      "bytes": 223,
+      "sha256": "d69c9adf4ea44dd9945015d7557afa829411a017254b94500a5dc928475da714",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-007.rawaac",
+      "bytes": 292,
+      "sha256": "60dcb1fe00c68c1d9acce7661bebb70e927ea4fc7aba8e427d8750f33621ef0c",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-008.rawaac",
+      "bytes": 314,
+      "sha256": "b04beeb5affbb08ac9f2d20b0adff5b000c21401bdcd923700caf75dcf19b24f",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-48000-2ch-009.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 3
+    },
+    {
+      "path": "aac-lc-44100-1ch-000.rawaac",
+      "bytes": 359,
+      "sha256": "a5d3293eef05819099579a71cc80fd60481f99f7035838ace7e97a84810ab556",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-001.rawaac",
+      "bytes": 377,
+      "sha256": "eaba088a1d6ee7815e91380411bed23edf24b1f2befb6656c2dcce439425ad65",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-002.rawaac",
+      "bytes": 183,
+      "sha256": "86ddafe95713b64981fa0a27c1f89ee45630e3734f247a1c2ce473359cd0cca2",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-003.rawaac",
+      "bytes": 215,
+      "sha256": "f797340915fe1449683ec191cb8ac1fc4922744355f9c98da9bf1056a10a49f1",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-004.rawaac",
+      "bytes": 300,
+      "sha256": "ca5454859bd220dd10b81f966fda0f0237862014bdbb56c7594aa3831bab3e73",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-005.rawaac",
+      "bytes": 225,
+      "sha256": "403dd2aad67c0f8da46d2298aaf3790e934003b6b9ced46b3a9554037a0260e1",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-006.rawaac",
+      "bytes": 242,
+      "sha256": "41d345345d378a6ebb6e8183e12b2b09e9cec3ae2955f6eaba411a03906ce45c",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-007.rawaac",
+      "bytes": 234,
+      "sha256": "b15125f9712f12587d270d7b2ab5d751a386d834dbabc88e6f626891846c1b56",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-1ch-008.rawaac",
+      "bytes": 283,
+      "sha256": "453fb648e6ad17304c0b9f14d301cf1dfb853112440222723c50a6ca57ec41d4",
+      "channels": 1,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-000.rawaac",
+      "bytes": 246,
+      "sha256": "7e72b408db9a014e310ac9c0f03cdd327d8b5a3fba2c9098c91459fb788b05f2",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-001.rawaac",
+      "bytes": 327,
+      "sha256": "14d6a487346f8ae9424e632de4b3a31a6d21966abe7010bee3153b4a8e4db45e",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-002.rawaac",
+      "bytes": 266,
+      "sha256": "2c64fd4543755602a647952db8cc2d4be07d95f38c369a45a18f07cc745b20de",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-003.rawaac",
+      "bytes": 254,
+      "sha256": "b9320da7f4cc5e118a775ea36703eee70f284ff25d87f61079b4f2077a324b33",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-004.rawaac",
+      "bytes": 342,
+      "sha256": "c0741ab885a90710889d5ed76dab1e82083219a1c0bd960de37e9d9504be7d2f",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-005.rawaac",
+      "bytes": 301,
+      "sha256": "f1119f20f40c4d10fa7606bb5813b718e9cb1150dc31eedba465c9eba7fc60be",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-006.rawaac",
+      "bytes": 302,
+      "sha256": "bde9a1bb2eb2a1d29aac35fd2e8b51fbff545dcb0d33efa801e01de9eadf490e",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-007.rawaac",
+      "bytes": 232,
+      "sha256": "c4d82a07e1b59ca8a28cb52d6f08668280f19b7829e9c882b7d8777d1f3b3bb8",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-44100-2ch-008.rawaac",
+      "bytes": 274,
+      "sha256": "9fa7c42713092056bdae8f1e74b8dadb2ec936c0ae10bb66b56b926a23052829",
+      "channels": 2,
+      "frequency_index": 4
+    },
+    {
+      "path": "aac-lc-32000-1ch-000.rawaac",
+      "bytes": 340,
+      "sha256": "7072d9c1f246d7313822f907e6472f6ee3088e26052e5db6b71a7554488bf9b0",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-001.rawaac",
+      "bytes": 372,
+      "sha256": "fac87cba202f9716ef55d665e948b3aaea07c63c1f7ed7f30d95485c4160a1e0",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-002.rawaac",
+      "bytes": 290,
+      "sha256": "cd7c9095a3fe04ed73d74fe3128915d5d68bfa133d339282368b83c83b0a71b4",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-003.rawaac",
+      "bytes": 285,
+      "sha256": "04407613b01cfdc40e90ac8dfae3729a674d3f52d3501d141f5ed42d84c85aa0",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-004.rawaac",
+      "bytes": 177,
+      "sha256": "04054f1347f768b2ff11765074034f6891015ce750e77811a0b2ae5edf50a217",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-005.rawaac",
+      "bytes": 198,
+      "sha256": "e28dd687e8924fbd8a6413ccf425b1119566c7940ae3b5a3514d0e6a9bc308dd",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-1ch-006.rawaac",
+      "bytes": 257,
+      "sha256": "9c762b5ca77d5e079e7a8e262bc71269141c617056d7b8abb8460052cfdb18c6",
+      "channels": 1,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-000.rawaac",
+      "bytes": 362,
+      "sha256": "1fbae16a617b51096fd4c30a4a97b25865cdc91cf4069b885fd9b040301c3819",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-001.rawaac",
+      "bytes": 424,
+      "sha256": "8bda7118cf5287d7159f43c4d04200ba7da30cd63ba0a94e251e9e64eede235e",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-002.rawaac",
+      "bytes": 368,
+      "sha256": "eecd8d19bf0169e3eec568f7aadc957a9bd01b615ce3e09755d043e0458755e2",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-003.rawaac",
+      "bytes": 414,
+      "sha256": "4ee0c565a6874ec382eac6790a62a4963e47d5a7ceb2c209f21986f504f79805",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-004.rawaac",
+      "bytes": 334,
+      "sha256": "952dd0c6e339dba372733e6fcf161885d9d2a749d1912d3ef3a2bebe5b754416",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-005.rawaac",
+      "bytes": 334,
+      "sha256": "350e35ef3ea3eac49e250470ef781faa2b7d80a9c20c31845b28eda43a615de9",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-32000-2ch-006.rawaac",
+      "bytes": 361,
+      "sha256": "241e9170b7fe7eb2b5de9f701c52a3fa692532f1175ebd552aa3a89c7c525403",
+      "channels": 2,
+      "frequency_index": 5
+    },
+    {
+      "path": "aac-lc-24000-1ch-000.rawaac",
+      "bytes": 252,
+      "sha256": "f74b7d6e842ccceae5e79bcda8d8b66755d424c5eb360c69db7c1a1dd01c496b",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-1ch-001.rawaac",
+      "bytes": 358,
+      "sha256": "c0fb6ae77fc42ba1b6ec355db128c1a5d6265e4d080b8f6df2d5cf2ac2ba3f24",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-1ch-002.rawaac",
+      "bytes": 342,
+      "sha256": "467166928718d67422e828c967bf7c2a4587885be111ad9d8e036089b0f5b2f5",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-1ch-003.rawaac",
+      "bytes": 292,
+      "sha256": "faa6e2ef862a6400ad08dd41465d4a728ad353c4a037a4aa016a0b7c9e76096d",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-1ch-004.rawaac",
+      "bytes": 246,
+      "sha256": "97ad93dbe1d1581432a83fa50dce38da1170eeecc954336084bff4168a8f4887",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-1ch-005.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-000.rawaac",
+      "bytes": 403,
+      "sha256": "273ba466e4bcb20305cab32df7b8138965e2168dfe9efb7df087d9d6387755fa",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-001.rawaac",
+      "bytes": 547,
+      "sha256": "fab6a3fdbbd5fada3c83b27a6c95450698a9a9156b26e37fd5ef17397f942ecf",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-002.rawaac",
+      "bytes": 504,
+      "sha256": "eb1223ef01f742c37462bbe4331d2345c89fbf71bb51699729a82c72c2f7ce31",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-003.rawaac",
+      "bytes": 498,
+      "sha256": "0492c94c66e5851690a954efbe8cf9f27acaad25d1d7d5f9fe6a2ca72deff4f7",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-004.rawaac",
+      "bytes": 480,
+      "sha256": "d4f81dd21d6da8a2c1c3204952f7a991753d1530c41cdc737e3087287b4c73ff",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-24000-2ch-005.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 6
+    },
+    {
+      "path": "aac-lc-22050-1ch-000.rawaac",
+      "bytes": 337,
+      "sha256": "d704f62174c43c28e59e1963d8e37382c21a7495f3460390951234946be34b4e",
+      "channels": 1,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-1ch-001.rawaac",
+      "bytes": 378,
+      "sha256": "7afe8ef72f4348d49408453f76a8571462128fa88c91ec0f834e70b5c891b51a",
+      "channels": 1,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-1ch-002.rawaac",
+      "bytes": 313,
+      "sha256": "f0b0c64eeddc66706c6fef5fc1c83fae4cd2eafc24602bd38c9f939f555a591f",
+      "channels": 1,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-1ch-003.rawaac",
+      "bytes": 279,
+      "sha256": "2d0167fc962d79602b5426ffe04c4c95497894ce09fc73d985e0d3b7cf512f99",
+      "channels": 1,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-1ch-004.rawaac",
+      "bytes": 229,
+      "sha256": "5ad9c2d7e91d1f612b78c9974148f3a78e3edbb3d4e78bf9a372a08a7f29f509",
+      "channels": 1,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-2ch-000.rawaac",
+      "bytes": 454,
+      "sha256": "308fb705a8dfca95bc3676b068781bbbdc9f72cbb55ce2bba27d9c97b72dcbe8",
+      "channels": 2,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-2ch-001.rawaac",
+      "bytes": 586,
+      "sha256": "a91e5bf53ab0b2885a631bbbc75c3fc87b86cc13807a5f206d4ddcc44b1cbf46",
+      "channels": 2,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-2ch-002.rawaac",
+      "bytes": 478,
+      "sha256": "d1c9780c212e76b4d6c543526b76b696a65b39375463b44e9cbd74da5d8e4e9b",
+      "channels": 2,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-2ch-003.rawaac",
+      "bytes": 503,
+      "sha256": "c97c20178d4075df5cad691cea3bb01ce04634893c2a2246528b9d0cb955fbff",
+      "channels": 2,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-22050-2ch-004.rawaac",
+      "bytes": 442,
+      "sha256": "7d07317380cbb1cb688fdbce32f266e07210d9228d7da9ff467b792363828981",
+      "channels": 2,
+      "frequency_index": 7
+    },
+    {
+      "path": "aac-lc-16000-1ch-000.rawaac",
+      "bytes": 369,
+      "sha256": "da1285b64aeead8f5a5358ba0529a12283f3d857728171d3fee507360f25815c",
+      "channels": 1,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-1ch-001.rawaac",
+      "bytes": 388,
+      "sha256": "4ced4290dc6e2d431066a56807d5bcdbf9253a9f05eaee848739902cbb084767",
+      "channels": 1,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-1ch-002.rawaac",
+      "bytes": 285,
+      "sha256": "08700cd176a536bd16fd5b653c498fa946ba07bdb26b7acd83e3a0b3f3573ddb",
+      "channels": 1,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-1ch-003.rawaac",
+      "bytes": 203,
+      "sha256": "5dd342b60eb6927731653892c8bafe60135aa12f648fb8cf5bb3976b2f61eaad",
+      "channels": 1,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-2ch-000.rawaac",
+      "bytes": 431,
+      "sha256": "b5af6641eaa8cb1d6bd0d6698feb16088bc1a083cc2ac103628e5151bfc11056",
+      "channels": 2,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-2ch-001.rawaac",
+      "bytes": 584,
+      "sha256": "c736fe76233d0e05817f01ac84c75087f9b30f4ef12665f90d5484217e7bc044",
+      "channels": 2,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-2ch-002.rawaac",
+      "bytes": 484,
+      "sha256": "cee5f59d27ec06433c638fa51fd9208ab903c9837180fff4fb2743cc49db87cb",
+      "channels": 2,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-16000-2ch-003.rawaac",
+      "bytes": 395,
+      "sha256": "8dc4abc041c65f6b4fcc80de730a8964ef30ffce52643115e12a4cdc1d4e3719",
+      "channels": 2,
+      "frequency_index": 8
+    },
+    {
+      "path": "aac-lc-12000-1ch-000.rawaac",
+      "bytes": 316,
+      "sha256": "b9bb72b8a5d927fddb25273f4d0436c901737ceb6a730d927cdfa3781c4e22e2",
+      "channels": 1,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-1ch-001.rawaac",
+      "bytes": 370,
+      "sha256": "288855008db1dfd886dd6ddb01d7b0d69ad5260f097856021c81e59bc9d8ce86",
+      "channels": 1,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-1ch-002.rawaac",
+      "bytes": 286,
+      "sha256": "217ffaa2f2715286c05afb8409db4ada75f48351a75a98d082426117b701dc5f",
+      "channels": 1,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-1ch-003.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-2ch-000.rawaac",
+      "bytes": 438,
+      "sha256": "c776771771f37ed995c25bd85b5908c6d213937a7ba33b3ef3fc10a34fbdeb50",
+      "channels": 2,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-2ch-001.rawaac",
+      "bytes": 541,
+      "sha256": "7131ce2ec09f2ef38825b75456da48d0556d669c845fce4b6dacb8ec105f827a",
+      "channels": 2,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-2ch-002.rawaac",
+      "bytes": 461,
+      "sha256": "6dc483f185f52e7d10df2eb4d13c03ead3ace101561cca06a90e7230fa4ef94c",
+      "channels": 2,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-12000-2ch-003.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 9
+    },
+    {
+      "path": "aac-lc-11025-1ch-000.rawaac",
+      "bytes": 380,
+      "sha256": "95faa7ad7787fd9f2814cee91c374d96c2ae29d210f0a6d47b658fde78a8ed9c",
+      "channels": 1,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-11025-1ch-001.rawaac",
+      "bytes": 373,
+      "sha256": "738beadc1fd6572eb504ad595f6af436b310fb98a00a4047e02372abd60cbd8c",
+      "channels": 1,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-11025-1ch-002.rawaac",
+      "bytes": 261,
+      "sha256": "e9a433d75501618913d8395c602a09d86073e236ad558fbabce215ebc316360f",
+      "channels": 1,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-11025-2ch-000.rawaac",
+      "bytes": 426,
+      "sha256": "944cc869699b20007ea9dba6197ce5eed1b906c47c5bbaf35c3ee35763fe3291",
+      "channels": 2,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-11025-2ch-001.rawaac",
+      "bytes": 525,
+      "sha256": "729d9b7a021695d0ffde0769e7b39b3ce52c060c6003e9500064ab39147df1d6",
+      "channels": 2,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-11025-2ch-002.rawaac",
+      "bytes": 429,
+      "sha256": "6b0744969a5f316d2be74ca0c55d0e9a771ffaac8df1a0060b483ead0ab134c9",
+      "channels": 2,
+      "frequency_index": 10
+    },
+    {
+      "path": "aac-lc-8000-1ch-000.rawaac",
+      "bytes": 376,
+      "sha256": "f4f26fa26b67ce8f66c39ee3bdb8952e4e9f25e3bcb47c634f6cbf8a77ac64fe",
+      "channels": 1,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-8000-1ch-001.rawaac",
+      "bytes": 378,
+      "sha256": "33f01ea892bdd4ee003067c0a5300c49462a17c5d1b9c1d2d5783f62e443554e",
+      "channels": 1,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-8000-1ch-002.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-8000-2ch-000.rawaac",
+      "bytes": 444,
+      "sha256": "3bf97bb669c22d5d7926bf08cc280d69bd4888ea8de91b7884b0afd6cf59b2f3",
+      "channels": 2,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-8000-2ch-001.rawaac",
+      "bytes": 537,
+      "sha256": "15f87a64ac1fa7916eb87c8d5655233ccaea4fc638b6512e43c3f96aad0ce4a6",
+      "channels": 2,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-8000-2ch-002.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 11
+    },
+    {
+      "path": "aac-lc-7350-1ch-000.rawaac",
+      "bytes": 376,
+      "sha256": "f4f26fa26b67ce8f66c39ee3bdb8952e4e9f25e3bcb47c634f6cbf8a77ac64fe",
+      "channels": 1,
+      "frequency_index": 12
+    },
+    {
+      "path": "aac-lc-7350-1ch-001.rawaac",
+      "bytes": 373,
+      "sha256": "49f1b4186493373a43bcb50772f9594d4a6d9f0f4d2c48d7e7236a4dcf0ca774",
+      "channels": 1,
+      "frequency_index": 12
+    },
+    {
+      "path": "aac-lc-7350-1ch-002.rawaac",
+      "bytes": 5,
+      "sha256": "a5eccfe58c3df90a86db8a612562ca61e151984e2d06b233d7fd0a5372070bbc",
+      "channels": 1,
+      "frequency_index": 12
+    },
+    {
+      "path": "aac-lc-7350-2ch-000.rawaac",
+      "bytes": 444,
+      "sha256": "3bf97bb669c22d5d7926bf08cc280d69bd4888ea8de91b7884b0afd6cf59b2f3",
+      "channels": 2,
+      "frequency_index": 12
+    },
+    {
+      "path": "aac-lc-7350-2ch-001.rawaac",
+      "bytes": 600,
+      "sha256": "fc36ad37e4406a37d0470aedf1a02da435061b700bed82173bd1db4b89cf94b1",
+      "channels": 2,
+      "frequency_index": 12
+    },
+    {
+      "path": "aac-lc-7350-2ch-002.rawaac",
+      "bytes": 7,
+      "sha256": "8a3734dbcb6f4f91174047b0e347cbbd65a57aca20511f53b8488f8da10ff600",
+      "channels": 2,
+      "frequency_index": 12
+    }
+  ]
+}

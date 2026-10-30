@@ -74,3 +74,11 @@
 /tests/fixtures/*
 !/tests/fixtures/raid-md/
 !/tests/fixtures/ext4/
+
+!/tests/fixtures/aac-lc/
+
+!/tests/fixtures/aac-islands/
+
+!/tests/fixtures/hevc-validation/
+
+!/tests/fixtures/hevc-recovery/

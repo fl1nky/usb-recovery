@@ -14,6 +14,8 @@ namespace UsbRecovery
         public string Key,Status,Message;
         public int Candidates;
         public bool Warnings;
+        public string CheckpointPath,CheckpointSha256;
+        public long CheckpointSequence,CheckpointBytes;
         public List<SessionArtifact> Artifacts=new List<SessionArtifact>();
     }
     public sealed class RecoverySessionState
@@ -25,13 +27,21 @@ namespace UsbRecovery
         public RecoveryOptions Options;
         public List<SessionStage> Stages=new List<SessionStage>();
     }
-    // Checkpoints completed methods, not arbitrary byte offsets inside a parser.
-    // An interrupted method restarts; its finished candidates remain in history.
+    // Completed methods are hash-bound. The photo helper additionally anchors
+    // immutable within-method checkpoints; unsupported methods retain history.
     public sealed class RecoverySession
     {
         public const string FileName="recovery-session.json";
+        public static IDisposable AcquireRunLock(string directory)
+        {
+            string file=RecoveryCatalog.SafeFile(directory,"recovery-run.lock");
+            Directory.CreateDirectory(Path.GetDirectoryName(file));
+            try{return new FileStream(file,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);}
+            catch(IOException){throw new IOException("В этой папке уже идёт поиск либо файл блокировки недоступен. Выбери отдельную папку или дождись завершения текущего поиска.");}
+        }
         public readonly RecoverySessionState State;
         readonly string root;
+        readonly object gate=new object();
         static readonly string[] Keys={"partitions","fat","ntfs","ext4","ntfs-records","photorec","photos","containers","archive-members","fragmented-zip","fragmented-photos","fragmented-media","user-signatures","text"};
         RecoverySession(string directory,RecoverySessionState state){root=Path.GetFullPath(directory);State=state;}
         static bool Hash(string value){return value!=null&&value.Length==64&&value.All(Uri.IsHexDigit);}
@@ -50,6 +60,10 @@ namespace UsbRecovery
                 if(state.SourceInWorkingDirectory)state.SourcePath=RecoveryCatalog.SafeFile(root,"usb.dd");
                 if(!new[]{"running","cancelled","error","finished","finished_with_warnings"}.Contains(state.Status))throw new IOException("Неизвестное состояние сессии.");state.Options.Validate();SourceLocation(root,state.SourcePath);var seen=new HashSet<string>(StringComparer.Ordinal);
                 foreach(var stage in state.Stages){if(stage==null||!Keys.Contains(stage.Key)||!seen.Add(stage.Key)||stage.Artifacts==null||stage.Artifacts.Count>100000||stage.Candidates<0||!new[]{"running","complete","incomplete","cancelled"}.Contains(stage.Status))throw new IOException("Некорректные этапы сохранённой сессии.");var artifactNames=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(var artifact in stage.Artifacts){if(artifact==null||!artifactNames.Add(artifact.Path)||!Hash(artifact.Sha256)||artifact.Bytes<0)throw new IOException("Некорректная контрольная сумма результата.");RecoveryCatalog.SafeFile(root,artifact.Path);}}
+                foreach(var stage in state.Stages)if(stage.CheckpointPath!=null||stage.CheckpointSha256!=null||stage.CheckpointSequence!=0||stage.CheckpointBytes!=0){
+                    if(stage.Key!="fragmented-photos"||!CheckpointName(stage.CheckpointPath,stage.CheckpointSequence)||!Hash(stage.CheckpointSha256)||stage.CheckpointBytes<=0||stage.CheckpointBytes>16L*1024*1024)throw new IOException("Некорректная точка продолжения поиска фотографий.");
+                    RecoveryCatalog.SafeFile(root,stage.CheckpointPath);
+                }
                 if(state.ReadMapSha256!=null&&!Hash(state.ReadMapSha256)||state.SourceReadMapSha256!=null&&!Hash(state.SourceReadMapSha256))throw new IOException("Некорректная карта пропусков сессии.");return state;
             }catch(ArgumentException){throw new IOException("Не удалось прочитать сессию поиска.");}catch(InvalidOperationException){throw new IOException("Не удалось прочитать сессию поиска.");}
         }
@@ -72,6 +86,7 @@ namespace UsbRecovery
             string sourceMap=image+".read-errors.json";if((state.SourceReadMapSha256!=null)!=File.Exists(sourceMap)||File.Exists(sourceMap)&&!String.Equals(state.SourceReadMapSha256,RecoveryCore.HashFile(sourceMap,cancel,(a,b)=>{}),StringComparison.OrdinalIgnoreCase))throw new IOException("Карта пропусков рядом с образом изменилась. Создай новый поиск.");
             if(new JavaScriptSerializer().Serialize(options)!=new JavaScriptSerializer().Serialize(state.Options))throw new IOException("Параметры сессии изменились. Для других методов нужен новый поиск.");
             var session=new RecoverySession(root,state);int checkedFiles=0;
+            foreach(var stage in state.Stages.Where(x=>x.CheckpointPath!=null))session.VerifyCheckpoint(stage,cancel);
             foreach(string key in Keys)if(!state.Stages.Any(s=>s.Key==key)&&Paths(root,key).Any())throw new IOException("В папке появились результаты незаписанного этапа. Создай новый поиск, чтобы не смешивать данные.");
             foreach(var stage in state.Stages.Where(x=>x.Status=="complete")){
                 var names=new HashSet<string>(stage.Artifacts.Select(x=>x.Path),StringComparer.OrdinalIgnoreCase);
@@ -82,11 +97,44 @@ namespace UsbRecovery
             state.Status="running";session.Save();return session;
         }
         public SessionStage Completed(string key){return State.Stages.FirstOrDefault(x=>x.Key==key&&x.Status=="complete");}
-        public void Begin(string key)
+        public void Begin(string key){Begin(key,false);}
+        public void Begin(string key,bool continueCheckpoint)
         {
+            lock(gate){
             SessionStage old=State.Stages.FirstOrDefault(x=>x.Key==key);
-            if(old!=null&&old.Status!="complete")Archive(key);
-            if(old!=null)State.Stages.Remove(old);State.Stages.Add(new SessionStage{Key=key,Status="running"});Save();
+            if(continueCheckpoint&&(old==null||key!="fragmented-photos"||old.Status=="complete"||old.CheckpointPath==null))throw new IOException("Нет подтверждённой точки продолжения фотографий.");
+            if(continueCheckpoint)VerifyCheckpoint(old,CancellationToken.None);
+            if(old!=null&&old.Status!="complete"&&!continueCheckpoint)Archive(key);
+            var next=new SessionStage{Key=key,Status="running"};
+            if(continueCheckpoint){next.CheckpointPath=old.CheckpointPath;next.CheckpointSha256=old.CheckpointSha256;next.CheckpointSequence=old.CheckpointSequence;next.CheckpointBytes=old.CheckpointBytes;}
+            if(old!=null)State.Stages.Remove(old);State.Stages.Add(next);Save();
+            }
+        }
+        static bool CheckpointName(string path,long sequence)
+        {return sequence>0&&sequence<=999999999999L&&path=="fragmented-photos.state/checkpoint-"+sequence.ToString("D12",System.Globalization.CultureInfo.InvariantCulture)+".json";}
+        void VerifyCheckpoint(SessionStage stage,CancellationToken cancel)
+        {
+            string file=RecoveryCatalog.SafeFile(root,stage.CheckpointPath);
+            if(!File.Exists(file)||new FileInfo(file).Length!=stage.CheckpointBytes||!String.Equals(RecoveryCore.HashFile(file,cancel,(a,b)=>{}),stage.CheckpointSha256,StringComparison.OrdinalIgnoreCase))throw new IOException("Точка продолжения фотографий изменена или отсутствует. Результаты сохранены; начни отдельный поиск.");
+        }
+        public PhotoRecoveryCheckpoint PhotoCheckpoint()
+        {
+            lock(gate){var stage=State.Stages.FirstOrDefault(x=>x.Key=="fragmented-photos"&&x.Status!="complete"&&x.CheckpointPath!=null);
+                return stage==null?null:new PhotoRecoveryCheckpoint{Path=RecoveryCatalog.SafeFile(root,stage.CheckpointPath),Sha256=stage.CheckpointSha256,Sequence=stage.CheckpointSequence};}
+        }
+        public void CapturePhotoCheckpoint(PhotoRecoveryCheckpoint checkpoint)
+        {
+            if(checkpoint==null||String.IsNullOrWhiteSpace(checkpoint.Path)||!Path.IsPathRooted(checkpoint.Path)||!Hash(checkpoint.Sha256))throw new IOException("Неверная точка продолжения фотографий.");
+            string prefix=root.TrimEnd('\\','/')+Path.DirectorySeparatorChar,full=Path.GetFullPath(checkpoint.Path);
+            if(!full.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new IOException("Точка продолжения вне папки поиска.");
+            string relative=full.Substring(prefix.Length).Replace('\\','/');if(!CheckpointName(relative,checkpoint.Sequence))throw new IOException("Неверный путь точки продолжения.");
+            string file=RecoveryCatalog.SafeFile(root,relative);long bytes=File.Exists(file)?new FileInfo(file).Length:0;
+            if(bytes<=0||bytes>16L*1024*1024||!String.Equals(RecoveryCore.HashFile(file,CancellationToken.None,(a,b)=>{}),checkpoint.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("Контрольная сумма точки продолжения не совпала.");
+            lock(gate){var stage=State.Stages.FirstOrDefault(x=>x.Key=="fragmented-photos");
+                if(stage==null||stage.Status!="running"||checkpoint.Sequence<stage.CheckpointSequence)throw new IOException("Точка продолжения получена вне текущего этапа.");
+                if(checkpoint.Sequence==stage.CheckpointSequence){if(stage.CheckpointPath==relative&&String.Equals(stage.CheckpointSha256,checkpoint.Sha256,StringComparison.OrdinalIgnoreCase))return;throw new IOException("Изменена уже сохранённая точка продолжения.");}
+                stage.CheckpointPath=relative;stage.CheckpointSha256=checkpoint.Sha256;stage.CheckpointSequence=checkpoint.Sequence;stage.CheckpointBytes=bytes;Save();
+            }
         }
         public void Finish(string key,int count,bool warnings,CancellationToken cancel)
         {
@@ -95,14 +143,14 @@ namespace UsbRecovery
                 cancel.ThrowIfCancellationRequested();if(artifacts.Count>=100000)throw new IOException("Слишком много файлов для безопасного сохранения этапа.");string relative=file.Substring(root.TrimEnd('\\').Length+1).Replace('\\','/');RecoveryCatalog.SafeFile(root,relative);
                 artifacts.Add(new SessionArtifact{Path=relative,Bytes=new FileInfo(file).Length,Sha256=RecoveryCore.HashFile(file,cancel,(a,b)=>{})});
             }
-            cancel.ThrowIfCancellationRequested();stage.Artifacts=artifacts;stage.Candidates=count;stage.Warnings=warnings;stage.Status="complete";Save();
+            cancel.ThrowIfCancellationRequested();lock(gate){stage.Artifacts=artifacts;stage.Candidates=count;stage.Warnings=warnings;stage.Status="complete";Save();}
         }
-        public void Fail(string key,string status,string message){var stage=State.Stages.FirstOrDefault(x=>x.Key==key);if(stage!=null){stage.Status=status;stage.Message=message;}Save();}
-        public void Status(string value){State.Status=value;Save();}
-        void Save(){State.UpdatedUtc=DateTime.UtcNow.ToString("o");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(root,FileName),State);}
+        public void Fail(string key,string status,string message){lock(gate){var stage=State.Stages.FirstOrDefault(x=>x.Key==key);if(stage!=null){stage.Status=status;stage.Message=message;}Save();}}
+        public void Status(string value){lock(gate){State.Status=value;Save();}}
+        void Save(){lock(gate){State.UpdatedUtc=DateTime.UtcNow.ToString("o");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(root,FileName),State);}}
         static IEnumerable<string> Paths(string root,string key)
         {
-            string[] names=key=="partitions"?new[]{"partition-search.json"}:key=="fat"?new[]{"filesystem"}:key=="ntfs"?new[]{"ntfs"}:key=="ext4"?new[]{"ext4"}:key=="ntfs-records"?new[]{"metadata-rescue"}:key=="photos"?new[]{"extra-photos","extra-photo-search.json"}:key=="containers"?new[]{"containers","container-search.json"}:key=="archive-members"?new[]{"salvage-content","archive-salvage.json"}:key=="fragmented-zip"?new[]{"fragmented-archives","fragmented-zip.json"}:key=="fragmented-photos"?new[]{"fragmented-photos","fragmented-photo-search.json"}:key=="fragmented-media"?new[]{"fragmented-media","fragmented-media.json"}:key=="user-signatures"?new[]{"user-signatures","user-signatures.json"}:key=="text"?new[]{"text-fragments","text-search.json"}:new[]{"photorec.log","photorec.ses"};
+            string[] names=key=="partitions"?new[]{"partition-search.json"}:key=="fat"?new[]{"filesystem"}:key=="ntfs"?new[]{"ntfs"}:key=="ext4"?new[]{"ext4"}:key=="ntfs-records"?new[]{"metadata-rescue"}:key=="photos"?new[]{"extra-photos","extra-photo-search.json"}:key=="containers"?new[]{"containers","container-search.json"}:key=="archive-members"?new[]{"salvage-content","archive-salvage.json"}:key=="fragmented-zip"?new[]{"fragmented-archives","fragmented-zip.json"}:key=="fragmented-photos"?new[]{"fragmented-photos","fragmented-photos.state","fragmented-photo-search.json"}:key=="fragmented-media"?new[]{"fragmented-media","fragmented-media.json"}:key=="user-signatures"?new[]{"user-signatures","user-signatures.json"}:key=="text"?new[]{"text-fragments","text-search.json"}:new[]{"photorec.log","photorec.ses"};
             foreach(string name in names){string path=RecoveryCatalog.SafeFile(root,name);if(File.Exists(path)||Directory.Exists(path))yield return path;}
             if(key=="photorec")foreach(string path in Directory.EnumerateDirectories(root,"files.*")){RecoveryCatalog.SafeFile(root,Path.GetFileName(path)+"/guard");yield return path;}
         }

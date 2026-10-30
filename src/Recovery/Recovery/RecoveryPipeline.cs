@@ -43,10 +43,18 @@ namespace UsbRecovery
                 activity(new RecoveryStageProgress{Key=currentKey,Title=currentTitle,State=state,Completed=done,Total=total,Candidates=candidates});
             };
             var source=new ImageRecoverySource(image);
+            if(String.Equals(Path.GetFullPath(image),RecoveryCatalog.SafeFile(directory,"recovery-run.lock"),StringComparison.OrdinalIgnoreCase))throw new IOException("Исходный образ не может быть файлом блокировки поиска.");
             using(var guard=source.OpenRead(source.Enumerate("",cancel).First(),cancel)){
                 progress("Проверка полной копии флешки…");observe("running",0,0,-1);string expected;
                 if(resume){var saved=RecoverySession.Read(directory);expected=saved.SourceSha256;if(!String.Equals(RecoveryCore.HashFile(image,cancel,(a,b)=>observe("running",a,b,-1)),expected,StringComparison.OrdinalIgnoreCase))throw new IOException("Образ изменился после сохранения сессии. Продолжение остановлено.");}
-                else {string checksum=imageChecksum??image+".sha256";RecoveryCore.VerifyImage(image,checksum,cancel,(done,total)=>observe("running",done,total,-1));expected=ExpectedSha(checksum);}
+                else {
+                    string checksum=imageChecksum??image+".sha256";
+                    using(var checksumGuard=new FileStream(checksum,FileMode.Open,FileAccess.Read,FileShare.Read)){
+                        if(checksumGuard.Length>4096)throw new IOException("Слишком длинный файл контрольной суммы.");
+                        RecoveryCore.VerifyImage(image,checksum,cancel,(done,total)=>observe("running",done,total,-1));expected=ExpectedSha(checksum);
+                    }
+                }
+                using(var runLock=RecoverySession.AcquireRunLock(directory)){
                 if(!resume){
                     RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"search-options.json"),options);
                     string capture=Path.Combine(Path.GetDirectoryName(image),"capture.json"),errors=image+".read-errors.json";
@@ -59,7 +67,7 @@ namespace UsbRecovery
                     if(imageChecksum!=null){warnings=true;progress("Внешний образ: контрольная сумма фиксирует текущий файл, полнота исходного съёма не подтверждена.");if(!File.Exists(Path.Combine(directory,"source-image.json")))RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"source-image.json"),new{origin="external_image",sourcePath=image,completeness="unknown",checksumFile=Path.GetFileName(imageChecksum)});}
                     if(File.Exists(errors))File.Copy(errors,RecoveryCatalog.SafeFile(directory,"source-read-errors.json"),false);
                     session=RecoverySession.Start(directory,image,expected,options,cancel);session.State.ExternalImage=imageChecksum!=null;session.Status("running");
-                }else {session=RecoverySession.Open(directory,image,options,cancel,progress);warnings=session.State.ExternalImage;progress("Сессия проверена. Завершённые этапы используются повторно; незавершённый метод начнётся сначала.");}
+                }else {session=RecoverySession.Open(directory,image,options,cancel,progress);warnings=session.State.ExternalImage;progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото продолжится с сохранённой точки, если она есть; остальные незавершённые методы начнутся сначала.");}
                 try{
                     if(FileEvidence.HasUnreadSource(directory,image)){warnings=true;progress("В образе есть пропуски или недостоверная карта чтения. Метаданные занятости не считаются доказательством свободных кластеров.");}
                     var methods=new List<Work>();
@@ -87,7 +95,7 @@ namespace UsbRecovery
                     if(options.Containers)methods.Add(new Work{Key="containers",Name="Контейнеры и медиа по смещениям",Run=()=>ContainerCarver.Recover(image,directory,options,cancel,(done,total)=>{observe("running",done,total,-1);progress("Контейнеры: "+done*100/Math.Max(1,total)+"%");})});
                     if(options.ArchiveMembers)methods.Add(new Work{Key="archive-members",Name="Исправные части повреждённых ZIP / Office",Run=()=>ArchiveSalvage.Recover(image,directory,cancel,(done,total)=>{observe("running",done,total,-1);progress("Части архивов: "+done*100/Math.Max(1,total)+"%");})});
                     if(options.FragmentedArchives)methods.Add(new Work{Key="fragmented-zip",Name="Сборка ZIP / Office из раздельных записей",Run=()=>FragmentedZipRecovery.Recover(image,directory,cancel,(done,total)=>{observe("running",done,total,-1);progress("Сборка ZIP: "+done*100/Math.Max(1,total)+"%");})});
-                    if(options.FragmentedPhotos)methods.Add(new Work{Key="fragmented-photos",Name="Сборка разрозненных фотографий",Run=()=>FragmentedPhotoRecovery.Recover(image,directory,cancel,(done,total)=>{observe("running",done,total,-1);progress("Фрагменты фотографий: "+done*100/Math.Max(1,total)+"%");})});
+                    if(options.FragmentedPhotos)methods.Add(new Work{Key="fragmented-photos",Name="Сборка разрозненных фотографий",Run=()=>FragmentedPhotoRecovery.Recover(image,directory,cancel,(done,total)=>{observe("running",done,total,-1);progress("Фрагменты фотографий: "+done*100/Math.Max(1,total)+"%");},session.PhotoCheckpoint(),session.CapturePhotoCheckpoint,expected)});
                     if(options.FragmentedVideo)methods.Add(new Work{Key="fragmented-media",Name="Сборка фрагментов MP4 / MOV",Run=()=>FragmentedMediaRecovery.Recover(image,directory,cancel,(done,total)=>{observe("running",done,total,-1);progress("Фрагменты видео: "+done*100/Math.Max(1,total)+"%");})});
                     if(options.CustomSignatures)methods.Add(new Work{Key="user-signatures",Name="Свои типы файлов",Run=()=>UserSignatureRecovery.Recover(image,directory,options.CustomRules,cancel,(done,total)=>{observe("running",done,total,-1);progress("Свои типы: "+done*100/Math.Max(1,total)+"%");})});
                     if(options.TextFragments)methods.Add(new Work{Key="text",Name="Текстовые остатки по ключевым словам",Run=()=>RawTextSearch.Recover(image,directory,options.TextQuery,cancel,(done,total)=>{observe("running",done,total,-1);progress("Текст: "+done*100/Math.Max(1,total)+"%");})});
@@ -97,7 +105,8 @@ namespace UsbRecovery
                             if(method.Key=="partitions"){var report=new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Deserialize<PartitionReport>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"partition-search.json")));if(report==null||report.candidates==null)throw new IOException("Не удалось восстановить проверенный список разделов.");bootCandidates=report.candidates;}
                             observe("reused",0,0,prior.Candidates);reused++;if(method.Key!="partitions")completed++;warnings|=prior.Warnings;stages.Add(new{method=method.Name,status="reused",candidates=prior.Candidates});progress(method.Name+": проверенный результат этапа сохранён, повторный проход не нужен.");continue;
                         }
-                        session.Begin(method.Key);progress(method.Name+"…");
+                        bool continuePhoto=method.Key=="fragmented-photos"&&session.PhotoCheckpoint()!=null;
+                        session.Begin(method.Key,continuePhoto);progress(method.Name+(continuePhoto?": продолжение с сохранённой точки…":"…"));
                         try{int count=method.Run();observe("complete",0,0,count);session.Finish(method.Key,count,warnings,cancel);if(method.Key!="partitions")completed++;stages.Add(new{method=method.Name,status="complete",candidates=count});progress(method.Name+": сохранено кандидатов "+count+".");}
                         catch(OperationCanceledException){observe("cancelled",0,0,-1);session.Fail(method.Key,"cancelled",null);throw;}
                         catch(IOException error){observe("incomplete",0,0,-1);warnings=true;session.Fail(method.Key,"incomplete",error.Message);stages.Add(new{method=method.Name,status="incomplete",message=error.Message});progress(method.Name+": "+error.Message+" Другие способы продолжатся.");}
@@ -110,6 +119,7 @@ namespace UsbRecovery
                     currentKey="finished";currentTitle="Поиск завершён";observe("complete",0,0,candidates);return new ScanResult{Candidates=candidates,UniqueFiles=files.Items.Count,Gallery=gallery,FileCatalog=Path.Combine(directory,"files-index.json"),HasWarnings=warnings,ResumedStages=reused};
                 }catch(OperationCanceledException){session.Status("cancelled");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status="cancelled",options=options,stages=stages});throw;}
                 catch{session.Status("error");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status="error",options=options,stages=stages});throw;}
+                }
             }
         }
         static Dictionary<string,object> MatchingCapture(string path,string sha256,long bytes)

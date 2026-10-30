@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "scope": "Owned synthetic fixture files; no user data or third-party binaries",
+  "files": [
+    {
+      "path": "distinct-syntax-assignments.dd",
+      "bytes": 8388608,
+      "sha256": "da27e4723e6c9514c7d62bb4368b1825d2129cbb5b82542e93e623a4c248df92",
+      "packed_bytes": 41064,
+      "packed_sha256": "c1f39fa33933818691ffc9f583ad448a588f3574f8192beceebe2205833d5fb4"
+    },
+    {
+      "path": "distinct-syntax-assignments.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "dual-hvc1-scattered.dd",
+      "bytes": 8388608,
+      "sha256": "c35b3769e9ec51c05062586f7f0d5a4ea4d60c4cc73e8e19864f8ea4d827ceda",
+      "packed_bytes": 30636,
+      "packed_sha256": "68f29f624b730d85dcc1cc19023e8662a9135722730c35fd62883ee20c9f9f39"
+    },
+    {
+      "path": "dual-hvc1-scattered.original.mp4",
+      "bytes": 24291,
+      "sha256": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+      "packed_bytes": 20020,
+      "packed_sha256": "e20a91c1d1658ff4079765062bc1156e61963b62c7c7b819c2c995e6fea9a748"
+    },
+    {
+      "path": "dual-independent.mp4",
+      "bytes": 24291,
+      "sha256": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+      "packed_bytes": 20020,
+      "packed_sha256": "e20a91c1d1658ff4079765062bc1156e61963b62c7c7b819c2c995e6fea9a748"
+    },
+    {
+      "path": "foreign-configuration-constraint.dd",
+      "bytes": 8388608,
+      "sha256": "53c9b92f8cd73be3dca530f537fc049bb03a9475559fd0ef286c186682eff8d2",
+      "packed_bytes": 25047,
+      "packed_sha256": "d9dd1579fed3b4f5db38c9a1e41e1953eaa5eb7ea274d6fd734ff6b37867f845"
+    },
+    {
+      "path": "foreign-configuration-constraint.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "foreign-inband-set.dd",
+      "bytes": 8388608,
+      "sha256": "1405f9d14f88ba54a936c79714cb993d07812c01e92583e1b54921c47c0fed80",
+      "packed_bytes": 27351,
+      "packed_sha256": "41f9b04da34c90faaf51f51666760c4e0a6a4d0ecc55b2078f41c87c2d14ce6e"
+    },
+    {
+      "path": "foreign-inband-set.original.mp4",
+      "bytes": 21755,
+      "sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      "packed_bytes": 15841,
+      "packed_sha256": "a32f9e7e888869138a4f140c240c8f49f4d72c90ed43ae0e89bb6256de209c95"
+    },
+    {
+      "path": "identical-chunk-duplicate.dd",
+      "bytes": 8388608,
+      "sha256": "aecf36174a00b516f59e812638216c3a55e260b0b2bfeeb9afd4c219b90505cf",
+      "packed_bytes": 40295,
+      "packed_sha256": "f37fc520aa33f46373a4a54d302241cf02e55b82b563c24b342687e4451f6229"
+    },
+    {
+      "path": "identical-chunk-duplicate.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "main-hvc1-scattered.dd",
+      "bytes": 8388608,
+      "sha256": "ef72f2ec0680c34e81e46cfc526d1d0802e5b6129272383d292c06222cc1710f",
+      "packed_bytes": 26042,
+      "packed_sha256": "64b0a150fa1bedb8457db37ff40a12f3fc279ed694c5dc01bdb6f2ebc01dbbf5"
+    },
+    {
+      "path": "main-hvc1-scattered.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "main10-hev1-scattered.dd",
+      "bytes": 8388608,
+      "sha256": "f39c5c90b12bafebedbb90b0b66e0cccb17f3e99f92018a0c00f64f260d58eb4",
+      "packed_bytes": 26307,
+      "packed_sha256": "276247a3af772b40349221cfca49a37a882c18a8db124499a4142f470dd5eb53"
+    },
+    {
+      "path": "main10-hev1-scattered.original.mp4",
+      "bytes": 21755,
+      "sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      "packed_bytes": 15841,
+      "packed_sha256": "a32f9e7e888869138a4f140c240c8f49f4d72c90ed43ae0e89bb6256de209c95"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 15736,
+      "sha256": "7dcad3bc888230047488dd4a354cddb8e45d62a7f7e88a1294edc2d598513df7",
+      "packed_bytes": 2137,
+      "packed_sha256": "950bd09a7d14bb2ee4c36169daff515bf16020884e5784733064abc3c1e48061"
+    },
+    {
+      "path": "nal-prefix-overwritten.dd",
+      "bytes": 8388608,
+      "sha256": "d542fb710630ce2080c8a65f4453eedec85f73e7d6d117c4f448015b2b0cad24",
+      "packed_bytes": 25214,
+      "packed_sha256": "dfa9a9d8bae881a4909b4568511ba686746916ea86b485b77eb3cbd9a61f0f58"
+    },
+    {
+      "path": "nal-prefix-overwritten.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "opaque-cabac-overwrite-candidate.dd",
+      "bytes": 8388608,
+      "sha256": "9cfd4713cf85888439f94d80cd172ee6e39be41b99a467ed84b2d4a4233793d3",
+      "packed_bytes": 25739,
+      "packed_sha256": "d68e0c3d7340f229991df10491d06badf24f204f885613a96e9ef4e0afce1d75"
+    },
+    {
+      "path": "opaque-cabac-overwrite-candidate.original.mp4",
+      "bytes": 17173,
+      "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      "packed_bytes": 15979,
+      "packed_sha256": "221570d6f31a0c461a2b1d1933afd584c6cd7ab1bbef881d30a014c949635c14"
+    },
+    {
+      "path": "two-slices-hvc1-scattered.dd",
+      "bytes": 8388608,
+      "sha256": "a041951560ce754587a264f7326575090249ea2c0bc5ea19e659e74b7091b911",
+      "packed_bytes": 36625,
+      "packed_sha256": "32b2b6a84e2851f988c307bee80a4bd59cf0dc7dd3a60ba25530be3ccde57256"
+    },
+    {
+      "path": "two-slices-hvc1-scattered.original.mp4",
+      "bytes": 28363,
+      "sha256": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+      "packed_bytes": 27185,
+      "packed_sha256": "00724e34dd164e616de144ce85da9d8c647ba36c4c6191bd31d0fdbde48870c8"
+    }
+  ]
+}

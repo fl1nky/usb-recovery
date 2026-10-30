@@ -204,6 +204,7 @@ namespace UsbRecovery
                 else {var prior=result[result.Count-1];prior.Length=Math.Max(prior.Offset+prior.Length,row.Offset+row.Length)-prior.Offset;}
             }return result;
         }
+        static bool PreserveProblem(RecoveredItem item){return new[]{"partial","damaged","changed","read_errors","encrypted","mapping_unknown"}.Contains(item.Quality);}
         public void Apply(RecoveredItem item)
         {
             item.OriginalLocations=new List<OriginalLocation>();item.OriginalPath=item.OriginalPathStatus=item.OriginalPathEvidence=item.SourceCandidatePath=null;item.SourceVolumeOffset=null;item.SourceOffset=null;item.SourceRanges=new List<FileExtent>();item.UnreadBytes=null;
@@ -225,13 +226,15 @@ namespace UsbRecovery
             if(record!=null&&record.Kind=="reassembled_zip")item.IntegrityDetail+=" ZIP собран из раздельных записей; проверены размеры и CRC элементов. Исходное имя, факт удаления и подлинность содержимого неизвестны.";
             if(record!=null&&(record.Note=="partial"||record.Note=="partial_candidate")){item.Quality="partial";item.QualityLabel="Восстановлена часть файла";item.IntegrityDetail+=" Карта метаданных показывает неполное восстановление; открытие файла не доказывает полноту.";}
             if(record!=null&&record.Kind=="reassembled_media_candidate"){
-                item.Method="Сборка разрозненных медиа";item.Status="Кандидат сборки";item.Quality="structural_candidate";item.QualityLabel="Структура согласована";
+                item.Method="Сборка разрозненных медиа";item.Status="Кандидат сборки";
+                if(!PreserveProblem(item)){item.Quality="structural_candidate";item.QualityLabel="Структура согласована";}
                 item.Note="Сборка из сохранившихся фрагментов. Принадлежность к исходному файлу и факт удаления не подтверждены. Проверь фотографию или весь ролик.";
                 item.IntegrityDetail+=" "+record.Note+" SHA256 фиксирует полученную сборку, а не исходное содержимое.";
-                if(record.VerificationStatus=="progressive_partial_precision_candidate"){item.QualityLabel="JPEG с частичной точностью";item.Note+=" Сохранились не все уровни точности progressive JPEG; сравни детали изображения.";}
+                if(record.VerificationStatus=="progressive_partial_precision_candidate"){if(!PreserveProblem(item))item.QualityLabel="JPEG с частичной точностью";item.Note+=" Сохранились не все уровни точности progressive JPEG; сравни детали изображения.";}
             }
             if(record!=null&&record.Kind=="ext4_inode_candidate"){
-                item.Method="ext4 · запись inode";item.Status="Кандидат ext4";item.Quality="metadata_candidate";item.QualityLabel="Метаданные согласованы";
+                item.Method="ext4 · запись inode";item.Status="Кандидат ext4";
+                if(!PreserveProblem(item)){item.Quality="metadata_candidate";item.QualityLabel="Метаданные согласованы";}
                 item.SourceVolumeOffset=record.VolumeOffset;
                 item.Note="Сохранилась карта удалённого inode. Блоки свободны в этом образе, но могли быть перезаписаны после удаления. Исходное имя и содержимое не подтверждены.";
                 item.IntegrityDetail+=" "+record.Note+" Ссылки каталогов без поколения inode приведены только в ext4/report.json; исходный путь по ним не восстанавливается.";

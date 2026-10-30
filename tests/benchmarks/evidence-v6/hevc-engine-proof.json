@@ -1,0 +1,612 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/final-hevc-proof-03.json",
+    "source_sha256": "cb6e1c4dedf24d2daca1417930962ae644b7ffd6dde1d92b4fa7f1e227f09d32",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "status": "passed",
+    "checks": 163,
+    "cases": 10,
+    "application_sha256_before": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+    "application_sha256_after": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+    "harness_sha256": "d0d15763e1fca06df22c1bc1a49cadb7561d7e0e36620669279fa9776fef20d2",
+    "harness_source_sha256": "b759b571478df1e9abb2de501249d7fece2265237333313ffdc600ea3f4ebd52",
+    "collector_sha256": "9585fa5e9e878713f848c7e16eb6378e0bf07e2879f8872885d506b1f586befc",
+    "manifest_sha256": "7dcad3bc888230047488dd4a354cddb8e45d62a7f7e88a1294edc2d598513df7",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "source_and_originals_unchanged": true,
+    "elapsed_ms": 2016,
+    "exact_original_cases": 5,
+    "uncertain_structural_cases": 1,
+    "rejected_cases": 4,
+    "observed_stdout": [
+      "main-hvc1-scattered: exact original + all decoded frames, 1 chunks, 187 ms",
+      "main10-hev1-scattered: exact original + all decoded frames, 1 chunks, 100 ms",
+      "two-slices-hvc1-scattered: exact original + all decoded frames, 1 chunks, 97 ms",
+      "dual-hvc1-scattered: exact original + all decoded frames, 10 chunks, 289 ms",
+      "identical-chunk-duplicate: exact original + all decoded frames, 1 chunks, 83 ms",
+      "opaque-cabac-overwrite-candidate: unverified structural overwrite candidate, 1 chunks, 92 ms",
+      "PASS HevcRecovery: 163 checks; complete actual hvc1/hev1/Main10/multislice and two-track HEVC originals reassembled; ambiguity/foreign config/NAL overwrite rejected, identical alternatives preserved, opaque CABAC overwrite remains unauthenticated. External FFmpeg verifies every frame on all positive tracks. No devices."
+    ],
+    "fixture_manifest": {
+      "Schema": 1,
+      "FfmpegSha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "Cases": [
+        {
+          "Name": "main-hvc1-scattered",
+          "Image": "main-hvc1-scattered.dd",
+          "ImageSha256": "ef72f2ec0680c34e81e46cfc526d1d0802e5b6129272383d292c06222cc1710f",
+          "Original": "main-hvc1-scattered.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 1,
+          "Exact": true,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 3276800,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 1703936,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 7077888,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 2752512,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 2490368,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "main10-hev1-scattered",
+          "Image": "main10-hev1-scattered.dd",
+          "ImageSha256": "f39c5c90b12bafebedbb90b0b66e0cccb17f3e99f92018a0c00f64f260d58eb4",
+          "Original": "main10-hev1-scattered.original.mp4",
+          "Sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+          "Bytes": 21755,
+          "Expected": 1,
+          "Exact": true,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "d1f1c470b38e6011ff6e539e4eb0ac356683a147d324c3e5150cd809823ed823",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 524288,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 1048576,
+              "Length": 3394,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3422,
+              "ImageOffset": 6160384,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3430,
+              "ImageOffset": 1703936,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3438,
+              "ImageOffset": 4063232,
+              "Length": 18317,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "two-slices-hvc1-scattered",
+          "Image": "two-slices-hvc1-scattered.dd",
+          "ImageSha256": "a041951560ce754587a264f7326575090249ea2c0bc5ea19e659e74b7091b911",
+          "Original": "two-slices-hvc1-scattered.original.mp4",
+          "Sha256": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+          "Bytes": 28363,
+          "Expected": 1,
+          "Exact": true,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "f63d7943046ce66bea3023d4369174d226b91bb02285bf9e27124c6c3da37f69",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 4718592,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 4325376,
+              "Length": 3407,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3435,
+              "ImageOffset": 2228224,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3443,
+              "ImageOffset": 2883584,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3451,
+              "ImageOffset": 3932160,
+              "Length": 24912,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "dual-hvc1-scattered",
+          "Image": "dual-hvc1-scattered.dd",
+          "ImageSha256": "c35b3769e9ec51c05062586f7f0d5a4ea4d60c4cc73e8e19864f8ea4d827ceda",
+          "Original": "dual-hvc1-scattered.original.mp4",
+          "Sha256": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+          "Bytes": 24291,
+          "Expected": 1,
+          "Exact": true,
+          "Chunks": 10,
+          "Tracks": 2,
+          "DecodedSha256": "3848cb2a942f7fd5cce93c5d960baaf2ded95ebd5d1d87cb1dcbead0b4875cbb",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 1441792,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 6422528,
+              "Length": 6679,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 6707,
+              "ImageOffset": 6946816,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 6715,
+              "ImageOffset": 5636096,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 6723,
+              "ImageOffset": 4456448,
+              "Length": 2029,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 8752,
+              "ImageOffset": 4849664,
+              "Length": 1725,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 10477,
+              "ImageOffset": 1966080,
+              "Length": 1699,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 12176,
+              "ImageOffset": 1572864,
+              "Length": 52,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 12228,
+              "ImageOffset": 3538944,
+              "Length": 770,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 12998,
+              "ImageOffset": 1310720,
+              "Length": 40,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 13038,
+              "ImageOffset": 6684672,
+              "Length": 652,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 13690,
+              "ImageOffset": 5242880,
+              "Length": 1978,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 15668,
+              "ImageOffset": 3145728,
+              "Length": 8574,
+              "Kind": "sample_chunk"
+            },
+            {
+              "LogicalOffset": 24242,
+              "ImageOffset": 4718592,
+              "Length": 49,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "nal-prefix-overwritten",
+          "Image": "nal-prefix-overwritten.dd",
+          "ImageSha256": "d542fb710630ce2080c8a65f4453eedec85f73e7d6d117c4f448015b2b0cad24",
+          "Original": "nal-prefix-overwritten.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 0,
+          "Exact": false,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 7077888,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 7208960,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 2752512,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 2228224,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 786432,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "foreign-configuration-constraint",
+          "Image": "foreign-configuration-constraint.dd",
+          "ImageSha256": "53c9b92f8cd73be3dca530f537fc049bb03a9475559fd0ef286c186682eff8d2",
+          "Original": "foreign-configuration-constraint.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 0,
+          "Exact": false,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 2490368,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 5767168,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 3538944,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 2752512,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 4587520,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "foreign-inband-set",
+          "Image": "foreign-inband-set.dd",
+          "ImageSha256": "1405f9d14f88ba54a936c79714cb993d07812c01e92583e1b54921c47c0fed80",
+          "Original": "foreign-inband-set.original.mp4",
+          "Sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+          "Bytes": 21755,
+          "Expected": 0,
+          "Exact": false,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "d1f1c470b38e6011ff6e539e4eb0ac356683a147d324c3e5150cd809823ed823",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 4194304,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 4980736,
+              "Length": 3394,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3422,
+              "ImageOffset": 6815744,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3430,
+              "ImageOffset": 5242880,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3438,
+              "ImageOffset": 1703936,
+              "Length": 18317,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "distinct-syntax-assignments",
+          "Image": "distinct-syntax-assignments.dd",
+          "ImageSha256": "da27e4723e6c9514c7d62bb4368b1825d2129cbb5b82542e93e623a4c248df92",
+          "Original": "distinct-syntax-assignments.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 0,
+          "Exact": true,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 5373952,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 4456448,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 2490368,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 4980736,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 2359296,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "identical-chunk-duplicate",
+          "Image": "identical-chunk-duplicate.dd",
+          "ImageSha256": "aecf36174a00b516f59e812638216c3a55e260b0b2bfeeb9afd4c219b90505cf",
+          "Original": "identical-chunk-duplicate.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 1,
+          "Exact": true,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 1048576,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 6946816,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 5505024,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 4587520,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 655360,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        },
+        {
+          "Name": "opaque-cabac-overwrite-candidate",
+          "Image": "opaque-cabac-overwrite-candidate.dd",
+          "ImageSha256": "9cfd4713cf85888439f94d80cd172ee6e39be41b99a467ed84b2d4a4233793d3",
+          "Original": "opaque-cabac-overwrite-candidate.original.mp4",
+          "Sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+          "Bytes": 17173,
+          "Expected": 1,
+          "Exact": false,
+          "Chunks": 1,
+          "Tracks": 1,
+          "DecodedSha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+          "Extents": [
+            {
+              "LogicalOffset": 0,
+              "ImageOffset": 2228224,
+              "Length": 28,
+              "Kind": "ftyp"
+            },
+            {
+              "LogicalOffset": 28,
+              "ImageOffset": 3145728,
+              "Length": 3405,
+              "Kind": "moov"
+            },
+            {
+              "LogicalOffset": 3433,
+              "ImageOffset": 5636096,
+              "Length": 8,
+              "Kind": "free"
+            },
+            {
+              "LogicalOffset": 3441,
+              "ImageOffset": 6029312,
+              "Length": 8,
+              "Kind": "mdat_header"
+            },
+            {
+              "LogicalOffset": 3449,
+              "ImageOffset": 6291456,
+              "Length": 13724,
+              "Kind": "sample_chunk"
+            }
+          ],
+          "Scope": "Owned full original chunks, independent encoder tables; no recovery implementation imported"
+        }
+      ],
+      "Scope": "Actual independent FFmpeg/libx265 complete HEVC containers and chunk scattering; includes conservative ambiguity and explicit opaque-CABAC limits; no devices"
+    },
+    "input_hashes_before": {
+      ".build/benchmarks-v6/final-hevc-runtime-03/USB-Recovery.exe": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+      ".build/benchmarks-v6/final-hevc-runtime-03/HevcRecoveryTests.exe": "d0d15763e1fca06df22c1bc1a49cadb7561d7e0e36620669279fa9776fef20d2",
+      ".build/hevc-recovery-fixtures-v2/manifest.json": "7dcad3bc888230047488dd4a354cddb8e45d62a7f7e88a1294edc2d598513df7",
+      "tools/benchmarks/ffmpeg/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      ".build/hevc-recovery-fixtures-v2/main-hvc1-scattered.dd": "ef72f2ec0680c34e81e46cfc526d1d0802e5b6129272383d292c06222cc1710f",
+      ".build/hevc-recovery-fixtures-v2/main-hvc1-scattered.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/main10-hev1-scattered.dd": "f39c5c90b12bafebedbb90b0b66e0cccb17f3e99f92018a0c00f64f260d58eb4",
+      ".build/hevc-recovery-fixtures-v2/main10-hev1-scattered.original.mp4": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      ".build/hevc-recovery-fixtures-v2/two-slices-hvc1-scattered.dd": "a041951560ce754587a264f7326575090249ea2c0bc5ea19e659e74b7091b911",
+      ".build/hevc-recovery-fixtures-v2/two-slices-hvc1-scattered.original.mp4": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+      ".build/hevc-recovery-fixtures-v2/dual-hvc1-scattered.dd": "c35b3769e9ec51c05062586f7f0d5a4ea4d60c4cc73e8e19864f8ea4d827ceda",
+      ".build/hevc-recovery-fixtures-v2/dual-hvc1-scattered.original.mp4": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+      ".build/hevc-recovery-fixtures-v2/nal-prefix-overwritten.dd": "d542fb710630ce2080c8a65f4453eedec85f73e7d6d117c4f448015b2b0cad24",
+      ".build/hevc-recovery-fixtures-v2/nal-prefix-overwritten.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/foreign-configuration-constraint.dd": "53c9b92f8cd73be3dca530f537fc049bb03a9475559fd0ef286c186682eff8d2",
+      ".build/hevc-recovery-fixtures-v2/foreign-configuration-constraint.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/foreign-inband-set.dd": "1405f9d14f88ba54a936c79714cb993d07812c01e92583e1b54921c47c0fed80",
+      ".build/hevc-recovery-fixtures-v2/foreign-inband-set.original.mp4": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      ".build/hevc-recovery-fixtures-v2/distinct-syntax-assignments.dd": "da27e4723e6c9514c7d62bb4368b1825d2129cbb5b82542e93e623a4c248df92",
+      ".build/hevc-recovery-fixtures-v2/distinct-syntax-assignments.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/identical-chunk-duplicate.dd": "aecf36174a00b516f59e812638216c3a55e260b0b2bfeeb9afd4c219b90505cf",
+      ".build/hevc-recovery-fixtures-v2/identical-chunk-duplicate.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/opaque-cabac-overwrite-candidate.dd": "9cfd4713cf85888439f94d80cd172ee6e39be41b99a467ed84b2d4a4233793d3",
+      ".build/hevc-recovery-fixtures-v2/opaque-cabac-overwrite-candidate.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c"
+    },
+    "input_hashes_after": {
+      ".build/benchmarks-v6/final-hevc-runtime-03/USB-Recovery.exe": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+      ".build/benchmarks-v6/final-hevc-runtime-03/HevcRecoveryTests.exe": "d0d15763e1fca06df22c1bc1a49cadb7561d7e0e36620669279fa9776fef20d2",
+      ".build/hevc-recovery-fixtures-v2/manifest.json": "7dcad3bc888230047488dd4a354cddb8e45d62a7f7e88a1294edc2d598513df7",
+      "tools/benchmarks/ffmpeg/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      ".build/hevc-recovery-fixtures-v2/main-hvc1-scattered.dd": "ef72f2ec0680c34e81e46cfc526d1d0802e5b6129272383d292c06222cc1710f",
+      ".build/hevc-recovery-fixtures-v2/main-hvc1-scattered.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/main10-hev1-scattered.dd": "f39c5c90b12bafebedbb90b0b66e0cccb17f3e99f92018a0c00f64f260d58eb4",
+      ".build/hevc-recovery-fixtures-v2/main10-hev1-scattered.original.mp4": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      ".build/hevc-recovery-fixtures-v2/two-slices-hvc1-scattered.dd": "a041951560ce754587a264f7326575090249ea2c0bc5ea19e659e74b7091b911",
+      ".build/hevc-recovery-fixtures-v2/two-slices-hvc1-scattered.original.mp4": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+      ".build/hevc-recovery-fixtures-v2/dual-hvc1-scattered.dd": "c35b3769e9ec51c05062586f7f0d5a4ea4d60c4cc73e8e19864f8ea4d827ceda",
+      ".build/hevc-recovery-fixtures-v2/dual-hvc1-scattered.original.mp4": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+      ".build/hevc-recovery-fixtures-v2/nal-prefix-overwritten.dd": "d542fb710630ce2080c8a65f4453eedec85f73e7d6d117c4f448015b2b0cad24",
+      ".build/hevc-recovery-fixtures-v2/nal-prefix-overwritten.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/foreign-configuration-constraint.dd": "53c9b92f8cd73be3dca530f537fc049bb03a9475559fd0ef286c186682eff8d2",
+      ".build/hevc-recovery-fixtures-v2/foreign-configuration-constraint.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/foreign-inband-set.dd": "1405f9d14f88ba54a936c79714cb993d07812c01e92583e1b54921c47c0fed80",
+      ".build/hevc-recovery-fixtures-v2/foreign-inband-set.original.mp4": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+      ".build/hevc-recovery-fixtures-v2/distinct-syntax-assignments.dd": "da27e4723e6c9514c7d62bb4368b1825d2129cbb5b82542e93e623a4c248df92",
+      ".build/hevc-recovery-fixtures-v2/distinct-syntax-assignments.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/identical-chunk-duplicate.dd": "aecf36174a00b516f59e812638216c3a55e260b0b2bfeeb9afd4c219b90505cf",
+      ".build/hevc-recovery-fixtures-v2/identical-chunk-duplicate.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+      ".build/hevc-recovery-fixtures-v2/opaque-cabac-overwrite-candidate.dd": "9cfd4713cf85888439f94d80cd172ee6e39be41b99a467ed84b2d4a4233793d3",
+      ".build/hevc-recovery-fixtures-v2/opaque-cabac-overwrite-candidate.original.mp4": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c"
+    },
+    "pipeline_used": false,
+    "helper_used": false,
+    "commercial_tools_tested": false,
+    "scope": "Actual direct engine invocation from the frozen application assembly on ten independent real-FFmpeg owned regular-file fixtures. Five exact originals plus all decoded frames; one deliberately opaque CABAC overwrite remains unauthenticated; four negative cases produce no output. No physical devices or new commercial-product tests."
+  }
+}

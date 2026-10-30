@@ -1420,12 +1420,22 @@ def main():
         request = json.loads(line)
         if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") == "fragmented_photos":
             from fragmented_photos import recover
+            from recovery_checkpoint import CheckpointError
             try:
                 result = recover(request["source"], request["destination"], request.get("options"),
-                                 lambda done, total: emit("progress", completed=done, total=total))
+                                 lambda done, total: emit("progress", completed=done, total=total),
+                                 checkpoint_progress=lambda row: emit("progress", phase="photo_checkpoint",
+                                     checkpoint_path=row["Path"], checkpoint_sha256=row["Sha256"],
+                                     checkpoint_sequence=row["Sequence"]))
                 emit("result", status="complete" if result["Status"] == "complete" else "partial",
                      files=result["Candidates"], bytes=result["OutputBytes"])
                 return 0
+            except CheckpointError as error:
+                code = str(error)
+                if not re.fullmatch(r"PHOTO_CHECKPOINT_[A-Z_]{1,44}", code):
+                    code = "FRAGMENTED_PHOTO_FAILED"
+                emit("result", status="error", code=code)
+                return 2
             except Exception:
                 emit("result", status="error", code="FRAGMENTED_PHOTO_FAILED")
                 return 2

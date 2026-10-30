@@ -1,0 +1,3049 @@
+{
+  "schema": 1,
+  "application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+  "cases": [
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-baseline",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "6dc0b6f427d453c2f3abcdda09a650bd1944a6bfed97b19b3dc56d1efc98b089",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-avc-single",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "2c821c2c7b5669a6c41603b1b0b952a3e51c9811476d8f49ccc24d141a4e47a4",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-mjpeg-single",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "e798f8bc8ee038030a2082354637f5d1affb08a81657477071e5547a211afb84",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 12,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 16
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-restart",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f0918e138cefb967662d86e1927a98ef211dc5e2b20cafb10d3c1a5ffdf326a3",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-progressive",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "46be022a042a6162e27554a1395c1f5ef8282d766ccca5fd0116e947a33180e8",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-baseline",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "d84139ff2e7abc9ac92e2ea9bf0b0fffdd68b776cb7287eb8afcf598ddfbd0b0",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 3
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-avc-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "345ef89a32f4b953f85ab6afc5fc338520a80911e35f191e42c5439b7abea1b7",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-avc-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "2f35d147a047de71f0765a09fc40694b9191e3f26d32f05f253a23fb4a87a84c",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-mjpeg-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "52c047dcd5b66397b6cb9484b38bee147f24479d5e0495d40d357b0657696e66",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 15,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 24,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 28
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-mjpeg-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "8a7a57527b12fc130c8309e93313362bae728c4c2b192ed598cefee505186e8d",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 23,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 27
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-live-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "4c7f8f715c9dae44d2ca9820baed8b05d99fa9aa0018355e9777eafacb62c0fd",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 387,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 3
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-retained-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "8c4570bee03bcbe416359989ec1b8c151d05cc7044829a39f1e83b844b85ae0a",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 385,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 3
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-cleared-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "4bb8f632db53ac9c62c3039632ff3c4e45ec92b5cb86f0ecd4c5594a848ef7a0",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 386,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 3
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "ntfs-deleted-data-runs",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "e2bcff796fdae7c0a756a57d7d53594443f41c3e06cd5790a93e018372a00a4b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 813,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-malformed-decoys",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "47c028bb6279c8b30f2217c17c7f0ba7bdb7534f4327d6d94a0e424c60b9147b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-png",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "76692f36fc8723d10125337e1b8dd1a73ab7f98eddd3ef251b410982df2f2dee",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-png-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "65d44f9ed401113ea7228d2608429493736127dd2a0fa4b3a8887ec855916377",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-png-crc",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "6adb40121c7e002e0f2d98d7122a8490f1d92c0ff3c32f6a8eab208fb474161a",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-png-crc-decoy",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "124f4b3d88f7fc90d4133318d2f3c48a480c5712c1eaf8c6b4caf5732b757b52",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 5
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-contiguous",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "9298641a93883b1be04d93254168ab638474d4816c72111c8669dab37bf5707a",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-chunk-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "1377d3316853bee5796e4b94f48836a55a278d22d8cca393cf0f1edbd31cb77e",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-4k-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "980850d53b00a911d920c051c6c1b00e1eb741333936ae829899a48f5eb4627f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-all-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b897a6387ab822ee34a1c0abfe0f2e23fb20327132ddb466e5ad7793c903fbde",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "7ce0b04da9b08a5d0f9871b1ab485573535926ca89bc93be04d5625b27f0faef",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-contiguous",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b6006f20ceb693b82453ddf469f050d0820bbbe2c59fd2ba1c545022b09b683b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-chunk-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "eab9da66c8966750a576ddcb0b814b99158fde480f151afaffcc7e605155d4e9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-4k-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "1cc98b2985f9652592bd8a87a431b7c8a58f2287a76db41e1abd88089e2ec678",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-all-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "38dbd350f4efa4daf8bdea6f341bdb8a83dacfa493c029e7fb833e1f12c5dba9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f6eab7e19121ad748cf283a09340e43442ec6e314ab68e1d4e1b14938a0913af",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "main-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c3cb88e3ea792d67f76f490fd721142e8cd1838aeb5613882afdb56933cd6a85",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "main10-hev1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "eb9eb2158f5f07fcb0fe1531feaf1bc98f1170fa46d70e3201a07a17627f5e7c",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "two-slices-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "d5c9667acfff331f13ab2e25fb16e018f8375d2a1627d415f3a32fb63b345445",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "dual-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "ca8cdecbc6c9b6f709d43f2f5c0a726a3dbf4545ea93e1dcd0cd021d8deccb9e",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "nal-prefix-overwritten",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "42402d86e08f2a4fcb1735bd4c7263ef6c379a0a539a220108beedd369555507",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "foreign-configuration-constraint",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "423d89121ca7ea099055d1373203f3fa39d3babf38261414ae51e2de196a3eb7",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "foreign-inband-set",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "5a0dbdd041a27fc1808c16e65324ad6bc5af189f649c07f5e40576586280801d",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "distinct-syntax-assignments",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "1f7813d413ba5da4b94d501aa92b67cc595d48b2003a71dd0df2e6816eef4d00",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "identical-chunk-duplicate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "883d333a16555033e5e61495136453a97658f62c42f6e2c45ab722ac8bb8e609",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "opaque-cabac-overwrite-candidate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "7886f3c6d299c864bf7e16dfbfe2697b8c8532e96df150e14b3470885758c81c",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true,
+          "checkpoint_sequence": 4
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true,
+          "checkpoint_sequence": 0
+        }
+      ]
+    }
+  ],
+  "scope": "Actual persisted method states. A completed outer pipeline does not mean every selected recovery method completed."
+}

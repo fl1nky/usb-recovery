@@ -1,0 +1,1 @@
+Synthetic audio packets generated for USB-Recovery using FFmpeg. No personal data, third-party authored media or program binaries are embedded. This file does not define a separate license.

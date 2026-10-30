@@ -1,0 +1,554 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v6/hevc-corpus-final-02/manifest.json",
+    "source_sha256": "4e3292ec536021dc0ff65ea73eae245cf3e933c09f3be921ea6979d6dcb569b5",
+    "transformation": "Paths sanitized only; original benchmark receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "scope": "Ten independent real-FFmpeg/libx265 HEVC owned regular images; adapted solely for public RecoveryPipeline benchmark and external scoring.",
+    "source_manifest_sha256": "7dcad3bc888230047488dd4a354cddb8e45d62a7f7e88a1294edc2d598513df7",
+    "adapter_sha256": "acc69021c2738e60eeb3fa9cb0e5163670a556c5cd6958af1ae6477fda7f98f9",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "assets": [
+      {
+        "name": "main-hvc1-scattered.original.mp4",
+        "path": "originals/main-hvc1-scattered.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      },
+      {
+        "name": "main10-hev1-scattered.original.mp4",
+        "path": "originals/main10-hev1-scattered.original.mp4",
+        "bytes": 21755,
+        "sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+        "decoded_frames_sha256": "d1f1c470b38e6011ff6e539e4eb0ac356683a147d324c3e5150cd809823ed823"
+      },
+      {
+        "name": "two-slices-hvc1-scattered.original.mp4",
+        "path": "originals/two-slices-hvc1-scattered.original.mp4",
+        "bytes": 28363,
+        "sha256": "a95c8bb19c0b612cbfa6f0d2dec721e78189cbeb4a19be457e0a300acdbd5e12",
+        "decoded_frames_sha256": "f63d7943046ce66bea3023d4369174d226b91bb02285bf9e27124c6c3da37f69"
+      },
+      {
+        "name": "dual-hvc1-scattered.original.mp4",
+        "path": "originals/dual-hvc1-scattered.original.mp4",
+        "bytes": 24291,
+        "sha256": "333fde174da6a379c91c80bcf42de6f03cff4c50dc62c2dc79d3834dfa6af39c",
+        "decoded_frames_sha256": "3848cb2a942f7fd5cce93c5d960baaf2ded95ebd5d1d87cb1dcbead0b4875cbb"
+      },
+      {
+        "name": "nal-prefix-overwritten.original.mp4",
+        "path": "originals/nal-prefix-overwritten.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      },
+      {
+        "name": "foreign-configuration-constraint.original.mp4",
+        "path": "originals/foreign-configuration-constraint.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      },
+      {
+        "name": "foreign-inband-set.original.mp4",
+        "path": "originals/foreign-inband-set.original.mp4",
+        "bytes": 21755,
+        "sha256": "a69faee4873fd729bb938017cfaf4938a799efaae05147b3651505d10a148706",
+        "decoded_frames_sha256": "d1f1c470b38e6011ff6e539e4eb0ac356683a147d324c3e5150cd809823ed823"
+      },
+      {
+        "name": "distinct-syntax-assignments.original.mp4",
+        "path": "originals/distinct-syntax-assignments.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      },
+      {
+        "name": "identical-chunk-duplicate.original.mp4",
+        "path": "originals/identical-chunk-duplicate.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      },
+      {
+        "name": "opaque-cabac-overwrite-candidate.original.mp4",
+        "path": "originals/opaque-cabac-overwrite-candidate.original.mp4",
+        "bytes": 17173,
+        "sha256": "2abdba93f3304b28c286a3d7637ca776764f8b031b7386ebfedf0103c4c62e2c",
+        "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38"
+      }
+    ],
+    "cases": [
+      {
+        "name": "main-hvc1-scattered",
+        "image": "images/main-hvc1-scattered.dd",
+        "bytes": 8388608,
+        "sha256": "ef72f2ec0680c34e81e46cfc526d1d0802e5b6129272383d292c06222cc1710f",
+        "expected": [
+          {
+            "asset": "main-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 3276800,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 1703936,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 7077888,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 2752512,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 2490368,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "main10-hev1-scattered",
+        "image": "images/main10-hev1-scattered.dd",
+        "bytes": 8388608,
+        "sha256": "f39c5c90b12bafebedbb90b0b66e0cccb17f3e99f92018a0c00f64f260d58eb4",
+        "expected": [
+          {
+            "asset": "main10-hev1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 524288,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 1048576,
+                "length": 3394
+              },
+              {
+                "logical_offset": 3422,
+                "image_offset": 6160384,
+                "length": 8
+              },
+              {
+                "logical_offset": 3430,
+                "image_offset": 1703936,
+                "length": 8
+              },
+              {
+                "logical_offset": 3438,
+                "image_offset": 4063232,
+                "length": 18317
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "two-slices-hvc1-scattered",
+        "image": "images/two-slices-hvc1-scattered.dd",
+        "bytes": 8388608,
+        "sha256": "a041951560ce754587a264f7326575090249ea2c0bc5ea19e659e74b7091b911",
+        "expected": [
+          {
+            "asset": "two-slices-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 4718592,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 4325376,
+                "length": 3407
+              },
+              {
+                "logical_offset": 3435,
+                "image_offset": 2228224,
+                "length": 8
+              },
+              {
+                "logical_offset": 3443,
+                "image_offset": 2883584,
+                "length": 8
+              },
+              {
+                "logical_offset": 3451,
+                "image_offset": 3932160,
+                "length": 24912
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "dual-hvc1-scattered",
+        "image": "images/dual-hvc1-scattered.dd",
+        "bytes": 8388608,
+        "sha256": "c35b3769e9ec51c05062586f7f0d5a4ea4d60c4cc73e8e19864f8ea4d827ceda",
+        "expected": [
+          {
+            "asset": "dual-hvc1-scattered.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 1441792,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 6422528,
+                "length": 6679
+              },
+              {
+                "logical_offset": 6707,
+                "image_offset": 6946816,
+                "length": 8
+              },
+              {
+                "logical_offset": 6715,
+                "image_offset": 5636096,
+                "length": 8
+              },
+              {
+                "logical_offset": 6723,
+                "image_offset": 4456448,
+                "length": 2029
+              },
+              {
+                "logical_offset": 8752,
+                "image_offset": 4849664,
+                "length": 1725
+              },
+              {
+                "logical_offset": 10477,
+                "image_offset": 1966080,
+                "length": 1699
+              },
+              {
+                "logical_offset": 12176,
+                "image_offset": 1572864,
+                "length": 52
+              },
+              {
+                "logical_offset": 12228,
+                "image_offset": 3538944,
+                "length": 770
+              },
+              {
+                "logical_offset": 12998,
+                "image_offset": 1310720,
+                "length": 40
+              },
+              {
+                "logical_offset": 13038,
+                "image_offset": 6684672,
+                "length": 652
+              },
+              {
+                "logical_offset": 13690,
+                "image_offset": 5242880,
+                "length": 1978
+              },
+              {
+                "logical_offset": 15668,
+                "image_offset": 3145728,
+                "length": 8574
+              },
+              {
+                "logical_offset": 24242,
+                "image_offset": 4718592,
+                "length": 49
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "nal-prefix-overwritten",
+        "image": "images/nal-prefix-overwritten.dd",
+        "bytes": 8388608,
+        "sha256": "d542fb710630ce2080c8a65f4453eedec85f73e7d6d117c4f448015b2b0cad24",
+        "expected": [
+          {
+            "asset": "nal-prefix-overwritten.original.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 7077888,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 7208960,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 2752512,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 2228224,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 786432,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 0,
+        "engine_expected_exact": false,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "foreign-configuration-constraint",
+        "image": "images/foreign-configuration-constraint.dd",
+        "bytes": 8388608,
+        "sha256": "53c9b92f8cd73be3dca530f537fc049bb03a9475559fd0ef286c186682eff8d2",
+        "expected": [
+          {
+            "asset": "foreign-configuration-constraint.original.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2490368,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 5767168,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 3538944,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 2752512,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 4587520,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 0,
+        "engine_expected_exact": false,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "foreign-inband-set",
+        "image": "images/foreign-inband-set.dd",
+        "bytes": 8388608,
+        "sha256": "1405f9d14f88ba54a936c79714cb993d07812c01e92583e1b54921c47c0fed80",
+        "expected": [
+          {
+            "asset": "foreign-inband-set.original.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 4194304,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 4980736,
+                "length": 3394
+              },
+              {
+                "logical_offset": 3422,
+                "image_offset": 6815744,
+                "length": 8
+              },
+              {
+                "logical_offset": 3430,
+                "image_offset": 5242880,
+                "length": 8
+              },
+              {
+                "logical_offset": 3438,
+                "image_offset": 1703936,
+                "length": 18317
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 0,
+        "engine_expected_exact": false,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "distinct-syntax-assignments",
+        "image": "images/distinct-syntax-assignments.dd",
+        "bytes": 8388608,
+        "sha256": "da27e4723e6c9514c7d62bb4368b1825d2129cbb5b82542e93e623a4c248df92",
+        "expected": [
+          {
+            "asset": "distinct-syntax-assignments.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 5373952,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 4456448,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 2490368,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 4980736,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 2359296,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 0,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "identical-chunk-duplicate",
+        "image": "images/identical-chunk-duplicate.dd",
+        "bytes": 8388608,
+        "sha256": "aecf36174a00b516f59e812638216c3a55e260b0b2bfeeb9afd4c219b90505cf",
+        "expected": [
+          {
+            "asset": "identical-chunk-duplicate.original.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 1048576,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 6946816,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 5505024,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 4587520,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 655360,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": true,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      },
+      {
+        "name": "opaque-cabac-overwrite-candidate",
+        "image": "images/opaque-cabac-overwrite-candidate.dd",
+        "bytes": 8388608,
+        "sha256": "9cfd4713cf85888439f94d80cd172ee6e39be41b99a467ed84b2d4a4233793d3",
+        "expected": [
+          {
+            "asset": "opaque-cabac-overwrite-candidate.original.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2228224,
+                "length": 28
+              },
+              {
+                "logical_offset": 28,
+                "image_offset": 3145728,
+                "length": 3405
+              },
+              {
+                "logical_offset": 3433,
+                "image_offset": 5636096,
+                "length": 8
+              },
+              {
+                "logical_offset": 3441,
+                "image_offset": 6029312,
+                "length": 8
+              },
+              {
+                "logical_offset": 3449,
+                "image_offset": 6291456,
+                "length": 13724
+              }
+            ]
+          }
+        ],
+        "engine_expected_candidates": 1,
+        "engine_expected_exact": false,
+        "note": "Owned full original chunks, independent encoder tables; no recovery implementation imported; candidate counts refer to strict media assembly; other pipeline methods may emit unrelated/nonmatching candidates."
+      }
+    ]
+  }
+}

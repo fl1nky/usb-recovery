@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Python312 = '',
     [switch]$SkipTests,
     [switch]$SkipRebuildBundle
@@ -37,7 +37,7 @@ foreach ($vendorName in @('iphone-backup-decrypt')) {
 Push-Location $taskRoot
 try {
     if (-not $SkipTests) {
-        foreach ($taskTest in 'TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','TelegramTlTests.py','SqliteHistoryTests.py','TelegramMediaTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py') {
+        foreach ($taskTest in 'TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','TelegramTlTests.py','SqliteHistoryTests.py','TelegramMediaTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py') {
             & $envPython (Join-Path 'tests' $taskTest)
             if ($LASTEXITCODE -ne 0) { throw 'Telegram regression tests failed.' }
         }
