@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
+﻿param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'OfflineEvidence.ps1')
 $taskApp=[IO.Path]::GetFullPath($ApplicationDirectory)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -189,7 +189,7 @@ public static class RaidRecoveryTests
         byte[] payload = new byte[1471]; for (int i = 0; i < payload.Length; i++) payload[i] = (byte)(i * 29 + 83);
         int entry = (1 + fatSectors) * 512; Encoding.ASCII.GetBytes("RECIPE  TXT").CopyTo(disk, entry); disk[entry] = 0xE5; disk[entry + 11] = 0x20; W16(disk, entry + 26, 2); W32(disk, entry + 28, payload.Length); Buffer.BlockCopy(payload, 0, disk, dataStart, payload.Length);
         var fixture = Make("5", "left-symmetric", disk); var built = Valid(fixture, 2); string results = NewDirectory("fat-results");
-        var assembly = Assembly.LoadFrom(Path.Combine(project, "USB-Recovery.exe")); var recover = assembly.GetType("UsbRecovery.FilesystemRecovery").GetMethod("Recover", new[] { typeof(string), typeof(string), typeof(CancellationToken), typeof(Action<string>) });
+        var assembly = typeof(RecoveryCore).Assembly; var recover = assembly.GetType("UsbRecovery.FilesystemRecovery").GetMethod("Recover", new[] { typeof(string), typeof(string), typeof(CancellationToken), typeof(Action<string>) });
         int found = (int)recover.Invoke(null, new object[] { built.ImagePath, results, CancellationToken.None, new Action<string>(s => { }) });
         Check(found > 0 && Directory.EnumerateFiles(results, "*", SearchOption.AllDirectories).Any(file => new FileInfo(file).Length == payload.Length && Digest(file) == Digest(payload)), "actual FAT12 deleted payload recovers exactly from a degraded assembled RAID5");
         Check(Digest(built.ImagePath) == Digest(disk), "filesystem parser leaves assembled image unchanged");

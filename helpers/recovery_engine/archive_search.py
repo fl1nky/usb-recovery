@@ -70,7 +70,7 @@ def _normalized(raw):
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))
     if not isinstance(result["app"], str) or result["app"] not in APPS - {""}:
         return None
-    if result["evidence_kind"] not in EVIDENCE - {""}:
+    if not isinstance(result["evidence_kind"], str) or result["evidence_kind"] not in EVIDENCE - {""}:
         return None
     for name in names:
         if result[name] is not None and not isinstance(result[name], (str, int, float, bool)):

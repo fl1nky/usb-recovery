@@ -19,6 +19,7 @@ from archive_search import search, SearchError
 from text_match import Matcher, MatchError
 
 engine.emit = lambda *a, **k: None
+WORKER_COMMAND = [sys.executable, str(ROOT / "helpers/recovery_engine/engine.py")]
 
 
 class MemoryTests(unittest.TestCase):
@@ -182,8 +183,7 @@ class MemoryTests(unittest.TestCase):
     def test_dump_stdin_protocol_no_stdout_leak(self):
         (self.source / "phone.mem").write_bytes(b"\x00" + "секретный рецепт".encode() + b"\x00")
         request = {"protocol":1,"operation":"telegram_analyze","destination":str(self.output),"options":{"roots":[str(self.source)],"scan_fragments":True,"fragment_query":"рецепт"}}
-        worker = [str(Path(sys.argv[1]).resolve())] if len(sys.argv) > 1 else [sys.executable,str(ROOT / "helpers/recovery_engine/engine.py")]
-        response = subprocess.run(worker,input=json.dumps(request),encoding="utf-8",capture_output=True,timeout=30)
+        response = subprocess.run(WORKER_COMMAND,input=json.dumps(request),encoding="utf-8",capture_output=True,timeout=30)
         self.assertEqual(response.returncode,0,response.stderr)
         self.assertNotIn("секретный", response.stdout)
         self.assertEqual(response.stderr, "")
@@ -193,4 +193,6 @@ class MemoryTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        WORKER_COMMAND = [str(Path(sys.argv[1]).resolve())]
     unittest.main(argv=[sys.argv[0]], verbosity=2)

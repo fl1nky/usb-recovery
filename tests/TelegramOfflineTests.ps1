@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
+﻿param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'OfflineEvidence.ps1')
 $taskApp = [IO.Path]::GetFullPath($ApplicationDirectory)
@@ -8,8 +8,8 @@ $taskHarness = Join-Path $taskApp 'TelegramOfflineHarness.exe'
 $taskNativeHarness = Join-Path $taskApp 'TelegramNativeOfflineHarness.exe'
 $taskMediaHarness = Join-Path $taskApp 'TelegramMediaOfflineHarness.exe'
 $taskHarnesses = @($taskHarness, $taskNativeHarness, $taskMediaHarness)
-$taskFixtures = Join-Path $taskApp 'tests\TelegramNativeFixtures'
-$taskMediaFixtures = Join-Path $taskApp 'tests\TelegramMediaFixtures'
+$taskFixtures = Join-Path $taskApp 'source\tests\TelegramNativeFixtures'
+$taskMediaFixtures = Join-Path $taskApp 'source\tests\TelegramMediaFixtures'
 $taskCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskOldPath = $env:PATH
 $taskOldHome = $env:PYTHONHOME

@@ -1,0 +1,31 @@
+﻿param([string]$Python312='')
+$ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
+$taskLayout=Get-RecoveryLayout
+$ApplicationDirectory=$taskLayout.Portable
+if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'}
+if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
+$taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+$taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
+try {
+ & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+(Join-Path $taskLayout.App 'USB-Recovery.exe')) ("/out:"+$taskBaseline) (Join-Path $taskLayout.Tests 'CommercialComparisonBaseline.cs')
+ if($LASTEXITCODE-ne0){throw 'Comparison regression build failed.'}
+ & $taskBaseline $taskLayout.Root 'CommercialComparison-after.json'
+ if($LASTEXITCODE-ne0){throw 'Comparison regression failed.'}
+} finally {if(Test-Path -LiteralPath $taskBaseline){Remove-Item -LiteralPath $taskBaseline}}
+foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflineTests.ps1'){
+ & (Join-Path $taskLayout.Tests $name) -ApplicationDirectory $ApplicationDirectory
+}
+& $Python312 (Join-Path $taskLayout.Tests 'UpgradeEvidenceTests.py')
+if($LASTEXITCODE-ne0){throw 'Evidence regression failed.'}
+foreach($name in 'verify_upgrade_package.py','audit_oct30_package.py'){
+ & $Python312 (Join-Path $taskLayout.Tests $name)
+ if($LASTEXITCODE-ne0){throw ('Package verification failed: '+$name)}
+}
+# Refresh evidence copies only; do not rebuild or change tested runtimes.
+$taskEvidenceTarget=Join-Path $ApplicationDirectory 'source\tests'
+foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
+ if($file.Name-match'(result\.txt|-validation\.json)$'-or$file.Name-in'CommercialComparison-after.json','CommercialComparison-baseline.json','October30-package-audit.json'){
+  Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $taskEvidenceTarget $file.Name)
+ }
+}

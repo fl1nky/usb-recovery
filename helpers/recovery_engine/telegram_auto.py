@@ -640,30 +640,38 @@ class Analyzer:
         wal = Path(str(copied) + "-wal")
         if not wal.exists() or wal.stat().st_size == 0:
             return
-        data = wal.read_bytes()
-        valid = len(data) >= 32
-        if valid:
-            magic, version, pagesize, sequence, salt1, salt2, a, b = struct.unpack(">8I", data[:32])
-            valid = magic in (0x377f0682, 0x377f0683) and version == 3007000 and 512 <= pagesize <= 65536 and pagesize & (pagesize - 1) == 0
-        if valid:
-            order = "<" if magic == 0x377f0682 else ">"
-            def check(block, a=0, b=0):
-                words = struct.unpack(order + str(len(block) // 4) + "I", block)
-                for i in range(0, len(words), 2):
-                    a = (a + words[i] + b) & 0xffffffff
-                    b = (b + words[i + 1] + a) & 0xffffffff
-                return a, b
-            valid = check(data[:24]) == (a, b) and (len(data) - 32) % (24 + pagesize) == 0
-            with copied.open("rb") as source:
-                head = source.read(100)
-            valid = valid and len(head) >= 100 and int.from_bytes(head[16:18], "big") == (1 if pagesize == 65536 else pagesize)
+        # WALs may be gigabytes long.  Keep only one SQLite page in memory;
+        # reading the entire working copy can exceed the helper memory limit.
+        with wal.open("rb") as stream:
+            length = os.fstat(stream.fileno()).st_size
+            header = stream.read(32)
+            valid = len(header) == 32 and length <= MAX_SOURCE
             if valid:
-                for offset in range(32, len(data), 24 + pagesize):
-                    page, size, s1, s2, ca, cb = struct.unpack(">6I", data[offset:offset + 24])
-                    a, b = check(data[offset:offset + 8] + data[offset + 24:offset + 24 + pagesize], a, b)
-                    if not page or page > MAX_SOURCE // pagesize or size > MAX_SOURCE // pagesize or (s1, s2) != (salt1, salt2) or (a, b) != (ca, cb):
-                        valid = False
-                        break
+                magic, version, pagesize, sequence, salt1, salt2, a, b = struct.unpack(">8I", header)
+                valid = magic in (0x377f0682, 0x377f0683) and version == 3007000 and 512 <= pagesize <= 65536 and pagesize & (pagesize - 1) == 0
+            if valid:
+                order = "<" if magic == 0x377f0682 else ">"
+                def check(block, a=0, b=0):
+                    for first, second in struct.iter_unpack(order + "II", block):
+                        a = (a + first + b) & 0xffffffff
+                        b = (b + second + a) & 0xffffffff
+                    return a, b
+                valid = check(header[:24]) == (a, b) and (length - 32) % (24 + pagesize) == 0
+                with copied.open("rb") as source:
+                    head = source.read(100)
+                valid = valid and len(head) >= 100 and int.from_bytes(head[16:18], "big") == (1 if pagesize == 65536 else pagesize)
+                if valid:
+                    for offset in range(32, length, 24 + pagesize):
+                        frame, data = stream.read(24), stream.read(pagesize)
+                        if len(frame) != 24 or len(data) != pagesize:
+                            valid = False
+                            break
+                        page, size, s1, s2, ca, cb = struct.unpack(">6I", frame)
+                        a, b = check(frame[:8] + data, a, b)
+                        if not page or page > MAX_SOURCE // pagesize or size > MAX_SOURCE // pagesize or (s1, s2) != (salt1, salt2) or (a, b) != (ca, cb):
+                            valid = False
+                            break
+                valid = valid and os.fstat(stream.fileno()).st_size == length
         if not valid:
             wal.unlink(missing_ok=True)
             Path(str(copied) + "-shm").unlink(missing_ok=True)

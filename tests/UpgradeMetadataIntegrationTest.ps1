@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true)][string]$ApplicationDirectory,
     [Parameter(Mandatory = $true)][string]$Fixture,
     [Parameter(Mandatory = $true)][string]$Expected,

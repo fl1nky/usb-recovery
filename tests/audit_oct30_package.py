@@ -11,11 +11,13 @@ import marshal
 from pathlib import Path
 import shutil
 import types
+import xml.etree.ElementTree as ET
 
 from PyInstaller.archive.readers import CArchiveReader
+from verify_upgrade_package import repository_runtime, verify_sources
 
 ROOT = Path(__file__).resolve().parents[1]
-READY = ROOT / "\u0413\u043e\u0442\u043e\u0432\u0430\u044f \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430"
+READY = ROOT / "dist/USB-Recovery"
 
 
 def require(value, explanation):
@@ -48,6 +50,7 @@ def normalize(code):
 
 def audit():
     manifest = read(READY / "package-sha256.json")
+    require(isinstance(manifest, list) and bool(manifest), "missing runtime inventory")
     names = set()
     for row in manifest:
         require(row["path"] not in names, "duplicate runtime inventory entry")
@@ -55,20 +58,26 @@ def audit():
         delivered = safe(READY, row["path"])
         require(delivered.stat().st_size == row["bytes"] and sha(delivered) == row["sha256"],
                 "runtime mismatch: " + row["path"])
-        require(sha(safe(ROOT, row["path"])) == row["sha256"], "root/runtime differs: " + row["path"])
+        require(sha(repository_runtime(ROOT, row["path"])) == row["sha256"], "build/runtime differs: " + row["path"])
     actual = {path.relative_to(READY).as_posix() for path in READY.rglob("*")
               if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd")}
     require(actual == names, "unexpected runtime binary or temporary harness remains: " + str(sorted(actual ^ names)))
 
-    build = (ROOT / "build.ps1").read_text(encoding="utf-8-sig")
-    csharp = []
-    for source in sorted(ROOT.glob("*.cs")):
-        require(source.name in build, "source missing in build list: " + source.name)
-        require(sha(source) == sha(READY / source.name), "C# source mismatch: " + source.name)
-        csharp.append({"path": source.name, "sha256": sha(source), "matched": True})
+    sources = verify_sources(ROOT, READY)
+    csharp = sources["cs_sources"]
+    build = (ROOT / "scripts/build-app.ps1").read_text(encoding="utf-8-sig")
+    require("Get-ChildItem" in build and "-Recurse" in build and "-Filter '*.cs'" in build and
+            "$taskLayout.Source" in build, "application build must include recursive source tree")
+    project = ET.parse(ROOT / "src/Recovery/Recovery.csproj").getroot()
+    ns = {"msbuild": "http://schemas.microsoft.com/developer/msbuild/2003"}
+    compile_items = project.findall("msbuild:ItemGroup/msbuild:Compile", ns)
+    require(any(item.get("Include", "").replace("\\", "/") == "**/*.cs" for item in compile_items),
+            "project must include recursive C# source tree")
+    ET.parse(ROOT / "src/Recovery/app.manifest")
 
     helper = READY / "tools/recovery-helper"
     helper_manifest = read(helper / "runtime-SHA256.json")
+    require(isinstance(helper_manifest, list) and bool(helper_manifest), "missing helper inventory")
     helper_names = set()
     for row in helper_manifest:
         require(row["path"] not in helper_names, "duplicate helper inventory entry")
@@ -86,9 +95,10 @@ def audit():
         if not source.is_file() or source.suffix.lower() not in (".py", ".json", ".txt"):
             continue
         delivered = helper / "rebuild/helpers/recovery_engine" / source.name
-        require(sha(source) == sha(READY / "helpers/recovery_engine" / source.name) == sha(delivered),
+        require(sha(source) == sha(READY / "source/helpers/recovery_engine" / source.name) == sha(delivered),
                 "Python/config source mismatch: " + source.name)
         source_results.append({"path": source.relative_to(ROOT).as_posix(), "sha256": sha(source), "matched": True})
+    require(bool(source_results), "empty Python/config source set")
 
     archive = CArchiveReader(str(helper / "recovery-helper.exe"))
     pyz = archive.open_embedded_archive("PYZ.pyz")
@@ -108,12 +118,14 @@ def audit():
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
-    require(sha(ROOT / "build-engine.ps1") == sha(helper / "rebuild/build-engine.ps1"), "rebuild runner mismatch")
+    for name in ("build-helper.ps1", "ProjectPaths.ps1"):
+        require(sha(ROOT / "scripts" / name) == sha(helper / "rebuild/scripts" / name),
+                "rebuild runner mismatch: " + name)
     for fixture in ("TelegramNativeFixtures", "TelegramMediaFixtures"):
-        require(sha(ROOT / "tests" / fixture / "manifest.json") == sha(READY / "tests" / fixture / "manifest.json"),
+        require(sha(ROOT / "tests" / fixture / "manifest.json") == sha(READY / "source/tests" / fixture / "manifest.json"),
                 "synthetic fixture manifest mismatch")
         for row in read(ROOT / "tests" / fixture / "manifest.json")["files"]:
-            require(sha(safe(READY / "tests" / fixture, row["path"])) == row["sha256"], "synthetic fixture bytes mismatch")
+            require(sha(safe(READY / "source/tests" / fixture, row["path"])) == row["sha256"], "synthetic fixture bytes mismatch")
 
     return {"status": "passed", "checked_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
             "scope": "Read-only artifact/archive/source audit; no personal profiles, source media or devices accessed",
@@ -124,6 +136,9 @@ def audit():
             "helper_inventory_files_verified": len(helper_manifest),
             "helper_unlisted_files": [], "temporary_harnesses_remaining": [],
             "cs_sources_verified": len(csharp), "cs_sources": csharp,
+            "packaged_sources_verified": sources["sources_verified"],
+            "runtime_documents_verified": sources["runtime_documents_verified"],
+            "application_metadata": sources["application_metadata"],
             "python_config_sources_verified": len(source_results), "python_config_sources": source_results,
             "frozen_modules": embedded, "rebuild_tests": rebuild_tests,
             "runtime_manifest_sha256": sha(READY / "package-sha256.json"),
@@ -135,7 +150,7 @@ if __name__ == "__main__":
     result = audit()
     target = ROOT / "tests/October30-package-audit.json"
     target.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    shutil.copyfile(target, READY / "tests" / target.name)
+    shutil.copyfile(target, READY / "source/tests" / target.name)
     print(f"PASS independent package audit: {result['runtime_files_verified']} runtime files, "
           f"{result['helper_inventory_files_verified']} helper files, {result['cs_sources_verified']} C# sources, "
           f"{len(result['frozen_modules'])} frozen Python modules exactly match source")

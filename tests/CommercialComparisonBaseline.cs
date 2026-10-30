@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -17,7 +17,7 @@ public static class CommercialComparisonBaseline
     public static int Main(string[] args)
     {
         string project=Path.GetFullPath(args[0]);
-        if(!Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory).TrimEnd('\\').Equals(project.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase)){
+        if(!Path.GetFullPath(ApplicationPaths.RuntimeRoot).TrimEnd('\\').Equals(project.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase)){
             var domain=AppDomain.CreateDomain("Recovery comparison regular-images only",null,new AppDomainSetup{ApplicationBase=project});
             try{return domain.ExecuteAssembly(Assembly.GetExecutingAssembly().Location,args);}finally{AppDomain.Unload(domain);}
         }
@@ -35,7 +35,7 @@ public static class CommercialComparisonBaseline
                 results.Add(new{sample=sample.Id,input_sha256=before,expected_hashes=sample.ExpectedHashes,expected=sample.ExpectedHashes.Count,exact=exact,candidates=scan.Candidates,unique_files=scan.UniqueFiles,elapsed_ms=timer.ElapsedMilliseconds,unmatched_candidates="unscored; do not treat as false positives without a complete artifact truth set",configuration=options,result_directory=run,source_unchanged=true});
                 Console.WriteLine(sample.Id+": exact "+exact+" / "+sample.ExpectedHashes.Count+"; unique candidates "+scan.UniqueFiles);
             }
-            RecoveryCore.SaveJson(Path.Combine(project,"tests",args.Length>1?Path.GetFileName(args[1]):"CommercialComparison-baseline.json"),new{date_utc=DateTime.UtcNow.ToString("o"),status="complete",scope="Synthetic regular files only, no physical disk enumeration",application_sha256=Hash(Path.Combine(project,"USB-Recovery.exe")),commercial_comparison_performed=false,note="This is our baseline; competitor results are recorded separately. Times are diagnostic and not a cross-tool performance comparison.",results=results});return 0;
+            RecoveryCore.SaveJson(Path.Combine(project,"tests",args.Length>1?Path.GetFileName(args[1]):"CommercialComparison-baseline.json"),new{date_utc=DateTime.UtcNow.ToString("o"),status="complete",scope="Synthetic regular files only, no physical disk enumeration",application_sha256=Hash(typeof(RecoveryCore).Assembly.Location),commercial_comparison_performed=false,note="This is our baseline; competitor results are recorded separately. Times are diagnostic and not a cross-tool performance comparison.",results=results});return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }

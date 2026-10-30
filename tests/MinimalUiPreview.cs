@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -33,12 +33,12 @@ public static class MinimalUiPreview
     {
         if (outerSize) hub.Size = size; else hub.ClientSize = size;
         string dimensions = (outerSize ? "outer-" : "client-") + size.Width + "x" + size.Height;
-        foreach (string section in new[] { "archives", "Telegram", "WhatsApp", "Signal", "Android", "iPhone", "files", "usb" })
+        foreach (string section in new[] { "Telegram", "Android", "iPhone", "files", "usb", "storage" })
         {
             hub.Navigate(section); Flush(hub); scope = dimensions + "/" + section; Verify(hub); layouts++;
             if (!outerSize && size.Width == 1180)
             {
-                if (section == "archives") Save(hub, "minimal-ui.png");
+                if (section == "Telegram") Save(hub, "minimal-ui.png");
                 if (section == "usb") Save(hub, "minimal-ui-usb.png");
                 if (section == "Android") Save(hub, "minimal-ui-source.png");
             }
@@ -48,7 +48,7 @@ public static class MinimalUiPreview
             {
                 kinds.SelectedIndex = kind; var credentials = Field<Button>(logical, "credentials"); credentials.PerformClick(); Flush(hub);
                 scope = dimensions + "/" + section + "/mode-" + kind + "/credentials"; Verify(hub); layouts++;
-                foreach (string name in new[] { "iosPassword", "whatsappKey", "signalKey" }) if (!Field<TextBox>(logical, name).UseSystemPasswordChar) Failure("Unmasked secret entry " + name);
+                foreach (string name in new[] { "iosPassword" }) if (!Field<TextBox>(logical, name).UseSystemPasswordChar) Failure("Unmasked secret entry " + name);
                 if (section != "files" && kind == 0)
                 {
                     var tree = Field<TreeView>(logical, "tree"); tree.Nodes.Clear(); tree.Nodes.Add("DCIM"); tree.Visible = true; Flush(hub);

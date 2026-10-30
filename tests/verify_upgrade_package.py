@@ -10,12 +10,18 @@ import json
 import re
 
 ROOT = Path(__file__).resolve().parents[1]
-READY_NAME = "\u0413\u043e\u0442\u043e\u0432\u0430\u044f \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0430"
+READY_NAME = "dist/USB-Recovery"
 COUNT = re.compile(r"\b(\d+)\s+(?:[A-Za-z-]+\s+){0,4}(?:assertions|checks)\b", re.I)
 DIGEST = re.compile(r"[a-f0-9]{64}\Z")
 DEPENDENCIES = {"USB-Recovery.exe", "tools/recovery-helper/recovery-helper.exe",
                 "tools/testdisk-7.2/photorec_win.exe", "tools/testdisk-7.2/testdisk_win.exe",
                 "package-sha256.json", "tools/recovery-helper/runtime-SHA256.json"}
+SOURCE_TREES = ("src", "scripts", "helpers/recovery_engine", "vendor/iphone-backup-decrypt", "docs")
+SOURCE_FIXTURES = ("TelegramNativeFixtures", "TelegramMediaFixtures", "StorageFixtures",
+                   "photorec-20261011T231546120952Z/fixtures")
+EXCLUDED_SOURCE_DIRECTORIES = {".git", "__pycache__", ".pytest_cache", "bin", "obj"}
+GENERATED_TEST_REPORTS = {"CommercialComparison-after.json", "CommercialComparison-baseline.json",
+                          "October30-package-audit.json"}
 
 
 class ValidationError(ValueError):
@@ -44,6 +50,90 @@ def safe(base, relative):
     require(result.resolve().is_relative_to(base), "evidence path escapes artifact")
     require(not result.is_symlink(), "evidence symlink")
     return result
+
+
+def repository_runtime(root, relative):
+    """Map package names to their actual build/source counterpart."""
+    if relative == "USB-Recovery.exe":
+        return safe(root, ".build/app/USB-Recovery.exe")
+    if relative.startswith("source/"):
+        return safe(root, relative[len("source/"):])
+    return safe(root, relative)
+
+
+def source_tree(root, relative):
+    directory = safe(root, relative)
+    require(directory.is_dir(), "missing source directory: " + relative)
+    result = {}
+    for path in directory.rglob("*"):
+        if EXCLUDED_SOURCE_DIRECTORIES.intersection(path.relative_to(directory).parts[:-1]):
+            continue
+        require(not path.is_symlink() and not path.is_junction(), "linked source: " + str(path))
+        if path.is_file():
+            result[path.relative_to(root).as_posix()] = path
+    require(bool(result), "empty source directory: " + relative)
+    return result
+
+
+def generated_test_report(relative):
+    path = Path(relative)
+    return (len(path.parts) == 2 and path.parts[0] == "tests" and
+            (path.name.endswith(("result.txt", "-validation.json")) or
+             path.name in GENERATED_TEST_REPORTS))
+
+
+def verify_sources(root, ready):
+    """Check the complete packaged source selection, not just top-level C#."""
+    root, ready = Path(root), Path(ready)
+    expected = {}
+    for relative in SOURCE_TREES:
+        expected.update(source_tree(root, relative))
+    for relative in ("build.ps1", "README.md"):
+        path = safe(root, relative)
+        require(path.is_file(), "missing package source: " + relative)
+        expected[relative] = path
+    tests = root / "tests"
+    test_sources = {path.relative_to(root).as_posix(): path for path in tests.iterdir()
+                    if path.is_file() and path.suffix.lower() in (".cs", ".py", ".ps1")}
+    require(bool(test_sources), "empty test source set")
+    expected.update(test_sources)
+    for relative in SOURCE_FIXTURES:
+        expected.update(source_tree(root, "tests/" + relative))
+
+    csharp = sorted(name for name in expected if name.startswith("src/Recovery/") and name.endswith(".cs"))
+    require(bool(csharp), "empty C# source set")
+    for relative in ("src/Recovery/Recovery.csproj", "src/Recovery/app.manifest",
+                     "scripts/build-app.ps1", "scripts/build-helper.ps1", "scripts/ProjectPaths.ps1"):
+        require(relative in expected, "required application/build source missing: " + relative)
+
+    delivered_root = ready / "source"
+    require(delivered_root.is_dir(), "missing packaged source tree")
+    delivered = {}
+    for path in delivered_root.rglob("*"):
+        require(not path.is_symlink() and not path.is_junction(), "linked delivered source")
+        if path.is_file():
+            relative = path.relative_to(delivered_root).as_posix()
+            # Reports bind their own changing bytes through verify_offline; an
+            # audit must not include its own newly written report in source hashes.
+            if not generated_test_report(relative):
+                delivered[relative] = path
+    require(set(delivered) == set(expected),
+            "packaged source inventory mismatch: " + str(sorted(set(delivered) ^ set(expected))))
+    for relative, source in expected.items():
+        require(sha(source) == sha(delivered[relative]), "delivered source mismatch: " + relative)
+
+    documents = source_tree(root, "docs")
+    for relative in ("docs/guides", "docs/images"):
+        source_tree(root, relative)
+    require("docs/third-party.md" in documents, "missing third-party document")
+    delivered_documents = source_tree(ready, "docs")
+    require(set(documents) == set(delivered_documents), "runtime document inventory mismatch")
+    for relative, source in documents.items():
+        require(sha(source) == sha(delivered_documents[relative]), "runtime document mismatch: " + relative)
+    return {"sources_verified": len(expected), "runtime_documents_verified": len(documents),
+            "cs_sources": [{"path": name, "sha256": sha(expected[name]), "matched": True} for name in csharp],
+            "application_metadata": [{"path": name, "sha256": sha(expected[name]), "matched": True}
+                                     for name in ("src/Recovery/Recovery.csproj", "src/Recovery/app.manifest")]}
 
 
 def stamp(value):
@@ -119,24 +209,32 @@ def verify(root=ROOT):
         names.add(relative)
         path = safe(ready, relative)
         require(path.stat().st_size == entry.get("bytes") and sha(path) == entry.get("sha256"), "package checksum: " + relative)
+        require(sha(repository_runtime(root, relative)) == entry.get("sha256"), "build/runtime differs: " + relative)
     actual = {path.relative_to(ready).as_posix() for path in ready.rglob("*")
               if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd")}
     require(actual == names, "unlisted runtime binary or missing packaged binary")
     application = sha(ready / "USB-Recovery.exe")
-    require(application == sha(root / "USB-Recovery.exe"), "root executable differs from delivery")
-    sources = list(root.glob("*.cs"))
-    require(all(sha(path) == sha(ready / path.name) for path in sources), "delivered C# source mismatch")
+    require(application == sha(root / ".build/app/USB-Recovery.exe"), "built executable differs from delivery")
+    sources = verify_sources(root, ready)
     helper = ready / "tools/recovery-helper"
     helper_inventory = read(helper / "runtime-SHA256.json")
+    require(isinstance(helper_inventory, list) and bool(helper_inventory), "missing helper inventory")
+    helper_names = set()
     for entry in helper_inventory:
-        path = safe(helper, entry.get("path"))
+        relative = entry.get("path")
+        require(relative not in helper_names, "duplicate helper inventory entry")
+        helper_names.add(relative)
+        path = safe(helper, relative)
         require(path.stat().st_size == entry.get("size") and sha(path) == entry.get("sha256"), "helper inventory mismatch")
+    actual_helper = {path.relative_to(helper).as_posix() for path in helper.rglob("*") if path.is_file()}
+    require(actual_helper == helper_names | {"runtime-SHA256.json"}, "unlisted helper files")
     reports = {name: verify_offline(name + "Offline-validation.json", root, ready) for name in ("Quality", "Telegram", "Usb")}
     required = {"ContentQualityTests", "ArchiveSalvageTests", "MetadataRescueTests", "NewEngineIntegrationTests",
                 "ResumableCaptureTests", "RecoverySessionTests", "FolderProvenanceTests", "FolderExportTests",
                 "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests",
                 "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests",
-                "RaidRecoveryTests", "StorageUiTests", "StoragePipelineTests", "HelperMemoryTests", "AtomicJsonSaveTests"}
+                "RaidRecoveryTests", "StorageUiTests", "StoragePipelineTests", "HelperMemoryTests", "AtomicJsonSaveTests",
+                "ExportTempCollisionTests", "StorageWorkflowTests", "CaptureProvenanceTests", "ApplicationPathsTests"}
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
     require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")
@@ -146,7 +244,9 @@ def verify(root=ROOT):
     return {
         "evidence_schema": 2, "status": "passed", "checked_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "application_sha256": application, "helper_sha256": sha(helper / "recovery-helper.exe"),
-        "runtime_files_verified": len(inventory), "cs_sources_verified": len(sources),
+        "runtime_files_verified": len(inventory), "cs_sources_verified": len(sources["cs_sources"]),
+        "packaged_sources_verified": sources["sources_verified"],
+        "runtime_documents_verified": sources["runtime_documents_verified"],
         "helper_inventory_entries_verified": len(helper_inventory),
         "bound_offline_runs": reports,
         "packaged_quality_assertions_total": sum(row["assertions"] for row in reports["Quality"]["tests"]),

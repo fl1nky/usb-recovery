@@ -1,12 +1,11 @@
 # Source repository: recovered data, generated runtimes and build caches stay local
 /*
-!/*.cs
-!/*.md
-!/*.ps1
-!/*.manifest
+!/README.md
+!/build.ps1
+!/src/
+!/scripts/
 !/.gitignore
 !/.gitattributes
-!/НАЧНИ ЗДЕСЬ.txt
 !/docs/
 !/helpers/
 !/tests/
@@ -51,3 +50,8 @@
 
 # Pinned public upstream storage parser test images, never user recovery data
 !/tests/StorageFixtures/
+
+# All generated output stays outside the source tree
+/dist/
+**/bin/
+**/obj/

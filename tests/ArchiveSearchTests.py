@@ -53,6 +53,16 @@ class ArchiveSearchTests(unittest.TestCase):
         self.assertEqual(self.run_search(app="WhatsApp")["total"], 1)
         self.assertEqual(self.run_search(evidence="fragment")["records"][0]["app"], "Signal")
 
+    def test_malformed_evidence_does_not_hide_valid_jsonl_or_index_records(self):
+        for indexed in (False, True):
+            with self.subTest(indexed=indexed):
+                folder = self.folder / str(indexed)
+                write_archive(folder, [message("bad list", evidence=[]), message("bad object", evidence={}), message("still readable")], index=indexed)
+                result = self.run_search(archive=str(folder))
+                self.assertEqual(result["total"], 1)
+                self.assertEqual(result["records"][0]["text"], "still readable")
+                self.assertIn("RECORD_SKIPPED", result["warnings"])
+
     def test_literals_sql_fts_are_not_operators(self):
         write_archive(self.folder, [message("' OR 1=1 --"), message("OR hello"), message("ordinary text")])
         self.assertEqual(self.run_search(query="' OR 1=1 --")["total"], 1)

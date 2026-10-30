@@ -1,5 +1,9 @@
-﻿$ErrorActionPreference = 'Stop'
-$taskCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-if (-not (Test-Path -LiteralPath $taskCompiler)) { throw '.NET Framework 4 compiler not found.' }
-& $taskCompiler /nologo /target:winexe /platform:x64 /optimize+ /warnaserror+ /win32manifest:"$PSScriptRoot\app.manifest" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /out:"$PSScriptRoot\USB-Recovery.exe" "$PSScriptRoot\RecoveryCore.cs" "$PSScriptRoot\Program.cs" "$PSScriptRoot\UiTheme.cs" "$PSScriptRoot\ArchiveSearchPanel.cs" "$PSScriptRoot\TelegramAnalysisService.cs" "$PSScriptRoot\RecoveryHub.cs" "$PSScriptRoot\RecoverySources.cs" "$PSScriptRoot\AdditionalSources.cs" "$PSScriptRoot\StorageRecovery.cs" "$PSScriptRoot\StorageRecoveryPanel.cs" "$PSScriptRoot\RaidRecovery.cs" "$PSScriptRoot\WpdInterop.cs" "$PSScriptRoot\HelperClient.cs" "$PSScriptRoot\RecoveryPipeline.cs" "$PSScriptRoot\FilesystemRecovery.cs" "$PSScriptRoot\AdvancedEngines.cs" "$PSScriptRoot\ExtraPhotoSearch.cs" "$PSScriptRoot\PhotoCatalog.cs" "$PSScriptRoot\RecoveryOptions.cs" "$PSScriptRoot\BootScout.cs" "$PSScriptRoot\ContainerCarver.cs" "$PSScriptRoot\ResilientCapture.cs" "$PSScriptRoot\RecoveryCatalog.cs" "$PSScriptRoot\RecoverySettingsPanel.cs" "$PSScriptRoot\RecoveryFilesForm.cs" "$PSScriptRoot\ModernControls.cs" "$PSScriptRoot\RecoveryMotion.cs" "$PSScriptRoot\RecoveryStageProgress.cs" "$PSScriptRoot\RecoveryResultsOverview.cs" "$PSScriptRoot\RawTextSearch.cs" "$PSScriptRoot\ContentVerifier.cs" "$PSScriptRoot\FileEvidence.cs" "$PSScriptRoot\MetadataRescue.cs" "$PSScriptRoot\ArchiveSalvage.cs" "$PSScriptRoot\FragmentedZipRecovery.cs" "$PSScriptRoot\UserSignatureRecovery.cs" "$PSScriptRoot\UserSignatureDialog.cs" "$PSScriptRoot\RecoverySession.cs" "$PSScriptRoot\ResumableCapture.cs"
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+﻿param([ValidateSet('Build','Helper','Package','Test','All')][string]$Action='Build',[string]$Python312='',[switch]$SkipTests)
+$ErrorActionPreference='Stop'
+switch($Action){
+ 'Build' { & (Join-Path $PSScriptRoot 'scripts\build-app.ps1') }
+ 'Helper' { & (Join-Path $PSScriptRoot 'scripts\build-helper.ps1') -Python312 $Python312 -SkipTests:$SkipTests }
+ 'Package' { & (Join-Path $PSScriptRoot 'scripts\package.ps1') }
+ 'Test' { & (Join-Path $PSScriptRoot 'scripts\test.ps1') }
+ 'All' { & (Join-Path $PSScriptRoot 'scripts\build-app.ps1'); & (Join-Path $PSScriptRoot 'scripts\build-helper.ps1') -Python312 $Python312 -SkipTests:$SkipTests; & (Join-Path $PSScriptRoot 'scripts\package.ps1'); & (Join-Path $PSScriptRoot 'scripts\test.ps1') }
+}

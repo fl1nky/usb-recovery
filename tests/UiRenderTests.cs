@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -15,7 +15,7 @@ public static class UiRenderTests
     {
         string basePath=Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,".."));
         AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs args) {
-            return args.Name.StartsWith("USB-Recovery,") ? Assembly.LoadFrom(Path.Combine(basePath,"USB-Recovery.exe")) : null;
+            return args.Name.StartsWith("USB-Recovery,") ? Assembly.LoadFrom(Path.Combine(basePath,".build","app","USB-Recovery.exe")) : null;
         };
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);

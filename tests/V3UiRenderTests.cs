@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -12,7 +12,7 @@ public static class V3UiRenderTests
     [STAThread] public static int Main()
     {
         string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".."));
-        AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs args) { return args.Name.StartsWith("USB-Recovery,") ? Assembly.LoadFrom(Path.Combine(basePath, "USB-Recovery.exe")) : null; };
+        AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs args) { return args.Name.StartsWith("USB-Recovery,") ? Assembly.LoadFrom(Path.Combine(basePath, ".build", "app", "USB-Recovery.exe")) : null; };
         Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false); try { return Render(); } catch (Exception ex) { Console.WriteLine("FAIL " + ex.Message); return 1; }
     }
     [MethodImpl(MethodImplOptions.NoInlining)] static int Render()

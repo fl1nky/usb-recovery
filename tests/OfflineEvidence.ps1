@@ -1,4 +1,4 @@
-# Shared evidence for synthetic packaged tests. No source medium is opened here.
+﻿# Shared evidence for synthetic packaged tests. No source medium is opened here.
 function Get-RecoveryEvidenceHash([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }

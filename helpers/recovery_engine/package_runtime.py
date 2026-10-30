@@ -49,7 +49,9 @@ if "--skip-rebuild-bundle" not in sys.argv:
     for name in ("iphone-backup-decrypt",):
         shutil.copytree(ROOT / "vendor" / name, rebuild / "vendor" / name,
                         ignore=shutil.ignore_patterns(".git", "__pycache__", "build", "*.egg-info"), dirs_exist_ok=True)
-    shutil.copyfile(ROOT / "build-engine.ps1", rebuild / "build-engine.ps1")
+    (rebuild / "scripts").mkdir(exist_ok=True)
+    for name in ("build-helper.ps1", "ProjectPaths.ps1"):
+        shutil.copyfile(ROOT / "scripts" / name, rebuild / "scripts" / name)
     (rebuild / "tests").mkdir(exist_ok=True)
     for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
@@ -58,7 +60,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
             shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"
-        "Run build-engine.ps1 -Python312 <absolute interpreter path>.\n"
+        "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"
         "No package index is used: fixed wheels, source packages and SHA256 inventory are bundled.\n"
         "Runtime use requires no Python or network installation.\n"
         "Current messenger support is Telegram only.\n", encoding="utf-8")

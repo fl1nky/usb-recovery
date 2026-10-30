@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
+﻿param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
 $ErrorActionPreference = 'Stop'
 $taskProject = Split-Path -Parent $PSScriptRoot
 $taskApp = [IO.Path]::GetFullPath($ApplicationDirectory)

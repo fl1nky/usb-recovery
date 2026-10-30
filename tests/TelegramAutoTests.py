@@ -6,12 +6,13 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import sqlite3
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "helpers/recovery_engine"))
@@ -105,6 +106,14 @@ class TelegramAutoTests(unittest.TestCase):
                 self.assertNotIn(b"SECRET_CANARY_NOT_A_MESSAGE", item.read_bytes())
                 self.assertNotIn(b"secret-WA", item.read_bytes())
                 self.assertNotIn(b"secret-Signal", item.read_bytes())
+
+    def test_bad_canonical_record_does_not_skip_following_messages(self):
+        bad = message(text="damaged record", mid=1)
+        bad["evidence_kind"] = []
+        canonical(self.input / "messages.jsonl", [bad, message(text="readable after corruption", mid=2)])
+        _, result, records = self.run_analysis()
+        self.assertEqual(result["messages"], 1)
+        self.assertEqual(records[0]["text"], "readable after corruption")
 
     def test_native_tdata_encrypted_no_key_session_reads_or_copies(self):
         tdata = self.input / "tdata"
@@ -290,6 +299,70 @@ class TelegramAutoTests(unittest.TestCase):
             self.assertEqual(records[0]["text"], "WAL recipe")
             self.assertNotIn("TELEGRAM_WAL_INVALID", result["warnings"])
             self.assertEqual(before, {p: sha(p) for p in files})
+        finally:
+            con.close()
+
+    def test_wal_validation_streams_pages_and_rejects_corrupted_tail(self):
+        source = self.input / "source.db"
+        copied = self.base / "copied.db"
+        wal = Path(str(copied) + "-wal")
+        reads = []
+        original_open = Path.open
+
+        class BoundedRead:
+            def __init__(self, stream):
+                self.stream = stream
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                self.stream.close()
+
+            def fileno(self):
+                return self.stream.fileno()
+
+            def read(self, size=-1):
+                if not 0 < size <= 65536:
+                    raise AssertionError("WAL validation must read at most one bounded page")
+                reads.append(size)
+                return self.stream.read(size)
+
+        def bounded_open(path, *args, **kwargs):
+            stream = original_open(path, *args, **kwargs)
+            return BoundedRead(stream) if path == wal and args == ("rb",) else stream
+
+        con = sqlite3.connect(source)
+        try:
+            con.execute("PRAGMA page_size=65536")
+            con.execute("PRAGMA journal_mode=WAL")
+            con.execute("CREATE TABLE messages(text TEXT)")
+            con.commit()
+            for number in range(4):
+                con.execute("INSERT INTO messages VALUES(?)", (f"commit {number}",))
+                con.commit()
+            shutil.copyfile(source, copied)
+            shutil.copyfile(Path(str(source) + "-wal"), wal)
+            scanner = auto.Analyzer({"destination": str(self.base / "validation-result")}, engine.Importer, lambda *a, **k: None)
+            scanner.worker = Mock()
+            before = sha(copied), sha(wal)
+            with patch.object(Path, "open", bounded_open):
+                scanner.validate_wal(copied, source)
+            self.assertEqual((sha(copied), sha(wal)), before)
+            self.assertNotIn("TELEGRAM_WAL_INVALID", scanner.warnings)
+            self.assertGreater(reads.count(65536), 1)
+            scanner.worker.remark.assert_called_once_with("WAL_CHECKED_COMMITS", source)
+
+            with wal.open("r+b") as stream:
+                stream.seek(-1, os.SEEK_END)
+                value = stream.read(1)
+                stream.seek(-1, os.SEEK_END)
+                stream.write(bytes([value[0] ^ 1]))
+            with patch.object(Path, "open", bounded_open):
+                scanner.validate_wal(copied, source)
+            self.assertIn("TELEGRAM_WAL_INVALID", scanner.warnings)
+            self.assertFalse(wal.exists())
+            self.assertEqual(sha(copied), before[0])
         finally:
             con.close()
 
