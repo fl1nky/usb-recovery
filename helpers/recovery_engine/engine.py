@@ -312,7 +312,10 @@ class Importer:
                         "media_kind", "media_id", "media_status", "thumbnail_count")):
                     previous.setdefault("additional_sources", []).append(
                         {name: m.get(name) for name in ("snapshot_id", "source_file", "source_record", "source_sha256",
-                            "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256") if m.get(name) is not None})
+                            "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256",
+                            "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
+                            "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
+                            "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified") if m.get(name) is not None})
                     return
             if candidates and evidence == "previous":
                 m["evidence_kind"] = "previous"

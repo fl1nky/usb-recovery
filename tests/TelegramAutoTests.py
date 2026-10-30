@@ -358,10 +358,11 @@ class TelegramAutoTests(unittest.TestCase):
                 value = stream.read(1)
                 stream.seek(-1, os.SEEK_END)
                 stream.write(bytes([value[0] ^ 1]))
+            corrupted_sha = sha(wal)
             with patch.object(Path, "open", bounded_open):
-                scanner.validate_wal(copied, source)
+                self.assertFalse(scanner.validate_wal(copied, source))
             self.assertIn("TELEGRAM_WAL_INVALID", scanner.warnings)
-            self.assertFalse(wal.exists())
+            self.assertEqual(sha(wal), corrupted_sha)
             self.assertEqual(sha(copied), before[0])
         finally:
             con.close()

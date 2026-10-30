@@ -1,0 +1,539 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v7-media/final-audio-score-01.json",
+    "source_sha256": "6837ee5b78388290279de796974cc1e15e14d7f375c509511f817d2ce4a247ab",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "tool": "Recovery",
+    "edition": "source build",
+    "label": "v7-final-audio",
+    "manifest_sha256": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "run_sha256": "89df53ec27a884067127275174f67c306797ae76c96b39554307aadd6f5fe98b",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "avc-aac-faststart-contiguous",
+        "status": "completed",
+        "elapsed_ms": 3547,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-contiguous\\files.1\\f0000256.mp4",
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-faststart.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-chunk-islands",
+        "status": "completed",
+        "elapsed_ms": 3597,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-chunk-islands\\files.1\\f0004672.mp4",
+            "sha256": "0fbe479dd33a2e27cfddc1c638565f12c0e1212cd5ca327acbee59f2814277c1",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 000001ad3c662840] channel element 3.3 is not allocated\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 000001ad3c65df80] missing picture in access unit with size 3000\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 000001ad3c65df80] Error splitting the input into NAL units.\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 000001ad3c65df80] missing picture in access unit with size 1219\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 000001ad3c65df80] Error splitting the input into NAL units.\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 000001ad3c65df80] missing picture in access unit with size 1172\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 000001ad3c65df80] Error splitting the input into NAL units.\r\n[h264 @ 000001ad3c65df80] Invalid NAL unit size (-858993460 > 1037).\r\n[h264 @ 000001ad3c65d",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-chunk-islands\\fragmented-media\\candidate-642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39.mp4",
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-faststart.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-4k-islands",
+        "status": "completed",
+        "elapsed_ms": 3393,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-4k-islands\\files.1\\f0000768.mp4",
+            "sha256": "a2407158c70840f4a4d0583cb340fba234cedca6450e28cc225cec32fc9e1541",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001d103758c00] left block unavailable for requested intra mode\r\n[h264 @ 000001d103758c00] error while decoding MB 0 2, bytestream 944\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 1219\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 1172\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 1037).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 1041\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 1159).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 1163\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 912).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 916\r\n[h264 @ 000001d1053d7ec0] Invalid NAL unit size (-858993460 > 3090).\r\n[h264 @ 000001d1053d7ec0] missing picture in access unit with size 3094",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-4k-islands\\fragmented-media\\candidate-642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39.mp4",
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-faststart.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-all-chunks",
+        "status": "completed",
+        "elapsed_ms": 3459,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 2,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-all-chunks\\files.1\\f0005184_moov.mov",
+            "sha256": "bb69f3df61c7404effb500299fe04070830cd64ba737cfa4ea70e66e85a5d027",
+            "bytes": 30226,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 000002cac65b1c00] channel element 3.3 is not allocated\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 000002cac65ac440] missing picture in access unit with size 3000\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 000002cac65ac440] Error splitting the input into NAL units.\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 000002cac65ac440] missing picture in access unit with size 1219\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 000002cac65ac440] Error splitting the input into NAL units.\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 000002cac65ac440] missing picture in access unit with size 1172\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 000002cac65ac440] Error splitting the input into NAL units.\r\n[h264 @ 000002cac65ac440] Invalid NAL unit size (-858993460 > 1037).\r\n[h264 @ 000002cac65ac",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-all-chunks\\files.1\\f0006080.mp4",
+            "sha256": "b1c35f1e6d75af66f96c70ff2572346caa6812dee411ad1134cffb50e33fba5c",
+            "bytes": 32,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000002a4d33299c0] moov atom not found\r\n[in#0 @ 000002a4d32c2c80] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-all-chunks\\files.1\\f0006080.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-all-chunks\\fragmented-media\\candidate-642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39.mp4",
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-faststart.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-audio-overwrite",
+        "status": "completed",
+        "elapsed_ms": 3399,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-faststart-audio-overwrite\\files.1\\f0001088.mp4",
+            "sha256": "0fbe479dd33a2e27cfddc1c638565f12c0e1212cd5ca327acbee59f2814277c1",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 0000023f1db63e80] channel element 3.3 is not allocated\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 0000023f1db5f680] missing picture in access unit with size 3000\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 2996).\r\n[h264 @ 0000023f1db5f680] Error splitting the input into NAL units.\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 0000023f1db5f680] missing picture in access unit with size 1219\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 1215).\r\n[h264 @ 0000023f1db5f680] Error splitting the input into NAL units.\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 0000023f1db5f680] missing picture in access unit with size 1172\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 1168).\r\n[h264 @ 0000023f1db5f680] Error splitting the input into NAL units.\r\n[h264 @ 0000023f1db5f680] Invalid NAL unit size (-858993460 > 1037).\r\n[h264 @ 0000023f1db5f",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-contiguous",
+        "status": "completed",
+        "elapsed_ms": 3212,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-contiguous\\files.1\\f0000256.mp4",
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-tailmoov.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-chunk-islands",
+        "status": "completed",
+        "elapsed_ms": 3356,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-chunk-islands\\files.1\\f0004672.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001d7c1963440] moov atom not found\r\n[in#0 @ 000001d7c1963200] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-chunk-islands\\files.1\\f0004672.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-chunk-islands\\fragmented-media\\candidate-8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2.mp4",
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-tailmoov.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-4k-islands",
+        "status": "completed",
+        "elapsed_ms": 5611,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-4k-islands\\files.1\\f0002688.mp4",
+            "sha256": "d8e9ac2f3b82aa41bb9d9be52049cbe13543a2e80c52197b6a7a5e2c69229ad5",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001e3e9183e40] moov atom not found\r\n[in#0 @ 000001e3e9183cc0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-4k-islands\\files.1\\f0002688.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-4k-islands\\fragmented-media\\candidate-8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2.mp4",
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-tailmoov.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-all-chunks",
+        "status": "completed",
+        "elapsed_ms": 3454,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 2,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-all-chunks\\files.1\\f0001536.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000022815051cc0] moov atom not found\r\n[in#0 @ 00000228150b4e80] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-all-chunks\\files.1\\f0001536.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-all-chunks\\files.1\\f0007360_moov.mov",
+            "sha256": "94b5bccafc272daf374f93886284ef4267c68418457a9f3d41f71c3f139490b9",
+            "bytes": 1926,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 00000295237e1340] channel element 0.0 duplicate\r\n[h264 @ 00000295237dbac0] Invalid NAL unit size (0 > 1774).\r\n[h264 @ 00000295237dbac0] missing picture in access unit with size 1778\r\n[h264 @ 00000295237dbac0] Invalid NAL unit size (0 > 1774).\r\n[h264 @ 00000295237dbac0] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000295237d9d00] stream 1, offset 0xc4c: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000295237d9d00] stream 0, offset 0xfee: partial file\r\n[h264 @ 00000295237e0080] Invalid NAL unit size (0 > 1774).\r\n[h264 @ 00000295237e0080] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 00000295237e1340] [dec:h264 @ 0000029525340d80] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 00000295237e1340] [dec:h264 @ 0000029525340d80] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 00000295253408c0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 00000295253408c0] Task finished with error code: -1094",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-all-chunks\\fragmented-media\\candidate-8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2.mp4",
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "video",
+            "decoded_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+            "valid": true,
+            "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+            "benchmark_class": "exact_original",
+            "matches": [
+              "avc-aac-tailmoov.mp4"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-audio-overwrite",
+        "status": "completed",
+        "elapsed_ms": 3201,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-audio-overwrite\\files.1\\f0002496.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000130deb32180] moov atom not found\r\n[in#0 @ 00000130deb96740] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\final-audio-results-01\\avc-aac-tailmoov-audio-overwrite\\files.1\\f0002496.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+  }
+}

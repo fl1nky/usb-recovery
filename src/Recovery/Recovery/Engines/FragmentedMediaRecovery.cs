@@ -13,7 +13,7 @@ namespace UsbRecovery
     // https://developer.apple.com/documentation/quicktime-file-format/chunk_offset_atom
     // A sample table has no payload hashes. Even unique syntactically matching
     // chunks remain candidates; neither ownership nor deletion is authenticated.
-    public static class FragmentedMediaRecovery
+    public static partial class FragmentedMediaRecovery
     {
         public const int MaximumHeaders=100000,MaximumSampleBytes=8*1024*1024,MaximumMetadataBytes=16*1024*1024;
         public const int MaximumChunks=20000,MaximumSamples=100000,MaximumMovies=64;
@@ -51,11 +51,11 @@ namespace UsbRecovery
             public string Status="incomplete";
             public Dictionary<string,int> Skipped=new Dictionary<string,int>(StringComparer.Ordinal);
             public List<Result> Files=new List<Result>();
-            public string Scope="Classic self-contained MP4/MOV, one mdat, densely packed non-overlapping chunks; contiguous surviving ftyp and moov, optional one free/wide box. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with complete supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter and slice headers are checked, CABAC and reference pictures are not decoded. AAC uses either agreeing bracketing video/container anchors or complete bounded AAC syntax walks at 512-byte aligned starts and surviving video/container affine offsets. Syntax search does not decode PCM or authenticate audio; it does not search every possible byte position. Whole chunks may be scattered/reordered. HE-AAC/other audio, fragmented MP4/moof, arbitrary splits inside a sample/chunk, synthesized padding and missing bytes remain unsupported. Distinct complete matching payload assignments are ambiguous and are not joined.";
+            public string Scope="Classic self-contained MP4/MOV, one mdat, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Bounds: 16MiB file, 4096 cells, 8192 assignment states, 32MiB retained unit data; metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
         }
-        sealed class Reject:Exception {public string Code;public Reject(string code){Code=code;}}
+        sealed class Reject:Exception {public string Code;public bool VideoOnly;public Reject(string code){Code=code;}}
         sealed class Budget:Exception {}
-        sealed class Atom {public long Offset,Bytes;public int Header;public string Type;public byte[] Raw;}
+        sealed class Atom {public long Offset,Bytes;public int Header;public string Type;public byte[] Raw;public List<Extent> Parts;}
         sealed class Chunk {public long Logical,Bytes;public string Codec;public int[] Samples;public int Width,Height,Channels,AudioFrequency;public HevcSampleValidator.Configuration Hevc;}
         sealed class Movie {public Atom Moov;public List<Chunk> Chunks=new List<Chunk>();public int Tracks;}
         sealed class Box {public int At,Bytes,Header;public string Type;public int Data{get{return At+Header;}}public int End{get{return At+Bytes;}}}
@@ -69,6 +69,7 @@ namespace UsbRecovery
             public Dictionary<string,List<Payload>> Cache=new Dictionary<string,List<Payload>>(StringComparer.Ordinal);
             public long RetainedMetadataBytes;
             public int LayoutAttempts;
+            public UnitIndex Units;
             public byte[] Read(long at,int count,bool charge=false){
                 Cancel.ThrowIfCancellationRequested();if(at<0||count<0||at>Input.Length-count)throw new Reject("source_bounds");
                 if(charge){if(count>Limits.MaxVerifiedBytes-Report.VerifiedBytes)throw new Budget();Report.VerifiedBytes+=count;}
@@ -262,10 +263,10 @@ namespace UsbRecovery
                     if(++c.LayoutAttempts>4096)throw new Budget();c.Cancel.ThrowIfCancellationRequested();
                     long gap=first-ftyp.Bytes-mdat.Header-(front?movie.Moov.Bytes:0);if(gap<0||gap>1024*1024)continue;
                     Atom free=null;if(gap>0){var matches=c.Free.Where(x=>x.Bytes==gap).ToArray();if(matches.Length==0)continue;free=UniqueAtom(matches);}
-                    var ext=new List<Extent>{Ext(0,ftyp,"ftyp")};long logical=ftyp.Bytes;if(front){ext.Add(Ext(logical,movie.Moov,"moov"));logical+=movie.Moov.Bytes;}
+                    var ext=new List<Extent>{Ext(0,ftyp,"ftyp")};long logical=ftyp.Bytes;if(front){ext.AddRange(MetadataExtents(logical,movie.Moov));logical+=movie.Moov.Bytes;}
                     if(free!=null){ext.Add(Ext(logical,free,free.Type));logical+=free.Bytes;}
                     ext.Add(new Extent{ImageOffset=mdat.Offset,LogicalOffset=logical,Length=mdat.Header,Kind="mdat_header",EquivalentOffsets=new List<long>{mdat.Offset}});logical+=mdat.Header+mediaBytes;
-                    if(!front)ext.Add(Ext(logical,movie.Moov,"moov"));
+                    if(!front)ext.AddRange(MetadataExtents(logical,movie.Moov));
                     if(ext.Any(a=>ext.Any(b=>!Object.ReferenceEquals(a,b)&&Overlaps(a,b))))continue;layouts.Add(ext);
                 }
             }}
@@ -276,7 +277,7 @@ namespace UsbRecovery
         static Result Assemble(Context c,Movie movie,string folder)
         {
             var extents=Layout(c,movie);var videos=movie.Chunks.Where(x=>x.Codec!="mp4a").ToList();if(videos.Count==0)throw new Reject("video_anchor_missing");var matches=videos.Select(chunk=>FindPayload(c,chunk)).ToArray();if(matches.Any(x=>x.Count==0))throw new Reject("chunk_missing_or_invalid");
-            Payload[] selected=SelectPayloads(c,videos,matches,extents);
+            Payload[] selected;try{selected=SelectPayloads(c,videos,matches,extents);}catch(Reject error){if(error.Code=="chunk_payload_ambiguous")error.VideoOnly=true;throw;}
             for(int i=0;i<videos.Count;i++){var chunk=videos[i];var item=selected[i];extents.Add(new Extent{ImageOffset=item.Offset,LogicalOffset=chunk.Logical,Length=chunk.Bytes,Kind="sample_chunk",EquivalentOffsets=matches[i].Where(x=>x.Sha==item.Sha).Select(x=>x.Offset).ToList()});}
             var audio=movie.Chunks.Where(x=>x.Codec=="mp4a").ToArray();bool audioSyntax=false;
             try { extents.AddRange(GeometryAudio(c,movie,extents,audio)); }
@@ -287,7 +288,11 @@ namespace UsbRecovery
                 // spectral boundary and rejects distinct complete assignments.
                 extents.AddRange(SyntaxAudio(c,extents,audio));audioSyntax=true;
             }
-            extents=extents.OrderBy(e=>e.LogicalOffset).ToList();long length=0;foreach(var e in extents){if(e.LogicalOffset!=length)throw new Reject("output_gaps_or_overlap");length+=e.Length;}if(length>MaximumFileBytes)throw new Reject("file_size_limit");
+            return WriteCandidate(c,movie,folder,extents,audioSyntax);
+        }
+        static Result WriteCandidate(Context c,Movie movie,string folder,List<Extent> extents,bool audioSyntax,string expectedSha=null)
+        {
+            var audio=movie.Chunks.Where(x=>x.Codec=="mp4a").ToArray();extents=extents.OrderBy(e=>e.LogicalOffset).ToList();long length=0;foreach(var e in extents){if(e.LogicalOffset!=length)throw new Reject("output_gaps_or_overlap");length+=e.Length;}if(length>MaximumFileBytes)throw new Reject("file_size_limit");
             if(length>c.Limits.MaxOutputBytes-c.Report.OutputBytes||c.Report.Files.Count>=c.Limits.MaxFiles)throw new Budget();
             bool contiguous=true;long physical=extents[0].ImageOffset;foreach(var e in extents){if(e.ImageOffset!=physical)contiguous=false;physical=e.ImageOffset+e.Length;}if(contiguous)throw new Reject("already_contiguous");
             string temporary=Path.Combine(folder,".media-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
@@ -295,6 +300,7 @@ namespace UsbRecovery
                 string digest;using(var sha=SHA256.Create())using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
                     owned=true;byte[] b=new byte[65536];foreach(var e in extents){c.Input.Position=e.ImageOffset;long left=e.Length;while(left>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(b,0,(int)Math.Min(left,b.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);left-=n;}}sha.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
                 }
+                if(expectedSha!=null&&digest!=expectedSha)throw new IOException("MEDIA_SOURCE_CHANGED");
                 string name="candidate-"+digest+".mp4",target=Path.Combine(folder,name);if(File.Exists(target)){File.Delete(temporary);owned=false;throw new Reject("duplicate_output");}File.Move(temporary,target);owned=false;
                 var result=new Result{Path="fragmented-media/"+name,Sha256=digest,Bytes=length,MoovOffset=movie.Moov.Offset,Tracks=movie.Tracks,Chunks=movie.Chunks.Count,AudioChunks=audio.Length,AudioGeometryInferred=audio.Length>0,AudioSyntaxChecked=audioSyntax,AudioSearch=audio.Length==0?null:audioSyntax?"sector_and_video_delta_syntax":"two_anchor_geometry",Extents=extents};
                 if(audio.Length>0)result.Note+=audioSyntax?" AAC-LC sample syntax was walked completely without PCM synthesis. Only 512-byte aligned starts and surviving video/container affine offsets were searched; a unique non-overlapping byte assignment was found within that scope. This is not an audio checksum or proof of original ownership.":" AAC-LC bytes were copied only between agreeing surviving video/container anchors. AAC element boundaries were checked, not full AAC decoding; audio identity and original integrity remain unverified.";return result;
@@ -403,7 +409,13 @@ namespace UsbRecovery
             try{
                 using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
                     report.InputBytes=input.Length;var c=new Context{Input=input,Report=report,Limits=limits,Cancel=cancel};Scan(c,progress);
-                    foreach(var atom in c.Moov){cancel.ThrowIfCancellationRequested();try{var movie=ParseMovie(atom);report.Movies++;var result=Assemble(c,movie,folder);report.Files.Add(result);report.OutputBytes+=result.Bytes;report.Candidates++;report.Recovered++;}catch(Reject error){Skip(report,error.Code);}}
+                    foreach(var atom in c.Moov){cancel.ThrowIfCancellationRequested();try{
+                        Movie movie=null;Reject parseError=null;try{movie=ParseMovie(atom);}catch(Reject error){parseError=error;}
+                        report.Movies++;Result result;
+                        if(movie==null){try{result=AssembleRepairedUnits(c,atom,folder);}catch(Reject repair){if(repair.Code=="moov_unit_missing"||repair.Code=="moov_unit_limit"||repair.Code=="unit_mapping_missing")throw parseError;throw;}}
+                        else try{result=Assemble(c,movie,folder);}catch(Reject error){if(!UnitFallbackCode(error.Code)&&!error.VideoOnly)throw;try{result=AssembleUnits(c,movie,folder);}catch(Reject unit){if(unit.Code=="unit_mapping_missing"||unit.Code=="unit_file_limit"||unit.Code=="unit_sample_limit")throw error;throw;}}
+                        report.Files.Add(result);report.OutputBytes+=result.Bytes;report.Candidates++;report.Recovered++;
+                    }catch(Reject error){Skip(report,error.Code);}}
                 }
                 report.Status="complete";return report.Candidates;
             }catch(OperationCanceledException){report.Status="cancelled";throw;}catch(Budget){report.Status="limited";throw new IOException("MEDIA_SEARCH_LIMIT_REACHED");}catch{report.Status="failed";throw;}finally{Publish(reportPath,report);}

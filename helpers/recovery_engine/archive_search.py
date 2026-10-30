@@ -20,6 +20,10 @@ MAX_SORT_WINDOW = 100_000
 APPS = {"", "Telegram", "WhatsApp", "Signal"}
 EVIDENCE = {"", "export", "backup", "previous", "fragment"}
 EVIDENCE_FILTERS = EVIDENCE | {"deleted"}
+OVERFLOW_FIELDS = ("sqlite_payload_length", "sqlite_payload_sha256", "sqlite_payload_ranges",
+                   "sqlite_overflow_pages", "sqlite_overflow_chain_verified")
+WAL_TAIL_FIELDS = ("wal_tail_reason", "wal_validated_prefix_bytes",
+                   "wal_snapshot_latest_known_commit", "wal_current_state_confirmed")
 
 
 class SearchError(Exception):
@@ -56,6 +60,49 @@ def _archive_path(value):
     return root
 
 
+def _overflow_provenance(raw):
+    """Validate bounded display metadata, without claiming source authenticity.
+
+    None means an incomplete/incoherent claimed overflow map, not "no map".
+    Range verification here is structural only; search never opens source DBs.
+    """
+    if not any(raw.get(name) is not None for name in OVERFLOW_FIELDS):
+        return {}
+    length, digest = raw.get("sqlite_payload_length"), raw.get("sqlite_payload_sha256")
+    ranges, pages = raw.get("sqlite_payload_ranges"), raw.get("sqlite_overflow_pages")
+    verified = raw.get("sqlite_overflow_chain_verified")
+    if (type(length) is not int or not 1 <= length <= 4096 * 65536 or
+            not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest) or
+            type(verified) is not bool or not isinstance(ranges, list) or not 2 <= len(ranges) <= 4096 or
+            not isinstance(pages, list) or len(pages) != len(ranges) - 1 or
+            any(type(page) is not int or not 1 <= page <= 262144 for page in pages) or len(set(pages)) != len(pages)):
+        return None
+    keys = {"logical_offset", "bytes", "sqlite_page", "physical_source", "physical_byte_offset", "wal_frame"}
+    position, cleaned, physical = 0, [], {"db": [], "wal": []}
+    for value in ranges:
+        if not isinstance(value, dict) or set(value) != keys:
+            return None
+        logical, size, page, source, offset, frame = (value[name] for name in
+            ("logical_offset", "bytes", "sqlite_page", "physical_source", "physical_byte_offset", "wal_frame"))
+        if (type(logical) is not int or logical != position or type(size) is not int or not 1 <= size <= 65536 or
+                type(page) is not int or not 1 <= page <= 262144 or source not in ("db", "wal") or
+                type(offset) is not int or not 0 <= offset <= 4 * 1024**3 - size or
+                (frame is not None if source == "db" else type(frame) is not int or not 1 <= frame <= 262144)):
+            return None
+        position += size
+        if position > length:
+            return None
+        cleaned.append(dict(value))
+        physical[source].append((offset, offset + size))
+    if position != length or [value["sqlite_page"] for value in cleaned[1:]] != pages or cleaned[0]["sqlite_page"] in pages:
+        return None
+    for intervals in physical.values():
+        intervals.sort()
+        if any(left[1] > right[0] for left, right in zip(intervals, intervals[1:])):
+            return None
+    return dict(zip(OVERFLOW_FIELDS, (length, digest, cleaned, list(pages), verified)))
+
+
 def _normalized(raw):
     if not isinstance(raw, dict) or not isinstance(raw.get("text"), str):
         return None
@@ -66,12 +113,16 @@ def _normalized(raw):
              "source_id", "original_relative_path", "source_sha256", "record_kind", "completeness",
              "byte_offset", "byte_length", "encoding", "application_confirmed", "identity_scope",
              "native_constructor", "native_layer", "wal_commit_frame", "wal_proof", "wal_db_sha256",
+             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit", "wal_current_state_confirmed",
              "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count",
              "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region",
              "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
              "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes")
+    overflow = _overflow_provenance(raw)
+    if overflow is None:
+        return None
     result = {name: raw.get(name) for name in names}
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))
     if not isinstance(result["app"], str) or result["app"] not in APPS - {""}:
@@ -83,18 +134,31 @@ def _normalized(raw):
             result[name] = None
         if name != "text" and isinstance(result[name], str):
             result[name] = result[name][:4096]
+    result.update(overflow)
     residuals = raw.get("residual_sources", [])
     provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
-    result["residual_sources"] = [{k: (v[:4096] if isinstance(v, str) else v) for k, v in item.items() if k in provenance_names and isinstance(v, (str, int, bool))} for item in residuals[:20] if isinstance(item, dict)] if isinstance(residuals, list) else []
+    result["residual_sources"] = []
+    for item in residuals[:20] if isinstance(residuals, list) else []:
+        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None:
+            continue
+        origin = {k: (v[:4096] if isinstance(v, str) else v) for k, v in item.items()
+                  if k in provenance_names and isinstance(v, (str, int, bool))}
+        origin.update(overflow)
+        result["residual_sources"].append(origin)
     refs = raw.get("attachments", [])
     result["attachments"] = [x for x in refs[:100] if isinstance(x, str) and len(x) < 4096] if isinstance(refs, list) else []
     origins = raw.get("additional_sources", raw.get("sources", []))
-    result["sources"] = [
-        {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
+    result["sources"] = []
+    for item in origins[:10] if isinstance(origins, list) else []:
+        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None:
+            continue
+        origin = {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
              "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count")
          if isinstance(item.get(k), (str, int))}
-        for item in origins[:10] if isinstance(item, dict)
-    ] if isinstance(origins, list) else []
+        origin.update({name: item[name][:4096] if isinstance(item[name], str) else item[name]
+                       for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool))})
+        origin.update(overflow)
+        result["sources"].append(origin)
     return result
 
 

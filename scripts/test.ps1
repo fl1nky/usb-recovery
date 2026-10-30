@@ -11,6 +11,13 @@ if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
+foreach($taskTelegramKind in 'wal_tail','overflow'){
+ $taskTelegramTarget=Join-Path $taskLayout.Root ('.build\telegram-'+$taskTelegramKind.Replace('_','-')+'-fixtures-current')
+ if(-not(Test-Path -LiteralPath (Join-Path $taskTelegramTarget 'manifest.json'))){
+  & $Python312 (Join-Path $taskLayout.Tests ('build_telegram_'+$taskTelegramKind+'_fixtures.py')) $taskTelegramTarget
+  if($LASTEXITCODE-ne0){throw 'Independent Telegram recovery fixture generation failed.'}
+ }
+}
 & $Python312 (Join-Path $taskLayout.Tests 'build_progressive_jpeg_fixtures.py') (Join-Path $taskLayout.Root '.build\progressive-jpeg-fixtures')
 if($LASTEXITCODE-ne0){throw 'Progressive fixture generation failed.'}
 $taskMdFixtures=Join-Path $taskLayout.Root '.build\raid-metadata-fixtures'
@@ -41,6 +48,11 @@ $taskAacTarget=Join-Path $taskLayout.Root '.build\aac-recovery-fixtures-current'
 if(-not(Test-Path -LiteralPath (Join-Path $taskAacTarget 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_aac_recovery_fixtures.py') --extract (Join-Path $taskLayout.Tests 'fixtures\aac-islands') --destination $taskAacTarget
  if($LASTEXITCODE-ne0){throw 'AAC offline fixture extraction failed.'}
+}
+$taskUnitFixtures=Join-Path $taskLayout.Root '.build\media-unit-fixtures-current'
+if(-not(Test-Path -LiteralPath (Join-Path $taskUnitFixtures 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_media_unit_fixtures.py') --extract (Join-Path $taskLayout.Tests 'fixtures\media-units') --destination $taskUnitFixtures
+ if($LASTEXITCODE-ne0){throw 'Offline media-unit fixture extraction failed.'}
 }
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'

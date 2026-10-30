@@ -1,0 +1,817 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/audio-corpus-01/manifest.json",
+    "source_sha256": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "seed": 20261101,
+    "scope": "Synthetic real-muxer AVC/AAC regular images, no device access",
+    "generator_sha256": "53cd4621dec1931a4999aed68a49f34d18a092c172ac6659991ac09e269fbd29",
+    "support_generator_sha256": "8085b30cbbf15b7940617e0fde6c048f6e3ae65076cce1f952d8a1c7faaf511f",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "ffmpeg_version": "ffmpeg version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+    "assets": [
+      {
+        "name": "avc-aac-faststart.mp4",
+        "path": "originals/avc-aac-faststart.mp4",
+        "bytes": 30258,
+        "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+        "decoded_frames_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+        "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+        "chunk_offsets": [
+          1974,
+          2074,
+          5074,
+          6004,
+          7223,
+          8165,
+          9337,
+          10329,
+          11370,
+          12432,
+          13595,
+          14614,
+          15530,
+          16457,
+          19551,
+          20585,
+          21638,
+          22677,
+          23616,
+          24635,
+          25490,
+          26531,
+          27541,
+          28460,
+          29220
+        ],
+        "mdat_ranges": [
+          [
+            1974,
+            30258
+          ]
+        ],
+        "top_atoms": [
+          {
+            "type": "ftyp",
+            "offset": 0,
+            "length": 32
+          },
+          {
+            "type": "moov",
+            "offset": 32,
+            "length": 1926
+          },
+          {
+            "type": "free",
+            "offset": 1958,
+            "length": 8
+          },
+          {
+            "type": "mdat",
+            "offset": 1966,
+            "length": 28292
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov.mp4",
+        "path": "originals/avc-aac-tailmoov.mp4",
+        "bytes": 30258,
+        "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+        "decoded_frames_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee",
+        "decoded_audio_sha256": "e8f2f6934682ed940e93fb39e20a1040666ecc91dee76de4e13784ebbe30819d",
+        "chunk_offsets": [
+          48,
+          148,
+          3148,
+          4078,
+          5297,
+          6239,
+          7411,
+          8403,
+          9444,
+          10506,
+          11669,
+          12688,
+          13604,
+          14531,
+          17625,
+          18659,
+          19712,
+          20751,
+          21690,
+          22709,
+          23564,
+          24605,
+          25615,
+          26534,
+          27294
+        ],
+        "mdat_ranges": [
+          [
+            48,
+            28332
+          ]
+        ],
+        "top_atoms": [
+          {
+            "type": "ftyp",
+            "offset": 0,
+            "length": 32
+          },
+          {
+            "type": "free",
+            "offset": 32,
+            "length": 8
+          },
+          {
+            "type": "mdat",
+            "offset": 40,
+            "length": 28292
+          },
+          {
+            "type": "moov",
+            "offset": 28332,
+            "length": 1926
+          }
+        ]
+      }
+    ],
+    "cases": [
+      {
+        "name": "avc-aac-faststart-contiguous",
+        "image": "images/avc-aac-faststart-contiguous.dd",
+        "bytes": 8388608,
+        "sha256": "414b9a6fd86e601618d7be7825c7fc1e2a01d355c7be6f0930fccd6456265356",
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 30258
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-faststart-chunk-islands",
+        "image": "images/avc-aac-faststart-chunk-islands.dd",
+        "bytes": 8388608,
+        "sha256": "46f76b368e087b106668b3a5f60bea6783cc23f0bda5579f80c947dddfde33da",
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2392064,
+                "length": 1974
+              },
+              {
+                "logical_offset": 1974,
+                "image_offset": 294912,
+                "length": 5249
+              },
+              {
+                "logical_offset": 7223,
+                "image_offset": 1605632,
+                "length": 4147
+              },
+              {
+                "logical_offset": 11370,
+                "image_offset": 2654208,
+                "length": 4160
+              },
+              {
+                "logical_offset": 15530,
+                "image_offset": 2719744,
+                "length": 6108
+              },
+              {
+                "logical_offset": 21638,
+                "image_offset": 688128,
+                "length": 3852
+              },
+              {
+                "logical_offset": 25490,
+                "image_offset": 524288,
+                "length": 3730
+              },
+              {
+                "logical_offset": 29220,
+                "image_offset": 1769472,
+                "length": 1038
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-faststart-4k-islands",
+        "image": "images/avc-aac-faststart-4k-islands.dd",
+        "bytes": 8388608,
+        "sha256": "83d8579a1c64b7610fa1558bd9da553a5697dd8f299a0dc49c238106a1d33c46",
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 393216,
+                "length": 4096
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 622592,
+                "length": 4096
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 688128,
+                "length": 4096
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 819200,
+                "length": 4096
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 2621440,
+                "length": 4096
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 2588672,
+                "length": 4096
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 3440640,
+                "length": 4096
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 589824,
+                "length": 1586
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-faststart-all-chunks",
+        "image": "images/avc-aac-faststart-all-chunks.dd",
+        "bytes": 8388608,
+        "sha256": "c207b8f369d95a0296beecd49caba615588c27d6f218c015bf0e5e6e3d2dc5f6",
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 3112960,
+                "length": 32
+              },
+              {
+                "logical_offset": 32,
+                "image_offset": 2654208,
+                "length": 1942
+              },
+              {
+                "logical_offset": 1974,
+                "image_offset": 884736,
+                "length": 100
+              },
+              {
+                "logical_offset": 2074,
+                "image_offset": 1376256,
+                "length": 3000
+              },
+              {
+                "logical_offset": 5074,
+                "image_offset": 1572864,
+                "length": 930
+              },
+              {
+                "logical_offset": 6004,
+                "image_offset": 2097152,
+                "length": 1219
+              },
+              {
+                "logical_offset": 7223,
+                "image_offset": 2490368,
+                "length": 942
+              },
+              {
+                "logical_offset": 8165,
+                "image_offset": 98304,
+                "length": 1172
+              },
+              {
+                "logical_offset": 9337,
+                "image_offset": 983040,
+                "length": 992
+              },
+              {
+                "logical_offset": 10329,
+                "image_offset": 1638400,
+                "length": 1041
+              },
+              {
+                "logical_offset": 11370,
+                "image_offset": 32768,
+                "length": 1062
+              },
+              {
+                "logical_offset": 12432,
+                "image_offset": 2752512,
+                "length": 1163
+              },
+              {
+                "logical_offset": 13595,
+                "image_offset": 2293760,
+                "length": 1019
+              },
+              {
+                "logical_offset": 14614,
+                "image_offset": 3702784,
+                "length": 916
+              },
+              {
+                "logical_offset": 15530,
+                "image_offset": 3440640,
+                "length": 927
+              },
+              {
+                "logical_offset": 16457,
+                "image_offset": 2621440,
+                "length": 3094
+              },
+              {
+                "logical_offset": 19551,
+                "image_offset": 2916352,
+                "length": 1034
+              },
+              {
+                "logical_offset": 20585,
+                "image_offset": 327680,
+                "length": 1053
+              },
+              {
+                "logical_offset": 21638,
+                "image_offset": 1933312,
+                "length": 1039
+              },
+              {
+                "logical_offset": 22677,
+                "image_offset": 1605632,
+                "length": 939
+              },
+              {
+                "logical_offset": 23616,
+                "image_offset": 131072,
+                "length": 1019
+              },
+              {
+                "logical_offset": 24635,
+                "image_offset": 1900544,
+                "length": 855
+              },
+              {
+                "logical_offset": 25490,
+                "image_offset": 2883584,
+                "length": 1041
+              },
+              {
+                "logical_offset": 26531,
+                "image_offset": 688128,
+                "length": 1010
+              },
+              {
+                "logical_offset": 27541,
+                "image_offset": 2326528,
+                "length": 919
+              },
+              {
+                "logical_offset": 28460,
+                "image_offset": 1998848,
+                "length": 760
+              },
+              {
+                "logical_offset": 29220,
+                "image_offset": 2981888,
+                "length": 1038
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-faststart-audio-overwrite",
+        "image": "images/avc-aac-faststart-audio-overwrite.dd",
+        "bytes": 8388608,
+        "sha256": "5e9edf3001a59d3dade172a4d77241e24434fdf1a16e75ac20857ce66434c31c",
+        "expected": [
+          {
+            "asset": "avc-aac-faststart.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 557056,
+                "length": 1974
+              },
+              {
+                "logical_offset": 1974,
+                "image_offset": 3375104,
+                "length": 5249
+              },
+              {
+                "logical_offset": 7223,
+                "image_offset": 2883584,
+                "length": 4147
+              },
+              {
+                "logical_offset": 11370,
+                "image_offset": 3309568,
+                "length": 4160
+              },
+              {
+                "logical_offset": 15530,
+                "image_offset": 655360,
+                "length": 6108
+              },
+              {
+                "logical_offset": 21638,
+                "image_offset": 3538944,
+                "length": 3852
+              },
+              {
+                "logical_offset": 25490,
+                "image_offset": 2555904,
+                "length": 3730
+              },
+              {
+                "logical_offset": 29220,
+                "image_offset": 425984,
+                "length": 1038
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-tailmoov-contiguous",
+        "image": "images/avc-aac-tailmoov-contiguous.dd",
+        "bytes": 8388608,
+        "sha256": "6958375ef5ac50cc890290c39b0024f5314fd8534204c14446af224888715a66",
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 30258
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-tailmoov-chunk-islands",
+        "image": "images/avc-aac-tailmoov-chunk-islands.dd",
+        "bytes": 8388608,
+        "sha256": "2805bb589af3f5cbcc5080ba385ab9eef38bc84c448804e50ba5419ccf2522a1",
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2392064,
+                "length": 48
+              },
+              {
+                "logical_offset": 48,
+                "image_offset": 2785280,
+                "length": 5249
+              },
+              {
+                "logical_offset": 5297,
+                "image_offset": 1605632,
+                "length": 4147
+              },
+              {
+                "logical_offset": 9444,
+                "image_offset": 1867776,
+                "length": 4160
+              },
+              {
+                "logical_offset": 13604,
+                "image_offset": 3407872,
+                "length": 6108
+              },
+              {
+                "logical_offset": 19712,
+                "image_offset": 163840,
+                "length": 3852
+              },
+              {
+                "logical_offset": 23564,
+                "image_offset": 655360,
+                "length": 3730
+              },
+              {
+                "logical_offset": 27294,
+                "image_offset": 3080192,
+                "length": 2964
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-tailmoov-4k-islands",
+        "image": "images/avc-aac-tailmoov-4k-islands.dd",
+        "bytes": 8388608,
+        "sha256": "88d346360b17b6ea43abe380b2534a0501d323b17e9b92bb1e111acc08f43ab2",
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 1376256,
+                "length": 4096
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 1900544,
+                "length": 4096
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 950272,
+                "length": 4096
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 3768320,
+                "length": 4096
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 1277952,
+                "length": 4096
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 1638400,
+                "length": 4096
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 2326528,
+                "length": 4096
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 65536,
+                "length": 1586
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-tailmoov-all-chunks",
+        "image": "images/avc-aac-tailmoov-all-chunks.dd",
+        "bytes": 8388608,
+        "sha256": "86ef8566b15dcaa7aade48271da4b9d53298960dd552e4d056b0ae534318d6f1",
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 786432,
+                "length": 48
+              },
+              {
+                "logical_offset": 48,
+                "image_offset": 229376,
+                "length": 100
+              },
+              {
+                "logical_offset": 148,
+                "image_offset": 2064384,
+                "length": 3000
+              },
+              {
+                "logical_offset": 3148,
+                "image_offset": 1245184,
+                "length": 930
+              },
+              {
+                "logical_offset": 4078,
+                "image_offset": 2621440,
+                "length": 1219
+              },
+              {
+                "logical_offset": 5297,
+                "image_offset": 589824,
+                "length": 942
+              },
+              {
+                "logical_offset": 6239,
+                "image_offset": 1802240,
+                "length": 1172
+              },
+              {
+                "logical_offset": 7411,
+                "image_offset": 1572864,
+                "length": 992
+              },
+              {
+                "logical_offset": 8403,
+                "image_offset": 3899392,
+                "length": 1041
+              },
+              {
+                "logical_offset": 9444,
+                "image_offset": 65536,
+                "length": 1062
+              },
+              {
+                "logical_offset": 10506,
+                "image_offset": 1966080,
+                "length": 1163
+              },
+              {
+                "logical_offset": 11669,
+                "image_offset": 425984,
+                "length": 1019
+              },
+              {
+                "logical_offset": 12688,
+                "image_offset": 884736,
+                "length": 916
+              },
+              {
+                "logical_offset": 13604,
+                "image_offset": 2097152,
+                "length": 927
+              },
+              {
+                "logical_offset": 14531,
+                "image_offset": 917504,
+                "length": 3094
+              },
+              {
+                "logical_offset": 17625,
+                "image_offset": 3670016,
+                "length": 1034
+              },
+              {
+                "logical_offset": 18659,
+                "image_offset": 688128,
+                "length": 1053
+              },
+              {
+                "logical_offset": 19712,
+                "image_offset": 1343488,
+                "length": 1039
+              },
+              {
+                "logical_offset": 20751,
+                "image_offset": 2752512,
+                "length": 939
+              },
+              {
+                "logical_offset": 21690,
+                "image_offset": 1277952,
+                "length": 1019
+              },
+              {
+                "logical_offset": 22709,
+                "image_offset": 3375104,
+                "length": 855
+              },
+              {
+                "logical_offset": 23564,
+                "image_offset": 3407872,
+                "length": 1041
+              },
+              {
+                "logical_offset": 24605,
+                "image_offset": 3702784,
+                "length": 1010
+              },
+              {
+                "logical_offset": 25615,
+                "image_offset": 1703936,
+                "length": 919
+              },
+              {
+                "logical_offset": 26534,
+                "image_offset": 3440640,
+                "length": 760
+              },
+              {
+                "logical_offset": 27294,
+                "image_offset": 2457600,
+                "length": 1038
+              },
+              {
+                "logical_offset": 28332,
+                "image_offset": 3768320,
+                "length": 1926
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      },
+      {
+        "name": "avc-aac-tailmoov-audio-overwrite",
+        "image": "images/avc-aac-tailmoov-audio-overwrite.dd",
+        "bytes": 8388608,
+        "sha256": "794e057b32322b3f869c0e4b35a788d2131134200656030e41fb9f5837d7ccd9",
+        "expected": [
+          {
+            "asset": "avc-aac-tailmoov.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 1277952,
+                "length": 48
+              },
+              {
+                "logical_offset": 48,
+                "image_offset": 2719744,
+                "length": 5249
+              },
+              {
+                "logical_offset": 5297,
+                "image_offset": 753664,
+                "length": 4147
+              },
+              {
+                "logical_offset": 9444,
+                "image_offset": 2392064,
+                "length": 4160
+              },
+              {
+                "logical_offset": 13604,
+                "image_offset": 3538944,
+                "length": 6108
+              },
+              {
+                "logical_offset": 19712,
+                "image_offset": 3014656,
+                "length": 3852
+              },
+              {
+                "logical_offset": 23564,
+                "image_offset": 3047424,
+                "length": 3730
+              },
+              {
+                "logical_offset": 27294,
+                "image_offset": 1998848,
+                "length": 2964
+              }
+            ]
+          }
+        ],
+        "note": "Real muxed AVC/AAC. No map in image. All-chunks/4K layouts are deliberately difficult; do not assume their geometry is recoverable."
+      }
+    ]
+  }
+}

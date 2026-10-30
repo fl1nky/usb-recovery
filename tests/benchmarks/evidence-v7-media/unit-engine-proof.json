@@ -1,0 +1,188 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v7-media/unit-engine-proof.json",
+    "source_sha256": "13add7cf29ddc773b4c757460b82fe6bacc88569450cbc52e6b1c1885c30d4a9",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "scope": "Actual copied released app engine, not public RecoveryPipeline or UI. Every independent exact/current expected byte/hash/map and permitted full frame/PCM check passed. Helper is identified only; it was not invoked in this engine test.",
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "helper_used": false,
+    "pipeline_used": false,
+    "harness_sha256": "66960474f216c3340f52b21f33da57dc95b20df198cfed6503ead476693d8203",
+    "test_source_sha256": "26d474203f6f3623e6885b4e9d3b199c03c7515412ca6793d814131a69134685",
+    "fixture_manifest_sha256": "505c844c110460569ef3b64bee868fd4f0009fedacbd9a42df4050e7b0a5ac31",
+    "verification_sha256": "f1ddea85380b5a287897dafa13f6b628e579189b21ea151f64689842dae3daf1",
+    "source_sha256": {
+      "src/Recovery/Recovery/Engines/FragmentedMediaRecovery.cs": "33e7064d89bfdc933cd9c924a72150b884cc6b5c6f406bda0e28ee0a45c9ef34",
+      "src/Recovery/Recovery/Engines/FragmentedMediaRecovery.Units.cs": "5fc486896d3a8e4d3a5c867935bbe1301ba092640c5fd559ba6ba2cdab879566"
+    },
+    "checks": 826,
+    "independent_decode": true,
+    "cases": [
+      {
+        "name": "front-4k-zero",
+        "candidates": 1,
+        "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "front-8k-random",
+        "candidates": 1,
+        "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "tail-4k-zero",
+        "candidates": 1,
+        "sha256": "a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "tail-8k-cc",
+        "candidates": 1,
+        "sha256": "a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "larger-8k-zero",
+        "candidates": 1,
+        "sha256": "be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "479ad6dec3c703138be489a9c95bec7f6ea8c14ade3982664c7953640769bbfb",
+        "pcm_sha256": "43863f763a6286c0ae0a17ae3b3cd66b24ba2ec0e59c983fb04ce6ab4ff10d8a",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "larger-16k-random",
+        "candidates": 1,
+        "sha256": "be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "479ad6dec3c703138be489a9c95bec7f6ea8c14ade3982664c7953640769bbfb",
+        "pcm_sha256": "43863f763a6286c0ae0a17ae3b3cd66b24ba2ec0e59c983fb04ce6ab4ff10d8a",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "two-video-tracks-8k",
+        "candidates": 1,
+        "sha256": "80f40877efde2132e6d6ec07bda5ae51c0f946e0a6938c877bb6728ec7f9d5d6",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "84a8eacc1e2b939691b7c8e50043e481f0ab3f8421b8face72e5b8cfb95252a3",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "nal-length-prefix-split",
+        "candidates": 1,
+        "sha256": "7d34b18738f248b779ae9c17725bdbaffd052f5c9ba994b8b21e91e1e39be370",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "identical-all-units",
+        "candidates": 1,
+        "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+        "exact_original": true,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "dee39beafaecaf97ae50397282424e796b05f2a2d2d1aa318485f699b0384331",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "same-config-foreign-choice",
+        "candidates": 0,
+        "source_unchanged": true,
+        "skipped": {
+          "unit_mapping_ambiguous": 1
+        }
+      },
+      {
+        "name": "same-config-foreign-current",
+        "candidates": 1,
+        "sha256": "73da73308912c06cadc05fc815499ba7fd5b9129d664e7b0a4a179548919c019",
+        "exact_original": false,
+        "source_unchanged": true,
+        "frames_sha256": "cbef8db3ea718d6b99795a7e8e23dd4b11f02886451a02cab64dfe846e234701",
+        "pcm_sha256": "f9d4e046bc163d8b3fabaf5bda4bf4da4fa6c73582820328fccc104ea5c909c0",
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "metadata-choice",
+        "candidates": 0,
+        "source_unchanged": true,
+        "skipped": {
+          "moov_unit_ambiguous": 1
+        }
+      },
+      {
+        "name": "audio-overwrite",
+        "candidates": 0,
+        "source_unchanged": true,
+        "skipped": {
+          "chunk_missing_or_invalid": 1
+        }
+      },
+      {
+        "name": "missing-unit",
+        "candidates": 0,
+        "source_unchanged": true,
+        "skipped": {
+          "chunk_missing_or_invalid": 1
+        }
+      },
+      {
+        "name": "nonaligned-cuts",
+        "candidates": 0,
+        "source_unchanged": true,
+        "skipped": {
+          "chunk_missing_or_invalid": 1
+        }
+      },
+      {
+        "name": "opaque-entropy-candidate",
+        "candidates": 1,
+        "sha256": "42f3d59c79adbed7d4b0c3d774fc8d43462e2ab78545e0cd648f93dcbfb4f860",
+        "exact_original": false,
+        "source_unchanged": true,
+        "frames_sha256": null,
+        "pcm_sha256": null,
+        "scope": "allocation_unit_syntax"
+      },
+      {
+        "name": "equal-metadata-different-overlap",
+        "candidates": 1,
+        "sha256": "5ad41bd944525a31f9d4d04514bb792c8a21e138a6760dd1a70cd9ae80bd58cd",
+        "exact_original": false,
+        "source_unchanged": true,
+        "frames_sha256": null,
+        "pcm_sha256": null,
+        "scope": "allocation_unit_syntax"
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "scope": "Frozen-helper stdin protocol comparison on identical owned fixtures; app binaries only hashed as distribution context",
+  "score_revision": 3,
+  "scoring_before": {
+    "revision": 3,
+    "scorer_sha256": "52e72f6fa2adb14bddba71aa30d103df70b70ed88819f723a19920d297149103",
+    "fixture_writer_sha256": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3"
+  },
+  "scoring_after": {
+    "revision": 3,
+    "scorer_sha256": "52e72f6fa2adb14bddba71aa30d103df70b70ed88819f723a19920d297149103",
+    "fixture_writer_sha256": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3"
+  },
+  "v6": {
+    "completed_cases": 19,
+    "expected_positive_cases": 15,
+    "full_exact_text_cases": 2,
+    "full_exact_text_rows": 4,
+    "attributed_exact_text_cases": 2,
+    "expected_prefix_cases": 9,
+    "verified_prefix_cases": 0,
+    "expected_overflow_cases": 4,
+    "verified_overflow_cases": 0,
+    "negative_cases": 4,
+    "unexpected_confirmed_target_cases": 0,
+    "confirmed_target_with_wrong_gold_ids": 0,
+    "corrupt_or_uncommitted_tail_promoted": 0,
+    "literal_search_attributed_cases": 2,
+    "regex_search_attributed_cases": 2,
+    "deleted_search_verified_overflow_cases": 0,
+    "wal_incorrectly_found_as_deleted_cases": 0,
+    "all_attributed_targets_keep_deletion_unknown": true
+  },
+  "v7": {
+    "completed_cases": 19,
+    "expected_positive_cases": 15,
+    "full_exact_text_cases": 16,
+    "full_exact_text_rows": 18,
+    "attributed_exact_text_cases": 15,
+    "expected_prefix_cases": 9,
+    "verified_prefix_cases": 9,
+    "expected_overflow_cases": 4,
+    "verified_overflow_cases": 4,
+    "negative_cases": 4,
+    "unexpected_confirmed_target_cases": 0,
+    "confirmed_target_with_wrong_gold_ids": 0,
+    "corrupt_or_uncommitted_tail_promoted": 0,
+    "literal_search_attributed_cases": 15,
+    "regex_search_attributed_cases": 15,
+    "deleted_search_verified_overflow_cases": 4,
+    "wal_incorrectly_found_as_deleted_cases": 0,
+    "all_attributed_targets_keep_deletion_unknown": true
+  },
+  "real_devices_tested": false,
+  "commercial_programs_compared": false,
+  "timing_comparison_claimed": false,
+  "corpus_sha256": "1a9b2792aa71e9f72738bf00f0439fb7172cd48ec93819d6cd927e6b703c4c66",
+  "exporter_sha256_before": "55d20b7bfa76d317ed31d15049cad2c1f29aae56bef56f1fb3a64d3cb5eac63e",
+  "exporter_sha256_after": "55d20b7bfa76d317ed31d15049cad2c1f29aae56bef56f1fb3a64d3cb5eac63e"
+}

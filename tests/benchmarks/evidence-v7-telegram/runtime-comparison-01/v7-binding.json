@@ -1,0 +1,343 @@
+{
+  "before": {
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "benchmark_code": {
+      "run_telegram_recovery.py": "96b1386921edadd491a58a0db9c7f1239b37446e7dc79e7d5d42dcaa7f4c0c98",
+      "score_telegram_recovery.py": "1cc71c78ddf14409774637f0f88bf66b7ca85ed57b0d63797cb81dd060cb328f"
+    },
+    "working_source_context": {
+      "helpers/recovery_engine/engine.py": "4cfa815a034780cddd706d07587713d21d7c714af76085f2f974f77dd28994e0",
+      "helpers/recovery_engine/telegram_auto.py": "e73fa446039ddf43af590495eb856582d24521bfcf7143069ebf7a1cfaa63241",
+      "helpers/recovery_engine/sqlite_history.py": "22489608ab0fccf61d444228c88813fa2d2896d96927c0edc5d790c2b2760bba",
+      "helpers/recovery_engine/sqlite_deleted.py": "735f6d07152778fd1bf232f78a79ea65ebd3f3de6edd7632ae3f0afeaa43de97",
+      "helpers/recovery_engine/archive_search.py": "bb0089e984bd49dca0531aef2b752494ad11247cbcba29494cd8dfd07dfb190a",
+      "tests/build_telegram_native_fixtures.py": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3",
+      "tests/build_telegram_wal_tail_fixtures.py": "c55b687abb1a6e42304d8c5e6429e1dc70899b530c5fad5af7572cfe03f8cc56",
+      "tests/build_telegram_overflow_fixtures.py": "f66019569d62f9a0c7854f46b9a6a03218ff6b114a08f3487dc950601cf5e0b6"
+    },
+    "owned_fixtures": {
+      "wal": {
+        "bad-first-frame-no-resync/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "bad-first-frame-no-resync/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "7a9e2556042faae6668946eb607f8b74380b7305d75eee80c20ecc7f6bbabf23"
+        },
+        "bad-header-checksum/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "bad-header-checksum/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "7b55e0e1d13abdcd1fd4f4060bc165cdd1608615ac5301bbb1e1d78b6cc56236"
+        },
+        "checksum-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "checksum-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "06d34af7608ec1be3624b291533c14557cfd280262db35ed9d53c093b2eb4890"
+        },
+        "corrupt-base-torn-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "272d03ee9b2b5a7fe7136963605e47ec450bab08a449e9d7831b4c13cde775f5"
+        },
+        "corrupt-base-torn-tail/cache4.db-wal": {
+          "bytes": 24754,
+          "sha256": "a8763ef4c81201b25e4b234d0cde18ab3138eed0bde9bfa0eaa4e44a94fb0911"
+        },
+        "manifest.json": {
+          "bytes": 8387,
+          "sha256": "8dd8907156f1288a69a4be8c934788aa167eea48d50717b67075eaa40eb70d57"
+        },
+        "missing-page-preimage/cache4.db": {
+          "bytes": 12288,
+          "sha256": "49e29332d3e71741eee8196d6ce574b4e3f0c0656eb9ffcfc7c09c3e481f54e0"
+        },
+        "missing-page-preimage/cache4.db-wal": {
+          "bytes": 12394,
+          "sha256": "8d7ec1929a062871da3bbddc41dbe312c007deca2f08210abc0b9a1687f79139"
+        },
+        "no-committed-frame/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "no-committed-frame/cache4.db-wal": {
+          "bytes": 4153,
+          "sha256": "781cc7e98498180566ab1a4f074cabd0a6a7955e45ffd2278f68bc4b3d6a33a3"
+        },
+        "normal-valid-wal/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "normal-valid-wal/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "e3bf10e38c319f318c3ff0cf1738f5dd9ad7bcd69e812da657cb89af666ea65e"
+        },
+        "page-bounds-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "page-bounds-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "5ff08705d50c24e7f04c68a5d138925cdcab929ac49b89fbb8911a2b3cc55cdd"
+        },
+        "partial-uncommitted-transaction/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "partial-uncommitted-transaction/cache4.db-wal": {
+          "bytes": 30932,
+          "sha256": "edd58d6bc613f578e4b180ea4829f2c59373a61434b1f7baa36e5884bbdf94d0"
+        },
+        "salt-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "salt-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "9d4496ff3d78a0797a5621946bbcf9acb6ef018ac5eafc0ca2ea2e1130c25144"
+        },
+        "topic-torn-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "topic-torn-tail/cache4.db-wal": {
+          "bytes": 24755,
+          "sha256": "20e196b7d8012a9144f823d002068da42bd407ca7749add9025540ee2c7010f3"
+        },
+        "torn-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "torn-after-commit/cache4.db-wal": {
+          "bytes": 24755,
+          "sha256": "8dbe1dbc744db48131c628d2bad47afcaaae4e401fdb8ccf8c81b360edd93438"
+        },
+        "torn-tail-512/cache4.db": {
+          "bytes": 512,
+          "sha256": "6264b21d08bca2e00e1aabe9539247f9a1c702aaa90b502752f38810cb4434bd"
+        },
+        "torn-tail-512/cache4.db-wal": {
+          "bytes": 3785,
+          "sha256": "1c159156b930d65ab92f52aa5c0601fe8cb55fb72c4e718831fc82e522f271ba"
+        },
+        "torn-tail-65536/cache4.db": {
+          "bytes": 65536,
+          "sha256": "0e3b98ae9ca16246cd16d9a20c8d14c984637bf0793ac2795f1ea29137adc6d0"
+        },
+        "torn-tail-65536/cache4.db-wal": {
+          "bytes": 393393,
+          "sha256": "c4a70f046a786e7a9a025bd9b081e486c6e18254d19f1e088b904c5d59792872"
+        },
+        "valid-uncommitted-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "valid-uncommitted-tail/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "667a84fca6a2e97184f84f7e1b7ba8258632997e232901991d23d54d5c1f308a"
+        }
+      },
+      "overflow": {
+        "manifest.json": {
+          "bytes": 1610,
+          "sha256": "d126f8385fe5fb54eb4780f94e691c9774ab751cc896b37f3525302cfa95fd41"
+        },
+        "page-1024/cache4.db": {
+          "bytes": 132096,
+          "sha256": "dc8c5c9e8b905e1c1d68f745a386107a70a6092eb615928e3c0bff9f43b78404"
+        },
+        "page-4096/cache4.db": {
+          "bytes": 344064,
+          "sha256": "37112d632e6cc165d0e79ef3ec9a770f8202bda9d561d9dcfc2cffe0362dd157"
+        },
+        "page-512/cache4.db": {
+          "bytes": 114176,
+          "sha256": "7eed26b2ecb643e942f81fa5d314b40c3bf9382a5e8a3f1c3312a90278be0206"
+        },
+        "page-65536/cache4.db": {
+          "bytes": 3932160,
+          "sha256": "050e85f148753c77905e46b06c73d6f0166b578464adcc3201eec1f6e3d3a537"
+        }
+      }
+    },
+    "helper_file_count": 784,
+    "helper_inventory_sha256": "85f9278cccda2fd0df9a6f4ace491aedfa67ecb0b8227b3bc29f5dd601d9f1f2"
+  },
+  "after": {
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "benchmark_code": {
+      "run_telegram_recovery.py": "96b1386921edadd491a58a0db9c7f1239b37446e7dc79e7d5d42dcaa7f4c0c98",
+      "score_telegram_recovery.py": "1cc71c78ddf14409774637f0f88bf66b7ca85ed57b0d63797cb81dd060cb328f"
+    },
+    "working_source_context": {
+      "helpers/recovery_engine/engine.py": "4cfa815a034780cddd706d07587713d21d7c714af76085f2f974f77dd28994e0",
+      "helpers/recovery_engine/telegram_auto.py": "e73fa446039ddf43af590495eb856582d24521bfcf7143069ebf7a1cfaa63241",
+      "helpers/recovery_engine/sqlite_history.py": "22489608ab0fccf61d444228c88813fa2d2896d96927c0edc5d790c2b2760bba",
+      "helpers/recovery_engine/sqlite_deleted.py": "735f6d07152778fd1bf232f78a79ea65ebd3f3de6edd7632ae3f0afeaa43de97",
+      "helpers/recovery_engine/archive_search.py": "bb0089e984bd49dca0531aef2b752494ad11247cbcba29494cd8dfd07dfb190a",
+      "tests/build_telegram_native_fixtures.py": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3",
+      "tests/build_telegram_wal_tail_fixtures.py": "c55b687abb1a6e42304d8c5e6429e1dc70899b530c5fad5af7572cfe03f8cc56",
+      "tests/build_telegram_overflow_fixtures.py": "f66019569d62f9a0c7854f46b9a6a03218ff6b114a08f3487dc950601cf5e0b6"
+    },
+    "owned_fixtures": {
+      "wal": {
+        "bad-first-frame-no-resync/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "bad-first-frame-no-resync/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "7a9e2556042faae6668946eb607f8b74380b7305d75eee80c20ecc7f6bbabf23"
+        },
+        "bad-header-checksum/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "bad-header-checksum/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "7b55e0e1d13abdcd1fd4f4060bc165cdd1608615ac5301bbb1e1d78b6cc56236"
+        },
+        "checksum-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "checksum-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "06d34af7608ec1be3624b291533c14557cfd280262db35ed9d53c093b2eb4890"
+        },
+        "corrupt-base-torn-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "272d03ee9b2b5a7fe7136963605e47ec450bab08a449e9d7831b4c13cde775f5"
+        },
+        "corrupt-base-torn-tail/cache4.db-wal": {
+          "bytes": 24754,
+          "sha256": "a8763ef4c81201b25e4b234d0cde18ab3138eed0bde9bfa0eaa4e44a94fb0911"
+        },
+        "manifest.json": {
+          "bytes": 8387,
+          "sha256": "8dd8907156f1288a69a4be8c934788aa167eea48d50717b67075eaa40eb70d57"
+        },
+        "missing-page-preimage/cache4.db": {
+          "bytes": 12288,
+          "sha256": "49e29332d3e71741eee8196d6ce574b4e3f0c0656eb9ffcfc7c09c3e481f54e0"
+        },
+        "missing-page-preimage/cache4.db-wal": {
+          "bytes": 12394,
+          "sha256": "8d7ec1929a062871da3bbddc41dbe312c007deca2f08210abc0b9a1687f79139"
+        },
+        "no-committed-frame/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "no-committed-frame/cache4.db-wal": {
+          "bytes": 4153,
+          "sha256": "781cc7e98498180566ab1a4f074cabd0a6a7955e45ffd2278f68bc4b3d6a33a3"
+        },
+        "normal-valid-wal/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "normal-valid-wal/cache4.db-wal": {
+          "bytes": 24752,
+          "sha256": "e3bf10e38c319f318c3ff0cf1738f5dd9ad7bcd69e812da657cb89af666ea65e"
+        },
+        "page-bounds-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "page-bounds-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "5ff08705d50c24e7f04c68a5d138925cdcab929ac49b89fbb8911a2b3cc55cdd"
+        },
+        "partial-uncommitted-transaction/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "partial-uncommitted-transaction/cache4.db-wal": {
+          "bytes": 30932,
+          "sha256": "edd58d6bc613f578e4b180ea4829f2c59373a61434b1f7baa36e5884bbdf94d0"
+        },
+        "salt-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "salt-after-commit/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "9d4496ff3d78a0797a5621946bbcf9acb6ef018ac5eafc0ca2ea2e1130c25144"
+        },
+        "topic-torn-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "topic-torn-tail/cache4.db-wal": {
+          "bytes": 24755,
+          "sha256": "20e196b7d8012a9144f823d002068da42bd407ca7749add9025540ee2c7010f3"
+        },
+        "torn-after-commit/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "torn-after-commit/cache4.db-wal": {
+          "bytes": 24755,
+          "sha256": "8dbe1dbc744db48131c628d2bad47afcaaae4e401fdb8ccf8c81b360edd93438"
+        },
+        "torn-tail-512/cache4.db": {
+          "bytes": 512,
+          "sha256": "6264b21d08bca2e00e1aabe9539247f9a1c702aaa90b502752f38810cb4434bd"
+        },
+        "torn-tail-512/cache4.db-wal": {
+          "bytes": 3785,
+          "sha256": "1c159156b930d65ab92f52aa5c0601fe8cb55fb72c4e718831fc82e522f271ba"
+        },
+        "torn-tail-65536/cache4.db": {
+          "bytes": 65536,
+          "sha256": "0e3b98ae9ca16246cd16d9a20c8d14c984637bf0793ac2795f1ea29137adc6d0"
+        },
+        "torn-tail-65536/cache4.db-wal": {
+          "bytes": 393393,
+          "sha256": "c4a70f046a786e7a9a025bd9b081e486c6e18254d19f1e088b904c5d59792872"
+        },
+        "valid-uncommitted-tail/cache4.db": {
+          "bytes": 4096,
+          "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+        },
+        "valid-uncommitted-tail/cache4.db-wal": {
+          "bytes": 28872,
+          "sha256": "667a84fca6a2e97184f84f7e1b7ba8258632997e232901991d23d54d5c1f308a"
+        }
+      },
+      "overflow": {
+        "manifest.json": {
+          "bytes": 1610,
+          "sha256": "d126f8385fe5fb54eb4780f94e691c9774ab751cc896b37f3525302cfa95fd41"
+        },
+        "page-1024/cache4.db": {
+          "bytes": 132096,
+          "sha256": "dc8c5c9e8b905e1c1d68f745a386107a70a6092eb615928e3c0bff9f43b78404"
+        },
+        "page-4096/cache4.db": {
+          "bytes": 344064,
+          "sha256": "37112d632e6cc165d0e79ef3ec9a770f8202bda9d561d9dcfc2cffe0362dd157"
+        },
+        "page-512/cache4.db": {
+          "bytes": 114176,
+          "sha256": "7eed26b2ecb643e942f81fa5d314b40c3bf9382a5e8a3f1c3312a90278be0206"
+        },
+        "page-65536/cache4.db": {
+          "bytes": 3932160,
+          "sha256": "050e85f148753c77905e46b06c73d6f0166b578464adcc3201eec1f6e3d3a537"
+        }
+      }
+    },
+    "helper_file_count": 784,
+    "helper_inventory_sha256": "85f9278cccda2fd0df9a6f4ace491aedfa67ecb0b8227b3bc29f5dd601d9f1f2"
+  },
+  "identical": true
+}

@@ -25,10 +25,18 @@ namespace UsbRecovery
         public string sqlite_region,offset_kind,sqlite_record_sha256;
         public object sqlite_record_page_offset,sqlite_record_length,sqlite_blob_page_offset;
         public bool? sqlite_header_length_reconstructed;
+        public string sqlite_payload_sha256;
+        public object sqlite_payload_length;
+        public Dictionary<string,object>[] sqlite_payload_ranges;
+        public long[] sqlite_overflow_pages;
+        public bool? sqlite_overflow_chain_verified;
         public string heap_class,heap_object_id,heap_record_sha256,heap_text_sha256,heap_version;
         public object candidate_sender,heap_record_length,heap_snapshot_ms,heap_identifier_bytes;
         public bool? header_length_reconstructed,deleted;
         public string identity_scope, native_constructor, wal_proof, wal_db_sha256, wal_sha256, wal_snapshot_sha256;
+        public string wal_tail_reason;
+        public object wal_validated_prefix_bytes;
+        public bool? wal_snapshot_latest_known_commit,wal_current_state_confirmed;
         public string media_kind,media_id,media_status;
         public object thumbnail_count;
         public object native_layer, wal_commit_frame;
@@ -301,6 +309,14 @@ namespace UsbRecovery
         string FirstTerm() { var terms = Regex.Split(query.Text.Trim(), "\\s+"); return terms.Length == 0 ? "" : terms[0]; }
         string OneLine(string value) { value = (value ?? "").Replace('\r', ' ').Replace('\n', ' '); if (value.Length <= 300) return value; string term = FirstTerm(); int match = String.IsNullOrEmpty(term) ? -1 : value.IndexOf(term, StringComparison.OrdinalIgnoreCase); int start = match < 0 ? 0 : Math.Max(0, match - 100); int length = Math.Min(300, value.Length - start); return (start > 0 ? "…" : "") + value.Substring(start, length) + (start + length < value.Length ? "…" : ""); }
         static string Category(string value) { switch (value) { case "export": return "Из экспорта"; case "backup": return "Из резервной копии"; case "previous": return "Предыдущая версия"; case "fragment": return "Текстовый фрагмент"; default: return "Категория неизвестна"; } }
+        static Dictionary<string,object> UnconfirmedWalOrigin(ArchiveMessage message)
+        {
+            if(message.wal_current_state_confirmed==false)return new Dictionary<string,object>{{"wal_tail_reason",message.wal_tail_reason},{"wal_validated_prefix_bytes",message.wal_validated_prefix_bytes}};
+            foreach(var origins in new[]{message.sources,message.residual_sources})if(origins!=null)foreach(var origin in origins){
+                object value;if(origin!=null&&origin.TryGetValue("wal_current_state_confirmed",out value)&&value is bool&&!(bool)value)return origin;
+            }
+            return null;
+        }
         static string ErrorLabel(string code) { switch (code) { case "REGEX_INVALID": return "Ошибка в регулярном выражении. Исправь запрос или выключи Regex."; case "REGEX_TIMEOUT": return "Регулярное выражение слишком сложное. Сократи запрос."; case "ARCHIVE_NOT_FOUND": return "В папке нет готового архива. Нажми «Анализировать» или выбери другую папку."; case "ARCHIVE_INCOMPLETE": return "Этот архив не завершён. Дождись успешного окончания импорта."; case "ARCHIVE_PATH_UNSAFE": return "Выбери обычную папку без ссылок и перенаправлений."; case "ARCHIVE_INDEX_INVALID": case "ARCHIVE_SCHEMA_UNSUPPORTED": return "Индекс архива повреждён или его формат не поддерживается."; case "QUERY_TOO_LONG": case "INVALID_REQUEST": return "Сократи запрос до 32 слов."; case "ARCHIVE_TOO_LARGE": return "Размер индекса превышает поддерживаемый предел."; default: return "Не удалось прочитать архив."; } }
         void ShowMessage()
         {
@@ -317,8 +333,15 @@ namespace UsbRecovery
             if (message.record_kind == "tl_message") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
             if (message.media_kind == "photo") details.AppendLine("\r\nВ записи есть фотография. Вложения включают только найденные локальные байты; наличие подписи не доказывает сохранность оригинального фото.");
             if (message.wal_proof == "all_pages_from_validated_wal") {
-                details.AppendLine("\r\nПредыдущий зафиксированный снимок SQLite: кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
+                details.AppendLine("\r\n"+(message.wal_snapshot_latest_known_commit==true?"Последний полностью проверенный коммит WAL":"Предыдущий зафиксированный снимок SQLite")+": кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
                 details.AppendLine("SHA256 журнала: " + Known(message.wal_sha256, null, "неизвестен") + "\r\nSHA256 снимка: " + Known(message.wal_snapshot_sha256, null, "неизвестен"));
+            }
+            var uncertainWal=UnconfirmedWalOrigin(message);
+            if(uncertainWal!=null){object prefix,reason;uncertainWal.TryGetValue("wal_validated_prefix_bytes",out prefix);uncertainWal.TryGetValue("wal_tail_reason",out reason);
+                details.AppendLine((message.wal_current_state_confirmed==false?"":"Для одного из источников: ")+"Текущее состояние переписки не подтверждено. Хвост WAL повреждён или неполон; проверено байтов: "+Known(null,prefix,"неизвестно")+". Причина: "+Known(null,reason,"неизвестна"));}
+            if(message.sqlite_overflow_chain_verified==true){
+                details.AppendLine("\r\nЗапись SQLite собрана из сохранившейся цепочки свободных страниц. Диапазонов: "+(message.sqlite_payload_ranges==null?"неизвестно":message.sqlite_payload_ranges.Length.ToString(CultureInfo.InvariantCulture))+", байтов: "+Known(null,message.sqlite_payload_length,"неизвестно")+". SHA256 найденных байтов: "+Known(message.sqlite_payload_sha256,null,"неизвестен"));
+                details.AppendLine("Цепочка и структура проверены. Это не подтверждает первоначальное содержание сообщения; полная карта исходных байтов сохранена в JSON архива.");
             }
             if(message.recovery_status=="deleted_supported_by_evidence")details.AppendLine("\r\nСтруктурная запись в свободной области страницы Telegram: отсутствует в текущей таблице. Ручное удаление пользователем не доказано. "+message.deletion_interpretation);
             if(message.residual_sources!=null)foreach(var origin in message.residual_sources){object at,page,kind;origin.TryGetValue("physical_byte_offset",out at);origin.TryGetValue("sqlite_page",out page);origin.TryGetValue("physical_source",out kind);details.AppendLine("\r\nТакже сохранился остаток: "+kind+", страница "+page+", позиция "+at+". Факт ручного удаления не установлен.");}

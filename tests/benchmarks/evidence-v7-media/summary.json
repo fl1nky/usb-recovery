@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+  "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+  "exporter_sha256": "5f55c267d99d53bc178f36fd942d23039b71883dac40299bab7bb2df61836a43",
+  "scope": "Actual public RecoveryPipeline on 56 owned synthetic regular images; separate actual V6 comparison on 17. No physical devices or fresh commercial-tool run.",
+  "results": {
+    "media": {
+      "cases": 19,
+      "expected_targets": 18,
+      "exact": 11,
+      "decoded_equivalent": 11,
+      "all_original_bytes_present": 15,
+      "complete_cases": 11
+    },
+    "audio": {
+      "cases": 10,
+      "expected_targets": 10,
+      "exact": 8,
+      "decoded_equivalent": 8,
+      "all_original_bytes_present": 8,
+      "complete_cases": 8
+    },
+    "hevc-pipeline": {
+      "cases": 10,
+      "expected_targets": 10,
+      "exact": 5,
+      "decoded_equivalent": 5,
+      "all_original_bytes_present": 6,
+      "complete_cases": 5
+    },
+    "unit-pipeline": {
+      "cases": 17,
+      "expected_targets": 17,
+      "exact": 9,
+      "decoded_equivalent": 9,
+      "all_original_bytes_present": 12,
+      "complete_cases": 9
+    }
+  },
+  "independently_validated_complete_frame_pcm_targets": {
+    "media": 11,
+    "audio": 8,
+    "hevc-pipeline": 5,
+    "unit-pipeline": 9
+  },
+  "actual_v6_shared": {
+    "media": {
+      "cases": 19,
+      "expected_targets": 18,
+      "exact": 11,
+      "decoded_equivalent": 11,
+      "all_original_bytes_present": 15,
+      "complete_cases": 11
+    },
+    "audio": {
+      "cases": 10,
+      "expected_targets": 10,
+      "exact": 6,
+      "decoded_equivalent": 6,
+      "all_original_bytes_present": 8,
+      "complete_cases": 6
+    },
+    "hevc-pipeline": {
+      "cases": 10,
+      "expected_targets": 10,
+      "exact": 5,
+      "decoded_equivalent": 5,
+      "all_original_bytes_present": 6,
+      "complete_cases": 5
+    }
+  },
+  "actual_v6_new_units": {
+    "cases": 17,
+    "expected_targets": 17,
+    "exact": 0,
+    "decoded_equivalent": 0,
+    "all_original_bytes_present": 12,
+    "complete_cases": 0
+  },
+  "actual_v6_application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+  "actual_v6_helper_sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+  "unit_engine_checks": 826,
+  "unit_engine_scope": "Actual released app engine; not UI or public pipeline",
+  "runtime_files_unchanged": 830,
+  "pipeline_cases_with_incomplete_methods": [
+    {
+      "corpus": "media",
+      "case": "raw-scattered-baseline",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-live-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-retained-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-cleared-chain",
+      "methods": [
+        "fragmented-photos"
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "ntfs-deleted-data-runs",
+      "methods": [
+        "ntfs",
+        "fragmented-photos"
+      ]
+    }
+  ],
+  "commercial_status": "not_tested for new unit/AAC/HEVC corpus; historical limited demo evidence remains separately scoped in evidence-v6",
+  "limits": [
+    "Every reported exact result is bound to an independent full original hash; decoded equivalence uses all frames/PCM.",
+    "Changed current candidates and unrelated embedded media are not silently counted as recovered originals.",
+    "A completed outer pipeline can include incomplete selected methods; their exact ledger is included.",
+    "Allocation-unit fallback has explicit 16MiB/cell/state/metadata limits and cannot infer unanchored opaque interiors or arbitrary missing bytes.",
+    "Independent tail-moov 64MiB padded control reached its search limit; no universal disk-size recovery guarantee.",
+    "Syntax, decoder acceptance, source maps and synthetic tests do not prove historical ownership/deletion or authenticate opaque entropy.",
+    "No universal paid-tool replacement, physical-device recovery rate or speed-superiority claim."
+  ]
+}

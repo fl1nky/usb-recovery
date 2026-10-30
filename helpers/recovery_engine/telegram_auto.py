@@ -230,6 +230,7 @@ class Analyzer:
         self.notification_identities = {}
         self.history_snapshot = None
         self.current_wal = None
+        self.ignore_unverified_wal = False
         self.recover_deleted = request.get("options", {}).get("recover_deleted", True) is True
         self.deleted_current_verified = True
         self.stop = False
@@ -378,6 +379,17 @@ class Analyzer:
             fields.update(previous_version=True, wal_commit_frame=history["commit_frame"],
                 wal_proof=history["proof"], wal_db_sha256=history["db_sha256"],
                 wal_sha256=history["wal_sha256"], wal_snapshot_sha256=history["sha256"])
+            if history.get("tail_reason"):
+                fields.update(wal_tail_reason=history["tail_reason"],
+                    wal_validated_prefix_bytes=history["validated_prefix_bytes"],
+                    wal_snapshot_latest_known_commit=history["is_latest_known_commit"],
+                    wal_current_state_confirmed=False)
+                if history["is_latest_known_commit"]:
+                    # A checked commit before an unreadable tail is an observed
+                    # snapshot, not proof of current state, edit, or deletion.
+                    evidence = "backup"
+                    fields.update(previous_version=False, deleted=None,
+                        recovery_status="committed_wal_prefix_snapshot", deletion_interpretation="unknown")
             fields["source_record"] = str(fields.get("source_record") or "record") + "@wal_commit:" + str(history["commit_frame"])
         elif self.current_wal:
             fields.update(wal_commit_frame=self.current_wal.get("latest_commit_frame"),
@@ -396,7 +408,8 @@ class Analyzer:
             self.worker.identities = history_ids
 
     def sqlite(self, copied, original):
-        connection = sqlite3.connect(copied.as_uri() + ("?mode=ro&immutable=1" if self.history_snapshot else "?mode=ro"), uri=True)
+        immutable = self.history_snapshot or getattr(self, "ignore_unverified_wal", False)
+        connection = sqlite3.connect(copied.as_uri() + ("?mode=ro&immutable=1" if immutable else "?mode=ro"), uri=True)
         connection.enable_load_extension(False)
         connection.execute("PRAGMA query_only=ON")
         connection.execute("PRAGMA trusted_schema=OFF")
@@ -695,7 +708,7 @@ class Analyzer:
                     self.remark("TELEGRAM_WAL_RESIDUALS_UNAVAILABLE", original, reason=error.code)
             try:
                 histories = list(iter_committed_snapshots(copied, wal, self.worker.work,
-                    report=report, cancel=lambda: self.stop, base_policy="wal_only"))
+                    report=report, cancel=lambda: self.stop, base_policy="wal_only", include_latest_on_incomplete_tail=True))
             except HistoryError as error:
                 self.remark("TELEGRAM_WAL_HISTORY_UNAVAILABLE", original, reason=error.code)
                 # No results survive a failed final source consistency check.
@@ -705,10 +718,23 @@ class Analyzer:
                 if report.get("skipped") or report.get("tail_reason"):
                     self.remark("TELEGRAM_WAL_HISTORY_INCOMPLETE", original)
         self.deleted_current_verified = self.validate_wal(copied, original)
+        self.ignore_unverified_wal = not self.deleted_current_verified
         self.current_wal = report if wal.is_file() and report.get("status") == "complete" else None
         original_snapshot = self.worker.snapshot
         try:
-            result = self.sqlite(copied, original)
+            try:
+                result = self.sqlite(copied, original)
+            except (sqlite3.DatabaseError, AutoError):
+                if not histories:
+                    raise
+                # A damaged base B-tree must not hide independently checked,
+                # fully WAL-covered snapshots. It also cannot establish the
+                # live table/free-space context for residual interpretation.
+                self.last_native_database = False
+                self.deleted_current_verified = False
+                self.pending_deleted_records = []
+                self.remark("TELEGRAM_SQLITE_CURRENT_UNREADABLE", original)
+                result = False
             self.current_wal = None
             native = self.last_native_database
             for history in reversed(histories):
@@ -745,13 +771,15 @@ class Analyzer:
         finally:
             self.history_snapshot = None
             self.current_wal = None
+            self.ignore_unverified_wal = False
             self.worker.snapshot = original_snapshot
 
     def validate_wal(self, copied, original):
         """Validate the committed WAL prefix before SQLite may replay it.
 
-        Reject the entire sidecar on invalid framing/checksum/salt. This avoids
-        silently claiming records from an unverified or partial tail.
+        Disable ordinary WAL replay on invalid framing/checksum/salt, keeping
+        the supplied bytes intact. Checked committed snapshots are reconstructed
+        separately; their pages never come from the current base database.
         """
         wal = Path(str(copied) + "-wal")
         if not wal.exists() or wal.stat().st_size == 0:
@@ -789,8 +817,6 @@ class Analyzer:
                             break
                 valid = valid and os.fstat(stream.fileno()).st_size == length
         if not valid:
-            wal.unlink(missing_ok=True)
-            Path(str(copied) + "-shm").unlink(missing_ok=True)
             self.remark("TELEGRAM_WAL_INVALID", original)
         else:
             self.worker.remark("WAL_CHECKED_COMMITS", original)

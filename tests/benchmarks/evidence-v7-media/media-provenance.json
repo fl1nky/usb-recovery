@@ -1,0 +1,364 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v7-media/final-media-provenance-01.json",
+    "source_sha256": "52b1bf74703e24c6a9e6c5dfa2eade61a8bb09e8552e495935ecc88ff22bb726",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "status": "passed",
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "run_sha256": "fa7330dde660ba0fd05fce801cc48c31af365f80cb31d2477d5de4dbce5aac5b",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "verifier_sha256": "c32c25abd436d01a40527f8258dc34df07e9c388d415b308476df037e8a30122",
+    "pipeline_used": true,
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-contiguous-avc-single",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-contiguous-mjpeg-single",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 14,
+        "unique_catalog_items": 13,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-restart",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 2,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-progressive",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 3,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-baseline",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f",
+            "bytes": 23813,
+            "source_candidate": "fragmented-media/candidate-d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f.mp4",
+            "source_ranges": [
+              {
+                "Offset": 2260992,
+                "Length": 32
+              },
+              {
+                "Offset": 2261024,
+                "Length": 1617
+              },
+              {
+                "Offset": 2262641,
+                "Length": 8
+              },
+              {
+                "Offset": 2262649,
+                "Length": 8
+              },
+              {
+                "Offset": 851968,
+                "Length": 5391
+              },
+              {
+                "Offset": 327680,
+                "Length": 2222
+              },
+              {
+                "Offset": 3768320,
+                "Length": 1041
+              },
+              {
+                "Offset": 1703936,
+                "Length": 237
+              },
+              {
+                "Offset": 163840,
+                "Length": 5173
+              },
+              {
+                "Offset": 1671168,
+                "Length": 625
+              },
+              {
+                "Offset": 1441792,
+                "Length": 1053
+              },
+              {
+                "Offset": 1605632,
+                "Length": 2086
+              },
+              {
+                "Offset": 1835008,
+                "Length": 939
+              },
+              {
+                "Offset": 65536,
+                "Length": 187
+              },
+              {
+                "Offset": 294912,
+                "Length": 855
+              },
+              {
+                "Offset": 3833856,
+                "Length": 385
+              },
+              {
+                "Offset": 1343488,
+                "Length": 1770
+              },
+              {
+                "Offset": 1277952,
+                "Length": 184
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "raw-overwritten-avc-dual",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 41,
+        "unique_catalog_items": 26,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7",
+            "bytes": 85295,
+            "source_candidate": "fragmented-media/candidate-add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7.mp4",
+            "source_ranges": [
+              {
+                "Offset": 2031616,
+                "Length": 20
+              },
+              {
+                "Offset": 2031636,
+                "Length": 1458
+              },
+              {
+                "Offset": 2033094,
+                "Length": 8
+              },
+              {
+                "Offset": 2033102,
+                "Length": 8
+              },
+              {
+                "Offset": 3538944,
+                "Length": 7229
+              },
+              {
+                "Offset": 786432,
+                "Length": 5986
+              },
+              {
+                "Offset": 3670016,
+                "Length": 3733
+              },
+              {
+                "Offset": 2883584,
+                "Length": 2991
+              },
+              {
+                "Offset": 917504,
+                "Length": 3825
+              },
+              {
+                "Offset": 2621440,
+                "Length": 6025
+              },
+              {
+                "Offset": 3014656,
+                "Length": 4041
+              },
+              {
+                "Offset": 3375104,
+                "Length": 11588
+              },
+              {
+                "Offset": 262144,
+                "Length": 4106
+              },
+              {
+                "Offset": 884736,
+                "Length": 2819
+              },
+              {
+                "Offset": 98304,
+                "Length": 21433
+              },
+              {
+                "Offset": 229376,
+                "Length": 2801
+              },
+              {
+                "Offset": 2228224,
+                "Length": 4389
+              },
+              {
+                "Offset": 3178496,
+                "Length": 2835
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "raw-overwritten-mjpeg-dual",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 38,
+        "unique_catalog_items": 24,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "fat16-live-chain",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 388,
+        "unique_catalog_items": 6,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "fat16-deleted-retained-chain",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 388,
+        "unique_catalog_items": 5,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "fat16-deleted-cleared-chain",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 388,
+        "unique_catalog_items": 5,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "ntfs-deleted-data-runs",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 815,
+        "unique_catalog_items": 5,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-malformed-decoys",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-contiguous-png",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-overwritten-png-crc",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 0,
+        "unique_catalog_items": 0,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "raw-scattered-png-crc-decoy",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 1,
+        "unique_catalog_items": 1,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      }
+    ],
+    "scope": "Actual public RecoveryPipeline results and persisted catalog/session. Every strict media candidate is rebound to its current image ranges byte for byte. This verifies provenance and observed candidate classification, not historical ownership or CABAC authenticity."
+  }
+}

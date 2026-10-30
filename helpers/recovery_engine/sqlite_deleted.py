@@ -32,6 +32,12 @@ class DeletedError(ValueError):
         super().__init__(code)
 
 
+class _OverflowPayload(ValueError):
+    def __init__(self, payload_length):
+        self.payload_length = payload_length
+        super().__init__("overflow or truncated payload")
+
+
 @dataclass(frozen=True, slots=True)
 class DeletedLimits:
     max_input_bytes: int = 4 * 1024 * 1024 * 1024
@@ -150,7 +156,7 @@ def _record(data, start, end, columns, encoding, *, damaged_length=False):
         raise ValueError("column count")
     size = sum(_serial_length(serial) for serial in serials)
     if size > end - header_end:
-        raise ValueError("overflow or truncated payload")
+        raise _OverflowPayload(header_end - start + size)
     values, offsets = {}, {}
     at = header_end
     for column, serial in zip(columns, serials):
@@ -159,6 +165,58 @@ def _record(data, start, end, columns, encoding, *, damaged_length=False):
         offsets[column] = at
         at += length
     return values, offsets, at, serials
+
+
+def _overflow_payload(pages, data, number, location, start, end, length, free_leaves):
+    """Follow only surviving pointers into validated, currently free leaves.
+
+    The local-payload formula is SQLite fileformat2 section 1.6. No allocated
+    page, freelist trunk, guessed continuation, padding or missing byte is used.
+    A reconstructed header-length byte is left as found, as for inline rows.
+    """
+    usable = pages.usable
+    maximum = usable - 35
+    if length <= maximum:
+        raise ValueError("truncated inline record")
+    if length > pages.limits.max_output_bytes:
+        pages.report["limited"] = True
+        raise ValueError("overflow output limit")
+    minimum = ((usable - 12) * 32 // 255) - 23
+    proposed = minimum + (length - minimum) % (usable - 4)
+    local = proposed if proposed <= maximum else minimum
+    if local <= 0 or local + 4 > end - start:
+        raise ValueError("missing local payload or overflow pointer")
+    pointer = int.from_bytes(data[start + local:start + local + 4], "big")
+    ranges = [{"logical_offset": 0, "bytes": local, "sqlite_page": number,
+               "physical_source": location["physical_source"],
+               "physical_byte_offset": location["physical_page_offset"] + start,
+               "wal_frame": location["wal_frame"]}]
+    parts, visited, remaining = [data[start:start + local]], set(), length - local
+    while remaining:
+        _cancel(pages.cancel)
+        if pointer not in free_leaves or pointer in visited or pointer == number:
+            raise ValueError("overflow page is not an unused leaf")
+        if len(visited) >= min(pages.limits.max_pages, 4095):
+            pages.report["limited"] = True
+            raise ValueError("overflow page limit")
+        take = min(remaining, usable - 4)
+        if take + 4 > pages.limits.max_scan_bytes - pages.report["bytes_scanned"]:
+            pages.report["limited"] = True
+            raise ValueError("overflow scan limit")
+        visited.add(pointer)
+        payload, origin = pages.read(pointer)
+        pages.report["bytes_scanned"] += take + 4
+        pages.report["pages_scanned"] += 1
+        parts.append(payload[4:4 + take])
+        ranges.append({"logical_offset": length - remaining, "bytes": take,
+                       "sqlite_page": pointer, "physical_source": origin["physical_source"],
+                       "physical_byte_offset": origin["physical_page_offset"] + 4,
+                       "wal_frame": origin["wal_frame"]})
+        pointer = int.from_bytes(payload[:4], "big")
+        remaining -= take
+    if pointer:
+        raise ValueError("overflow chain exceeds declared payload")
+    return b"".join(parts), local, ranges
 
 
 def _keys_match(row, value):
@@ -389,6 +447,7 @@ def recover(db_path, *, connection=None, include_unattributed=False,
                 report.update(page_size=pages.page_size, db_sha256=hashes[db],
                               wal_sha256=hashes.get(wal_path), current_view="validated_committed_wal_overlay" if wal else "main_database")
                 reachable = set()
+                free_leaves = set(_freelist(pages))
                 for table, root, sql in tables:
                     if not isinstance(sql, str) or not re.match(r"CREATE\s+TABLE\b", sql, re.I) or re.search(r"WITHOUT\s+ROWID", sql, re.I):
                         continue
@@ -426,11 +485,29 @@ def recover(db_path, *, connection=None, include_unattributed=False,
                                     break
                                 report["candidates_checked"] += 1
                                 try:
-                                    row, offsets, record_end, serials = _record(data, at, record_limit, columns, pages.encoding, damaged_length=damaged)
+                                    overflow = None
+                                    try:
+                                        row, offsets, record_end, serials = _record(data, at, record_limit, columns, pages.encoding, damaged_length=damaged)
+                                    except _OverflowPayload as missing:
+                                        payload, local, ranges = _overflow_payload(pages, data, number, location, at,
+                                            record_limit, missing.payload_length, free_leaves)
+                                        row, offsets, payload_end, serials = _record(payload, 0, len(payload), columns,
+                                            pages.encoding, damaged_length=damaged)
+                                        if payload_end != len(payload):
+                                            raise ValueError("overflow payload length mismatch")
+                                        offsets = {key: at + value if value < local else None for key, value in offsets.items()}
+                                        record_end = at + local
+                                        overflow = {"sqlite_payload_length": len(payload),
+                                            "sqlite_payload_sha256": hashlib.sha256(payload).hexdigest(),
+                                            "sqlite_payload_ranges": ranges,
+                                            "sqlite_overflow_pages": [item["sqlite_page"] for item in ranges[1:]],
+                                            "sqlite_overflow_chain_verified": True}
                                     value = parse_message(row["data"])
                                     if not _keys_match(row, value):
                                         continue
                                 except (ValueError, OverflowError, UnicodeError):
+                                    if report["limited"]:
+                                        break
                                     continue
                                 key = (table, row["uid"], row["mid"], row.get("topic_id"), hashlib.sha256(row["data"]).hexdigest())
                                 if key in seen:
@@ -441,11 +518,12 @@ def recover(db_path, *, connection=None, include_unattributed=False,
                                 if any(entry[0] == row["date"] and entry[1] == row["data"] for entry in current):
                                     continue
                                 size = record_end - at
-                                if len(records) >= limits.max_records or size > limits.max_output_bytes - output_bytes:
+                                output_size = overflow["sqlite_payload_length"] if overflow else size
+                                if len(records) >= limits.max_records or output_size > limits.max_output_bytes - output_bytes:
                                     report["limited"] = True
                                     break
                                 seen.add(key)
-                                output_bytes += size
+                                output_bytes += output_size
                                 status = "previous_version_residual" if current else "deleted_supported_by_evidence"
                                 result = {"table": table, "row": row, "value": value,
                                     "recovery_status": status, "deleted": None,
@@ -461,6 +539,9 @@ def recover(db_path, *, connection=None, include_unattributed=False,
                                     "physical_byte_offset": location["physical_page_offset"] + at,
                                     "wal_frame": location["wal_frame"], "wal_commit_frame": pages.commit,
                                     "proof": "reachable_table_free_space_and_sql_tl_key_agreement"}
+                                if overflow:
+                                    result.update(overflow)
+                                    result["proof"] = "reachable_table_free_space_free_overflow_chain_and_sql_tl_key_agreement"
                                 records.append(result)
                                 report["previous_records" if current else "recovered_records"] += 1
                             if report["limited"]:

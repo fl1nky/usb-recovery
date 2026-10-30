@@ -1,0 +1,264 @@
+{
+  "schema": 1,
+  "scope": "Pure read-only scorer regression and independent saved-archive verification; no program reruns",
+  "scorer_revision": 3,
+  "scorer_sha256": "52e72f6fa2adb14bddba71aa30d103df70b70ed88819f723a19920d297149103",
+  "mutation_counts": {
+    "wrong_chat_and_message_ids_verified_prefix_count": 0,
+    "search_view_without_wal_provenance_full_proof_count": 0,
+    "sixteen_byte_map_for_long_gold_text_verified_overflow_count": 0,
+    "swapped_identical_blocks_with_broken_pointer_chain_verified_overflow_count": 0
+  },
+  "actual_v6": {
+    "application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+    "helper_sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+    "run_sha256": "03eadf2953cd27104c07906b7981c96e3bacf5491f282d7b2be6a8ac03e8e0cc",
+    "all_19_cases_completed_once": true,
+    "source_and_archive_hashes_verified": true,
+    "exact_full_text_cases": 2,
+    "attributed_full_text_cases": 2,
+    "contains_full_target_cases": 2,
+    "cases": [
+      {
+        "name": "wal-normal-valid-wal",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-torn-after-commit",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-corrupt-base-torn-tail",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-bad-header-checksum",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-bad-first-frame-no-resync",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-checksum-after-commit",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-salt-after-commit",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-page-bounds-after-commit",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-valid-uncommitted-tail",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-partial-uncommitted-transaction",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-no-committed-frame",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-topic-torn-tail",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-missing-page-preimage",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-torn-tail-512",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-torn-tail-65536",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "overflow-page-512",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "overflow-page-1024",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "overflow-page-4096",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "overflow-page-65536",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      }
+    ]
+  },
+  "actual_v7": {
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "run_sha256": "7b9a2541d339b0034f504998f44896957047d9611e50a0a689cdcf7b276841c2",
+    "all_19_cases_completed_once": true,
+    "source_and_archive_hashes_verified": true,
+    "exact_full_text_cases": 16,
+    "attributed_full_text_cases": 15,
+    "contains_full_target_cases": 16,
+    "cases": [
+      {
+        "name": "wal-normal-valid-wal",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-torn-after-commit",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-corrupt-base-torn-tail",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-bad-header-checksum",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-bad-first-frame-no-resync",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-checksum-after-commit",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-salt-after-commit",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-page-bounds-after-commit",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-valid-uncommitted-tail",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-partial-uncommitted-transaction",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-no-committed-frame",
+        "exact_full_text": false,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": false
+      },
+      {
+        "name": "wal-topic-torn-tail",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-missing-page-preimage",
+        "exact_full_text": true,
+        "attributed_full_text": false,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-torn-tail-512",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "wal-torn-tail-65536",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "overflow-page-512",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "overflow-page-1024",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "overflow-page-4096",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      },
+      {
+        "name": "overflow-page-65536",
+        "exact_full_text": true,
+        "attributed_full_text": true,
+        "full_target_contained_in_any_record": true
+      }
+    ]
+  }
+}

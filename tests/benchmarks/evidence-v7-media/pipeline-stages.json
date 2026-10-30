@@ -1,0 +1,4970 @@
+{
+  "schema": 1,
+  "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+  "cases": [
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-baseline",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "19ef8770d67a3611151e6fc1b32ecf3682d1a0e98f2526658d9bd98ce7673ce7",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-avc-single",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "638ca17a5db6700596859201ed830fa9e363bdaa978a640552e1260dcc3bdad5",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-mjpeg-single",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "3f1b84acf386e19e892f4ed6a2b34d405cf23865cd329ce344fd945ae8eafea1",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 12,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-restart",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "efbc48f15abe95d63db64cfba3f888fbafe4442301675b5fbf0a13c2e13688e5",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-progressive",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "fbd15e29fe1ee9b0d054d0d1b981e5913e0f1fe56ff2e394329987a3a3711082",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-baseline",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f3a048ef06358d4809c0e168176911e4bfdde5490f70b7ffa59baaac5ac11982",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-avc-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "bade6506c72b3ab8a2ca01cdc716b73376f3d024463946d768035cdbf5bffe5d",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-avc-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f5e2b8f2b2b07d1c0fca26be11c31fedff1aaa14952e7b590df524e625bf5193",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-mjpeg-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "9f19e0d1b1a15485d9cfa5b19a9c515cc9cfb17b4d74559b3f88458edadbda1b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 15,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 24,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-mjpeg-dual",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "7a7213abf6f6e2a19c4d4315ca48286748cc93528c9ddc411fdd9c9deb2a951a",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 23,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-live-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "60423f245ab8e3cced9a9998dd924f3072ac9654adda15bff9779992b3588d89",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 387,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-retained-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b0e2d307b98ce8529e512aca0f210d95de8b783aee7cb1c15891bdbdcd952d44",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 385,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "fat16-deleted-cleared-chain",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c79868d3b66f32c4a93fbb1226c637265c51436c6d11551f7ee83b3fffd3cdbb",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 386,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "ntfs-deleted-data-runs",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "d96e27fe41048706410a7698353da393eebeb30f171dfa25bc061e1b14202300",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 813,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "incomplete",
+          "candidates": 0,
+          "warnings": false
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-malformed-decoys",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c505db1018cd2e694db76cbd75210716fd69f46fd9b43efd0629f1ef699a3ac2",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-contiguous-png",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "078c7042d2e221778a1464f726085eec74df58367222065b2d0cbc9a8ec2a0e9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-png-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "8f8e1f77121d17a6abd46096f4d3bb93d555d4748d815ead6fd07f4ac0edb0c9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-overwritten-png-crc",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "9d324a41583e0148ce7586fb02bdc521a768c8c2fa13c11541a0340d73813763",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "media",
+      "case": "raw-scattered-png-crc-decoy",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c1f6adf875de6adc04e8da177f7d62098052f5f8ce33435000a2d64cd7de10f3",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-contiguous",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "bc637d9bce5c499b3d6d7a66b71be7f5ccca3ec9a8c0f30262e16fa1adc71266",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-chunk-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "e50d95bf61afa9a21d60166d8153f4d014dc11533e8a4eefe644e4abbb37637f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-4k-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "63a4eb6e323c323a790c0219ee914d98915cc74a1f1b12534a7794ea003d959d",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-all-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "fc5ea2fdcdffc33437fe3db1f99829e85f784c7d682f2fa4b143380eeaf0e9c0",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-faststart-audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c68b4463030bf26c8b44fc8f2fb2a95c030f518ce228b0713017885d85953b39",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-contiguous",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "98d8b350d1d9858dcfb8cbdbf9820e3d93dee7548e05ab6d72c8b093ce847528",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-chunk-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b48f8d03f2e47ee4e2616d9cec1349f99372b418e281cf3e42da13dff6071fa3",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-4k-islands",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "4e6eeb254c6c9e2d78642a01aa1d4be9c460ad536c46edd66b0c36b6af9f232f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-all-chunks",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "23049f3679f72ce953584435677f063889d158bc34234492074cd1e3a5588168",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "audio",
+      "case": "avc-aac-tailmoov-audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "12c0d5797e5f2df3bfd5f5196510bfb6e0e3a36acadd551be025c7c6a3aa7ac5",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "main-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c93d52c547d79801c173ad6865a68a0a870520f0686605724ecc4646295659b2",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "main10-hev1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "3d14485cb38b362c6c94b03f671e26518d368d7f502bb66455c19489339df2c9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "two-slices-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "3a6469f3354152e68168212dff1838fb602a9a54ace0317307a1dfb29467f2a6",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "dual-hvc1-scattered",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b0e215a423c8eb7280b460d262e911e47cfbf63733995386b0a820b8ff88e628",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "nal-prefix-overwritten",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "a9ce4a0718a3224b564e11d83b95e32336d3553e53ba727acda4564697ca6b93",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "foreign-configuration-constraint",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "14a712b711bcaa156d3b9cb3d422d71ba75f54306c67ec2496e8ebe701b17dd5",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "foreign-inband-set",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "d7b20b9e525a2474b1a680cf147fd96f5266cadf886f70030c5ab7e101c39732",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "distinct-syntax-assignments",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "9a480402b6f01da60e05450bb39164f10f70bd38af2106ebfab3232185085181",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "identical-chunk-duplicate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "da6e04804c07324e0fc0f32844dc14c502bbf4713c57c77c355b4f68e021f633",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "hevc-pipeline",
+      "case": "opaque-cabac-overwrite-candidate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "61697f4d0f9bac8124632b22b245b4c984e3f64cd12797629bfb0828b1705a38",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 3,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "front-4k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "1b593b5c3d883f1686975350ee3a556889f880ab0439db9ca4349e6b098003b1",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "front-8k-random",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "1d23e7bc3042a2e3e54ba6ac1d78c458bd039920987dc73802718e31fc589c0f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "tail-4k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "0b518117b456d32e8c8ffcc04a7c574fdef10e94b7c69ae773dc0a3095cdc44f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "tail-8k-cc",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "0bae484230577af15c9de6134e08e018d00cac95efef92985eaf665058e6cf75",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "larger-8k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "ddb02a48cfb2de4cd5bae145fe51d2d5c16c7bdf02c2f45e805c55a4369e4dd9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "larger-16k-random",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "cf925ed4db74dccdd600679e1f6fc55d7994535834c03f201c4594e24cc2e119",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "two-video-tracks-8k",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "b51cbbfcd24913800ae45f4872be00e328c8188681f6c1b09038df569310fb6b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 16,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "nal-length-prefix-split",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "069b1616219cfd110bea320c01daec9f0483b14071797c12f0550197b08f1862",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "identical-all-units",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "c3d34f94e50fe74a5207597440e56c9be8f31b2e76d4c3c171514838601ba97b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 11,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "same-config-foreign-choice",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "ffc42a9d69e8b06b518f82f5d259ca44cec8cf7146c822cbf81d839e51585819",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "same-config-foreign-current",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "72b72e19ffc4237f1226c4100b50384f01b043ce4352bad74d81022a4c1c58c4",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "metadata-choice",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "4fae9a7eba26e5e64eacce46eb350cd7d872da0ab54ec6b20c6b65a7aa6b67cb",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "fea701360a871a49be71eb7cc4449ce7f56b45e685a4ebbc9ddde90562e2d4e2",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "missing-unit",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "01a7df9d61926c500554a1ff83f30479ba92795e7405037c14a40150992bb919",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "nonaligned-cuts",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "5cfff105a7c8eb847e49fa4ec244197b5010dd09a7f49d8630a2b16e06e93d07",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "opaque-entropy-candidate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "8d7f840d8e15452b9000b2d2f27340e695900b203daa62da84eb80f68086709e",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "unit-pipeline",
+      "case": "equal-metadata-different-overlap",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "a0cad94b4845e8523e5c84a8ffdb3ed0cd71f8778b5dbb9534559ca66b14b966",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "front-4k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "45eff18d398f8e7562e075b0b066122fb70125845e3326772e40b03a39ca546c",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "front-8k-random",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "bf0ec00740870b010f78c990cd52a30410e68e355edf6434997515129c25430f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "tail-4k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f130183690bb02bba7bf9ef1074779cade0683b41991934086e9d719605f0422",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "tail-8k-cc",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "85b8f486429831d79dc54a89d6e74fb1b1b8c3cb8918c673f02d30a827738194",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "larger-8k-zero",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "0ae25e5cf7eb01e4ff4228bf11e9cb1a5e9d64a067147ee77904dfd8fca29c3b",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "larger-16k-random",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "efc657551a4022b1f1372881086121d92fd1ef9029865b84ccf848e75e9032dc",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "two-video-tracks-8k",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "8bc6393263a675162bd2c484ea28238ec00850345772a0688f9308ea7b8cec6f",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 16,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "nal-length-prefix-split",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "eeef477e5d8c83fd1f8a310f448e7b99e581885ff23f9d321ad1ac27be2b0d19",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "identical-all-units",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "6382936907489263b008f36aa1f3378bfc873b16bc2793c8cde445baa5a18a09",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 11,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 2,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "same-config-foreign-choice",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "cee01328237196ee19e0a2b09427d414941878447ecc2c39bde34d6bde8d9f10",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "same-config-foreign-current",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "05094821ba98ffa432f53aef60d0ec5183a62e6111cb0ac773883e09dff1faf9",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "metadata-choice",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "f5013d5e7a0cccd7a6558a4aa5fee4dd1d501bd1657699ab49ff3d2d19e1deaa",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "audio-overwrite",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "97d4e3e1c46d3cb42f1ad55efdb747fc006d89f27675ae58329ae211070d6432",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 13,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "missing-unit",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "05176aaf79b397f8d2e7c1ed49d6577a1bd61e59b66349c5a9fcb774dba8cb8c",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "nonaligned-cuts",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "cd41e80a1ab3fb0cd330dd90d1bdc651ee68695040bdab7898831f2395a958d6",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "opaque-entropy-candidate",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "817c2f7ed17cc145024829b459ab680445f37d9c77282fe48da610f47dfb9b44",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 1,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    },
+    {
+      "corpus": "actual-v6-units",
+      "case": "equal-metadata-different-overlap",
+      "session_status": "finished_with_warnings",
+      "session_sha256": "314c759760db865cfe68165e7b5d71c99e6a076d87acf8a98972a5d26648f5d1",
+      "stages": [
+        {
+          "key": "partitions",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fat",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "ntfs-records",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "photorec",
+          "status": "complete",
+          "candidates": 14,
+          "warnings": true
+        },
+        {
+          "key": "photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "containers",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "archive-members",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-photos",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        },
+        {
+          "key": "fragmented-media",
+          "status": "complete",
+          "candidates": 0,
+          "warnings": true
+        }
+      ]
+    }
+  ]
+}

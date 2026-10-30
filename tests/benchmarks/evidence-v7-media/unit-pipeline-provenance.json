@@ -1,0 +1,1194 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v7-media/final-unit-pipeline-provenance-01.json",
+    "source_sha256": "11d6c50a5dea3cdc01b96966c16c3df73307a227a1d99250c74907245b593420",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "status": "passed",
+    "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+    "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "run_sha256": "8b7c70edfe8675e658186416d34d4e3603527e20e947a875026a474165b9ea5d",
+    "manifest_sha256": "737e568777622e36d73a7dd62534423d1597a8b53f237e2525af8df7bc0b9f8e",
+    "verifier_sha256": "c32c25abd436d01a40527f8258dc34df07e9c388d415b308476df037e8a30122",
+    "pipeline_used": true,
+    "cases": [
+      {
+        "name": "front-4k-zero",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe.mp4",
+            "source_ranges": [
+              {
+                "Offset": 724480,
+                "Length": 4096
+              },
+              {
+                "Offset": 989696,
+                "Length": 4096
+              },
+              {
+                "Offset": 528384,
+                "Length": 4096
+              },
+              {
+                "Offset": 656384,
+                "Length": 4096
+              },
+              {
+                "Offset": 854528,
+                "Length": 4096
+              },
+              {
+                "Offset": 1186304,
+                "Length": 4096
+              },
+              {
+                "Offset": 68608,
+                "Length": 4096
+              },
+              {
+                "Offset": 924672,
+                "Length": 4096
+              },
+              {
+                "Offset": 137216,
+                "Length": 4096
+              },
+              {
+                "Offset": 1052160,
+                "Length": 4096
+              },
+              {
+                "Offset": 459264,
+                "Length": 4096
+              },
+              {
+                "Offset": 790016,
+                "Length": 4096
+              },
+              {
+                "Offset": 1446912,
+                "Length": 4096
+              },
+              {
+                "Offset": 1117184,
+                "Length": 4096
+              },
+              {
+                "Offset": 395264,
+                "Length": 4096
+              },
+              {
+                "Offset": 331264,
+                "Length": 4096
+              },
+              {
+                "Offset": 593408,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "front-8k-random",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe.mp4",
+            "source_ranges": [
+              {
+                "Offset": 68608,
+                "Length": 4096
+              },
+              {
+                "Offset": 72704,
+                "Length": 4096
+              },
+              {
+                "Offset": 1051648,
+                "Length": 4096
+              },
+              {
+                "Offset": 1055744,
+                "Length": 4096
+              },
+              {
+                "Offset": 986112,
+                "Length": 4096
+              },
+              {
+                "Offset": 990208,
+                "Length": 4096
+              },
+              {
+                "Offset": 1444352,
+                "Length": 4096
+              },
+              {
+                "Offset": 1448448,
+                "Length": 4096
+              },
+              {
+                "Offset": 1117184,
+                "Length": 4096
+              },
+              {
+                "Offset": 1121280,
+                "Length": 4096
+              },
+              {
+                "Offset": 595968,
+                "Length": 4096
+              },
+              {
+                "Offset": 600064,
+                "Length": 4096
+              },
+              {
+                "Offset": 1311232,
+                "Length": 4096
+              },
+              {
+                "Offset": 1315328,
+                "Length": 4096
+              },
+              {
+                "Offset": 724992,
+                "Length": 4096
+              },
+              {
+                "Offset": 729088,
+                "Length": 4096
+              },
+              {
+                "Offset": 854528,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "tail-4k-zero",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 14,
+        "unique_catalog_items": 3,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3.mp4",
+            "source_ranges": [
+              {
+                "Offset": 661504,
+                "Length": 4096
+              },
+              {
+                "Offset": 1381376,
+                "Length": 4096
+              },
+              {
+                "Offset": 397312,
+                "Length": 4096
+              },
+              {
+                "Offset": 1251328,
+                "Length": 4096
+              },
+              {
+                "Offset": 1052160,
+                "Length": 4096
+              },
+              {
+                "Offset": 793600,
+                "Length": 4096
+              },
+              {
+                "Offset": 727040,
+                "Length": 4096
+              },
+              {
+                "Offset": 1443840,
+                "Length": 4096
+              },
+              {
+                "Offset": 591360,
+                "Length": 4096
+              },
+              {
+                "Offset": 1315840,
+                "Length": 4096
+              },
+              {
+                "Offset": 267776,
+                "Length": 4096
+              },
+              {
+                "Offset": 921600,
+                "Length": 4096
+              },
+              {
+                "Offset": 987648,
+                "Length": 4096
+              },
+              {
+                "Offset": 1116160,
+                "Length": 4096
+              },
+              {
+                "Offset": 460288,
+                "Length": 4096
+              },
+              {
+                "Offset": 198144,
+                "Length": 4096
+              },
+              {
+                "Offset": 526336,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "tail-8k-cc",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 2,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-a9cd92dffe367e204081bcafa7b44dfc10e799605cba32fb194dd6cd8b866ba3.mp4",
+            "source_ranges": [
+              {
+                "Offset": 984064,
+                "Length": 4096
+              },
+              {
+                "Offset": 988160,
+                "Length": 4096
+              },
+              {
+                "Offset": 590336,
+                "Length": 4096
+              },
+              {
+                "Offset": 594432,
+                "Length": 4096
+              },
+              {
+                "Offset": 790528,
+                "Length": 4096
+              },
+              {
+                "Offset": 794624,
+                "Length": 4096
+              },
+              {
+                "Offset": 397312,
+                "Length": 4096
+              },
+              {
+                "Offset": 401408,
+                "Length": 4096
+              },
+              {
+                "Offset": 1509888,
+                "Length": 4096
+              },
+              {
+                "Offset": 1513984,
+                "Length": 4096
+              },
+              {
+                "Offset": 722432,
+                "Length": 4096
+              },
+              {
+                "Offset": 726528,
+                "Length": 4096
+              },
+              {
+                "Offset": 269312,
+                "Length": 4096
+              },
+              {
+                "Offset": 273408,
+                "Length": 4096
+              },
+              {
+                "Offset": 1313280,
+                "Length": 4096
+              },
+              {
+                "Offset": 1317376,
+                "Length": 4096
+              },
+              {
+                "Offset": 855040,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "larger-8k-zero",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 16,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d",
+            "bytes": 133530,
+            "source_candidate": "fragmented-media/candidate-be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d.mp4",
+            "source_ranges": [
+              {
+                "Offset": 462336,
+                "Length": 8192
+              },
+              {
+                "Offset": 1114624,
+                "Length": 8192
+              },
+              {
+                "Offset": 1511936,
+                "Length": 8192
+              },
+              {
+                "Offset": 854528,
+                "Length": 8192
+              },
+              {
+                "Offset": 525312,
+                "Length": 8192
+              },
+              {
+                "Offset": 266752,
+                "Length": 8192
+              },
+              {
+                "Offset": 1251328,
+                "Length": 8192
+              },
+              {
+                "Offset": 924672,
+                "Length": 8192
+              },
+              {
+                "Offset": 400384,
+                "Length": 8192
+              },
+              {
+                "Offset": 198656,
+                "Length": 8192
+              },
+              {
+                "Offset": 1316352,
+                "Length": 8192
+              },
+              {
+                "Offset": 1442816,
+                "Length": 8192
+              },
+              {
+                "Offset": 592896,
+                "Length": 8192
+              },
+              {
+                "Offset": 1185792,
+                "Length": 8192
+              },
+              {
+                "Offset": 662528,
+                "Length": 8192
+              },
+              {
+                "Offset": 791040,
+                "Length": 8192
+              },
+              {
+                "Offset": 721408,
+                "Length": 2458
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "larger-16k-random",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 3,
+        "unique_catalog_items": 2,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d",
+            "bytes": 133530,
+            "source_candidate": "fragmented-media/candidate-be56fbca4274ff013906dbb3accf7b1ee9fe5303e7ffe2669df690c1cce3347d.mp4",
+            "source_ranges": [
+              {
+                "Offset": 791552,
+                "Length": 8192
+              },
+              {
+                "Offset": 799744,
+                "Length": 8192
+              },
+              {
+                "Offset": 1314304,
+                "Length": 8192
+              },
+              {
+                "Offset": 1322496,
+                "Length": 8192
+              },
+              {
+                "Offset": 464384,
+                "Length": 8192
+              },
+              {
+                "Offset": 472576,
+                "Length": 8192
+              },
+              {
+                "Offset": 1180160,
+                "Length": 8192
+              },
+              {
+                "Offset": 1188352,
+                "Length": 8192
+              },
+              {
+                "Offset": 1051648,
+                "Length": 8192
+              },
+              {
+                "Offset": 1059840,
+                "Length": 8192
+              },
+              {
+                "Offset": 1508864,
+                "Length": 8192
+              },
+              {
+                "Offset": 1517056,
+                "Length": 8192
+              },
+              {
+                "Offset": 658944,
+                "Length": 8192
+              },
+              {
+                "Offset": 667136,
+                "Length": 8192
+              },
+              {
+                "Offset": 857088,
+                "Length": 8192
+              },
+              {
+                "Offset": 865280,
+                "Length": 8192
+              },
+              {
+                "Offset": 724992,
+                "Length": 2458
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "two-video-tracks-8k",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 18,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "80f40877efde2132e6d6ec07bda5ae51c0f946e0a6938c877bb6728ec7f9d5d6",
+            "bytes": 104044,
+            "source_candidate": "fragmented-media/candidate-80f40877efde2132e6d6ec07bda5ae51c0f946e0a6938c877bb6728ec7f9d5d6.mp4",
+            "source_ranges": [
+              {
+                "Offset": 202752,
+                "Length": 4096
+              },
+              {
+                "Offset": 206848,
+                "Length": 4096
+              },
+              {
+                "Offset": 525824,
+                "Length": 4096
+              },
+              {
+                "Offset": 529920,
+                "Length": 4096
+              },
+              {
+                "Offset": 1180160,
+                "Length": 4096
+              },
+              {
+                "Offset": 1184256,
+                "Length": 4096
+              },
+              {
+                "Offset": 1252352,
+                "Length": 4096
+              },
+              {
+                "Offset": 1256448,
+                "Length": 4096
+              },
+              {
+                "Offset": 1052160,
+                "Length": 4096
+              },
+              {
+                "Offset": 1056256,
+                "Length": 4096
+              },
+              {
+                "Offset": 1121280,
+                "Length": 4096
+              },
+              {
+                "Offset": 1125376,
+                "Length": 4096
+              },
+              {
+                "Offset": 332800,
+                "Length": 4096
+              },
+              {
+                "Offset": 336896,
+                "Length": 4096
+              },
+              {
+                "Offset": 1316352,
+                "Length": 4096
+              },
+              {
+                "Offset": 1320448,
+                "Length": 4096
+              },
+              {
+                "Offset": 72192,
+                "Length": 4096
+              },
+              {
+                "Offset": 76288,
+                "Length": 4096
+              },
+              {
+                "Offset": 1446400,
+                "Length": 4096
+              },
+              {
+                "Offset": 1450496,
+                "Length": 4096
+              },
+              {
+                "Offset": 855552,
+                "Length": 4096
+              },
+              {
+                "Offset": 859648,
+                "Length": 4096
+              },
+              {
+                "Offset": 265728,
+                "Length": 4096
+              },
+              {
+                "Offset": 269824,
+                "Length": 4096
+              },
+              {
+                "Offset": 464896,
+                "Length": 4096
+              },
+              {
+                "Offset": 468992,
+                "Length": 1644
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "nal-length-prefix-split",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "7d34b18738f248b779ae9c17725bdbaffd052f5c9ba994b8b21e91e1e39be370",
+            "bytes": 67131,
+            "source_candidate": "fragmented-media/candidate-7d34b18738f248b779ae9c17725bdbaffd052f5c9ba994b8b21e91e1e39be370.mp4",
+            "source_ranges": [
+              {
+                "Offset": 656384,
+                "Length": 4096
+              },
+              {
+                "Offset": 70144,
+                "Length": 4096
+              },
+              {
+                "Offset": 1052672,
+                "Length": 4096
+              },
+              {
+                "Offset": 1312256,
+                "Length": 4096
+              },
+              {
+                "Offset": 400384,
+                "Length": 4096
+              },
+              {
+                "Offset": 791040,
+                "Length": 4096
+              },
+              {
+                "Offset": 1252352,
+                "Length": 4096
+              },
+              {
+                "Offset": 989696,
+                "Length": 4096
+              },
+              {
+                "Offset": 727040,
+                "Length": 4096
+              },
+              {
+                "Offset": 268288,
+                "Length": 4096
+              },
+              {
+                "Offset": 1182720,
+                "Length": 4096
+              },
+              {
+                "Offset": 134144,
+                "Length": 4096
+              },
+              {
+                "Offset": 1448960,
+                "Length": 4096
+              },
+              {
+                "Offset": 924160,
+                "Length": 4096
+              },
+              {
+                "Offset": 591360,
+                "Length": 4096
+              },
+              {
+                "Offset": 199680,
+                "Length": 4096
+              },
+              {
+                "Offset": 856064,
+                "Length": 1595
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "identical-all-units",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 14,
+        "unique_catalog_items": 5,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-dbfb35306038f29b9830e54e5c8ed63480ac1526112ae70ba5c0262454eafdfe.mp4",
+            "source_ranges": [
+              {
+                "Offset": 463360,
+                "Length": 4096
+              },
+              {
+                "Offset": 1510912,
+                "Length": 4096
+              },
+              {
+                "Offset": 1380864,
+                "Length": 4096
+              },
+              {
+                "Offset": 855040,
+                "Length": 4096
+              },
+              {
+                "Offset": 725504,
+                "Length": 4096
+              },
+              {
+                "Offset": 1116672,
+                "Length": 4096
+              },
+              {
+                "Offset": 1252352,
+                "Length": 4096
+              },
+              {
+                "Offset": 72704,
+                "Length": 4096
+              },
+              {
+                "Offset": 595968,
+                "Length": 4096
+              },
+              {
+                "Offset": 262656,
+                "Length": 4096
+              },
+              {
+                "Offset": 788480,
+                "Length": 4096
+              },
+              {
+                "Offset": 1053696,
+                "Length": 4096
+              },
+              {
+                "Offset": 986624,
+                "Length": 4096
+              },
+              {
+                "Offset": 1183232,
+                "Length": 4096
+              },
+              {
+                "Offset": 397312,
+                "Length": 4096
+              },
+              {
+                "Offset": 923136,
+                "Length": 4096
+              },
+              {
+                "Offset": 328704,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "same-config-foreign-choice",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 14,
+        "unique_catalog_items": 3,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "same-config-foreign-current",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "73da73308912c06cadc05fc815499ba7fd5b9129d664e7b0a4a179548919c019",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-73da73308912c06cadc05fc815499ba7fd5b9129d664e7b0a4a179548919c019.mp4",
+            "source_ranges": [
+              {
+                "Offset": 1376768,
+                "Length": 4096
+              },
+              {
+                "Offset": 461824,
+                "Length": 4096
+              },
+              {
+                "Offset": 721408,
+                "Length": 4096
+              },
+              {
+                "Offset": 198656,
+                "Length": 4096
+              },
+              {
+                "Offset": 133632,
+                "Length": 4096
+              },
+              {
+                "Offset": 68608,
+                "Length": 4096
+              },
+              {
+                "Offset": 530432,
+                "Length": 4096
+              },
+              {
+                "Offset": 852992,
+                "Length": 4096
+              },
+              {
+                "Offset": 398336,
+                "Length": 4096
+              },
+              {
+                "Offset": 1118720,
+                "Length": 4096
+              },
+              {
+                "Offset": 788480,
+                "Length": 4096
+              },
+              {
+                "Offset": 1445376,
+                "Length": 4096
+              },
+              {
+                "Offset": 1312256,
+                "Length": 4096
+              },
+              {
+                "Offset": 264192,
+                "Length": 4096
+              },
+              {
+                "Offset": 1184768,
+                "Length": 4096
+              },
+              {
+                "Offset": 657408,
+                "Length": 4096
+              },
+              {
+                "Offset": 328704,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "metadata-choice",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 13,
+        "unique_catalog_items": 2,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "audio-overwrite",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 14,
+        "unique_catalog_items": 3,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "missing-unit",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 3,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "nonaligned-cuts",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 3,
+        "media_candidates": 0,
+        "verified_media_maps": []
+      },
+      {
+        "name": "opaque-entropy-candidate",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 16,
+        "unique_catalog_items": 4,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "42f3d59c79adbed7d4b0c3d774fc8d43462e2ab78545e0cd648f93dcbfb4f860",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-42f3d59c79adbed7d4b0c3d774fc8d43462e2ab78545e0cd648f93dcbfb4f860.mp4",
+            "source_ranges": [
+              {
+                "Offset": 1247744,
+                "Length": 4096
+              },
+              {
+                "Offset": 1382400,
+                "Length": 4096
+              },
+              {
+                "Offset": 1049600,
+                "Length": 4096
+              },
+              {
+                "Offset": 398848,
+                "Length": 4096
+              },
+              {
+                "Offset": 1317376,
+                "Length": 4096
+              },
+              {
+                "Offset": 1180160,
+                "Length": 4096
+              },
+              {
+                "Offset": 199168,
+                "Length": 4096
+              },
+              {
+                "Offset": 855040,
+                "Length": 4096
+              },
+              {
+                "Offset": 462848,
+                "Length": 4096
+              },
+              {
+                "Offset": 792064,
+                "Length": 4096
+              },
+              {
+                "Offset": 1117184,
+                "Length": 4096
+              },
+              {
+                "Offset": 66048,
+                "Length": 4096
+              },
+              {
+                "Offset": 721408,
+                "Length": 4096
+              },
+              {
+                "Offset": 137728,
+                "Length": 4096
+              },
+              {
+                "Offset": 657920,
+                "Length": 4096
+              },
+              {
+                "Offset": 983552,
+                "Length": 4096
+              },
+              {
+                "Offset": 1511424,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      },
+      {
+        "name": "equal-metadata-different-overlap",
+        "pipeline_status": "finished_with_warnings",
+        "source_unchanged": true,
+        "catalog_candidates": 15,
+        "unique_catalog_items": 3,
+        "media_candidates": 1,
+        "verified_media_maps": [
+          {
+            "sha256": "5ad41bd944525a31f9d4d04514bb792c8a21e138a6760dd1a70cd9ae80bd58cd",
+            "bytes": 67084,
+            "source_candidate": "fragmented-media/candidate-5ad41bd944525a31f9d4d04514bb792c8a21e138a6760dd1a70cd9ae80bd58cd.mp4",
+            "source_ranges": [
+              {
+                "Offset": 398848,
+                "Length": 4096
+              },
+              {
+                "Offset": 1445888,
+                "Length": 4096
+              },
+              {
+                "Offset": 68096,
+                "Length": 4096
+              },
+              {
+                "Offset": 131584,
+                "Length": 4096
+              },
+              {
+                "Offset": 334336,
+                "Length": 4096
+              },
+              {
+                "Offset": 989696,
+                "Length": 4096
+              },
+              {
+                "Offset": 1054720,
+                "Length": 4096
+              },
+              {
+                "Offset": 1511936,
+                "Length": 4096
+              },
+              {
+                "Offset": 855040,
+                "Length": 4096
+              },
+              {
+                "Offset": 529408,
+                "Length": 4096
+              },
+              {
+                "Offset": 461312,
+                "Length": 4096
+              },
+              {
+                "Offset": 656384,
+                "Length": 4096
+              },
+              {
+                "Offset": 263168,
+                "Length": 4096
+              },
+              {
+                "Offset": 1315328,
+                "Length": 4096
+              },
+              {
+                "Offset": 1378816,
+                "Length": 4096
+              },
+              {
+                "Offset": 596992,
+                "Length": 4096
+              },
+              {
+                "Offset": 2064896,
+                "Length": 1548
+              }
+            ],
+            "source_ranges_match_current_image": true,
+            "method": "Сборка разрозненных медиа",
+            "status": "Кандидат сборки",
+            "quality": "structural_candidate",
+            "payload_authenticated": false,
+            "deletion_confirmed": false
+          }
+        ]
+      }
+    ],
+    "scope": "Actual public RecoveryPipeline results and persisted catalog/session. Every strict media candidate is rebound to its current image ranges byte for byte. This verifies provenance and observed candidate classification, not historical ownership or CABAC authenticity."
+  }
+}

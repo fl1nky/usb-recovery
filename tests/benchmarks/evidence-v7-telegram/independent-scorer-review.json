@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "scope": "Pure scorer fault injection on copies of owned benchmark JSON, original archives/runtime/source unchanged",
+  "scorer_sha256": "1cc71c78ddf14409774637f0f88bf66b7ca85ed57b0d63797cb81dd060cb328f",
+  "findings": {
+    "wrong_chat_and_message_ids_verified_prefix_count": 1,
+    "search_view_without_wal_provenance_full_proof_count": 1,
+    "sixteen_byte_map_for_long_gold_text_verified_overflow_count": 1
+  }
+}

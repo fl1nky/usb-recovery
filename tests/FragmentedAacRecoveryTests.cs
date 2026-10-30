@@ -40,7 +40,10 @@ public static class FragmentedAacRecoveryTests
             foreach(var sample in cases){
                 string name=(string)sample["name"],image=Path.Combine(fixtures,(string)sample["image"]),before=Hash(image),run=Path.Combine(work,name);
                 Check(before==(string)sample["image_sha256"]&&new FileInfo(image).Length==Convert.ToInt64(sample["image_bytes"]),name+": independent input hash/size");
-                int count=FragmentedMediaRecovery.Recover(image,run,CancellationToken.None,null),expected=Convert.ToInt32(sample["expected"]);
+                // Keep the published V6 fixture/manifest unchanged. These two
+                // surviving byte maps now have a separately bounded unit path.
+                bool allocation=name=="avc-aac-faststart-4k-islands"||name=="avc-aac-tailmoov-4k-islands";
+                int count=FragmentedMediaRecovery.Recover(image,run,CancellationToken.None,null),expected=allocation?1:Convert.ToInt32(sample["expected"]);
                 var report=Json.Deserialize<FragmentedMediaRecovery.Report>(File.ReadAllText(Path.Combine(run,"fragmented-media.json")));
                 Check(count==expected&&report.Files.Count==expected,name+": expected uniquely supported assignments, got "+count+" skips="+Json.Serialize(report.Skipped));
                 Check(report.Status=="complete"&&Hash(image)==before,name+": source untouched and pass complete");
@@ -49,7 +52,7 @@ public static class FragmentedAacRecoveryTests
                 if(expected==0){Check(!Directory.GetFiles(Path.Combine(run,"fragmented-media")).Any(),name+": no invented complete media");evidence.Add(new{name=name,recovered=0,source_unchanged=true,skipped=report.Skipped});continue;}
                 var result=report.Files.Single();string output=Path.Combine(run,result.Path.Replace('/',Path.DirectorySeparatorChar));
                 Check(Hash(output)==(string)sample["expected_output_sha256"]&&result.Sha256==Hash(output),name+": all current bytes match independent expected assembly");
-                Check(result.AudioSyntaxChecked&&result.AudioSearch=="sector_and_video_delta_syntax"&&result.Extents.Any(x=>x.Kind=="aac_syntax_chunk"),name+": exact syntax-search scope in provenance");
+                Check(result.AudioSyntaxChecked&&result.AudioSearch==(allocation?"allocation_unit_syntax":"sector_and_video_delta_syntax")&&result.Extents.Any(x=>x.Kind==(allocation?"allocation_unit":"aac_syntax_chunk")),name+": exact syntax-search scope in provenance");
                 Check(!result.PayloadAuthenticated&&!result.DeletionConfirmed&&result.Status=="iso_bmff_structural_candidate",name+": valid syntax never proves original audio or deletion");
                 if(name=="aac-identical-duplicate")Check(result.Extents.Any(x=>x.Kind=="aac_syntax_chunk"&&x.EquivalentOffsets.Count>1),name+": identical sources retained without false content ambiguity");
                 long logical=0;using(var source=File.OpenRead(image))using(var file=File.OpenRead(output))foreach(var extent in result.Extents){

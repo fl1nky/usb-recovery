@@ -230,12 +230,15 @@ def _quick_check(path, limits, cancel):
 
 def iter_committed_snapshots(db_path, wal_path, working_dir, *, limits=None,
                              cancel=None, report=None, base_policy="wal_only",
-                             include_latest=False):
+                             include_latest=False, include_latest_on_incomplete_tail=False):
     """Yield bounded prior committed snapshots as metadata dictionaries.
 
     A supplied ``report`` dict records validation, skips, bounds and tail reason.
     No-last-commit default is deliberate: the latest known commit is not itself
     evidence of an earlier version. Cancel callback may return True or raise.
+    A caller that cannot safely replay a damaged/incomplete WAL may opt in to
+    its latest validated committed prefix; this does not prove current state
+    or deletion. All ordinary page-coverage and final-source checks still apply.
     Completed scratch files belong to the caller. Interrupted partials are
     removed; original DB/WAL bytes are never opened writable or checkpointed.
     """
@@ -272,7 +275,8 @@ def iter_committed_snapshots(db_path, wal_path, working_dir, *, limits=None,
             if base_policy == "unchanged_pages" and report["tail_reason"]:
                 raise HistoryError("BASE_PROOF_INVALID_TAIL")
             last = commits[-1]["frame"]
-            selected = [commit for commit in commits if include_latest or commit["frame"] < last]
+            selected = [commit for commit in commits if include_latest or
+                        (include_latest_on_incomplete_tail and report["tail_reason"]) or commit["frame"] < last]
             if len(selected) > limits.max_snapshots:
                 selected = selected[-limits.max_snapshots:]
                 report["snapshot_selection_limited"] = True
@@ -352,6 +356,7 @@ def iter_committed_snapshots(db_path, wal_path, working_dir, *, limits=None,
                        "proof": "all_pages_from_validated_wal" if base_policy == "wal_only" else "unchanged_base_pages_from_consistent_pair",
                        "db_sha256": db_sha, "wal_sha256": wal_sha, "sha256": digest,
                        "is_latest_known_commit": commit["frame"] == last,
+                       "tail_reason": report["tail_reason"], "validated_prefix_bytes": report["validated_prefix_bytes"],
                        "checkpoint_sequence": report["checkpoint_sequence"], "salts": list(report["salts"])}
             if _state(db) != db_state or _state(wal) != wal_state or _sha256(db, cancel) != db_sha or _sha256(wal, cancel) != wal_sha:
                 raise HistoryError("SOURCE_CHANGED")

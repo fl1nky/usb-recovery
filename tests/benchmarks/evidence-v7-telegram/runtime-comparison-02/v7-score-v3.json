@@ -1,0 +1,883 @@
+{
+  "schema": 1,
+  "revision": 3,
+  "helper_rerun": false,
+  "executed_run_sha256": "7b9a2541d339b0034f504998f44896957047d9611e50a0a689cdcf7b276841c2",
+  "original_scorer_sha256": "1cc71c78ddf14409774637f0f88bf66b7ca85ed57b0d63797cb81dd060cb328f",
+  "scoring_before": {
+    "revision": 3,
+    "scorer_sha256": "52e72f6fa2adb14bddba71aa30d103df70b70ed88819f723a19920d297149103",
+    "fixture_writer_sha256": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3"
+  },
+  "scoring_after": {
+    "revision": 3,
+    "scorer_sha256": "52e72f6fa2adb14bddba71aa30d103df70b70ed88819f723a19920d297149103",
+    "fixture_writer_sha256": "8f9741b3b1ce8be653e7be91df089801fc051f7c8f7ef404047b72dea6097aa3"
+  },
+  "results": [
+    {
+      "name": "wal-normal-valid-wal",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 2,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup",
+          "fragment"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-torn-after-commit",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-corrupt-base-torn-tail",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-bad-header-checksum",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-bad-first-frame-no-resync",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-checksum-after-commit",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-salt-after-commit",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-page-bounds-after-commit",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-valid-uncommitted-tail",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 2,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup",
+          "fragment"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-partial-uncommitted-transaction",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-no-committed-frame",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-topic-torn-tail",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-missing-page-preimage",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "fragment"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-torn-tail-512",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "wal-torn-tail-65536",
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 1,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "overflow-page-512",
+      "score": {
+        "expected_text_sha256": "54c28746bdd78764d27598e8622105d7b31d95a0431355ff22bd3de78a80d3aa",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 1,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 27,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 27,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "overflow-page-1024",
+      "score": {
+        "expected_text_sha256": "54c28746bdd78764d27598e8622105d7b31d95a0431355ff22bd3de78a80d3aa",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 1,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 15,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 15,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "overflow-page-4096",
+      "score": {
+        "expected_text_sha256": "a4c8f81250b83a9775f9280200d0f9f0ff45fa50810457eed5eba08170f7b58c",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 1,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 8,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 8,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "overflow-page-65536",
+      "score": {
+        "expected_text_sha256": "d1edad42239ba35f251a215b353e9b1aac19e539b59f358c5e1a5395ec31398d",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 1,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 1,
+        "unexpected_confirmed_target": false,
+        "confirmed_target_with_wrong_gold_ids": 0,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 20,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 20,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 1,
+            "exact_target_views": 1,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 1
+          }
+        }
+      }
+    }
+  ]
+}

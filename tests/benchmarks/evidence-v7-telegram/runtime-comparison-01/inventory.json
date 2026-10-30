@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "files": {
+    "comparison.json": {
+      "bytes": 2507,
+      "sha256": "abe37bfca4e36bd61c4b28074a86f829f295b98b87aad291eed85243c6f08557"
+    },
+    "owned-corpus.json": {
+      "bytes": 47539,
+      "sha256": "1a9b2792aa71e9f72738bf00f0439fb7172cd48ec93819d6cd927e6b703c4c66"
+    },
+    "v6-binding.json": {
+      "bytes": 15636,
+      "sha256": "299a914d85064d70da307c6173096f62219332646c1341ac4c142c54d89157ec"
+    },
+    "v6-run.json": {
+      "bytes": 89037,
+      "sha256": "50897ef54560f3e7146181350c06cc03327bbbcd284ceff90feb319dc57ba714"
+    },
+    "v6-score-v2.json": {
+      "bytes": 28617,
+      "sha256": "5c363517a232e8cd02381eb68a6f115a90fe6f90a533d7643e1643207f3ec22c"
+    },
+    "v7-binding.json": {
+      "bytes": 15636,
+      "sha256": "6248d99cdd07a50eb9b1533f39f76386cf25d977cb6a7062f38e542d09a6c668"
+    },
+    "v7-run.json": {
+      "bytes": 89838,
+      "sha256": "2a986f3eea61d968da6e2ba2d976841262d5046f1f22ac970798830845aa5eae"
+    },
+    "v7-score-v2.json": {
+      "bytes": 29431,
+      "sha256": "0c2438b02598e9557fd869c1065a8c002039b85d6a7daa5d17c34238410e3fbb"
+    }
+  }
+}

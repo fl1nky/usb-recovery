@@ -1,0 +1,1059 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v7-media/v6-unit-score-01.json",
+    "source_sha256": "9f5c37404b4ac046e005badfcff439d372f46623fb49d787e6aadd5810876c57",
+    "transformation": "Local paths sanitized only; original receipt preserved"
+  },
+  "data": {
+    "schema": 1,
+    "tool": "Recovery",
+    "edition": "source build",
+    "label": "actual preserved V6 frozen app baseline on V7 allocation-unit corpus",
+    "manifest_sha256": "737e568777622e36d73a7dd62534423d1597a8b53f237e2525af8df7bc0b9f8e",
+    "run_sha256": "f7d4fb836f0f56c6a77b04eaa2497bfffa3491554909b100f5bdcccd8c78f585",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "front-4k-zero",
+        "status": "completed",
+        "elapsed_ms": 3640,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\front-4k-zero\\files.1\\b0001415.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 00000249efb7de40] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000249efb7de40] missing picture in access unit with size 1418\r\n[h264 @ 00000249efb7de40] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000249efb7de40] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000249efb11f00] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000249efb11f00] stream 0, offset 0x215d: partial file\r\n[h264 @ 00000249efb7f4c0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000249efb7f4c0] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 00000249efb82ac0] [dec:h264 @ 00000249efb84540] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 00000249efb82ac0] [dec:h264 @ 00000249efb84540] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 00000249f01d99c0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 00000249f01d99c0] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\front-4k-zero\\files.1\\f0000276.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000228d46b1e00] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\front-4k-zero\\files.1\\f0000276.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\front-4k-zero\\containers\\offset-0000000000724480.mp4",
+            "sha256": "57e05911ba91de03efe85e83fe1f158b2297d351b8e0d04c315a526264e58b44",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 00000266fc98ee80] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 00000266fc98ee80] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 00000266fc98ee80] missing picture in access unit with size 1861\r\n[aac @ 00000266fc993780] channel element 0.0 is not allocated\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 959).\r\n[h264 @ 00000266fe57ea80] missing picture in access unit with size 963\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 691).\r\n[h264 @ 00000266fe57ea80] missing picture in access unit with size 695\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 00000266fe57ea80] missing picture in access unit with size 1293\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 795).\r\n[h264 @ 00000266fe57ea80] missing picture in access unit with size 799\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 00000266fe57ea80] missing picture in access unit with size 1487\r\n[h264 @ 00000266fe57ea80] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "front-8k-random",
+        "status": "completed",
+        "elapsed_ms": 3450,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\front-8k-random\\files.1\\f0000134.mp4",
+            "sha256": "2ed91956ef4ac8d675d6f7dc04db170cee80ef6cf0705ea038b2e6a507652641",
+            "bytes": 67084,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 000002255e13d9c0] Reserved bit set.\r\n[aac @ 000002255e13d9c0] Number of scalefactor bands in group (50) exceeds limit (49).\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (-450175542 > 959).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 963\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (87781623 > 691).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 695\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (-1799553019 > 1289).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 1293\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (154925781 > 795).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 799\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (-1351336094 > 1483).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 1487\r\n[h264 @ 000002255fcdea40] Invalid NAL unit size (-1153076862 > 784).\r\n[h264 @ 000002255fcdea40] missing picture in access unit with size 788\r\n[h264 @ 000002255f",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "tail-4k-zero",
+        "status": "completed",
+        "elapsed_ms": 3084,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-tail",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 2,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-4k-zero\\files.1\\b0001292.mp4",
+            "sha256": "7c1be8261fa6daee43554a7b694b35e17009d01e14229bbe53d03191ee31ff40",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000262d39a2800] moov atom not found\r\n[in#0 @ 00000262d39a2680] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-4k-zero\\files.1\\b0001292.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-4k-zero\\files.1\\f0000000.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001fefbe03800] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-4k-zero\\files.1\\f0000000.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "tail-8k-cc",
+        "status": "completed",
+        "elapsed_ms": 2879,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-tail",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-8k-cc\\files.1\\f0001922.mp4",
+            "sha256": "3af679e128f9aa721156f3e66c639a265edc3f4c890c9aa57f05554e0adda2bc",
+            "bytes": 64454,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 00000231447729c0] moov atom not found\r\n[in#0 @ 0000023144772840] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\tail-8k-cc\\files.1\\f0001922.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "larger-8k-zero",
+        "status": "completed",
+        "elapsed_ms": 5355,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "large-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\larger-8k-zero\\files.1\\b0000903.mp4",
+            "sha256": "82442deaf1465dec19024f10e5bade8954a81836bfa1fe3c7bf639df46369e77",
+            "bytes": 8192,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000016d9638fcc0] Invalid NAL unit size (2335 > 49).\r\n[h264 @ 0000016d9638fcc0] missing picture in access unit with size 53\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000016d96321c40] stream 1, offset 0x28ee: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000016d96321c40] stream 0, offset 0x2965: partial file\r\n[h264 @ 0000016d96390f80] Invalid NAL unit size (2335 > 49).\r\n[h264 @ 0000016d96390f80] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 0000016d963a0a40] [dec:h264 @ 0000016d96394400] Decoding error: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\larger-8k-zero\\files.1\\f0000000.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001918e985ac0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\larger-8k-zero\\files.1\\f0000000.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\larger-8k-zero\\containers\\offset-0000000000462336.mp4",
+            "sha256": "695428ba7f24ca4a014c481f67145de781f648fdc052e10804dc345036b0720a",
+            "bytes": 133530,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[aac @ 00000235d097df00] channel element 0.0 duplicate\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 1330).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 1334\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 2244).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 2248\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 1344).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 1348\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 2116).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 2120\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 1397).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 1401\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 1434).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 1438\r\n[h264 @ 00000235d26f6d40] Invalid NAL unit size (0 > 2039).\r\n[h264 @ 00000235d26f6d40] missing picture in access unit with size 2043\r\n[h264 ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "larger-16k-random",
+        "status": "completed",
+        "elapsed_ms": 5267,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "large-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\larger-16k-random\\files.1\\f0001546.mp4",
+            "sha256": "01c6f9baafa25c83ae71d2d5577fc63c2fbc353ca8966fcff9087bb0035584be",
+            "bytes": 133530,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000002ac5e682780] Invalid NAL unit size (1446230166 > 2116).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 2120\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (-598560579 > 1397).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 1401\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (-1048941243 > 1434).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 1438\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (296742826 > 2039).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 2043\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (1416930357 > 1469).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 1473\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (1594172835 > 1484).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 1488\r\n[h264 @ 000002ac5e682780] Invalid NAL unit size (983349080 > 1603).\r\n[h264 @ 000002ac5e682780] missing picture in access unit with size 1607\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "two-video-tracks-8k",
+        "status": "completed",
+        "elapsed_ms": 3192,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "dual-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\two-video-tracks-8k\\files.1\\b0000396.mp4",
+            "sha256": "d23884ed5888923664b6c61cee06066e3e711e33cf35073450a59b750f7c5c42",
+            "bytes": 8192,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001ce2dae2640] Invalid NAL unit size (3053 > 217).\r\n[h264 @ 000001ce2dae2640] missing picture in access unit with size 907\r\n[h264 @ 000001ce2dae2640] Invalid NAL unit size (3053 > 217).\r\n[h264 @ 000001ce2dae2640] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001ce2da73ac0] stream 0, offset 0x2b14: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001ce2da73ac0] stream 1, offset 0x3240: partial file\r\n[h264 @ 000001ce2f823b00] Invalid NAL unit size (3053 > 217).\r\n[h264 @ 000001ce2f823b00] Error splitting the input into NAL units.\r\n[vist#0:1/h264 @ 000001ce2daef5c0] [dec:h264 @ 000001ce2f848d40] Decoding error: Invalid data found when processing input\r\n[vist#0:1/h264 @ 000001ce2daef5c0] [dec:h264 @ 000001ce2f848d40] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:1 @ 000001ce2f825000] Cannot determine format of input 0:1 after EOF\r\n[vf#0:1 @ 000001ce2f825000] Task finished with error code: -1094995529 (Invalid data found when processing input)",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\two-video-tracks-8k\\files.1\\f0000157.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001b5c7e756c0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\two-video-tracks-8k\\files.1\\f0000157.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\two-video-tracks-8k\\containers\\offset-0000000000202752.mp4",
+            "sha256": "21df99e00a9f0cb0a5e7c27b9bf1ce225c8336171b315e91bf683de3a13f34ed",
+            "bytes": 104044,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000025429472800] error while decoding MB 1 0, bytestream -39\r\n[h264 @ 000002542946dd80] Invalid NAL unit size (0 > 1832).\r\n[h264 @ 000002542946dd80] missing picture in access unit with size 1836\r\n[h264 @ 0000025429472800] Invalid NAL unit size (0 > 1832).\r\n[h264 @ 0000025429472800] missing picture in access unit with size 1836\r\n[aac @ 0000025429473d40] channel element 0.0 is not allocated\r\n[h264 @ 000002542b062840] Invalid NAL unit size (0 > 900).\r\n[h264 @ 000002542b062840] missing picture in access unit with size 904\r\n[h264 @ 000002542946dd80] Invalid NAL unit size (0 > 900).\r\n[h264 @ 000002542946dd80] missing picture in access unit with size 904\r\n[h264 @ 000002542b062840] Invalid NAL unit size (0 > 1439).\r\n[h264 @ 000002542b062840] missing picture in access unit with size 1443\r\n[h264 @ 000002542946dd80] Invalid NAL unit size (0 > 1439).\r\n[h264 @ 000002542946dd80] missing picture in access unit with size 1443\r\n[h264 @ 000002542b062840] Invalid NAL unit size (0 > 1296).\r\n[h264",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "nal-length-prefix-split",
+        "status": "completed",
+        "elapsed_ms": 3156,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "prefix-split",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nal-length-prefix-split\\files.1\\b0001282.mp4",
+            "sha256": "29e8690d5b90328d35ca596dfcf6221ba8a930d95d5d65c0c6201f02898e6ae5",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 00000191342ccf40] Invalid NAL unit size (3053 > 679).\r\n[h264 @ 00000191342ccf40] missing picture in access unit with size 1371\r\n[h264 @ 00000191342ccf40] Invalid NAL unit size (3053 > 679).\r\n[h264 @ 00000191342ccf40] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000019134261d40] stream 0, offset 0x1946: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000019134261d40] stream 0, offset 0x218c: partial file\r\n[h264 @ 0000019134348940] Invalid NAL unit size (3053 > 679).\r\n[h264 @ 0000019134348940] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 00000191342dcf40] [dec:h264 @ 00000191342d32c0] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 00000191342dcf40] [dec:h264 @ 00000191342d32c0] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 00000191342d2dc0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 00000191342d2dc0] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nal-length-prefix-split\\files.1\\f0000532.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001ffebcb3840] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nal-length-prefix-split\\files.1\\f0000532.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nal-length-prefix-split\\containers\\offset-0000000000656384.mp4",
+            "sha256": "e5cbd0af24c27fccc29512365d1aa50fe1d40d30d2aeceecae87318a7c13ef34",
+            "bytes": 67131,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000002a37d57e400] error while decoding MB 4 0, bytestream -55\r\n[h264 @ 000002a37d57e400] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 000002a37d57e400] missing picture in access unit with size 1861\r\n[aac @ 000002a37d57f380] channel element 0.0 is not allocated\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 959).\r\n[h264 @ 000002a37f2e0300] missing picture in access unit with size 963\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 691).\r\n[h264 @ 000002a37f2e0300] missing picture in access unit with size 695\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 000002a37f2e0300] missing picture in access unit with size 1293\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 795).\r\n[h264 @ 000002a37f2e0300] missing picture in access unit with size 799\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 000002a37f2e0300] missing picture in access unit with size 1487\r\n[h264 @ 000002a37f2e0300] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "identical-all-units",
+        "status": "completed",
+        "elapsed_ms": 3351,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 4,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 4,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\identical-all-units\\files.1\\b0000905.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000025b8b651380] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000025b8b651380] missing picture in access unit with size 1418\r\n[h264 @ 0000025b8b651380] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000025b8b651380] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000025b8b5e36c0] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000025b8b5e36c0] stream 0, offset 0x215d: partial file\r\n[h264 @ 0000025b8b660300] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000025b8b660300] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 0000025b8b655fc0] [dec:h264 @ 0000025b8b656180] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 0000025b8b655fc0] [dec:h264 @ 0000025b8b656180] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 0000025b8b652700] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 0000025b8b652700] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\identical-all-units\\files.1\\f0000150.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001b9b81d3740] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\identical-all-units\\files.1\\f0000150.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\identical-all-units\\containers\\offset-0000000000463360.mp4",
+            "sha256": "5c58ba490bc5dabe9b0a79d4da7db7ab0959fb2326ae13f29be81b476679e9c0",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 00000294edacd1c0] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 00000294edacd1c0] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 00000294edacd1c0] missing picture in access unit with size 1861\r\n[aac @ 00000294edace140] channel element 0.0 is not allocated\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 959).\r\n[h264 @ 00000294ef85f340] missing picture in access unit with size 963\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 691).\r\n[h264 @ 00000294ef85f340] missing picture in access unit with size 695\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 00000294ef85f340] missing picture in access unit with size 1293\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 795).\r\n[h264 @ 00000294ef85f340] missing picture in access unit with size 799\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 00000294ef85f340] missing picture in access unit with size 1487\r\n[h264 @ 00000294ef85f340] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\identical-all-units\\containers\\offset-0000000001600000.mp4",
+            "sha256": "5453bfc9a92c847abaac7f1d9066273032a514c95224ea3c401d2b1faf6655f0",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001df87f8f700] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 000001df87f8f700] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 000001df87f8f700] missing picture in access unit with size 1861\r\n[aac @ 000001df87f90680] channel element 0.0 is not allocated\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (0 > 959).\r\n[h264 @ 000001df89be1840] missing picture in access unit with size 963\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (0 > 691).\r\n[h264 @ 000001df89be1840] missing picture in access unit with size 695\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 000001df89be1840] missing picture in access unit with size 1293\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (0 > 795).\r\n[h264 @ 000001df89be1840] missing picture in access unit with size 799\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 000001df89be1840] missing picture in access unit with size 1487\r\n[h264 @ 000001df89be1840] Invalid NAL unit size (275122424 > 784).\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "same-config-foreign-choice",
+        "status": "completed",
+        "elapsed_ms": 3129,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-choice\\files.1\\b0000642.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001f11597f100] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001f11597f100] missing picture in access unit with size 1418\r\n[h264 @ 000001f11597f100] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001f11597f100] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001f115913080] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001f115913080] stream 0, offset 0x215d: partial file\r\n[h264 @ 000001f11598ec40] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001f11598ec40] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 000001f115982f00] [dec:h264 @ 000001f115980b00] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 000001f115982f00] [dec:h264 @ 000001f115980b00] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001f11598dcc0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001f11598dcc0] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-choice\\files.1\\f0000145.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001a203386040] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-choice\\files.1\\f0000145.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-choice\\containers\\offset-0000000000328704.mp4",
+            "sha256": "5c58ba490bc5dabe9b0a79d4da7db7ab0959fb2326ae13f29be81b476679e9c0",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000027bf8c1ddc0] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 0000027bf8c1ddc0] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 0000027bf8c1ddc0] missing picture in access unit with size 1861\r\n[aac @ 0000027bf8c1ebc0] channel element 0.0 is not allocated\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 959).\r\n[h264 @ 0000027bfa8989c0] missing picture in access unit with size 963\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 691).\r\n[h264 @ 0000027bfa8989c0] missing picture in access unit with size 695\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 0000027bfa8989c0] missing picture in access unit with size 1293\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 795).\r\n[h264 @ 0000027bfa8989c0] missing picture in access unit with size 799\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 0000027bfa8989c0] missing picture in access unit with size 1487\r\n[h264 @ 0000027bfa8989c0] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "same-config-foreign-current",
+        "status": "completed",
+        "elapsed_ms": 3236,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-current\\files.1\\b0002689.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001316b6507c0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001316b6507c0] missing picture in access unit with size 1418\r\n[h264 @ 000001316b6507c0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001316b6507c0] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001316b5e3e40] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001316b5e3e40] stream 0, offset 0x215d: partial file\r\n[h264 @ 000001316b6600c0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000001316b6600c0] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 000001316b654700] [dec:h264 @ 000001316b652540] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 000001316b654700] [dec:h264 @ 000001316b652540] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001316b65f380] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001316b65f380] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-current\\files.1\\f0001044.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001524bf638c0] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-current\\files.1\\f0001044.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\same-config-foreign-current\\containers\\offset-0000000001376768.mp4",
+            "sha256": "5c58ba490bc5dabe9b0a79d4da7db7ab0959fb2326ae13f29be81b476679e9c0",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000027a5670f440] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 0000027a5670f440] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 0000027a5670f440] missing picture in access unit with size 1861\r\n[aac @ 0000027a5670ff80] channel element 0.0 is not allocated\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 959).\r\n[h264 @ 0000027a583eec00] missing picture in access unit with size 963\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 691).\r\n[h264 @ 0000027a583eec00] missing picture in access unit with size 695\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 0000027a583eec00] missing picture in access unit with size 1293\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 795).\r\n[h264 @ 0000027a583eec00] missing picture in access unit with size 799\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 0000027a583eec00] missing picture in access unit with size 1487\r\n[h264 @ 0000027a583eec00] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "metadata-choice",
+        "status": "completed",
+        "elapsed_ms": 2941,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-tail",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 2,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\metadata-choice\\files.1\\b0002056.mp4",
+            "sha256": "7c1be8261fa6daee43554a7b694b35e17009d01e14229bbe53d03191ee31ff40",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000021e183b2fc0] moov atom not found\r\n[in#0 @ 0000021e183b2e40] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\metadata-choice\\files.1\\b0002056.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\metadata-choice\\files.1\\f0000149.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001d324559180] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\metadata-choice\\files.1\\f0000149.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "audio-overwrite",
+        "status": "completed",
+        "elapsed_ms": 3164,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\audio-overwrite\\files.1\\b0001926.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000021f64e3d380] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000021f64e3d380] missing picture in access unit with size 1418\r\n[h264 @ 0000021f64e3d380] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000021f64e3d380] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000021f64e35900] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 0000021f64e35900] stream 0, offset 0x215d: partial file\r\n[h264 @ 0000021f64e4c1c0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 0000021f64e4c1c0] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 0000021f64ea22c0] [dec:h264 @ 0000021f669c9e40] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 0000021f64ea22c0] [dec:h264 @ 0000021f669c9e40] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 0000021f64e3e6c0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 0000021f64e3e6c0] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\audio-overwrite\\files.1\\f0000000.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001a9f7062280] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\audio-overwrite\\files.1\\f0000000.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\audio-overwrite\\containers\\offset-0000000000986112.mp4",
+            "sha256": "e3f6f8080aeb7b0819ea433c96505d423eaf0167aa475e03a14ec4acf9955228",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000017b186ce640] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 0000017b186ce640] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 0000017b186ce640] missing picture in access unit with size 1861\r\n[aac @ 0000017b186d3080] channel element 0.0 is not allocated\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 959).\r\n[h264 @ 0000017b1a270bc0] missing picture in access unit with size 963\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 691).\r\n[h264 @ 0000017b1a270bc0] missing picture in access unit with size 695\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 0000017b1a270bc0] missing picture in access unit with size 1293\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 795).\r\n[h264 @ 0000017b1a270bc0] missing picture in access unit with size 799\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 0000017b1a270bc0] missing picture in access unit with size 1487\r\n[h264 @ 0000017b1a270bc0] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "missing-unit",
+        "status": "completed",
+        "elapsed_ms": 3250,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\missing-unit\\files.1\\b0002182.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 00000226c66ee480] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000226c66ee480] missing picture in access unit with size 1418\r\n[h264 @ 00000226c66ee480] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000226c66ee480] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000226c6683140] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 00000226c6683140] stream 0, offset 0x215d: partial file\r\n[h264 @ 00000226c66fdbc0] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 00000226c66fdbc0] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 00000226c66f2340] [dec:h264 @ 00000226c66efcc0] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 00000226c66f2340] [dec:h264 @ 00000226c66efcc0] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 00000226c66ef800] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 00000226c66ef800] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\missing-unit\\files.1\\f0000138.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000002436d072500] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\missing-unit\\files.1\\f0000138.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\missing-unit\\containers\\offset-0000000001117184.mp4",
+            "sha256": "9fda3d518b2467c629b8d4270bcd36ea06b9a19b2f3b1996600baa6e6d8b2175",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 0000026b7ec4f780] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 0000026b7ec4f780] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 0000026b7ec4f780] missing picture in access unit with size 1861\r\n[aac @ 0000026b7ec50340] channel element 0.0 is not allocated\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 959).\r\n[h264 @ 0000026b7f500500] missing picture in access unit with size 963\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 691).\r\n[h264 @ 0000026b7f500500] missing picture in access unit with size 695\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 0000026b7f500500] missing picture in access unit with size 1293\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 795).\r\n[h264 @ 0000026b7f500500] missing picture in access unit with size 799\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 0000026b7f500500] missing picture in access unit with size 1487\r\n[h264 @ 0000026b7f500500] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "nonaligned-cuts",
+        "status": "completed",
+        "elapsed_ms": 3320,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nonaligned-cuts\\files.1\\b0002441.mp4",
+            "sha256": "5d5bc987a965b477562bd038d74a7b6f4384d08cdf7a7a9b72647e3aa6d843d8",
+            "bytes": 4608,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000001d9d6dfed00] Invalid NAL unit size (3053 > 1238).\r\n[h264 @ 000001d9d6dfed00] missing picture in access unit with size 1930\r\n[h264 @ 000001d9d6dfed00] Invalid NAL unit size (3053 > 1238).\r\n[h264 @ 000001d9d6dfed00] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001d9d6d92f00] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000001d9d6d92f00] stream 0, offset 0x215d: partial file\r\n[h264 @ 000001d9d6e05240] Invalid NAL unit size (3053 > 1238).\r\n[h264 @ 000001d9d6e05240] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 000001d9d6e02d00] [dec:h264 @ 000001d9d6e06ac0] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 000001d9d6e02d00] [dec:h264 @ 000001d9d6e06ac0] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 000001d9d6e043c0] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 000001d9d6e043c0] Task finished with error code: -1094995529 (Invalid data found when processing in",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nonaligned-cuts\\files.1\\f0001045.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000002118bad2240] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nonaligned-cuts\\files.1\\f0001045.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\nonaligned-cuts\\containers\\offset-0000000001249792.mp4",
+            "sha256": "db0e9c0b2d138f428b06c57189f5f08fb1f9d094e5621062659be1baf7c158ac",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000002c3c76be3c0] error while decoding MB 5 0, bytestream -55\r\n[h264 @ 000002c3c76be3c0] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 000002c3c76be3c0] missing picture in access unit with size 1861\r\n[aac @ 000002c3c76c3140] channel element 0.0 is not allocated\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 959).\r\n[h264 @ 000002c3c9250240] missing picture in access unit with size 963\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 691).\r\n[h264 @ 000002c3c9250240] missing picture in access unit with size 695\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 000002c3c9250240] missing picture in access unit with size 1293\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 795).\r\n[h264 @ 000002c3c9250240] missing picture in access unit with size 799\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 000002c3c9250240] missing picture in access unit with size 1487\r\n[h264 @ 000002c3c9250240] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "opaque-entropy-candidate",
+        "status": "completed",
+        "elapsed_ms": 3228,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-front",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 3,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 3,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\opaque-entropy-candidate\\files.1\\b0002437.mp4",
+            "sha256": "ff1aaff237c435452be15d78d6c96c47a1a015018e0aed9c348540b8ed2bd8ae",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000002015505f240] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000002015505f240] missing picture in access unit with size 1418\r\n[h264 @ 000002015505f240] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000002015505f240] Error splitting the input into NAL units.\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000002015505c4c0] stream 0, offset 0x1917: partial file\r\n[in#0/mov,mp4,m4a,3gp,3g2,mj2 @ 000002015505c4c0] stream 0, offset 0x215d: partial file\r\n[h264 @ 000002015506e240] Invalid NAL unit size (3053 > 726).\r\n[h264 @ 000002015506e240] Error splitting the input into NAL units.\r\n[vist#0:0/h264 @ 0000020155063340] [dec:h264 @ 0000020155060e00] Decoding error: Invalid data found when processing input\r\n[vist#0:0/h264 @ 0000020155063340] [dec:h264 @ 0000020155060e00] Decode error rate 1 exceeds maximum 0.666667\r\n[vf#0:0 @ 0000020155060940] Cannot determine format of input 0:0 after EOF\r\n[vf#0:0 @ 0000020155060940] Task finished with error code: -1094995529 (Invalid data found when processing input",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\opaque-entropy-candidate\\files.1\\f0000397.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 000001fd45582680] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\opaque-entropy-candidate\\files.1\\f0000397.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\opaque-entropy-candidate\\containers\\offset-0000000001247744.mp4",
+            "sha256": "5c58ba490bc5dabe9b0a79d4da7db7ab0959fb2326ae13f29be81b476679e9c0",
+            "bytes": 67084,
+            "method": "Контейнер по смещению",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[h264 @ 000002551cfed8c0] error while decoding MB 4 0, bytestream -24\r\n[h264 @ 000002551cfed8c0] Invalid NAL unit size (0 > 1857).\r\n[h264 @ 000002551cfed8c0] missing picture in access unit with size 1861\r\n[aac @ 000002551cfee840] channel element 0.0 is not allocated\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 959).\r\n[h264 @ 000002551ebe02c0] missing picture in access unit with size 963\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 691).\r\n[h264 @ 000002551ebe02c0] missing picture in access unit with size 695\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 1289).\r\n[h264 @ 000002551ebe02c0] missing picture in access unit with size 1293\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 795).\r\n[h264 @ 000002551ebe02c0] missing picture in access unit with size 799\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 1483).\r\n[h264 @ 000002551ebe02c0] missing picture in access unit with size 1487\r\n[h264 @ 000002551ebe02c0] Invalid NAL unit size (0 > 784).\r\n[h264 @ ",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      },
+      {
+        "name": "equal-metadata-different-overlap",
+        "status": "completed",
+        "elapsed_ms": 3203,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "small-tail",
+            "all_original_bytes_present": false,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 2,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\equal-metadata-different-overlap\\files.1\\b0000779.mp4",
+            "sha256": "2d137708d4e013b7f3a693745fb116d92291e127dfa28ee675515ea4b7e9abe4",
+            "bytes": 4096,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000013107183180] moov atom not found\r\n[in#0 @ 0000013107183000] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\equal-metadata-different-overlap\\files.1\\b0000779.mp4.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          },
+          {
+            "path": ".\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\equal-metadata-different-overlap\\files.1\\f0000265.dovecot",
+            "sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+            "bytes": 81920,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Прочее",
+            "original_path": null,
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "decoder_error": "[in#0 @ 0000023b80713d00] Error opening input: Invalid data found when processing input\r\nError opening input file .\\.build\\benchmarks-v7-media\\v6-unit-baseline-01\\equal-metadata-different-overlap\\files.1\\f0000265.dovecot.\r\nError opening input files: Invalid data found when processing input\r\n",
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": []
+          }
+        ]
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+  }
+}

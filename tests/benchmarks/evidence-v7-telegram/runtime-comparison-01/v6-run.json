@@ -1,0 +1,2312 @@
+{
+  "schema": 1,
+  "scope": "Actual frozen-helper stdin protocol; application hash is distribution context, application/UI/pipeline not executed",
+  "label": "v6",
+  "utc": "2026-10-30T21:34:46.676836+00:00",
+  "application_sha256": "77ce273fc758ca8095e3c24ff8b9bb6c6475ed3cab8fb08b25a45eb332127c51",
+  "helper_sha256": "253ea81928b28e007d9f1ec60c51830c8cc89d897d04430e4684d9ff8c1966e6",
+  "wal_manifest_sha256": "8dd8907156f1288a69a4be8c934788aa167eea48d50717b67075eaa40eb70d57",
+  "overflow_manifest_sha256": "d126f8385fe5fb54eb4780f94e691c9774ab751cc896b37f3525302cfa95fd41",
+  "request_options": {
+    "scan_fragments": true,
+    "fragment_query": "",
+    "query_mode": "literal",
+    "recover_deleted": "helper default"
+  },
+  "real_devices_tested": false,
+  "commercial_programs_compared": false,
+  "raw_run_sha256": "03eadf2953cd27104c07906b7981c96e3bacf5491f282d7b2be6a8ac03e8e0cc",
+  "reruns": 0,
+  "results": [
+    {
+      "name": "wal-normal-valid-wal",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "e3bf10e38c319f318c3ff0cf1738f5dd9ad7bcd69e812da657cb89af666ea65e",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 9,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.485311,
+        "stdout_sha256": "bce1f5cf94a055371e0d57a7d80db055184fbeaad15f2dfe9a9021305b3e91c7",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.267246,
+          "stdout_sha256": "ead214780b95e350202d5c1218711a6e4f442c43526396af34a4276a2dddb3d6",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.305206,
+          "stdout_sha256": "ead214780b95e350202d5c1218711a6e4f442c43526396af34a4276a2dddb3d6",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.269503,
+          "stdout_sha256": "21964b850e6bb78a2fd8baa0b5ce161b05485a86fa11c0585e45e44e729805d7",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 2,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup",
+          "fragment"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 992,
+          "sha256": "079c3d1e0c714e83bcad9b4dc31be85c5bf83cf335dd17afe8683e88ee8ede4a"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 36864,
+          "sha256": "eb92decf39f7318932f4787543b0f24647a4355858e965c6c26ab0a392b09a7d"
+        },
+        "messages.jsonl": {
+          "bytes": 10272,
+          "sha256": "4011f707e8dc8585c783572f9688ef8893056e2e6050989faf58f60050b9f508"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 4546,
+          "sha256": "f027f20fb76f8ed2bf1e7db1afb8d6b29d2bcb65d4cdcc8a3c6dac439f554cd0"
+        },
+        "telegram-summary.json": {
+          "bytes": 1527,
+          "sha256": "7de5f94f36b7bbb320145717906c8c6a7dec822bdd3541ad6e123bcc99e1db3b"
+        },
+        "Переписки.html": {
+          "bytes": 14478,
+          "sha256": "1eab26245d8c89b81bbbe33126cef2caa1b825f06d478ba3fdec8ee86dcdeb3c"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-torn-after-commit",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "8dbe1dbc744db48131c628d2bad47afcaaae4e401fdb8ccf8c81b360edd93438",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.372978,
+        "stdout_sha256": "770ad3fc51a4bea341baf43cc8a9c9a095094f516f4d9872e37013ef374c31fb",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.272661,
+          "stdout_sha256": "4a321d49693ecedda587a92b24291da99e68b839aace3e46ea2f41d87590a578",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.31804,
+          "stdout_sha256": "4a321d49693ecedda587a92b24291da99e68b839aace3e46ea2f41d87590a578",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.269096,
+          "stdout_sha256": "4a321d49693ecedda587a92b24291da99e68b839aace3e46ea2f41d87590a578",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 994,
+          "sha256": "e51894ad2df10977c74a1ccebc49731c173b21b40220efabd5f6ebd468a775ea"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "dc895b55888ab3763c23f5a61dc40f9b55b89597aa09670a3ca5aa39b06c746f"
+        },
+        "messages.jsonl": {
+          "bytes": 1456,
+          "sha256": "03addd35c6aca0431eeef13be8bbbb5e5ff2f3040b8095eabc3025e8909df12b"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2443,
+          "sha256": "004bb95f454a03b4a89eef0b26421eb94aa8a7dfb85b5264f6cf84ed3fb344f1"
+        },
+        "telegram-summary.json": {
+          "bytes": 1492,
+          "sha256": "7ca7b34f9fbfbcca64ee6ccbfba1785009a2e250243f45de9ebb34b5b31d3cac"
+        },
+        "Переписки.html": {
+          "bytes": 5654,
+          "sha256": "e0b0b076b6821db7178a3dfbacab33dc79d2463e748d6cfc60947039bd590045"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-corrupt-base-torn-tail",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "272d03ee9b2b5a7fe7136963605e47ec450bab08a449e9d7831b4c13cde775f5",
+      "wal_sha256": "a8763ef4c81201b25e4b234d0cde18ab3138eed0bde9bfa0eaa4e44a94fb0911",
+      "analysis_code": "NO_READABLE_TELEGRAM_HISTORY",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.393426,
+        "stdout_sha256": "4d7148b2e51c4b079cf21e4a6863806261af0f595b4add01ee0c5dce7dd4a4b1",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.275972,
+          "stdout_sha256": "86d11cdd65c2a00ba17f016436a9e83f4db502fd947cadfed4fa3e138582406e",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.271596,
+          "stdout_sha256": "86d11cdd65c2a00ba17f016436a9e83f4db502fd947cadfed4fa3e138582406e",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.262555,
+          "stdout_sha256": "86d11cdd65c2a00ba17f016436a9e83f4db502fd947cadfed4fa3e138582406e",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1004,
+          "sha256": "27073776b5e31e55b7240d40e11e1005b766cccd9e5be9b1650683634a923236"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "f034e90d6cad42879c8a9d332bd743950fe02fe6a3b65e5bedcf089871371b5f"
+        },
+        "messages.jsonl": {
+          "bytes": 825,
+          "sha256": "9e44379378f4c4a574991fd23dfa84addbca7e9ff6ab7bff7a318fec0d835ca2"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2893,
+          "sha256": "7117fa5cb1243274b3f2730c39f029bd5040d0223a37c00a18f2003911b3b601"
+        },
+        "telegram-summary.json": {
+          "bytes": 1554,
+          "sha256": "708a0100e2770af6291e1dcfe58729fddf5d19f6aa724007760af3a08c44c7b7"
+        },
+        "Переписки.html": {
+          "bytes": 5023,
+          "sha256": "41140555f52ddb0dcadcd89ec19f98d54e9d9a82f384b7decb3c8c46bf549ba8"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-bad-header-checksum",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "7b55e0e1d13abdcd1fd4f4060bc165cdd1608615ac5301bbb1e1d78b6cc56236",
+      "analysis_code": "NO_READABLE_TELEGRAM_HISTORY",
+      "analysis_status": "partial",
+      "archive_records": 0,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.351671,
+        "stdout_sha256": "f4cc74f1e74f1ffcc975d1a4eabbd7ea37b74ca7a0aa26041af80b805a976f28",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.265741,
+          "stdout_sha256": "aa5f2905c32666fcf56b95045c0fb0cafe7d914496608904c09de4b063477b06",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.269067,
+          "stdout_sha256": "aa5f2905c32666fcf56b95045c0fb0cafe7d914496608904c09de4b063477b06",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.259258,
+          "stdout_sha256": "aa5f2905c32666fcf56b95045c0fb0cafe7d914496608904c09de4b063477b06",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 998,
+          "sha256": "3010b7e03cd7543637a06851ab6ec073454f58777653e2f54354d43b26199d23"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "f9f8effaf35d67f03816ccaab3a2590dddb752687f8d9a357bdee9eddabb26f3"
+        },
+        "messages.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1568,
+          "sha256": "c2a3af6d25adef4c19545ebf8cd9033449cd66effbd85d269561b3bfc44c06d0"
+        },
+        "telegram-summary.json": {
+          "bytes": 1499,
+          "sha256": "6199a5401192f8f217eaa03a0e47120f4bb27d001653881f90466ff753f7ffac"
+        },
+        "Переписки.html": {
+          "bytes": 4199,
+          "sha256": "ac4d86550628d8248b1c0d761970618387dd40cdef8872419f609dd53a0f9132"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-bad-first-frame-no-resync",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "7a9e2556042faae6668946eb607f8b74380b7305d75eee80c20ecc7f6bbabf23",
+      "analysis_code": "NO_READABLE_TELEGRAM_HISTORY",
+      "analysis_status": "partial",
+      "archive_records": 0,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.368154,
+        "stdout_sha256": "46e32761c0cbed8fcfaa2bf3906237e4a0dad011dfdb63b1c745e87708346892",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.292106,
+          "stdout_sha256": "349426a3e7b2ccc975e515d0d897ab3d078d77b334a9f3c034d70fe5f984abd5",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.29261,
+          "stdout_sha256": "349426a3e7b2ccc975e515d0d897ab3d078d77b334a9f3c034d70fe5f984abd5",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.284313,
+          "stdout_sha256": "349426a3e7b2ccc975e515d0d897ab3d078d77b334a9f3c034d70fe5f984abd5",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1010,
+          "sha256": "db77b84ab7740fbd5f8ab01843a0de92a8ca9055ef2dce7ee95cb43715d0a5e0"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "f9f8effaf35d67f03816ccaab3a2590dddb752687f8d9a357bdee9eddabb26f3"
+        },
+        "messages.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1072,
+          "sha256": "ff043697ece573e247a1656b81661a8b028ae3a537552be921f6c61100202691"
+        },
+        "telegram-summary.json": {
+          "bytes": 1445,
+          "sha256": "c02bc533ea5e9eb6414431d7fff4fd6acfaf50a7881f50dc47612e7656bf42d5"
+        },
+        "Переписки.html": {
+          "bytes": 4199,
+          "sha256": "ac4d86550628d8248b1c0d761970618387dd40cdef8872419f609dd53a0f9132"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-checksum-after-commit",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "06d34af7608ec1be3624b291533c14557cfd280262db35ed9d53c093b2eb4890",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.371413,
+        "stdout_sha256": "a3e775c9d54a75c2ef33222a9d2382b2c5b307570495d3012edcc23d2c6439dd",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.2707,
+          "stdout_sha256": "c52a2fbd5b8940164e0fd8775b03f65305a89b42596f5c4e694c52084d983bab",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.311333,
+          "stdout_sha256": "c52a2fbd5b8940164e0fd8775b03f65305a89b42596f5c4e694c52084d983bab",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.298041,
+          "stdout_sha256": "c52a2fbd5b8940164e0fd8775b03f65305a89b42596f5c4e694c52084d983bab",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1002,
+          "sha256": "e196d327915ef841ff7cb1e37095e2c1762e7183ae9938db89439534d25d654f"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "398224421e380b9b001a90c305d311cf4b99843b328b825cf817da692ce5cf04"
+        },
+        "messages.jsonl": {
+          "bytes": 1460,
+          "sha256": "6091957e900124f65850049f179394e70e601a195be5bbf5cdd7df345fd79ff6"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2471,
+          "sha256": "48e1df85a89fcb89d2c2ef8287ef48362497877c7b89269f735359279633f4de"
+        },
+        "telegram-summary.json": {
+          "bytes": 1512,
+          "sha256": "bff499b4ca4bb3389d75d94be16e443c76d8fda5ce4b811967fc1f4e4e30eddc"
+        },
+        "Переписки.html": {
+          "bytes": 5658,
+          "sha256": "88a50ad2dd8ef875fa39c62d5778872f07c6c9409ed85603c075e13a6a455808"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-salt-after-commit",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "9d4496ff3d78a0797a5621946bbcf9acb6ef018ac5eafc0ca2ea2e1130c25144",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.374671,
+        "stdout_sha256": "5c5a39c5599dfb416bb26175ffad54ee8eb5ad3d7fbb77805fa1427ca9aa72c8",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.267764,
+          "stdout_sha256": "2475695a6af6359c03cda67c5971772f31ad3aef7f912b28582ae7fb2626f02a",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.286833,
+          "stdout_sha256": "2475695a6af6359c03cda67c5971772f31ad3aef7f912b28582ae7fb2626f02a",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.255785,
+          "stdout_sha256": "2475695a6af6359c03cda67c5971772f31ad3aef7f912b28582ae7fb2626f02a",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 994,
+          "sha256": "ec6f3236f9c7e40c3605527ef2777d9d9d627940613f420d0e856bc48ed32e70"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "168f3647712f58d6ca69c1c5f15de18bd1c9e28ac0996e1e202391407eb108fb"
+        },
+        "messages.jsonl": {
+          "bytes": 1456,
+          "sha256": "148a269829f35f5a041ce16a231a4f0c9aa3fbdc793602c284c2a4bcd1dad97c"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2446,
+          "sha256": "4aec971aba8060609ded5c0f48fa969972cd7f9db9166cf8c5133473d4f93704"
+        },
+        "telegram-summary.json": {
+          "bytes": 1492,
+          "sha256": "746366b7699d9584fbb93f71a940010a2a24d39a16f2df7774cbe3d0c6bfcdd8"
+        },
+        "Переписки.html": {
+          "bytes": 5654,
+          "sha256": "ed372399e3d0ecdd3ed767e71f686c715d700977dda17371a7ee975b2e41c1c3"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-page-bounds-after-commit",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "5ff08705d50c24e7f04c68a5d138925cdcab929ac49b89fbb8911a2b3cc55cdd",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.37823,
+        "stdout_sha256": "650dc26dc1d365d9619c284e020fc9352ff87c28ffea3e1b106ef9c11d74d0f5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.258175,
+          "stdout_sha256": "9ae5f5957a27911131d77a42d7384890c5ec0d7793891488eac8bd306db00793",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.294142,
+          "stdout_sha256": "9ae5f5957a27911131d77a42d7384890c5ec0d7793891488eac8bd306db00793",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.274062,
+          "stdout_sha256": "9ae5f5957a27911131d77a42d7384890c5ec0d7793891488eac8bd306db00793",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1008,
+          "sha256": "a9b7a9c5cd91a539aaff2db20db0bbb22141f0a39eb325c4266d015302d567bc"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "448649a858b198b40b290f3920fac498aa73692d278d6a8b99bc4aded356763a"
+        },
+        "messages.jsonl": {
+          "bytes": 1463,
+          "sha256": "73c3452956e01d147014e120bed4d50a35b38c01ce883206878f83291490842f"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2486,
+          "sha256": "68a1a14e1685f188ee6a163a5933ae975ba5ab1bc4eea299a4349d98e5ae309e"
+        },
+        "telegram-summary.json": {
+          "bytes": 1527,
+          "sha256": "f270ad7745f85704642afbbb4b63c413330e3fdf8dee01bf496663b6348abbaa"
+        },
+        "Переписки.html": {
+          "bytes": 5661,
+          "sha256": "1348604af7f2d12878626a5478cafc8b69b241eea95ab5fc18e690eb30092583"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-valid-uncommitted-tail",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "667a84fca6a2e97184f84f7e1b7ba8258632997e232901991d23d54d5c1f308a",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 10,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.450721,
+        "stdout_sha256": "0eda140f87c161e5ea94944524f217f26e361114cb244e314f876a6fc734210d",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.285782,
+          "stdout_sha256": "cfc74b747ac69a626a23db06fbaec1fc6e13b2e4b24b0a5e37aae812ba95aba4",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.274811,
+          "stdout_sha256": "cfc74b747ac69a626a23db06fbaec1fc6e13b2e4b24b0a5e37aae812ba95aba4",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.267513,
+          "stdout_sha256": "4dc60979283843a677a964a3ffcd9b7320e223c89cffcb157f5ed0e71b7eff0d",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 2,
+        "observed_attributed_target_count": 1,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [
+          "backup",
+          "fragment"
+        ],
+        "target_deleted_values": [
+          "None"
+        ],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 2,
+            "exact_target_views": 2,
+            "attributed_target_views": 1,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1004,
+          "sha256": "b84fb17be988f3cc8c8693d7a30fc322ede4aabd856d8ca4d1b0b266e68623ba"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 40960,
+          "sha256": "3df29e9faa5f6a5be7fe2f3dee4fcb4f612892739bb8d948d8a9ba610ed497e5"
+        },
+        "messages.jsonl": {
+          "bytes": 11750,
+          "sha256": "8c4aff84dc27d465d209542cec023fddbf108f3b21e4e4b0e558d57a2aa002fc"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 4600,
+          "sha256": "158fbd78ee73e53662d39915b05ece7108f4015b1779c4c86c4bca4013d05953"
+        },
+        "telegram-summary.json": {
+          "bytes": 1558,
+          "sha256": "dec7f29f6a4bef3e7b9f25e56f14533b82dae02d03cb59b9bd872504673c2889"
+        },
+        "Переписки.html": {
+          "bytes": 15957,
+          "sha256": "d2291c69306fbaa3641f7f7fb541ac6164fea726d6049cc09e43aabf9e5ee575"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-partial-uncommitted-transaction",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "edd58d6bc613f578e4b180ea4829f2c59373a61434b1f7baa36e5884bbdf94d0",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.375638,
+        "stdout_sha256": "b0aaa7c7ecf0dca440f23da235381b3c019f806071a1fd0051e4e45278ebd8b0",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.258081,
+          "stdout_sha256": "14690d0fb2b46013d59dc7a2c50f4f54fa8d14a62fd0e4f8889217526ec130cf",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.277811,
+          "stdout_sha256": "14690d0fb2b46013d59dc7a2c50f4f54fa8d14a62fd0e4f8889217526ec130cf",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.283634,
+          "stdout_sha256": "14690d0fb2b46013d59dc7a2c50f4f54fa8d14a62fd0e4f8889217526ec130cf",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1022,
+          "sha256": "b69468d527bf9973b3546894c79d860823b9a1aef1e5554f5e0071d3b9f9affc"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "2f4f0afdcf6130b410add61ff0dd0d6d1ea7c696c96caed32b6dd8efb7994a0b"
+        },
+        "messages.jsonl": {
+          "bytes": 1470,
+          "sha256": "07ee066ba0fd5d0bc29b5b418a1982de6f7e4b35f89f75695a3271c1f93456f7"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2527,
+          "sha256": "e7f74b74ea3f894029741eb90d9336936e1a7ac605550ed073ca8b249c0f7436"
+        },
+        "telegram-summary.json": {
+          "bytes": 1562,
+          "sha256": "fdacc5b91f2595fddb0e1697d2dac90f7e050da3098c41bc327a577d68cbba3e"
+        },
+        "Переписки.html": {
+          "bytes": 5668,
+          "sha256": "383547eaaead3cce37df86505b874bc0144e81ddb4366588410673664c0653a9"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-no-committed-frame",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "781cc7e98498180566ab1a4f074cabd0a6a7955e45ffd2278f68bc4b3d6a33a3",
+      "analysis_code": "NO_READABLE_TELEGRAM_HISTORY",
+      "analysis_status": "partial",
+      "archive_records": 0,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.374263,
+        "stdout_sha256": "c0682a370b1d2f05897381afa63fb841545e5e52aac9b3a0ae36d731e3a320c9",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.266605,
+          "stdout_sha256": "9577d04b914eccc92242e070660bf6020c06b67d7e3f723074ea6d678a06b324",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.276746,
+          "stdout_sha256": "9577d04b914eccc92242e070660bf6020c06b67d7e3f723074ea6d678a06b324",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.262901,
+          "stdout_sha256": "9577d04b914eccc92242e070660bf6020c06b67d7e3f723074ea6d678a06b324",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 995,
+          "sha256": "a6ddf3c4ac4769209f1446bdc8bc617fa4333fee2f6636c1be65ac72293a8ca0"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "f9f8effaf35d67f03816ccaab3a2590dddb752687f8d9a357bdee9eddabb26f3"
+        },
+        "messages.jsonl": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1044,
+          "sha256": "e321034fbe0171605181bfef4ac608839d7009c9299bc0b1489b8913b37f9a78"
+        },
+        "telegram-summary.json": {
+          "bytes": 1410,
+          "sha256": "3501bf0cbf9d4611777e458502bf0a8644aa574c3706abfc5e44b11d9a6018c1"
+        },
+        "Переписки.html": {
+          "bytes": 4199,
+          "sha256": "ac4d86550628d8248b1c0d761970618387dd40cdef8872419f609dd53a0f9132"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-topic-torn-tail",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977",
+      "wal_sha256": "20e196b7d8012a9144f823d002068da42bd407ca7749add9025540ee2c7010f3",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.36761,
+        "stdout_sha256": "404d572711101eb798799577696cf03b1e5f418c168f138ef3bad7b8462dea3f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.278747,
+          "stdout_sha256": "6afa5888fe663b11dc322f638b6be29f0a496fa0d33f301b4d7540d293a04682",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.275577,
+          "stdout_sha256": "6afa5888fe663b11dc322f638b6be29f0a496fa0d33f301b4d7540d293a04682",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.281794,
+          "stdout_sha256": "6afa5888fe663b11dc322f638b6be29f0a496fa0d33f301b4d7540d293a04682",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 990,
+          "sha256": "68d4159ebdacd4cbc89b9768b7931e0edd2394b6eb8fdaec126c03b1d0f5350f"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "49a70a73d47c7809f15e59a0e11014451a95a49f62cf754c8480f89d47a42532"
+        },
+        "messages.jsonl": {
+          "bytes": 1471,
+          "sha256": "42b187781c9a99e8254397d9c9fd493f7ccdbb03cdd84c9e11f9a4ab369bc3ab"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2433,
+          "sha256": "5c5aa9667183c5ae0a7ea7aab06edc7f467929dfe8424a06fd81a46b653d1531"
+        },
+        "telegram-summary.json": {
+          "bytes": 1482,
+          "sha256": "f34620d47bb5c2e4cddfb5c17691c1217e29b26dd5fdc04ef165c61afdabd1ae"
+        },
+        "Переписки.html": {
+          "bytes": 5669,
+          "sha256": "1cc6614a7c73e88071b08007f4ab9421b6787d91543361235d1daf841dbccf48"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-missing-page-preimage",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "49e29332d3e71741eee8196d6ce574b4e3f0c0656eb9ffcfc7c09c3e481f54e0",
+      "wal_sha256": "8d7ec1929a062871da3bbddc41dbe312c007deca2f08210abc0b9a1687f79139",
+      "analysis_code": "NO_READABLE_TELEGRAM_HISTORY",
+      "analysis_status": "partial",
+      "archive_records": 5,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.381681,
+        "stdout_sha256": "ef5b6fed2967cfeab2b03e8cc0646907a4d6bd5ecba75ed2b02b51b143f59580",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.270132,
+          "stdout_sha256": "8f47fb561ec955eada2c552ca32ddd9944ab860a8b46c1ae0cf0fad5bf9e7c18",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.277313,
+          "stdout_sha256": "8f47fb561ec955eada2c552ca32ddd9944ab860a8b46c1ae0cf0fad5bf9e7c18",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.273263,
+          "stdout_sha256": "8f47fb561ec955eada2c552ca32ddd9944ab860a8b46c1ae0cf0fad5bf9e7c18",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": false,
+        "expected_prefix": false,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 1003,
+          "sha256": "e767f361a6000a047c685e3b7e1778423c2bd203a33ed883a8c5c9d1d2727e31"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 32768,
+          "sha256": "e305c4795fb3d975d9f6adf85a8c55ab418a61be81a67ad0cc21cdd6c519f471"
+        },
+        "messages.jsonl": {
+          "bytes": 5297,
+          "sha256": "2bfa82cb68d50cfe4d69c5ba763b6a0468e4834e25a7bb2556b15d2f3c807f86"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 3633,
+          "sha256": "1990581cb02cd9a7a38c7f92de1205731993be6e6e8b2c4860b2fd17b501c683"
+        },
+        "telegram-summary.json": {
+          "bytes": 1541,
+          "sha256": "fca10082f5b18501a90acd808a6f4fe993105a0dfa82b7e1903e939a61526ecc"
+        },
+        "Переписки.html": {
+          "bytes": 9499,
+          "sha256": "fa913aa0842c4699376f5405396fb9141ffe017b4fed7f382bb879c9df3caa5c"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-torn-tail-512",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "6264b21d08bca2e00e1aabe9539247f9a1c702aaa90b502752f38810cb4434bd",
+      "wal_sha256": "1c159156b930d65ab92f52aa5c0601fe8cb55fb72c4e718831fc82e522f271ba",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.408576,
+        "stdout_sha256": "13febd7a19d00b7984b8c0e904e338deb43c7e337daae7aa89a0c7af143f846e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.273195,
+          "stdout_sha256": "20316a117b091557770931562bbed6d15e1c60762e53e242092164909e83d8e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.272497,
+          "stdout_sha256": "20316a117b091557770931562bbed6d15e1c60762e53e242092164909e83d8e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.257529,
+          "stdout_sha256": "20316a117b091557770931562bbed6d15e1c60762e53e242092164909e83d8e9",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 984,
+          "sha256": "40ed374e5a29c69941cca7b49d83883cf6d73b76a72e0086351f028aa2eded57"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "a31aa6f96f051997066a40692e0ba239e26d636972e6faed0d89a6d930f477f4"
+        },
+        "messages.jsonl": {
+          "bytes": 1452,
+          "sha256": "9374d2cef093e0934ad3c03590c4678e0521dd0fe2048c0724f5c3e1038a98bc"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2415,
+          "sha256": "9c4ef03a42d7f973593faeaa1f631aeb06d8c832f7e18be6776706ac153df194"
+        },
+        "telegram-summary.json": {
+          "bytes": 1472,
+          "sha256": "fa95836b7a6fa2115df7d8b8627e14356c4643fa517fa9b35327eba52432e648"
+        },
+        "Переписки.html": {
+          "bytes": 5650,
+          "sha256": "ed603c19d11582f67e51e1a24f42e510a8533b0a93596ae51430025355121d55"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "wal-torn-tail-65536",
+      "kind": "wal",
+      "status": "completed",
+      "source_sha256": "0e3b98ae9ca16246cd16d9a20c8d14c984637bf0793ac2795f1ea29137adc6d0",
+      "wal_sha256": "c4a70f046a786e7a9a025bd9b081e486c6e18254d19f1e088b904c5d59792872",
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 1,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.381128,
+        "stdout_sha256": "eb062ac7412e3b1cee489bb55c05dabb8f7e86107682d091262533545acc062b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.266516,
+          "stdout_sha256": "c24991f081c4c58b06c1d64e1ba0bb0120f4474dd73c2de7872c34670f3873e2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.271033,
+          "stdout_sha256": "c24991f081c4c58b06c1d64e1ba0bb0120f4474dd73c2de7872c34670f3873e2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.267063,
+          "stdout_sha256": "c24991f081c4c58b06c1d64e1ba0bb0120f4474dd73c2de7872c34670f3873e2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "665455bb6052e0b2ccfde7ea9cb1cc76ffc045746e88fdde8cba5bb1f5c51218",
+        "expected_attributed_target": true,
+        "expected_prefix": true,
+        "expected_overflow": false,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 992,
+          "sha256": "5b307906cffc649912a26c78d8de517d145a74c4e69948762bdbd6039ec9acea"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 24576,
+          "sha256": "f2e1072881c15c01f735650b4933376bdf7255bc51fa046d07de47a22b9b6e76"
+        },
+        "messages.jsonl": {
+          "bytes": 1454,
+          "sha256": "c642b8a1ab7de6807b91d6091499e6526ad64f6dfac442f9fd24e1f85376a702"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 2436,
+          "sha256": "f08a16398cd45fcdd27a1bf84b6d9d10548777ccc27b740f9e0b642c0000f1e2"
+        },
+        "telegram-summary.json": {
+          "bytes": 1482,
+          "sha256": "a33701ecf41f2dbe6deee402b5d7c0b5e2a9aa8acc844d40ec81b5bbc7c9c48a"
+        },
+        "Переписки.html": {
+          "bytes": 5652,
+          "sha256": "13f09ce4488df946fd2c8045d1710d09072688b598a49273c87973899977538b"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "overflow-page-512",
+      "kind": "overflow",
+      "status": "completed",
+      "source_sha256": "7eed26b2ecb643e942f81fa5d314b40c3bf9382a5e8a3f1c3312a90278be0206",
+      "wal_sha256": null,
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 201,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.380364,
+        "stdout_sha256": "abf62a1f58ee680488ee3c7760016877b274be48a2d9f61517a3c31a49d75b42",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.26532,
+          "stdout_sha256": "b9cc643684eef19ca70b9b34e73137f7ec2f5491d14c1c70396c0b7ba44b2bad",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.285204,
+          "stdout_sha256": "b9cc643684eef19ca70b9b34e73137f7ec2f5491d14c1c70396c0b7ba44b2bad",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.278724,
+          "stdout_sha256": "2c657168558561e04966cfa5792372a5600652d37e2c8845c01aed90365aca8b",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "54c28746bdd78764d27598e8622105d7b31d95a0431355ff22bd3de78a80d3aa",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 26,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 26,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 522,
+          "sha256": "a8b6ffef67985cf81822ef347d78f04ce6edff260a3ffdd645d90354c7b99439"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 618496,
+          "sha256": "ead3d6c1145a06bedde66a9b13b42f0f284e092a05bd85923fa8b77dcfe7db43"
+        },
+        "messages.jsonl": {
+          "bytes": 335211,
+          "sha256": "ed5a17cdc62883561d2874afdb502eec75cde4229aaef619ae14862bfcce77d6"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1784,
+          "sha256": "927bb6532881e92567d6d50e2646a137b3d55e6586b3ae6d066012765eca7f77"
+        },
+        "telegram-summary.json": {
+          "bytes": 1412,
+          "sha256": "ac279d4ecf8a29cf3146e46758a312f0ac55b12aac8e95f28fb2d946f41791f9"
+        },
+        "Переписки.html": {
+          "bytes": 339614,
+          "sha256": "70277ba59f71af7d11cd8d7376038ab5b41019ff87888bcb6765f898d8428065"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "overflow-page-1024",
+      "kind": "overflow",
+      "status": "completed",
+      "source_sha256": "dc8c5c9e8b905e1c1d68f745a386107a70a6092eb615928e3c0bff9f43b78404",
+      "wal_sha256": null,
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 118,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.414884,
+        "stdout_sha256": "1338df408d1d683739d9a82bd1ac685984f79a08095de37ceadca495c4063bab",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.282732,
+          "stdout_sha256": "31af0fc75d0a063cead29ed810a86216ae41bda0385e3f61d4c03653f52b2ebc",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.276748,
+          "stdout_sha256": "31af0fc75d0a063cead29ed810a86216ae41bda0385e3f61d4c03653f52b2ebc",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.309451,
+          "stdout_sha256": "c2b9370f558b27d190ba1188889b20773ecbcb5d964553277b00caa7baf6b69f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "54c28746bdd78764d27598e8622105d7b31d95a0431355ff22bd3de78a80d3aa",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 14,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 14,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 523,
+          "sha256": "052af260abea85055d5e43d4a56c99d9aab67b9d7dc48986abddade5a58e8df3"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 622592,
+          "sha256": "25c511322679e60667dd3dd490390d14d630facad30be0147552f6a75d35bc61"
+        },
+        "messages.jsonl": {
+          "bytes": 268680,
+          "sha256": "144007146c771e3825ebc665e0c651cc0364090356e5715f01326d790983f6b4"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1789,
+          "sha256": "a6fd8aecb11b30cca0b1fe3c0de0a27444cd6b402a1a97669d736df96e72e839"
+        },
+        "telegram-summary.json": {
+          "bytes": 1417,
+          "sha256": "ff72a24d96f5b509be31bdd15c154a4cdeefeb8e3b00071331ee252dc5feb7c1"
+        },
+        "Переписки.html": {
+          "bytes": 273000,
+          "sha256": "60e11989c0c3191f5bdb34e3b3ccd10aa9f7e3f43373f20349862064754f6557"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "overflow-page-4096",
+      "kind": "overflow",
+      "status": "completed",
+      "source_sha256": "37112d632e6cc165d0e79ef3ec9a770f8202bda9d561d9dcfc2cffe0362dd157",
+      "wal_sha256": null,
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 66,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.430525,
+        "stdout_sha256": "7da10c92044f43b17a90e1fb05e375c2f52f95811ee7df2c360ffe3eafe4f416",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.282745,
+          "stdout_sha256": "45c9491626c87b9e362fbddbad44da2859e3bc9c5a7f1d2b7ce8331ce3cce7bc",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.273225,
+          "stdout_sha256": "45c9491626c87b9e362fbddbad44da2859e3bc9c5a7f1d2b7ce8331ce3cce7bc",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.277011,
+          "stdout_sha256": "bc2555c7c9ecc5b7603db4c2d54b4c5908349710cc2b4bd35eb5873b7c312543",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "a4c8f81250b83a9775f9280200d0f9f0ff45fa50810457eed5eba08170f7b58c",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 7,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 7,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 523,
+          "sha256": "9143713a74727e424d4b64daff4862955211b1c39a03b6b4dc8ee1f46c04b7a7"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 843776,
+          "sha256": "3e2197042fab224bba4858117b1949cb555121b5da18fed47652a1bd7d4fd58e"
+        },
+        "messages.jsonl": {
+          "bytes": 402079,
+          "sha256": "87a126d61522a3559155d37154d1638c0cb111b0168ef77b3de8e3cf4a13b200"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1792,
+          "sha256": "0b4b3ec1f315fdf5a074d85502582a697851455ac51ac4588d66463a9cac18c6"
+        },
+        "telegram-summary.json": {
+          "bytes": 1415,
+          "sha256": "e145e8b99fedf424cdb548b4c7a63d5b4f8883ef90818f3b3021a0d0d4763b8b"
+        },
+        "Переписки.html": {
+          "bytes": 406342,
+          "sha256": "331f83814762857c949bb22db6837b518078dacb90102069fe242c1fab016838"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    },
+    {
+      "name": "overflow-page-65536",
+      "kind": "overflow",
+      "status": "completed",
+      "source_sha256": "050e85f148753c77905e46b06c73d6f0166b578464adcc3201eec1f6e3d3a537",
+      "wal_sha256": null,
+      "analysis_code": "PARTIAL_DATA",
+      "analysis_status": "partial",
+      "archive_records": 149,
+      "execution": {
+        "exit_code": 0,
+        "seconds": 0.984571,
+        "stdout_sha256": "f253c9197d4648354d2b5beb1a657d1b57ccc8d4c08f58b7a9f0b05599c74f98",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_bytes": 0,
+        "result_events": 1
+      },
+      "search_execution": {
+        "literal_all": {
+          "exit_code": 0,
+          "seconds": 0.383765,
+          "stdout_sha256": "8e7d560ff9806cf655a380396715db411ac82577ddb22d055ae12761e7875b84",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "regex_all": {
+          "exit_code": 0,
+          "seconds": 0.36138,
+          "stdout_sha256": "8e7d560ff9806cf655a380396715db411ac82577ddb22d055ae12761e7875b84",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        },
+        "literal_deleted": {
+          "exit_code": 0,
+          "seconds": 0.392938,
+          "stdout_sha256": "ee49b14bd4263c8a16a7310cf0e1349d8bbd0bcd41dc4583aa1b1886291dd0b3",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_bytes": 0,
+          "result_events": 1
+        }
+      },
+      "score": {
+        "expected_text_sha256": "d1edad42239ba35f251a215b353e9b1aac19e539b59f358c5e1a5395ec31398d",
+        "expected_attributed_target": true,
+        "expected_prefix": false,
+        "expected_overflow": true,
+        "observed_full_exact_text_count": 0,
+        "observed_attributed_target_count": 0,
+        "verified_prefix_count": 0,
+        "verified_overflow_count": 0,
+        "unexpected_confirmed_target": false,
+        "corrupt_or_uncommitted_tail_promoted": 0,
+        "target_categories": [],
+        "target_deleted_values": [],
+        "unknown_deletion_for_all_attributed": true,
+        "searches": {
+          "literal_all": {
+            "status": "complete",
+            "total": 19,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "regex_all": {
+            "status": "complete",
+            "total": 19,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          },
+          "literal_deleted": {
+            "status": "complete",
+            "total": 0,
+            "exact_target_views": 0,
+            "attributed_target_views": 0,
+            "full_proof_target_views": 0
+          }
+        }
+      },
+      "archive_files": {
+        "acquisition.json": {
+          "bytes": 525,
+          "sha256": "2e9c7839ee8a2d1684033bb5d70a190e80b7ff5662292fdb0c6d0d04153b778c"
+        },
+        "attachment-metadata.json": {
+          "bytes": 25,
+          "sha256": "c6af5babb56b51a59c11e47403dd0d21297d6a60ca17ae5675bdb62e579eef89"
+        },
+        "chat-index.sqlite": {
+          "bytes": 5832704,
+          "sha256": "a7b1c4d54c21830097f8ec814199f019c4d5af815ec746853d51828b21746ca4"
+        },
+        "messages.jsonl": {
+          "bytes": 2696707,
+          "sha256": "14b315f12eb16cb3d48939dbaafd580c2bd37dc244d1d25f770f77b0aba7375e"
+        },
+        "photo-metadata.json": {
+          "bytes": 20,
+          "sha256": "2c84b633bac08583f32f1ba1842fc340e60ce5a034103c3460e1254872d75318"
+        },
+        "sources.json": {
+          "bytes": 1799,
+          "sha256": "c000d8fe9c121b29072449961fa72f1b24d95bbd0aa6511b7511ae0b06fd8fc7"
+        },
+        "telegram-summary.json": {
+          "bytes": 1422,
+          "sha256": "fd96fe2d630af63deba1b2feed58445078ecaef01104e2d31b3bef935b27818b"
+        },
+        "Переписки.html": {
+          "bytes": 2701053,
+          "sha256": "71e709ece6750201a8a5680103a01805dfdff00b70953cdc1b517a3d08698e6d"
+        },
+        "Фотографии.html": {
+          "bytes": 3936,
+          "sha256": "5f0d262d36b16547c067407a7259f2c67f5b1a11c8e033b4ad754e74649fc46e"
+        }
+      }
+    }
+  ]
+}

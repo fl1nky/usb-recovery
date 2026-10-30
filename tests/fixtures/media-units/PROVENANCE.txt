@@ -1,0 +1,1 @@
+Synthetic images generated for this project using real FFmpeg encoders. No personal or third-party program data. No separate license grant is defined. The included manifest records generator, decoder, input and expected-content hashes. Recovery receives only an image path.
