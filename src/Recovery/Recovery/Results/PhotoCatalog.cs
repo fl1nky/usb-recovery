@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -83,7 +83,7 @@ namespace UsbRecovery
             {
                 cancel.ThrowIfCancellationRequested();
                 string name = System.IO.Path.GetFileName(directory);
-                bool accepted = name.Equals("attempt-history",StringComparison.OrdinalIgnoreCase)||name.Equals("filesystem", StringComparison.OrdinalIgnoreCase) || name.Equals("ntfs", StringComparison.OrdinalIgnoreCase) || name.Equals("metadata-rescue", StringComparison.OrdinalIgnoreCase) || name.Equals("salvage-content", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-photos", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-media", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-archives", StringComparison.OrdinalIgnoreCase) || name.Equals("user-signatures", StringComparison.OrdinalIgnoreCase) || name.Equals("containers", StringComparison.OrdinalIgnoreCase) || name.Equals("extra-photos", StringComparison.OrdinalIgnoreCase) || name.StartsWith("files.", StringComparison.OrdinalIgnoreCase);
+                bool accepted = name.Equals("attempt-history",StringComparison.OrdinalIgnoreCase)||name.Equals("filesystem", StringComparison.OrdinalIgnoreCase) || name.Equals("ntfs", StringComparison.OrdinalIgnoreCase) || name.Equals("metadata-rescue", StringComparison.OrdinalIgnoreCase) || name.Equals("ext4", StringComparison.OrdinalIgnoreCase) || name.Equals("salvage-content", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-photos", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-media", StringComparison.OrdinalIgnoreCase) || name.Equals("fragmented-archives", StringComparison.OrdinalIgnoreCase) || name.Equals("user-signatures", StringComparison.OrdinalIgnoreCase) || name.Equals("containers", StringComparison.OrdinalIgnoreCase) || name.Equals("extra-photos", StringComparison.OrdinalIgnoreCase) || name.StartsWith("files.", StringComparison.OrdinalIgnoreCase);
                 if (!accepted || (File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) continue;
                 var pending = new Stack<string>();
                 if (name.Equals("filesystem", StringComparison.OrdinalIgnoreCase))

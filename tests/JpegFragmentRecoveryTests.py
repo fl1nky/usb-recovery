@@ -135,8 +135,9 @@ class JpegFragments(unittest.TestCase):
         found, _ = self.run_recovery(path)
         self.assertEqual(found, [])
 
-    def test_progressive_is_explicitly_unsupported(self):
-        path, _, _ = self.source(jpeg(progressive=True))
+    def test_arithmetic_coding_is_explicitly_unsupported(self):
+        raw = jpeg(progressive=True).replace(b"\xff\xc2", b"\xff\xc9", 1)
+        path, _, _ = self.source(raw)
         found, assembler = self.run_recovery(path)
         self.assertEqual(found, [])
         self.assertGreater(assembler.skipped["jpeg_progressive_or_coding_unsupported"], 0)

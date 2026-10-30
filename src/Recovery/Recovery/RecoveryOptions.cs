@@ -6,7 +6,7 @@ namespace UsbRecovery
 {
     public sealed class RecoveryOptions
     {
-        public bool FatMetadata = true, NtfsMetadata = true, LostPartitions = true, AlternateFat;
+        public bool FatMetadata = true, NtfsMetadata = true, LostPartitions = true, AlternateFat, Ext4Metadata;
         public bool Signatures = true, SmallBlocks = true, JpegFragments, KeepCorrupted;
         public bool EmbeddedPhotos = true, Containers = true, TolerateReadErrors;
         public bool OrphanDirectories, TextFragments, FragmentedPhotos, FragmentedVideo;
@@ -18,7 +18,7 @@ namespace UsbRecovery
         public static RecoveryOptions Legacy(bool deep) { return new RecoveryOptions { LostPartitions = false, Containers = false, SmallBlocks = deep, JpegFragments = deep, KeepCorrupted = deep, EmbeddedPhotos = deep }; }
         public void Validate()
         {
-            if (!(FatMetadata || NtfsMetadata || Signatures || EmbeddedPhotos || Containers || TextFragments || MetadataRescue || ArchiveMembers || FragmentedArchives || CustomSignatures || FragmentedPhotos || FragmentedVideo)) throw new ArgumentException("Выбери хотя бы один способ извлечения файлов.");
+            if (!(FatMetadata || NtfsMetadata || Ext4Metadata || Signatures || EmbeddedPhotos || Containers || TextFragments || MetadataRescue || ArchiveMembers || FragmentedArchives || CustomSignatures || FragmentedPhotos || FragmentedVideo)) throw new ArgumentException("Выбери хотя бы один способ извлечения файлов.");
             if(CustomSignatures)try{UserSignatureRecovery.Validate(CustomRules);}catch(System.IO.IOException e){throw new ArgumentException(e.Message.Replace("USER_SIGNATURE_INVALID: ",""));}
             if (Signatures && !(Photos || Video || Audio || Documents || Archives || Other)) throw new ArgumentException("Выбери хотя бы одну группу форматов PhotoRec.");
             if (TextFragments && (String.IsNullOrWhiteSpace(TextQuery) || TextQuery.Length > 256 || TextQuery.Split((char[])null,StringSplitOptions.RemoveEmptyEntries).Length > 8)) throw new ArgumentException("Для текстовых остатков укажи от 1 до 8 ключевых слов, не более 256 символов.");

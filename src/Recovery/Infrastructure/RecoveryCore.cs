@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -376,6 +376,7 @@ namespace UsbRecovery
             string containers = Path.Combine(runDirectory, "containers"); if (Directory.Exists(containers)) roots.Add(containers);
             string fragments = Path.Combine(runDirectory, "text-fragments"); if (Directory.Exists(fragments)) roots.Add(fragments);
             string records = Path.Combine(runDirectory, "metadata-rescue", "files"); if (Directory.Exists(records)) roots.Add(records);
+            string ext4 = Path.Combine(runDirectory, "ext4", "files"); if (Directory.Exists(ext4)) roots.Add(ext4);
             string members = Path.Combine(runDirectory, "salvage-content"); if (Directory.Exists(members)) roots.Add(members);
             string assembled = Path.Combine(runDirectory, "fragmented-archives"); if (Directory.Exists(assembled)) roots.Add(assembled);
             string photoPieces=Path.Combine(runDirectory,"fragmented-photos"),videoPieces=Path.Combine(runDirectory,"fragmented-media");

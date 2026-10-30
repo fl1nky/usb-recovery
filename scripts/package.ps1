@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference='Stop'
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
 $taskRoot=$taskLayout.Root
@@ -38,7 +38,7 @@ foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
   Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $taskSource ('tests\'+$file.Name))
  }
 }
-foreach($relative in 'benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
+foreach($relative in 'fixtures\ext4','fixtures\raid-md','benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
  Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
 }
 foreach($name in 'recovery-helper','testdisk-7.2'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}

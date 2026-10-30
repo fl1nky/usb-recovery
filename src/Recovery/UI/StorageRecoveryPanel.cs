@@ -59,7 +59,28 @@ namespace UsbRecovery
             var proof=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4};proof.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));proof.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,130));proof.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,70));proof.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));proof.Controls.Add(Caption("Байт · 0 = авто"),0,0);raidSize.Text="0";raidSize.Name="raid-logical-size";raidSize.Dock=DockStyle.Fill;proof.Controls.Add(raidSize,1,0);proof.Controls.Add(Caption("SHA256"),2,0);expectedSha.Name="raid-expected-sha256";expectedSha.MaxLength=64;expectedSha.Font=new Font("Consolas",8.5F);expectedSha.Dock=DockStyle.Fill;proof.Controls.Add(expectedSha,3,0);area.Controls.Add(proof,0,1);
             members.BackgroundColor=UiTheme.Surface;members.Dock=DockStyle.Fill;members.Name="raid-members";members.AllowUserToAddRows=false;members.AllowUserToDeleteRows=false;members.MultiSelect=false;members.SelectionMode=DataGridViewSelectionMode.FullRowSelect;members.RowHeadersVisible=false;members.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;members.Columns.Add(new DataGridViewTextBoxColumn{Name="path",HeaderText="Образ диска · порядок сверху вниз",FillWeight=70});members.Columns.Add(new DataGridViewTextBoxColumn{Name="offset",HeaderText="Смещение, байт",FillWeight=22});members.Columns.Add(new DataGridViewCheckBoxColumn{Name="missing",HeaderText="Нет",FillWeight=8});area.Controls.Add(members,0,2);
             var tools=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,Margin=Padding.Empty};Action<string,Action> add=(text,click)=>{var button=new Button{Text=text,AutoSize=true,Height=29,Margin=new Padding(1)};button.Click+=delegate{click();};tools.Controls.Add(button);};
-            add("Добавить образы",()=>{using(var dialog=new OpenFileDialog{Multiselect=true,Filter="Образы|*.dd;*.img;*.raw;*.bin|Все файлы|*.*"})if(dialog.ShowDialog(this)==DialogResult.OK)foreach(string path in dialog.FileNames)members.Rows.Add(path,"0",false);});add("Нет диска",()=>members.Rows.Add("","0",true));add("↑",()=>MoveMember(-1));add("↓",()=>MoveMember(1));add("Убрать",()=>{if(members.SelectedRows.Count>0)members.Rows.Remove(members.SelectedRows[0]);});area.Controls.Add(tools,0,3);
+            add("Добавить образы",()=>{using(var dialog=new OpenFileDialog{Multiselect=true,Filter="Образы|*.dd;*.img;*.raw;*.bin|Все файлы|*.*"})if(dialog.ShowDialog(this)==DialogResult.OK)foreach(string path in dialog.FileNames)members.Rows.Add(path,"0",false);});add("Найти параметры",()=>{DetectRaidMetadata();});add("Нет диска",()=>members.Rows.Add("","0",true));add("↑",()=>MoveMember(-1));add("↓",()=>MoveMember(1));add("Убрать",()=>{if(members.SelectedRows.Count>0)members.Rows.Remove(members.SelectedRows[0]);});area.Controls.Add(tools,0,3);
+        }
+        async void DetectRaidMetadata()
+        {
+            if(IsBusy)return;members.EndEdit();
+            var paths=members.Rows.Cast<DataGridViewRow>().Where(row=>!Convert.ToBoolean(row.Cells[2].Value??false)).Select(row=>Convert.ToString(row.Cells[0].Value)).Where(path=>!String.IsNullOrWhiteSpace(path)).ToArray();
+            if(paths.Length==0){status.Text="Сначала добавь образы участников RAID.";return;}
+            cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;SetBusy(true);activity.IsActive=true;
+            activity.SetPhase("Поиск параметров RAID","Чтение разметки предоставленных образов");
+            try{
+                var report=await Task.Run(()=>RaidMetadataProbe.Probe(paths,token,(done,total)=>Post(()=>activity.SetProgress(done,total))));
+                if(IsDisposed)return;
+                using(var selection=new RaidMetadataSelection(report))if(selection.ShowDialog(this)==DialogResult.OK&&selection.SelectedGroup!=null){
+                    var config=selection.SelectedGroup.Configuration;level.SelectedItem=config.Level;layoutKind.SelectedItem=config.Layout;
+                    if(chunk.Items.Contains(config.ChunkSize))chunk.SelectedItem=config.ChunkSize;
+                    raidSize.Text=config.LogicalSize.ToString(System.Globalization.CultureInfo.InvariantCulture);members.Rows.Clear();
+                    foreach(var member in config.Members)members.Rows.Add(member.Path??"",member.Offset.ToString(System.Globalization.CultureInfo.InvariantCulture),member.Missing);
+                    status.Text="Параметры из разметки применены. Проверь состав массива и папку результатов, затем нажми «Собрать и найти».";
+                }else status.Text="Поиск параметров RAID завершён.";
+            }catch(OperationCanceledException){status.Text="Поиск параметров RAID остановлен.";}
+            catch(Exception error){status.Text=error is IOException?error.Message:"Не удалось прочитать параметры RAID.";}
+            finally{activity.IsActive=false;cancellation.Dispose();cancellation=null;SetBusy(false);}
         }
         void MoveMember(int delta){if(members.SelectedRows.Count==0)return;int at=members.SelectedRows[0].Index,next=at+delta;if(next<0||next>=members.Rows.Count)return;object[] values=members.Rows[at].Cells.Cast<DataGridViewCell>().Select(x=>x.Value).ToArray();members.Rows.RemoveAt(at);members.Rows.Insert(next,values);members.ClearSelection();members.Rows[next].Selected=true;}
         void ChooseImage(){using(var dialog=new OpenFileDialog{Filter="Обычный образ|*.dd;*.img;*.raw;*.bin|Все файлы|*.*"})if(dialog.ShowDialog(this)==DialogResult.OK)image.Text=dialog.FileName;}

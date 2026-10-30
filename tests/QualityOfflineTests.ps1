@@ -11,7 +11,7 @@ $taskSourceProofs=@{}
 $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular image files only; actual packaged managed recovery modules. No user profiles or physical devices.' $PSCommandPath
 try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
-    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests')
+    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests')
     foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests','RaidRecoveryTests','StorageUiTests','StoragePipelineTests','HelperMemoryTests','AtomicJsonSaveTests','ExportTempCollisionTests','StorageWorkflowTests','CaptureProvenanceTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
@@ -32,8 +32,10 @@ try {
         $taskLog=Join-Path $PSScriptRoot ($taskName+'.packaged.result.txt')
         $taskInput=if($taskName-eq'ArchiveSalvageTests'){Join-Path $taskProject '.build\archive-salvage-tests'}else{$taskProject}
         if($taskName-eq'FragmentedZipRecoveryTests'){$taskInput=Join-Path $taskProject '.build\fragmented-zip-tests'}
+        $taskExtraArguments=@()
+        if($taskName-eq'Ext4RecoveryTests'){$taskInput=Join-Path $taskProject '.build\ext4-fixtures-current';$taskExtraArguments=@((Join-Path $taskProject ('.build\ext4-offline-'+[Guid]::NewGuid().ToString('N'))))}
         $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-        & $taskHarness $taskInput *> $taskLog
+        & $taskHarness $taskInput @taskExtraArguments *> $taskLog
         if($LASTEXITCODE-ne 0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Packaged quality test failed: '+$taskName)}
         $taskSummary=Get-Content -LiteralPath $taskLog -Tail 1
         Write-Output $taskSummary

@@ -11,6 +11,23 @@ if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'build_progressive_jpeg_fixtures.py') (Join-Path $taskLayout.Root '.build\progressive-jpeg-fixtures')
+if($LASTEXITCODE-ne0){throw 'Progressive fixture generation failed.'}
+$taskMdFixtures=Join-Path $taskLayout.Root '.build\raid-metadata-fixtures'
+if(-not(Test-Path -LiteralPath (Join-Path $taskMdFixtures 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_raid_md_fixtures.py') --destination $taskMdFixtures
+ if($LASTEXITCODE-ne0){throw 'Pinned MD fixture preparation failed.'}
+}
+$taskExt4Fixtures=Join-Path $taskLayout.Root '.build\ext4-fixtures-current'
+if(-not(Test-Path -LiteralPath (Join-Path $taskExt4Fixtures 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'ext4_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\ext4') --destination $taskExt4Fixtures
+ if($LASTEXITCODE-ne0){throw 'Offline ext4 fixture extraction failed.'}
+}
+$taskHeapFixtures=Join-Path $taskLayout.Root '.build\telegram-heap-portable-fixtures'
+if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_heap_fixtures.py') $taskHeapFixtures
+ if($LASTEXITCODE-ne0){throw 'Owned JVM fixture generation failed; developer JDK required for this control only.'}
+}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {

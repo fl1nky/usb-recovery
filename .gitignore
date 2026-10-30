@@ -46,7 +46,7 @@
 /.build/
 /tools/
 /vendor/
-/Готовая программа/
+/Р“РѕС‚РѕРІР°СЏ РїСЂРѕРіСЂР°РјРјР°/
 
 # Pinned public upstream storage parser test images, never user recovery data
 !/tests/StorageFixtures/
@@ -68,3 +68,9 @@
 /tests/benchmarks/evidence/*
 !/tests/benchmarks/evidence/*.json
 !/tests/benchmarks/evidence/*.md
+
+# Small pinned Linux MD images with upstream license and hashes
+!/tests/fixtures/
+/tests/fixtures/*
+!/tests/fixtures/raid-md/
+!/tests/fixtures/ext4/

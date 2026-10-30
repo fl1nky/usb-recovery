@@ -21,11 +21,13 @@ def plausible(text):
     return len(text.strip()) >= 8 and letters >= 5 and letters / len(text) >= 0.40 and all(c.isprintable() or c in "\r\n\t" for c in text)
 
 
-def scan(path, matcher, progress=None, limit=MAX_FRAGMENTS):
+def scan(path, matcher, progress=None, limit=MAX_FRAGMENTS, cancel=None):
     count, carry, position = 0, b"", 0
     last_end = {name: -1 for name in ("utf-8", "utf-16-le", "utf-16-be")}
     with path.open("rb") as source:
         while True:
+            if cancel is not None and cancel():
+                return
             block = source.read(CHUNK)
             final = not block
             data = carry + block
@@ -35,6 +37,8 @@ def scan(path, matcher, progress=None, limit=MAX_FRAGMENTS):
             safe_end = len(data) if final else max(0, len(data) - OVERLAP)
             for encoding, pattern in (("utf-8", UTF8), ("utf-16-le", LE), ("utf-16-be", BE)):
                 for match in pattern.finditer(data):
+                    if cancel is not None and cancel():
+                        return
                     start, end = base + match.start(), base + match.end()
                     if match.start() >= safe_end or start < last_end[encoding]:
                         continue

@@ -1,0 +1,190 @@
+{
+  "source": "fox-it/dissect.volume",
+  "commit": "d2da189112cae3a627f96d9de78341193eb6dc52",
+  "files": [
+    {
+      "name": "md-90-1.bin.gz",
+      "bytes": 14397,
+      "sha256": "48f5f98db0067c001753bd4ecb6a3a54088ae8e9138200780a648ab88dbe0521",
+      "raw_bytes": 5242880,
+      "raw_sha256": "e56918f762a6206ef199c4525dfc768b791d41b6f59d17c5e6b2043416b0c77d",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-90-1.bin.gz"
+    },
+    {
+      "name": "md-90-2.bin.gz",
+      "bytes": 14395,
+      "sha256": "224aa1d65b432a238c886b3cf4f65ff4fcc984864cf0a8238020eb2ca6efba9d",
+      "raw_bytes": 5242880,
+      "raw_sha256": "f541391becb1deeeb826f96af1d7f9537d8ade11367ec6fb4792ffe043b9f829",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-90-2.bin.gz"
+    },
+    {
+      "name": "md-90-raid1-1.bin.gz",
+      "bytes": 4597,
+      "sha256": "21e88cf75504d26b2cb283e8667fa3d243a83f1d946ee518ea75ed28840d64de",
+      "raw_bytes": 3145728,
+      "raw_sha256": "1c64d3e6251133d781e14d6fa64e8b343268e337b1635b551819f9e8d01e47ce",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-90-raid1-1.bin.gz"
+    },
+    {
+      "name": "md-90-raid1-2.bin.gz",
+      "bytes": 4596,
+      "sha256": "cc16da8ae51155879c6ac661e53ed18ce5b7a7a2e05df174af06b3ec585fc556",
+      "raw_bytes": 3145728,
+      "raw_sha256": "0c85b27b126503ff47bd2611c472c33ffe914901ca585020bbd8cb7a562158cb",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-90-raid1-2.bin.gz"
+    },
+    {
+      "name": "md-linear-1.bin.gz",
+      "bytes": 2971,
+      "sha256": "a75cd2d2f3f9385912ef65ba899d772359f2fd9bf51e0d5d3e8277877409dcaa",
+      "raw_bytes": 2097152,
+      "raw_sha256": "d41c3b67811177d78b2725425916986318beea99b76868967288777ae0548fa0",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-linear-1.bin.gz"
+    },
+    {
+      "name": "md-linear-2.bin.gz",
+      "bytes": 2973,
+      "sha256": "e9235bb397e2b4b874f4c456ce4e153650f26e761407c5ac1afaeeedb0622035",
+      "raw_bytes": 2097152,
+      "raw_sha256": "756e56f83869793d3cc7d2384da14091c5fec57b54cbc34fba32521ad4ae2d6c",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-linear-2.bin.gz"
+    },
+    {
+      "name": "md-raid0-1.bin.gz",
+      "bytes": 5274,
+      "sha256": "8b7427381aee8bd5c57cee80ef72ac9f04f0e5a97e9e61a36e1f77cd72f036ad",
+      "raw_bytes": 4194304,
+      "raw_sha256": "75e77675739a026bfb0515ae619560054e44d77ec74912bd2c1d4dfc1c4f9161",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid0-1.bin.gz"
+    },
+    {
+      "name": "md-raid0-2.bin.gz",
+      "bytes": 5014,
+      "sha256": "57bf8d2eab295c7b04c3956934a406da5ede43d14fc63293cd6669939a27ad51",
+      "raw_bytes": 4194304,
+      "raw_sha256": "92843c8cfe37606d1b6e630543a94ec06557c84056ce80e4d03ac5162fe183dd",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid0-2.bin.gz"
+    },
+    {
+      "name": "md-raid0-3.bin.gz",
+      "bytes": 3871,
+      "sha256": "5441db88c2ddea4a1e099e5f08d3daee762c5fff1958e3710bc3205d7ecece10",
+      "raw_bytes": 3145728,
+      "raw_sha256": "6a62fcb5df1539a47721289d881a7e42c88af1137510ae9adb627d48f268acc4",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid0-3.bin.gz"
+    },
+    {
+      "name": "md-raid1-1.bin.gz",
+      "bytes": 4622,
+      "sha256": "8bb50920e8d8984289fd2b715ef4d212c261ad01c3c2adba8f3032446dbfd364",
+      "raw_bytes": 3145728,
+      "raw_sha256": "30b06fc6244f78ec38396fa2621d2fc458fd84964be881ae634f3658cd955909",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid1-1.bin.gz"
+    },
+    {
+      "name": "md-raid1-2.bin.gz",
+      "bytes": 4619,
+      "sha256": "accac5f28ee9455968e7df46811ba590705e02341302f3593cf7bbc383dd24a0",
+      "raw_bytes": 3145728,
+      "raw_sha256": "322bbce73e4c27f98a201a29d088187d552f6227b66cef670c23fd01ea592621",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid1-2.bin.gz"
+    },
+    {
+      "name": "md-raid10-1.bin.gz",
+      "bytes": 5775,
+      "sha256": "dab82613f01f3d3e0100f8b38f5bcb3836496cb1e2f38e743f1137578f76f5a9",
+      "raw_bytes": 4194304,
+      "raw_sha256": "75c9968b4fbb481e6b4979ed577617f15ab1fc6a9784fb0b4dfca88fb18ba65b",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid10-1.bin.gz"
+    },
+    {
+      "name": "md-raid10-2.bin.gz",
+      "bytes": 5771,
+      "sha256": "a28294b68a0e175c58a590984de8be8097d5aec976f1792121deef2f26304239",
+      "raw_bytes": 4194304,
+      "raw_sha256": "bfaa713d23de2bbf06dd7da30880b8afffc2c8f2a9205ee88e9871bb8c9c09ec",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid10-2.bin.gz"
+    },
+    {
+      "name": "md-raid4-1.bin.gz",
+      "bytes": 5267,
+      "sha256": "756b6d42217f97a0ab24fbb3a1cc4d9fe2f59a7da3bc927af7e328b762bbffb7",
+      "raw_bytes": 4194304,
+      "raw_sha256": "a1ad67bafac6d44adfd9904cda165a392c21ef126d122b1d2dce9e60cb823f91",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid4-1.bin.gz"
+    },
+    {
+      "name": "md-raid4-2.bin.gz",
+      "bytes": 5271,
+      "sha256": "e39fab943f1cd7fb438a97e407cf71c97e358652b1a73a84a653c671bd7caced",
+      "raw_bytes": 4194304,
+      "raw_sha256": "d9d3aebe47afd7d0190c5bfd88ec2336c8c7bf5018bc4f5a61cb60e61f7b6f0c",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid4-2.bin.gz"
+    },
+    {
+      "name": "md-raid4-3.bin.gz",
+      "bytes": 4799,
+      "sha256": "e16720638fa0d7234eda0e827e78eaca23bea984a5fb976512152434a3325143",
+      "raw_bytes": 4194304,
+      "raw_sha256": "ce45937c470fdb0915394aad43a2dba905dba24329c1ed20c2a7cc8091eba75b",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid4-3.bin.gz"
+    },
+    {
+      "name": "md-raid5-1.bin.gz",
+      "bytes": 5279,
+      "sha256": "07e20f323e81d7bfe62aabf4d533f2caaf2140bc98f95df4efe75dfed709fb39",
+      "raw_bytes": 4194304,
+      "raw_sha256": "980961abea51f69a48446881ccb304856feeeeef218c8e2ca306fa9189ccbe01",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid5-1.bin.gz"
+    },
+    {
+      "name": "md-raid5-2.bin.gz",
+      "bytes": 5037,
+      "sha256": "5806df41c03b2a468e6d40fcfe5e19ff4815e24cece258b187ac8b9def0fce93",
+      "raw_bytes": 4194304,
+      "raw_sha256": "165981b90185392716875bd167af2f63b5426a68bcb7d2fd83e40278b0e05c2b",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid5-2.bin.gz"
+    },
+    {
+      "name": "md-raid5-3.bin.gz",
+      "bytes": 5042,
+      "sha256": "de0c8671b58e15b73bc7e06a03c2c976c524c0084a01e93553a9008af92f19fe",
+      "raw_bytes": 4194304,
+      "raw_sha256": "b1388a31c12b5fbd8b018c0ef6d221dc52710bb89854d4301bdda6e2f6f51747",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid5-3.bin.gz"
+    },
+    {
+      "name": "md-raid6-1.bin.gz",
+      "bytes": 5302,
+      "sha256": "3db7572d547d287ae3bebd39403ba31d17eb37f806eda2969979435399a9fddc",
+      "raw_bytes": 4194304,
+      "raw_sha256": "624e4d81be6d208104c60b45bceced5dc6c5df39d2de565fdc82b317dd850a98",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid6-1.bin.gz"
+    },
+    {
+      "name": "md-raid6-2.bin.gz",
+      "bytes": 5275,
+      "sha256": "efb1ba3dfa979418d366336c8f1bbc03cfe797e43a934e7e43a408d37109c61c",
+      "raw_bytes": 4194304,
+      "raw_sha256": "9b628c212adeeea8641511ca4901b301832c0d191e9294f4ddc3851ccc8dfdf6",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid6-2.bin.gz"
+    },
+    {
+      "name": "md-raid6-3.bin.gz",
+      "bytes": 5030,
+      "sha256": "db7383e84295b4278a554e4d08c16ccdd50a7c5c3a99e1d2d0ed2d2cf593a990",
+      "raw_bytes": 4194304,
+      "raw_sha256": "2c44b8f6df4a8a390d1b68acd3f7f55c6c39c9a868ce35321b7aece4a00de7bb",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid6-3.bin.gz"
+    },
+    {
+      "name": "md-raid6-4.bin.gz",
+      "bytes": 5064,
+      "sha256": "4725afa7313a1ad6cd1a45590c59573336762b98b9c6c46ac491f1b42017d7fc",
+      "raw_bytes": 4194304,
+      "raw_sha256": "7cc2abe30f7785d1305864af9cc054496abc6a04bd0358f80cefcb5b25e2a1ea",
+      "url": "https://media.githubusercontent.com/media/fox-it/dissect.volume/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/md/md-raid6-4.bin.gz"
+    }
+  ]
+}

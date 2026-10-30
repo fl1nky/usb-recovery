@@ -25,6 +25,8 @@ namespace UsbRecovery
         public string sqlite_region,offset_kind,sqlite_record_sha256;
         public object sqlite_record_page_offset,sqlite_record_length,sqlite_blob_page_offset;
         public bool? sqlite_header_length_reconstructed;
+        public string heap_class,heap_object_id,heap_record_sha256,heap_text_sha256,heap_version;
+        public object candidate_sender,heap_record_length,heap_snapshot_ms,heap_identifier_bytes;
         public bool? header_length_reconstructed,deleted;
         public string identity_scope, native_constructor, wal_proof, wal_db_sha256, wal_sha256, wal_snapshot_sha256;
         public string media_kind,media_id,media_status;
@@ -323,6 +325,11 @@ namespace UsbRecovery
             if(message.sqlite_page!=null)details.AppendLine("\r\nSQLite: страница "+message.sqlite_page+", область "+message.sqlite_region+", позиция "+message.physical_byte_offset+", источник "+message.physical_source+"; WAL frame "+message.wal_frame+". "+message.proof);
             if (message.evidence_kind == "fragment") details.AppendLine("\r\nТекстовый фрагмент: принадлежность переписке и автору может быть неизвестна.");
             if (message.record_kind == "memory_fragment") details.AppendLine("\r\nФрагмент файла, Telegram не подтверждён. Позиция в файле: " + Convert.ToString(message.byte_offset) + " байт; кодировка: " + message.encoding + ". Дата, автор и факт удаления не установлены.");
+            if(message.record_kind=="android_heap_message"){
+                details.AppendLine("\r\nСвязанный объект сообщения в предоставленном дампе Java/Android. Принадлежность аккаунту и факт удаления не подтверждены.");
+                details.AppendLine("Класс: "+message.heap_class+"; идентификатор объекта дампа: "+message.heap_object_id+"; позиция: "+message.physical_byte_offset+". Это идентификатор в файле, а не доступ к памяти устройства.");
+                details.AppendLine("Поля объекта (предположительные): сообщение "+Known(null,message.candidate_message_id,"неизвестно")+", получатель "+Known(null,message.candidate_peer,"неизвестен")+", автор "+Known(null,message.candidate_sender,"неизвестен")+", дата Unix "+Known(null,message.candidate_date,"неизвестна")+". SHA256 записи: "+message.heap_record_sha256);
+            }
             if (message.text_truncated) details.AppendLine("\r\nПоказаны первые 65 536 символов. Полная запись остаётся в исходном архиве.");
             if (current != null && current.warnings != null && current.warnings.Length > 0) details.AppendLine("\r\nПри чтении архива часть некорректных записей пропущена или использован резервный JSONL.");
             if (message.sources != null) foreach (var origin in message.sources) { object file, record; origin.TryGetValue("source_file", out file); origin.TryGetValue("source_record", out record); details.AppendLine("\r\nТакже: " + Known(null, file, "источник неизвестен") + " · " + Known(null, record, "запись неизвестна")); }

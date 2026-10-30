@@ -64,12 +64,17 @@ namespace UsbRecovery
         {
             if(prepared==null||String.IsNullOrEmpty(prepared.Image))throw new IOException("Сначала подготовь образ.");
             CreatePrivateDirectory(destination);
-            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum};
-            if(prepared.Partial){options.FatMetadata=options.NtfsMetadata=options.LostPartitions=options.OrphanDirectories=options.MetadataRescue=false;}
+            var options=SearchOptions(maximum,prepared.Partial);
             RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(destination,"source-image.json"),new{origin=prepared.Partial?"decrypted_prefix":"prepared_storage_image",sourcePath=prepared.Image,completeness=prepared.Partial?"partial_prefix":"prepared_under_reported_parameters",preparationReportDirectory=prepared.Directory});
             var result=RecoveryPipeline.Run(prepared.Image,destination,options,token,s=>{},prepared.Checksum,activity);
             RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(destination,"result.json"),new{status=result.HasWarnings||prepared.Partial?"finished_with_warnings":"finished",uniqueFiles=result.UniqueFiles,candidates=result.Candidates,partialSource=prepared.Partial});
             return destination;
+        }
+        public static RecoveryOptions SearchOptions(bool maximum,bool partial)
+        {
+            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum,KeepCorrupted=maximum,FragmentedPhotos=maximum,FragmentedVideo=maximum,Ext4Metadata=maximum};
+            if(partial)options.FatMetadata=options.NtfsMetadata=options.Ext4Metadata=options.LostPartitions=options.OrphanDirectories=options.MetadataRescue=false;
+            return options;
         }
         public static string ErrorText(string code)
         {

@@ -796,13 +796,46 @@ class Analyzer:
             self.worker.remark("WAL_CHECKED_COMMITS", original)
         return valid
 
-    def fragments_from(self, copied, original):
+    def heap_from(self, copied, original):
+        from android_heap import recover, HeapError
+        from memory_fragments import MAX_FRAGMENTS
+        if self.stop:
+            return []
+        available = min(MAX_FRAGMENTS - self.fragments, MAX_MESSAGES - len(self.worker.messages))
+        if available <= 0:
+            self.remark("MEMORY_FRAGMENT_LIMIT", original)
+            return []
+        try:
+            report = recover(copied, self.worker.work / "heap-index",
+                matcher=self.fragment_matcher.matches if self.fragment_matcher else None,
+                cancel=lambda: self.stop, limit=available,
+                progress=lambda done, total: self.emit("progress", phase="telegram_heap", bytes=done, total=total))
+        except HeapError as error:
+            self.remark(str(error), original)
+            return []
+        ranges = []
+        for value in report["records"]:
+            if self.stop:
+                break
+            text = value.pop("text")
+            ranges.append((value["byte_offset"], value["byte_offset"] + value["byte_length"]))
+            self.worker.message("Telegram", text, "fragment", **value,
+                record_kind="android_heap_message", completeness="structured_heap_candidate",
+                application_confirmed=False, recovery_status="unattributed_structured_fragment",
+                deleted=None, chat_id=None, sender_id=None, message_id=None, timestamp=None)
+            self.fragments += 1
+        self.remark("HPROF_GRAPH_NOT_CONFIRMED_DELETED_HISTORY", original)
+        return ranges
+
+    def fragments_from(self, copied, original, excluded_ranges=()):
         from memory_fragments import scan, scan_tl, MAX_FRAGMENTS
+        if self.stop:
+            return
         if self.fragments >= MAX_FRAGMENTS:
             self.remark("MEMORY_FRAGMENT_LIMIT", original)
             return
         from bisect import bisect_right
-        typed_ranges = []
+        typed_ranges = list(excluded_ranges)
         typed = scan_tl(copied, self.fragment_matcher,
                 lambda done: self.emit("progress", phase="telegram_dump", bytes=done, fragments=self.fragments),
                 limit=MAX_FRAGMENTS - self.fragments, cancel=lambda: self.stop)
@@ -814,10 +847,17 @@ class Analyzer:
         if self.fragments >= MAX_FRAGMENTS:
             self.remark("MEMORY_FRAGMENT_LIMIT", original)
             return
+        merged = []
+        for left, right in sorted(typed_ranges):
+            if merged and left <= merged[-1][1]:
+                merged[-1][1] = max(right, merged[-1][1])
+            else:
+                merged.append([left, right])
+        typed_ranges = merged
         typed_starts = [left for left, right in typed_ranges]
         for value in scan(copied, self.fragment_matcher,
                           lambda done: self.emit("progress", phase="telegram_dump", bytes=done, fragments=self.fragments),
-                          limit=MAX_FRAGMENTS - self.fragments):
+                          limit=MAX_FRAGMENTS - self.fragments, cancel=lambda: self.stop):
             range_index = bisect_right(typed_starts, value["byte_offset"]) - 1
             if range_index >= 0 and value["byte_offset"] + value["byte_length"] <= typed_ranges[range_index][1]:
                 continue
@@ -866,6 +906,7 @@ class Analyzer:
                 self.remark("ENCRYPTED_CACHE_UNSUPPORTED", source, size=size)
                 return
             sqlite = head.startswith(b"SQLite format 3\x00")
+            heap = head.startswith(b"JAVA PROFILE ")
             dump = self.scan_fragments and (kind == "dump" or standalone_wal or lower.endswith((".dmp", ".dump", ".mem", ".hprof", ".raw", ".bin")))
             jsonl = lower == "messages.jsonl"
             markup = lower.endswith((".html", ".htm")) or b'<div class="message' in head
@@ -874,7 +915,7 @@ class Analyzer:
             # Plain media containers within Telegram's own file cache are also
             # inspected for embedded images. Unknown app/account blobs aren't.
             container = kind in {"telegram_files", "desktop_cache"} and (lower.endswith((".cache", ".bin", ".dat")) or not source.suffix) and (b"\xff\xd8\xff" in head or b"\x89PNG\r\n\x1a\n" in head or b"RIFF" in head)
-            if not any((sqlite, jsonl, markup, json_candidate, image, container, dump)):
+            if not any((sqlite, heap, jsonl, markup, json_candidate, image, container, dump)):
                 return
             token = hashlib.sha256(str(source).encode()).hexdigest()[:24]
             copied = self.copy(source, self.worker.work / "input" / token / source.name)
@@ -912,6 +953,10 @@ class Analyzer:
                         self.worker.source_label = str(source) + "-wal"
                         self.worker.snapshot = self.worker.current_origin["Sha256"]
                         self.fragments_from(wal, Path(str(source) + "-wal"))
+            elif heap:
+                ranges = self.heap_from(copied, source)
+                if self.scan_fragments:
+                    self.fragments_from(copied, source, ranges)
             elif dump and not (jsonl or json_candidate or markup or image):
                 self.fragments_from(copied, source)
             elif jsonl:
@@ -1020,7 +1065,7 @@ class Analyzer:
                        "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record") for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
-                       "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "typed_tl_fragment") for m in self.worker.messages),
+                       "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "typed_tl_fragment", "android_heap_message") for m in self.worker.messages),
                        "photos": sum(p["status"] == "decoded" for p in self.worker.photos.values()),
                        "media": sum(1 for p in (self.output / "media").iterdir() if p.is_file()),
                        "latest_timestamp": latest, "warnings": self.warnings, **self.counts,

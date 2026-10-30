@@ -1,0 +1,1 @@
+Synthetic test images and fixture manifest were created for the USB-Recovery project from programmatically defined data. No personal data, third-party authored documents or third-party program binaries are embedded. This provenance file does not define or grant a separate license.

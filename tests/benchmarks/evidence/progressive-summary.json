@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+  "current": {
+    "cases_tested": 19,
+    "exact_originals": 11,
+    "decoded_equivalent_originals": 11,
+    "application_sha256": "3cf2e885eb66b546dce95bf5b2f1b40fbf2a9b9dbca794e64aa4c1cca89e6734",
+    "helper_sha256": "7dac184deae17081d90a05a2ee16d392f6d62801b02db504c4562c1a7a9a87cc",
+    "incomplete_search_cases": [
+      "raw-scattered-baseline",
+      "fat16-live-chain",
+      "fat16-deleted-retained-chain",
+      "fat16-deleted-cleared-chain",
+      "ntfs-deleted-data-runs"
+    ],
+    "failed_cases": [],
+    "source_run_sha256": "a44b3f59beb47c877f218677f87fdfc6354eaa2c7da6982cf739d36618f10d7c",
+    "source_score_sha256": "912a2dac506a6eb4993a4a228f0f5168129e1bf09697984b66f950ff409606e5"
+  },
+  "references": {
+    "baseline": {
+      "cases_tested": 19,
+      "exact_originals": 5,
+      "decoded_equivalent_originals": 5,
+      "source": ".build/benchmarks-v4/baseline-score-02-revalidated.json",
+      "sha256": "7d8f437d9fd63bb90975d7d3a50649811ad588a3a5a054ec64d626b685d7aaca"
+    },
+    "previous_release": {
+      "cases_tested": 19,
+      "exact_originals": 10,
+      "decoded_equivalent_originals": 10,
+      "source": ".build/benchmarks-v4/final-score-01.json",
+      "sha256": "e0af6f1d2f274bd91e2c7d828bcad94f6bedd725e7ea8d912a5efcba204a381f"
+    }
+  },
+  "new_exact_cases": [
+    "raw-scattered-progressive"
+  ],
+  "lost_exact_cases": [],
+  "shared_case_comparisons": [
+    {
+      "tool": "R-Studio",
+      "edition": "Technician Demo 9.5.191861",
+      "comparison_kind": "new Recovery run versus prior observed trial exports, freshly rescored; no new trial scan",
+      "shared_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-restart",
+        "raw-scattered-avc-dual",
+        "raw-scattered-mjpeg-dual",
+        "raw-scattered-png-chunks"
+      ],
+      "not_tested": [
+        "raw-contiguous-avc-single",
+        "raw-contiguous-mjpeg-single",
+        "raw-scattered-progressive",
+        "raw-scattered-baseline",
+        "raw-overwritten-avc-dual",
+        "raw-overwritten-mjpeg-dual",
+        "fat16-live-chain",
+        "fat16-deleted-retained-chain",
+        "fat16-deleted-cleared-chain",
+        "ntfs-deleted-data-runs",
+        "raw-malformed-decoys",
+        "raw-contiguous-png",
+        "raw-overwritten-png-crc",
+        "raw-scattered-png-crc-decoy"
+      ],
+      "current": {
+        "cases_tested": 5,
+        "exact_originals": 5,
+        "decoded_equivalent_originals": 5
+      },
+      "trial": {
+        "cases_tested": 5,
+        "exact_originals": 1,
+        "decoded_equivalent_originals": 1
+      },
+      "source_run": ".build/benchmarks-v4/rstudio-run.json",
+      "source_run_sha256": "01a9d68a7a2ff7c1f48402881f69331ca48cf8c57c9375eb7daa6af3109d7b6c",
+      "source_rescore": ".build/benchmarks-v5/trial-rstudio-rescore.json",
+      "source_rescore_sha256": "c607c756e76e85b9ef0f3d3f08864097663bd165443b7f0371c42d6114e9c0ed"
+    },
+    {
+      "tool": "DMDE",
+      "edition": "Console Free 4.4.4.842",
+      "comparison_kind": "new Recovery run versus prior observed trial exports, freshly rescored; no new trial scan",
+      "shared_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-restart"
+      ],
+      "not_tested": [
+        "raw-contiguous-avc-single",
+        "raw-contiguous-mjpeg-single",
+        "raw-scattered-progressive",
+        "raw-scattered-baseline",
+        "raw-scattered-avc-dual",
+        "raw-overwritten-avc-dual",
+        "raw-scattered-mjpeg-dual",
+        "raw-overwritten-mjpeg-dual",
+        "fat16-live-chain",
+        "fat16-deleted-retained-chain",
+        "fat16-deleted-cleared-chain",
+        "ntfs-deleted-data-runs",
+        "raw-malformed-decoys",
+        "raw-contiguous-png",
+        "raw-scattered-png-chunks",
+        "raw-overwritten-png-crc",
+        "raw-scattered-png-crc-decoy"
+      ],
+      "current": {
+        "cases_tested": 2,
+        "exact_originals": 2,
+        "decoded_equivalent_originals": 2
+      },
+      "trial": {
+        "cases_tested": 2,
+        "exact_originals": 0,
+        "decoded_equivalent_originals": 1
+      },
+      "source_run": ".build/benchmarks-v4/dmde-run.json",
+      "source_run_sha256": "41df3e0fd9d102a452a648a21164581abc2f2a8c852ef4862851e7050bb858cf",
+      "source_rescore": ".build/benchmarks-v5/trial-dmde-rescore.json",
+      "source_rescore_sha256": "f3e09f04c74f26f6e247b99311c8c834204444f67ae941e929aeb258914e993e"
+    }
+  ],
+  "counts_are_not_percentages": true,
+  "historical_evidence_inventory_sha256": "d959d124077af585ada0e1a41edab11a9a138527afb3aef21764fb481dadf9e2",
+  "limits": "Same small synthetic nineteen-case corpus. Previous trial exports only; progressive case not scanned in either commercial trial. No hardware, personal data, full competitor ranking or universal replacement claim.",
+  "exporter_sha256": "434f739db68efcc978a8e69427e4c78d212a2e91710debf710df50c68a33c09a"
+}

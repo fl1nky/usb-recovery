@@ -53,7 +53,7 @@ namespace UsbRecovery
         }
         void UpdateSearchSummary()
         {
-            var options=searchSettings.Selection();int methods=(options.LostPartitions?1:0)+(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0)+(options.FragmentedPhotos?1:0)+(options.FragmentedVideo?1:0);
+            var options=searchSettings.Selection();int methods=(options.LostPartitions?1:0)+(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Ext4Metadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0)+(options.FragmentedPhotos?1:0)+(options.FragmentedVideo?1:0);
             if(!busy)activityView.SetPhase("Готово к поиску",methods+" способов · "+Convert.ToString(profile.SelectedItem)+" · выбери источник");
         }
         void PresentActivity(RecoveryStageProgress update)

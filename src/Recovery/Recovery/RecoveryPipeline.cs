@@ -63,6 +63,13 @@ namespace UsbRecovery
                 try{
                     if(FileEvidence.HasUnreadSource(directory,image)){warnings=true;progress("В образе есть пропуски или недостоверная карта чтения. Метаданные занятости не считаются доказательством свободных кластеров.");}
                     var methods=new List<Work>();
+                    if(options.Ext4Metadata)methods.Add(new Work{Key="ext4",Name="Удалённые записи ext4",Run=()=>{
+                        if(FileEvidence.HasUnreadSource(directory,image))throw new IOException("ext4: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
+                        int found=Ext4Recovery.Recover(image,directory,cancel,progress);
+                        var report=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<Ext4Recovery.Report>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"ext4/report.json")));
+                        if(report==null||report.Status!="complete")throw new IOException("ext4: проход не завершён; найденные кандидаты сохранены.");
+                        return found;
+                    }});
                     if(options.LostPartitions)methods.Add(new Work{Key="partitions",Name="Поиск потерянных разделов по всему образу",Run=()=>{
                         bootCandidates=BootScout.Find(image,cancel,(done,total)=>{observe("running",done,total,-1);progress("Поиск разделов: "+done*100/Math.Max(1,total)+"%");});
                         RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"partition-search.json"),new{status=bootCandidates.Count>=BootScout.MaximumVolumes?"limited":"complete",candidates=bootCandidates,note="Candidates validated by filesystem parsers. Original image unchanged."});if(bootCandidates.Count>=BootScout.MaximumVolumes)warnings=true;return 0;

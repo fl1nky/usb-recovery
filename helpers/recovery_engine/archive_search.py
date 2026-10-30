@@ -70,7 +70,8 @@ def _normalized(raw):
              "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region",
              "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
-             "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
+             "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
+             "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes")
     result = {name: raw.get(name) for name in names}
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))
     if not isinstance(result["app"], str) or result["app"] not in APPS - {""}:
