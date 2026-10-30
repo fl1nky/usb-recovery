@@ -1,0 +1,19 @@
+{
+  "schema": 2,
+  "scope": "All current evidence generations; original inventory.json and original raw proofs retained byte-exact.",
+  "files": {
+    "comparison.json": "3b0f56c155b5273397778109a2764e55baa586e6d69771a01f024d5e1463fb80",
+    "complete-proof.json": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+    "inventory.json": "112ff0fc071c81c3db9be93134c85857653f382c08e7f6c209ad45ee18e7e536",
+    "path-map.json": "aaca0a2051fb1fa2c10e8e6af0d2471d944963e5db6e0e009b875486b867567a",
+    "rescore-equivalence.json": "7a1f2bf6a443f02d44de60e3e1bca2216b4d0705a84b35173d852622564027aa",
+    "restoration-check.json": "5fcc92d9dfd0dc4a005c8ae2ee0cc9717e5437fe08adc21de47adcfbf99523c9",
+    "source-inventory.json": "1d23e59f26e630f279d57e32760d4f09b7591d22c1a9c3976c9a80b26051f27e",
+    "verification-02/guard-check.json": "b3382ffa73c7cc6bca8f6ea11c300f4a9340486d6b4c6b740046123e9a1805bb",
+    "verification-02/guarded-verification.json": "66f536a0c28cf965a7cf5ea94fbbb6e7b4583b75fd301a63f23843c4da9171bd",
+    "verification-02/inventory.json": "6523253ed91173e09148cde251934e68e33699d2f2c91c91208ae597b7b95cff",
+    "verification-02/rescore-equivalence.json": "fb7074c4c0b8338f04283b11220a7849581bd7a69477a1c0a8fb5134b5c1c3ee",
+    "verification-02/restoration-check.json": "3d462f5cc74b51804e5d996dbe0fb8b3226a414e97ef4fa48836e792e6c381c7",
+    "verification-02/summary.json": "41c1452bde54e11bf635d65c10e17c9c5f37c4e789c0a82f24af672d9e6cca79"
+  }
+}

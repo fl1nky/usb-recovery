@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "scope": "Publication-code correction only; comparison inputs, original outputs and recovery runtime unchanged. No app/helper/paid-tool rerun.",
+  "original_generation_inventory_sha256": "112ff0fc071c81c3db9be93134c85857653f382c08e7f6c209ad45ee18e7e536",
+  "original_generation_files_unchanged": true,
+  "superseded_execution_snapshot": "complete-proof.json contains the actual first exporter source SHA f0e3e285726f54e1c290ac23b1cd110f27772a63fdf247a3bcd19e1146601165; retain as historical data and do not execute it.",
+  "trusted_execution_policy": "Use reviewed tests/benchmarks/export_media_comparison.py in the repository. It imports only the repo-local public scorer after comparing local/restored/all-report SHA256 and pinning FFmpeg. Restored Python is never imported.",
+  "fixed_exporter_sha256": "e4e322882ebfead8cedb5306c0c049e5cc07320ef145fa409d6fad433ef85edf",
+  "audit_sha256": "cef735e0963ba9d3e5013e1839aa35efd4b4138b5396a872be2683c94cc86f03",
+  "guard_checks_passed": 11,
+  "guard_checks_not_tested": 0,
+  "fresh_ffmpeg_only_rescore_equivalent": 7,
+  "fresh_restoration": {
+    "status": "passed",
+    "files": 327,
+    "bytes": 66551213,
+    "inventory_sha256": "bbb79d0b04baeb60396701bab4ed23726351dbaddb1e57595a754222a2646483"
+  },
+  "original_comparison_metrics_unchanged": true
+}

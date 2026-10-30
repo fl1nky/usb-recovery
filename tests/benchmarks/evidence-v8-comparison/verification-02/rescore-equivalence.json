@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "scope": "Only public scoring/decoding of restored files; no recovery program rerun. All score fields compare equal except relocated candidate paths, projected run-file SHA256 and volatile decoder diagnostic text.",
+  "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+  "results": [
+    {
+      "name": "raw-contiguous-baseline",
+      "equivalent": true,
+      "original_score_sha256": "b193d014ebe042aed8ccb8ff163619efc48b699275153199d8d1b8389ac464e9",
+      "relocated_score_sha256": "145362e94e339ad781e4e8492423a55d9a45ebdd2d50fed1da84fc7fd70a3d46",
+      "cases": 1
+    },
+    {
+      "name": "raw-scattered-restart",
+      "equivalent": true,
+      "original_score_sha256": "c6bbc45ca9e98ab0c8fa931765eb9bdb8a84eabdb91c2f0daf29b58db3a2c2d4",
+      "relocated_score_sha256": "699bd60ac6ff4a848dbd34fc6a3291922ff86591c3c1268a0c495410537d01e0",
+      "cases": 1
+    },
+    {
+      "name": "raw-scattered-avc-dual",
+      "equivalent": true,
+      "original_score_sha256": "1cf16689ffeb1b06fe4e23e3e9c119811acf2f52bcb2462f5bc0990d7149e6af",
+      "relocated_score_sha256": "049dbe0589490106a8b1b3f76be4c70db14f45e4053a23677cc7f71fab599683",
+      "cases": 1
+    },
+    {
+      "name": "raw-scattered-mjpeg-dual",
+      "equivalent": true,
+      "original_score_sha256": "3553517f65d8688dd31e1332fd81284a33fd01163f677042f56ebccc9e110d3c",
+      "relocated_score_sha256": "1be8aa698d5614b8864b6cfdd090d882ca2bc7e9037c7763b2fc482389023cfe",
+      "cases": 1
+    },
+    {
+      "name": "raw-scattered-png-chunks",
+      "equivalent": true,
+      "original_score_sha256": "64419e704b3a14d71052af47a0c63bf912105dcae4e2de917e0335c8ec3cf554",
+      "relocated_score_sha256": "b84da51f5c80f90f30b097b5e23d790e0a41d1d928c0cd9ababb617e2871a387",
+      "cases": 1
+    },
+    {
+      "name": "rstudio",
+      "equivalent": true,
+      "original_score_sha256": "dc6783c1597dafb4bb6e7346364fa7e9cd5e1e5cfbda0990e189050d03b964a6",
+      "relocated_score_sha256": "304d8b4fb132eee6a6f042055cf046b16900cd96208a39d2de6e1328a70e09ff",
+      "cases": 5
+    },
+    {
+      "name": "dmde",
+      "equivalent": true,
+      "original_score_sha256": "efc2cd609caeba04418366cb7e640eb0a3684e11d235c3d55f2b2c3c88c32075",
+      "relocated_score_sha256": "a09e207292a178b0f6e14b82e5d05b1da946a35531a6acf0ac0120d87c9674ac",
+      "cases": 2
+    }
+  ]
+}

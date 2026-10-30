@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "scope": "Publication/scoring guard only; no application/helper/paid-program run.",
+  "exporter_sha256": "e4e322882ebfead8cedb5306c0c049e5cc07320ef145fa409d6fad433ef85edf",
+  "audit_sha256": "cef735e0963ba9d3e5013e1839aa35efd4b4138b5396a872be2683c94cc86f03",
+  "passed": 11,
+  "not_tested": 0,
+  "results": [
+    {
+      "name": "restored_scorer_canary",
+      "status": "passed",
+      "error": "SCORER_BINDING_CHANGED",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "wrong_ffmpeg",
+      "status": "passed",
+      "error": "FFMPEG_BINDING_CHANGED",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "last_scorer_hash",
+      "status": "passed",
+      "error": "SCORER_BINDING_CHANGED",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "last_ffmpeg_hash",
+      "status": "passed",
+      "error": "FFMPEG_BINDING_CHANGED",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "parent_name",
+      "status": "passed",
+      "error": "COLLECTION_NAMES_INVALID",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "slash_name",
+      "status": "passed",
+      "error": "COLLECTION_NAMES_INVALID",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "backslash_name",
+      "status": "passed",
+      "error": "COLLECTION_NAMES_INVALID",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "drive_name",
+      "status": "passed",
+      "error": "COLLECTION_NAMES_INVALID",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "reserved_name",
+      "status": "passed",
+      "error": "RESTORE_PATH_UNSAFE",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "duplicate_name",
+      "status": "passed",
+      "error": "COLLECTION_NAMES_INVALID",
+      "module_loads": 0,
+      "subprocesses": 0,
+      "canary_executed": false
+    },
+    {
+      "name": "post_restore_link",
+      "status": "passed",
+      "error": "RESTORE_PATH_LINK"
+    }
+  ],
+  "original_restored_files_unchanged": true
+}

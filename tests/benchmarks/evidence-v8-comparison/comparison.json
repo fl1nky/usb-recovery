@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "Owned synthetic project fixtures, historical trial exports and actual published V8 Pipeline outputs. Original workspace paths are provenance. No personal devices/profiles were scanned; executables/screenshots excluded.",
+  "published_application_sha256": "0b732d9a3236e1312770ba7f133dcad25ff1922409cb8c9010bfe091a7fcd451",
+  "published_helper_sha256": "29e66798fd750c6672046bc8178aac54184ae3391e0a4ff8fd0d563f0c1f9786",
+  "v8": {
+    "cases": 5,
+    "exact_targets": 5,
+    "equivalent_only_targets": 0,
+    "exported_candidates": 32
+  },
+  "rstudio_historical_trial": {
+    "cases": 5,
+    "exact_targets": 1,
+    "equivalent_only_targets": 0,
+    "exported_candidates": 18
+  },
+  "dmde_historical_free": {
+    "cases": 2,
+    "exact_targets": 0,
+    "equivalent_only_targets": 1,
+    "exported_candidates": 2
+  },
+  "paid_tools_rerun": false,
+  "source_runtime_paid_exports_unchanged": true,
+  "selected_cases": [
+    "raw-contiguous-baseline",
+    "raw-scattered-restart",
+    "raw-scattered-avc-dual",
+    "raw-scattered-mjpeg-dual",
+    "raw-scattered-png-chunks"
+  ],
+  "completion": {
+    "overall_states": [
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings"
+    ],
+    "selected_stages_per_case": [
+      10,
+      10,
+      10,
+      10,
+      10
+    ],
+    "no_incomplete_selected_stages_recorded": true,
+    "ext4_selected": false
+  },
+  "limits": [
+    "Five small synthetic regular-file inputs; no recovery-rate estimate for real damaged devices.",
+    "R-Studio 5 cases and DMDE 2-case subset reuse captured trial/free exports and original settings, not exhaustive current paid-product testing.",
+    "Overall sessions finished_with_warnings despite all selected stages recorded complete; unselected methods were not tested.",
+    "Extra decodable embedded frames are not automatically false positives; false-positive rate is unknown.",
+    "DMDE equivalent-only baseline export contains the complete original JPEG prefix plus trailing bytes; byte-exact result remains false."
+  ],
+  "restoration": {
+    "status": "passed",
+    "files": 309,
+    "bytes": 66417867,
+    "inventory_sha256": "a819418406dc8380953479a1297e74bd1691b6ebd920cab187d5143098e0caa2"
+  },
+  "rescore_status": "passed",
+  "binding_counts": {
+    "runtime_files": 835,
+    "full_original_corpus_files": 29,
+    "paid_export_files": 20
+  }
+}

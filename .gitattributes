@@ -14,3 +14,5 @@
 /tests/benchmarks/evidence-v8-telegram/** -text whitespace=cr-at-eol
 /tests/benchmarks/evidence-v8-media-scale/** -text whitespace=cr-at-eol
 /tests/benchmarks/evidence-v8-scale/** -text whitespace=cr-at-eol
+
+/tests/benchmarks/evidence-v8-comparison/** -text whitespace=cr-at-eol

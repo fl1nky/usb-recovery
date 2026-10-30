@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "files": {
+    "guard-check.json": "b3382ffa73c7cc6bca8f6ea11c300f4a9340486d6b4c6b740046123e9a1805bb",
+    "guarded-verification.json": "66f536a0c28cf965a7cf5ea94fbbb6e7b4583b75fd301a63f23843c4da9171bd",
+    "rescore-equivalence.json": "fb7074c4c0b8338f04283b11220a7849581bd7a69477a1c0a8fb5134b5c1c3ee",
+    "restoration-check.json": "3d462f5cc74b51804e5d996dbe0fb8b3226a414e97ef4fa48836e792e6c381c7",
+    "summary.json": "41c1452bde54e11bf635d65c10e17c9c5f37c4e789c0a82f24af672d9e6cca79"
+  }
+}
