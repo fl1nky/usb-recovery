@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "runs": {
+    "baseline-media": {
+      "cases_tested": 19,
+      "cases_not_tested": 0,
+      "exact_originals": 5,
+      "decoded_equivalent_originals": 5,
+      "incomplete_search_cases": [
+        "ntfs-deleted-data-runs"
+      ],
+      "source_run_sha256": "51fe6c5fd9b6865242304a2652fe874bd66a545087d19bc9e6461f817e1a204f",
+      "source_score_sha256": "7d8f437d9fd63bb90975d7d3a50649811ad588a3a5a054ec64d626b685d7aaca"
+    },
+    "final-media": {
+      "cases_tested": 19,
+      "cases_not_tested": 0,
+      "exact_originals": 10,
+      "decoded_equivalent_originals": 10,
+      "incomplete_search_cases": [
+        "raw-scattered-baseline",
+        "fat16-live-chain",
+        "fat16-deleted-retained-chain",
+        "fat16-deleted-cleared-chain",
+        "ntfs-deleted-data-runs"
+      ],
+      "source_run_sha256": "2df014f17693cf7ed05113eaeaa2af64bd74087aac98876bdf69caa965b49394",
+      "source_score_sha256": "e0af6f1d2f274bd91e2c7d828bcad94f6bedd725e7ea8d912a5efcba204a381f"
+    },
+    "final-audio": {
+      "cases_tested": 10,
+      "cases_not_tested": 0,
+      "exact_originals": 2,
+      "decoded_equivalent_originals": 2,
+      "incomplete_search_cases": [],
+      "source_run_sha256": "b975f3668d9229d2668ef4f5713659291f69c6dd7de992e789441314bb5e5835",
+      "source_score_sha256": "0e161457792b0bac71d60d9e040a6fb2a4db0aec7274acd9a39423b3dd3c1353"
+    },
+    "trial-rstudio": {
+      "cases_tested": 5,
+      "cases_not_tested": 14,
+      "exact_originals": 1,
+      "decoded_equivalent_originals": 1,
+      "incomplete_search_cases": [],
+      "source_run_sha256": "01a9d68a7a2ff7c1f48402881f69331ca48cf8c57c9375eb7daa6af3109d7b6c",
+      "source_score_sha256": "2bd437d50ff0c64effde7ee234d0643074b509f4fee0cb0b49c5519804bee0ef"
+    },
+    "trial-dmde": {
+      "cases_tested": 2,
+      "cases_not_tested": 17,
+      "exact_originals": 0,
+      "decoded_equivalent_originals": 1,
+      "incomplete_search_cases": [],
+      "source_run_sha256": "41df3e0fd9d102a452a648a21164581abc2f2a8c852ef4862851e7050bb858cf",
+      "source_score_sha256": "445d1f598c45951227125702605f5d4fc5078cdabaa1020897b79866416a9898"
+    }
+  },
+  "shared_case_comparisons": [
+    {
+      "trial": "trial-rstudio",
+      "shared_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-restart",
+        "raw-scattered-avc-dual",
+        "raw-scattered-mjpeg-dual",
+        "raw-scattered-png-chunks"
+      ],
+      "results": {
+        "baseline-media": {
+          "exact": 1,
+          "decoded_equivalent": 1
+        },
+        "final-media": {
+          "exact": 5,
+          "decoded_equivalent": 5
+        },
+        "trial-rstudio": {
+          "exact": 1,
+          "decoded_equivalent": 1
+        }
+      }
+    },
+    {
+      "trial": "trial-dmde",
+      "shared_cases": [
+        "raw-contiguous-baseline",
+        "raw-scattered-restart"
+      ],
+      "results": {
+        "baseline-media": {
+          "exact": 1,
+          "decoded_equivalent": 1
+        },
+        "final-media": {
+          "exact": 2,
+          "decoded_equivalent": 2
+        },
+        "trial-dmde": {
+          "exact": 0,
+          "decoded_equivalent": 1
+        }
+      }
+    }
+  ],
+  "ufs": {
+    "status": "not_tested",
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-contiguous-avc-single",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-contiguous-mjpeg-single",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-restart",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-progressive",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-baseline",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-overwritten-avc-dual",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-overwritten-mjpeg-dual",
+        "status": "not_tested"
+      },
+      {
+        "name": "fat16-live-chain",
+        "status": "not_tested"
+      },
+      {
+        "name": "fat16-deleted-retained-chain",
+        "status": "not_tested"
+      },
+      {
+        "name": "fat16-deleted-cleared-chain",
+        "status": "not_tested"
+      },
+      {
+        "name": "ntfs-deleted-data-runs",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-malformed-decoys",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-contiguous-png",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-overwritten-png-crc",
+        "status": "not_tested"
+      },
+      {
+        "name": "raw-scattered-png-crc-decoy",
+        "status": "not_tested"
+      }
+    ]
+  },
+  "limits": "Synthetic small files and subsets only; no real-device recovery rate, overall competitor ranking or universal replacement claim.",
+  "exporter_sha256": "f5a5df49b1a35afbc413eec921711a504f742248ad3405f20001e116a59d3fc4",
+  "counts_are_not_percentages": true
+}

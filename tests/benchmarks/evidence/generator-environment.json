@@ -1,0 +1,16 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/generator-environment.json",
+    "source_sha256": "5e4c249eaa5ca31218e4c35464a67a846bd606f41776414c2f98e709e14965ae",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "pillow": "12.3.0",
+    "jpeg": "8.0",
+    "zlib": "1.3.1.zlib-ng",
+    "scope": "Captured after generation in unchanged generation venv; no personal media."
+  }
+}

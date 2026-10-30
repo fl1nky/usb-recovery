@@ -19,6 +19,13 @@ namespace UsbRecovery
         public string app, snapshot_id, chat_name, sender_name, evidence_kind, source_file, source_record, text;
         public string source_id, original_relative_path, source_sha256;
         public string record_kind, completeness;
+        public string recovery_status,deletion_interpretation,physical_source,record_sha256,proof,native_tl_body_sha256;
+        public Dictionary<string,object>[] residual_sources;
+        public object sqlite_page,record_page_offset,blob_page_offset,record_length,physical_byte_offset,wal_frame,candidate_message_id,candidate_peer,candidate_date;
+        public string sqlite_region,offset_kind,sqlite_record_sha256;
+        public object sqlite_record_page_offset,sqlite_record_length,sqlite_blob_page_offset;
+        public bool? sqlite_header_length_reconstructed;
+        public bool? header_length_reconstructed,deleted;
         public string identity_scope, native_constructor, wal_proof, wal_db_sha256, wal_sha256, wal_snapshot_sha256;
         public string media_kind,media_id,media_status;
         public object thumbnail_count;
@@ -176,7 +183,7 @@ namespace UsbRecovery
             filters.Controls.Add(new Label { Text = "Ключевые слова", AutoSize = true, Margin = new Padding(0, 0, 0, 5) }, 0, 0);
             filters.Controls.Add(new Label { Text = "Категория", AutoSize = true }, 1, 0);
             query.Dock = DockStyle.Fill; query.Font = new Font("Segoe UI", 11F); query.MaxLength = 1024; query.Name = "telegram-keywords"; query.Margin = new Padding(0, 3, 8, 0); query.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; StartSearch(0); } }; filters.Controls.Add(query, 0, 1);
-            evidence.DropDownStyle = ComboBoxStyle.DropDownList; evidence.Items.AddRange(new object[] { "Все категории", "Из экспорта", "Из резервной копии", "Предыдущая версия", "Текстовый фрагмент" }); evidence.SelectedIndex = 0; evidence.Dock = DockStyle.Fill; filters.Controls.Add(evidence, 1, 1);
+            evidence.DropDownStyle = ComboBoxStyle.DropDownList; evidence.Items.AddRange(new object[] { "Все категории", "Из экспорта", "Из резервной копии", "Предыдущая версия", "Текстовый фрагмент", "Удалённые записи (остатки)" }); evidence.SelectedIndex = 0; evidence.Dock = DockStyle.Fill; filters.Controls.Add(evidence, 1, 1);
             Configure(search, "Найти", delegate { StartSearch(0); }); search.Name = "telegram-search"; filters.Controls.Add(search, 2, 1);
             var hints = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, WrapContents = false, Margin = new Padding(0, 3, 0, 0) };
             regexMode.Text = "Regex"; regexMode.AutoSize = true; regexMode.Name = "telegram-regex"; hints.Controls.Add(regexMode);
@@ -245,7 +252,7 @@ namespace UsbRecovery
             if (IsBusy) return;
             if (String.IsNullOrWhiteSpace(archive.Text)) { count.Text = "Сначала нажми «Анализировать»"; return; }
             string path = archive.Text, app = "Telegram", words = query.Text; bool useRegex = regexMode.Checked;
-            string[] categories = { "", "export", "backup", "previous", "fragment" }; string category = categories[Math.Max(0, evidence.SelectedIndex)];
+            string[] categories = { "", "export", "backup", "previous", "fragment", "deleted" }; string category = categories[Math.Max(0, evidence.SelectedIndex)];
             cancellation = new CancellationTokenSource(); busy = true; SetBusy(true); count.Text = "Поиск в локальном архиве…";
             CancellationToken token = cancellation.Token;
             ArchiveSearchResult result = null; int failure = 0;
@@ -270,7 +277,7 @@ namespace UsbRecovery
                 current = result; pageOffset = result.offset; grid.Rows.Clear(); body.Clear(); provenance.Clear();
                 foreach (var message in result.records) {
                     if (!String.Equals(message.app, "Telegram", StringComparison.OrdinalIgnoreCase)) throw new IOException("SEARCH_APP_MISMATCH");
-                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), message.record_kind == "notification" ? "Уведомление" : Category(message.evidence_kind), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text)); grid.Rows[row].Tag = message;
+                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind == "notification" ? "Уведомление" : Category(message.evidence_kind), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text)); grid.Rows[row].Tag = message;
                 }
                 long last = Math.Min(result.total, pageOffset + result.records.Count); count.Text = result.total == 0 ? "По запросу ничего не найдено" : "Найдено: " + result.total.ToString("N0") + " · " + (pageOffset + 1) + "–" + last;
                 if (result.status == "partial") count.Text += " · есть замечания к архиву";
@@ -311,6 +318,9 @@ namespace UsbRecovery
                 details.AppendLine("\r\nПредыдущий зафиксированный снимок SQLite: кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
                 details.AppendLine("SHA256 журнала: " + Known(message.wal_sha256, null, "неизвестен") + "\r\nSHA256 снимка: " + Known(message.wal_snapshot_sha256, null, "неизвестен"));
             }
+            if(message.recovery_status=="deleted_supported_by_evidence")details.AppendLine("\r\nСтруктурная запись в свободной области страницы Telegram: отсутствует в текущей таблице. Ручное удаление пользователем не доказано. "+message.deletion_interpretation);
+            if(message.residual_sources!=null)foreach(var origin in message.residual_sources){object at,page,kind;origin.TryGetValue("physical_byte_offset",out at);origin.TryGetValue("sqlite_page",out page);origin.TryGetValue("physical_source",out kind);details.AppendLine("\r\nТакже сохранился остаток: "+kind+", страница "+page+", позиция "+at+". Факт ручного удаления не установлен.");}
+            if(message.sqlite_page!=null)details.AppendLine("\r\nSQLite: страница "+message.sqlite_page+", область "+message.sqlite_region+", позиция "+message.physical_byte_offset+", источник "+message.physical_source+"; WAL frame "+message.wal_frame+". "+message.proof);
             if (message.evidence_kind == "fragment") details.AppendLine("\r\nТекстовый фрагмент: принадлежность переписке и автору может быть неизвестна.");
             if (message.record_kind == "memory_fragment") details.AppendLine("\r\nФрагмент файла, Telegram не подтверждён. Позиция в файле: " + Convert.ToString(message.byte_offset) + " байт; кодировка: " + message.encoding + ". Дата, автор и факт удаления не установлены.");
             if (message.text_truncated) details.AppendLine("\r\nПоказаны первые 65 536 символов. Полная запись остаётся в исходном архиве.");

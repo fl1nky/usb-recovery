@@ -17,7 +17,7 @@ DEPENDENCIES = {"USB-Recovery.exe", "tools/recovery-helper/recovery-helper.exe",
                 "tools/testdisk-7.2/photorec_win.exe", "tools/testdisk-7.2/testdisk_win.exe",
                 "package-sha256.json", "tools/recovery-helper/runtime-SHA256.json"}
 SOURCE_TREES = ("src", "scripts", "helpers/recovery_engine", "vendor/iphone-backup-decrypt", "docs")
-SOURCE_FIXTURES = ("TelegramNativeFixtures", "TelegramMediaFixtures", "StorageFixtures",
+SOURCE_FIXTURES = ("benchmarks", "TelegramNativeFixtures", "TelegramMediaFixtures", "StorageFixtures",
                    "photorec-20261011T231546120952Z/fixtures")
 EXCLUDED_SOURCE_DIRECTORIES = {".git", "__pycache__", ".pytest_cache", "bin", "obj"}
 GENERATED_TEST_REPORTS = {"CommercialComparison-after.json", "CommercialComparison-baseline.json",
@@ -234,9 +234,9 @@ def verify(root=ROOT):
                 "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests",
                 "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests",
                 "RaidRecoveryTests", "StorageUiTests", "StoragePipelineTests", "HelperMemoryTests", "AtomicJsonSaveTests",
-                "ExportTempCollisionTests", "StorageWorkflowTests", "CaptureProvenanceTests", "ApplicationPathsTests"}
+                "ExportTempCollisionTests", "StorageWorkflowTests", "CaptureProvenanceTests", "ApplicationPathsTests", "FragmentedMediaRecoveryTests", "MediaWorkflowTests", "FragmentedPhotoPortableTests"}
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
-    require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable"}, "Telegram suites missing")
+    require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable", "TelegramDeletedPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")
     comparison = read(tests / "CommercialComparison-after.json")
     require(comparison.get("status") == "complete" and comparison.get("application_sha256") == application, "comparison regression is stale")

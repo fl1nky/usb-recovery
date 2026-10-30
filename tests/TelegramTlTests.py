@@ -158,7 +158,15 @@ class NativeIntegrationTests(unittest.TestCase):
 
     def test_missing_preimages_never_borrow_current_base_pages(self):
         _, result, rows = self.analyze("missing-preimage")
-        self.assertEqual(rows, [])
+        # An earlier complete snapshot is still unprovable. The new residual
+        # reader independently finds this intact SQL/TL record in unused bytes
+        # of the latest validated WAL page and current reachable table.
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["record_kind"], "sqlite_deleted_record")
+        self.assertEqual(rows[0]["recovery_status"], "deleted_supported_by_evidence")
+        self.assertEqual(rows[0]["physical_source"], "wal")
+        self.assertEqual(rows[0]["evidence_kind"], "backup")
+        self.assertNotIn("wal_snapshot_sha256", rows[0])
         self.assertEqual(result["previous_records"], 0)
         self.assertIn("TELEGRAM_WAL_HISTORY_INCOMPLETE", result["warnings"])
 

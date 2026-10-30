@@ -19,6 +19,7 @@ MAX_INDEX = 8 * 1024 * 1024 * 1024
 MAX_SORT_WINDOW = 100_000
 APPS = {"", "Telegram", "WhatsApp", "Signal"}
 EVIDENCE = {"", "export", "backup", "previous", "fragment"}
+EVIDENCE_FILTERS = EVIDENCE | {"deleted"}
 
 
 class SearchError(Exception):
@@ -65,7 +66,11 @@ def _normalized(raw):
              "source_id", "original_relative_path", "source_sha256", "record_kind", "completeness",
              "byte_offset", "byte_length", "encoding", "application_confirmed", "identity_scope",
              "native_constructor", "native_layer", "wal_commit_frame", "wal_proof", "wal_db_sha256",
-             "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count")
+             "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count",
+             "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region",
+             "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
+             "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
+             "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
     result = {name: raw.get(name) for name in names}
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))
     if not isinstance(result["app"], str) or result["app"] not in APPS - {""}:
@@ -77,6 +82,9 @@ def _normalized(raw):
             result[name] = None
         if name != "text" and isinstance(result[name], str):
             result[name] = result[name][:4096]
+    residuals = raw.get("residual_sources", [])
+    provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
+    result["residual_sources"] = [{k: (v[:4096] if isinstance(v, str) else v) for k, v in item.items() if k in provenance_names and isinstance(v, (str, int, bool))} for item in residuals[:20] if isinstance(item, dict)] if isinstance(residuals, list) else []
     refs = raw.get("attachments", [])
     result["attachments"] = [x for x in refs[:100] if isinstance(x, str) and len(x) < 4096] if isinstance(refs, list) else []
     origins = raw.get("additional_sources", raw.get("sources", []))
@@ -150,7 +158,7 @@ def search(request):
     query = request.get("query", "")
     offset, limit = request.get("offset", 0), request.get("limit", 100)
     sort = request.get("sort", "")
-    if not isinstance(app, str) or not isinstance(evidence, str) or app not in APPS or evidence not in EVIDENCE or not isinstance(query, str) or len(query) > 1024:
+    if not isinstance(app, str) or not isinstance(evidence, str) or app not in APPS or evidence not in EVIDENCE_FILTERS or not isinstance(query, str) or len(query) > 1024:
         raise SearchError("INVALID_REQUEST")
     if type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 100:
         raise SearchError("INVALID_REQUEST")
@@ -166,7 +174,7 @@ def search(request):
     warnings = set()
 
     def matches(value):
-        if (app and value["app"] != app) or (evidence and value["evidence_kind"] != evidence):
+        if (app and value["app"] != app) or (evidence == "deleted" and value.get("recovery_status") != "deleted_supported_by_evidence") or (evidence and evidence != "deleted" and value["evidence_kind"] != evidence):
             return False
         try:
             return matcher.matches(value["text"])

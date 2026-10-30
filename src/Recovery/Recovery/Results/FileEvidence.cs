@@ -98,6 +98,25 @@ namespace UsbRecovery
             if(map!=null&&Number(map,"unreadBytes",-1)!=result.Unread.Sum(x=>x.Length))result.Unread.Clear();
             foreach(var row in Rows(Read(root,"container-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"bytes"),"container");
             foreach(var row in Rows(Read(root,"extra-photo-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"size"),"embedded_photo");
+            foreach(string manifest in new[]{"fragmented-photo-search.json","fragmented-media.json"})foreach(var row in Rows(Read(root,manifest),"Files")){
+                string path=Value(row,"Path"),status=Value(row,"Status");long size=Number(row,"Bytes",-1);
+                if(String.IsNullOrEmpty(path)||size<=0||!(status=="png_crc_zlib_reassembled_candidate"||status=="jpeg_restart_structural_candidate"||status=="jpeg_gap_structural_candidate"||status=="jpeg_restart_huffman_reassembled_candidate"||status=="jpeg_single_gap_huffman_reassembled_candidate"||status=="iso_bmff_structural_candidate"))continue;
+                if(!(path.StartsWith("fragmented-photos/",StringComparison.Ordinal)||path.StartsWith("fragmented-media/",StringComparison.Ordinal)))continue;
+                var proof=new EvidenceEntry{Path=path,Kind="reassembled_media_candidate",VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note"),MappingComplete=true};long logical=0;
+                foreach(var extent in Rows(row,"Extents")){
+                    long offset=Number(extent,"ImageOffset",-1),at=Number(extent,"LogicalOffset",-1),length=Number(extent,"Length",-1);
+                    if(offset<0||length<=0||at!=logical||offset>Int64.MaxValue-length||length>size-logical){proof.MappingComplete=false;break;}
+                    proof.Ranges.Add(new FileExtent{Offset=offset,Length=length});logical+=length;
+                }
+                var sourceRecord=Read(root,RecoverySession.FileName);long sourceBytes=sourceRecord==null?-1:Number(sourceRecord,"SourceBytes",-1),priorEnd=-1;
+                foreach(var range in proof.Ranges.OrderBy(x=>x.Offset)){
+                    if(range.Offset<priorEnd||sourceBytes>=0&&range.Offset>sourceBytes-range.Length){proof.MappingComplete=false;break;}
+                    priorEnd=range.Offset+range.Length;
+                }
+                if(!proof.MappingComplete||logical!=size){proof.Ranges.Clear();proof.MappingComplete=false;}
+                if(proof.Ranges.Count>0)proof.Offset=proof.Ranges[0].Offset;
+                result.entries[path.Replace('\\','/')]=proof;
+            }
             foreach(var row in Rows(Read(root,"storage-candidates.json"),"files")){
                 string path=Value(row,"path"),original=Value(row,"original_path"),sha=Value(row,"sha256");long bytes=Number(row,"bytes",-1),offset=Number(row,"source_offset_bytes",-1);bool previous=Value(row,"origin")=="previous-version",fallback=Value(row,"checkpoint_fallback")=="True";
                 if(path==null||!path.StartsWith("apfs-files/",StringComparison.Ordinal)||original==null||sha==null||bytes<0||offset<0||Value(row,"filesystem")!="APFS"||Value(row,"validation")!="metadata-checksum-and-readable-stream")continue;
@@ -177,6 +196,11 @@ namespace UsbRecovery
             if(record!=null&&(record.Kind=="apfs_snapshot"||record.Kind=="apfs_checkpoint"||record.Kind=="apfs_referenced_file")){if(record.Components!=null&&record.Components.Count>0){item.Name=record.Components[record.Components.Count-1];int dot=item.Name.LastIndexOf('.');item.Extension=dot>=0?item.Name.Substring(dot):"";item.Category=RecoveryCatalog.Category(item.Extension);}item.Method=record.Kind=="apfs_checkpoint"?"APFS · предыдущее состояние":record.Kind=="apfs_snapshot"?"APFS · снимок":"APFS · файл";item.Status=record.Kind=="apfs_referenced_file"?"Сохранившийся файл APFS":"Предыдущая версия APFS";item.Note="Файл прочитан по сохранившейся записи APFS; факт удаления не устанавливается. Снимок, том и запись приведены в происхождении. SHA256 удостоверяет полученные байты, а не исходную полноту.";item.IntegrityDetail+=" "+record.PathEvidence+"; физическая карта блоков не установлена.";}
             if(record!=null&&record.Kind=="reassembled_zip")item.IntegrityDetail+=" ZIP собран из раздельных записей; проверены размеры и CRC элементов. Исходное имя, факт удаления и подлинность содержимого неизвестны.";
             if(record!=null&&(record.Note=="partial"||record.Note=="partial_candidate")){item.Quality="partial";item.QualityLabel="Восстановлена часть файла";item.IntegrityDetail+=" Карта метаданных показывает неполное восстановление; открытие файла не доказывает полноту.";}
+            if(record!=null&&record.Kind=="reassembled_media_candidate"){
+                item.Method="Сборка разрозненных медиа";item.Status="Кандидат сборки";item.Quality="structural_candidate";item.QualityLabel="Структура согласована";
+                item.Note="Сборка из сохранившихся фрагментов. Принадлежность к исходному файлу и факт удаления не подтверждены. Проверь фотографию или весь ролик.";
+                item.IntegrityDetail+=" "+record.Note+" SHA256 фиксирует полученную сборку, а не исходное содержимое.";
+            }
             if(!HasReadErrors)return;
             if(record!=null&&record.MappingComplete&&record.Ranges.Count>0&&Unread.Count>0){
                 long bytes=Intersections(record.Ranges);item.UnreadBytes=bytes;

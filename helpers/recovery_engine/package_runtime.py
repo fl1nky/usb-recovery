@@ -55,7 +55,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
     (rebuild / "tests").mkdir(exist_ok=True)
     for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
-    for name in ("ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py"):
+    for name in ("ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py'):
         if (ROOT / "tests" / name).is_file():
             shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     (rebuild / "REBUILD.txt").write_text(

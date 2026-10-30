@@ -55,3 +55,45 @@ def scan(path, matcher, progress=None, limit=MAX_FRAGMENTS):
             position += len(block)
             if progress:
                 progress(position)
+
+
+def scan_tl(path, matcher, progress=None, limit=MAX_FRAGMENTS, cancel=None):
+    """Strict public TL bodies in supplied dumps, retaining unknown context.
+
+    This never obtains a process dump. Byte offsets refer to the given file,
+    and decoded peer/date/ID fields stay *candidates*, not attributed chats.
+    """
+    from sqlite_deleted import tl_fragments
+    count, carry, position, last_end = 0, b"", 0, -1
+    with path.open("rb") as source:
+        while True:
+            if cancel is not None and cancel():
+                from sqlite_deleted import DeletedError
+                raise DeletedError("CANCELLED")
+            block = source.read(CHUNK)
+            final = not block
+            data = carry + block
+            base = position - len(carry)
+            safe_end = len(data) if final else max(0, len(data) - OVERLAP)
+            for value in tl_fragments(data, cancel=cancel):
+                start = base + value["byte_offset"]
+                end = start + value["byte_length"]
+                if start < last_end or value["byte_offset"] >= safe_end:
+                    continue
+                if not final and end > base + safe_end:
+                    continue
+                last_end = end
+                if matcher is not None and not matcher.matches(value["text"]):
+                    continue
+                value.update(byte_offset=start, physical_byte_offset=start,
+                             physical_source="supplied_dump", sqlite_region=None)
+                yield value
+                count += 1
+                if count >= limit:
+                    return
+            if final:
+                return
+            carry = data[-2 * OVERLAP:]
+            position += len(block)
+            if progress:
+                progress(position)

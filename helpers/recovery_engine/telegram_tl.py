@@ -398,7 +398,7 @@ def _restrictions(reader: _Reader):
     return reader.vector(restriction)
 
 
-def parse_message(blob: bytes | bytearray | memoryview) -> dict:
+def parse_message(blob: bytes | bytearray | memoryview, *, allow_trailing=False) -> dict:
     """Return one structurally checked supported message or raise a code.
 
     Only zero or one validated Android local-path string (and local forward
@@ -488,6 +488,9 @@ def parse_message(blob: bytes | bytearray | memoryview) -> dict:
         result["summary_from_language"] = reader.string()
     result["tl_bytes"] = reader.at
     result["local_tail_present"] = False
+    if allow_trailing:
+        result["consumed_bytes"] = reader.at
+        return result
     if reader.at < len(blob):
         reader.string()  # opaque Android attachPath; never resolve it
         result["local_tail_present"] = True

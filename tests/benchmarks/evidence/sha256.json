@@ -1,0 +1,19 @@
+{
+  "README.md": "9081d642e7b7d58ceb8a98e6ee3181e193c0b9e4e9c9367f05e60f46d17dc340",
+  "audio-manifest.json": "14e7692c5da64bc325c400e209331b08d9feb2f2a011b07149f18986b0c88ef4",
+  "baseline-media-run.json": "2ced9225fcd8c2ba056781c039d1f4665b207e6bef3c7f3f2f0a841e1ee518d1",
+  "baseline-media-score.json": "1f360b2962f21b50820b7a18f3405ea51cd58fe52c7e31a3b2889ee7cb8fae42",
+  "corpus-validation.json": "a935ecb554ec558715fea0c09e20b7ce7618a634fd5ccee79fb6c96c5f4e22d8",
+  "final-audio-run.json": "93d6b0b5b97cd5eec75bb434a8eba3ce6555850827a11513be0183be8df6adbe",
+  "final-audio-score.json": "00ede9c469e44584ec1cd6f30de2c100d066ee56ff23dc1cda2eb09ce6270c84",
+  "final-media-run.json": "87a282e54a3cd89e5199af5bdc9dfe84b2e1a2780b527ccc5064d56b4cab9c92",
+  "final-media-score.json": "c59c6195f480dd14d4e0baa87511cde845f7c32f06a6d495aba2f3e5f00d03fc",
+  "generator-environment.json": "a9e8dd3083dd9709554851fdaf32917f18cfa51611a6d11fbf9fe21a2aba998b",
+  "media-manifest.json": "244a8a3069ea9700c946c727adc228bdaeee0a67c00f5c5c801aa3092b97e85b",
+  "summary.json": "77bb64155ffc01149acbfd006d91d669e1463f1c31f3b509064216f1d61d9965",
+  "tool-inventory.json": "fe3d8ffad93840708ab30010dc7ce86cba51b577c07a8cd80b0d8deb71f2f54b",
+  "trial-dmde-run.json": "3605d83000fcd632072593cb94d9851544d299a84afd93290e722a62f886e18c",
+  "trial-dmde-score.json": "399db7cb672155c631b7e6c0d8c3c82cbf1cc70f312fec584863b38629a8e2ba",
+  "trial-rstudio-run.json": "aaa8ebf5ad2c249e49a87affc25d4c3a18a002e391896513a87c4cb77ebd2949",
+  "trial-rstudio-score.json": "c3cc090d3bd9456e5327bb048473feda5656acef6451b1695726fa867c0f91ca"
+}

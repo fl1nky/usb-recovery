@@ -7,7 +7,9 @@ $taskWorker = Join-Path $taskApp 'tools\recovery-helper\recovery-helper.exe'
 $taskHarness = Join-Path $taskApp 'TelegramOfflineHarness.exe'
 $taskNativeHarness = Join-Path $taskApp 'TelegramNativeOfflineHarness.exe'
 $taskMediaHarness = Join-Path $taskApp 'TelegramMediaOfflineHarness.exe'
-$taskHarnesses = @($taskHarness, $taskNativeHarness, $taskMediaHarness)
+$taskDeletedHarness=Join-Path $taskApp 'TelegramDeletedOfflineHarness.exe'
+$taskHarnesses = @($taskHarness, $taskNativeHarness, $taskMediaHarness, $taskDeletedHarness)
+$taskDeletedFixtures=Join-Path (Split-Path -Parent $PSScriptRoot) '.build\telegram-deleted-portable-fixtures'
 $taskFixtures = Join-Path $taskApp 'source\tests\TelegramNativeFixtures'
 $taskMediaFixtures = Join-Path $taskApp 'source\tests\TelegramMediaFixtures'
 $taskCompiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
@@ -31,12 +33,15 @@ try {
     $taskSourceProofs.TelegramMediaPortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramMediaPortableTests.cs")
     & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskMediaHarness" "$PSScriptRoot\TelegramMediaPortableTests.cs"
     if ($LASTEXITCODE -ne 0) { throw 'Media Telegram offline harness build failed.' }
+    $taskSourceProofs.TelegramDeletedPortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramDeletedPortableTests.cs","$PSScriptRoot\build_telegram_deleted_fixtures.py","$PSScriptRoot\TelegramDeletedTests.py","$PSScriptRoot\TelegramResidualProvenanceTests.py","$PSScriptRoot\build_telegram_native_fixtures.py")
+    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskDeletedHarness" "$PSScriptRoot\TelegramDeletedPortableTests.cs"
+    if($LASTEXITCODE-ne0){throw 'Deleted Telegram portable harness build failed.'}
     foreach ($taskProgram in @($taskWorker) + $taskHarnesses) {
         New-NetFirewallRule -DisplayName 'Telegram recovery temporary synthetic offline check' -Name ($taskGroup + '-' + $taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True | Out-Null
         $taskResult.outbound_rules++
     }
     $taskRules = @(Get-NetFirewallRule -Group $taskGroup)
-    if ($taskRules.Count -ne 4 -or @($taskRules | Where-Object { $_.Action -ne 'Block' -or $_.Enabled -ne 'True' }).Count) { throw 'Outbound test blocks did not activate.' }
+    if ($taskRules.Count -ne ($taskHarnesses.Count+1) -or @($taskRules | Where-Object { $_.Action -ne 'Block' -or $_.Enabled -ne 'True' }).Count) { throw 'Outbound test blocks did not activate.' }
     $taskResult.outbound_blocked = $true
     $env:PATH = Join-Path $env:WINDIR 'System32'
     $env:PYTHONHOME = $null; $env:PYTHONPATH = $null
@@ -57,6 +62,11 @@ try {
     & $taskMediaHarness $taskMediaFixtures | Tee-Object -FilePath $taskLog
     if ($LASTEXITCODE -ne 0) { throw 'Media Telegram offline portable integration failed.' }
     Add-RecoveryTestEvidence $taskResult 'TelegramMediaPortable' $taskLog $taskMediaHarness $taskSourceProofs.TelegramMediaPortable $taskStartedUtc
+    $taskLog=Join-Path $PSScriptRoot 'TelegramDeletedOfflineTests.result.txt'
+    $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
+    & $taskDeletedHarness $taskDeletedFixtures | Tee-Object -FilePath $taskLog
+    if($LASTEXITCODE-ne0){throw 'Deleted Telegram frozen pipeline failed.'}
+    Add-RecoveryTestEvidence $taskResult 'TelegramDeletedPortable' $taskLog $taskDeletedHarness $taskSourceProofs.TelegramDeletedPortable $taskStartedUtc
     $taskResult.status='passed'
 } finally {
     $env:PATH = $taskOldPath; $env:PYTHONHOME = $taskOldHome; $env:PYTHONPATH = $taskOldPythonPath

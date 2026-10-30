@@ -1,0 +1,1579 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/final-audio-results-01/run.json",
+    "source_sha256": "b975f3668d9229d2668ef4f5713659291f69c6dd7de992e789441314bb5e5835",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "schema": 1,
+    "label": "v4-final-production-767-audio",
+    "tool": "Recovery",
+    "edition": "source build",
+    "application_sha256": "132c8887c251532f7bd9917edc49a3facbd7b04f1ba93bd1a32033888d2635fc",
+    "application_sha256_before": "132c8887c251532f7bd9917edc49a3facbd7b04f1ba93bd1a32033888d2635fc",
+    "application_sha256_after": "132c8887c251532f7bd9917edc49a3facbd7b04f1ba93bd1a32033888d2635fc",
+    "helper_sha256": "bf5a15b177f83b511d3d48e62a3527196fe4a4abec825aee9c311c6c8b763749",
+    "helper_sha256_before": "bf5a15b177f83b511d3d48e62a3527196fe4a4abec825aee9c311c6c8b763749",
+    "helper_sha256_after": "bf5a15b177f83b511d3d48e62a3527196fe4a4abec825aee9c311c6c8b763749",
+    "carver_sha256_before": "d75b9a6ff60f91479085a578aca518abb1cd7405f24506a61afa2f7e222147bf",
+    "carver_sha256_after": "d75b9a6ff60f91479085a578aca518abb1cd7405f24506a61afa2f7e222147bf",
+    "manifest_sha256": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "manifest_sha256_before": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "manifest_sha256_after": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+    "harness_sha256": "38f32c91f243cbb494b09251b060cd5146830e9a7f6c5991c4d3aaac3be9b295",
+    "started_from_regular_files_only": true,
+    "results": [
+      {
+        "name": "avc-aac-faststart-contiguous",
+        "image": "images/avc-aac-faststart-contiguous.dd",
+        "image_sha256": "414b9a6fd86e601618d7be7825c7fc1e2a01d355c7be6f0930fccd6456265356",
+        "source_unchanged": true,
+        "elapsed_ms": 3183,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-contiguous/files.1/f0000256.mp4",
+            "sha256": "642696fc55f331ea8ae6a0378c9d46b669d834ce1ccf14e3ce1fd6e6b865ea39",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-contiguous/recovery-session.json",
+          "sha256": "ee2da87be07cdd8b2633941da0c0f529c6c9bf6fe61be068bab32e98521394d0"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-contiguous/fragmented-photo-search.json",
+            "sha256": "8e08124097348558e4e2ab10022e2c18f8d233f3c7062fa9d6d39b7686c97277",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "414b9a6fd86e601618d7be7825c7fc1e2a01d355c7be6f0930fccd6456265356",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-contiguous/fragmented-media.json",
+            "sha256": "15111b1d6f73e9955767e060b02a1429d20af59779042d9ac4a98450b38d205a",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "already_contiguous": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-chunk-islands",
+        "image": "images/avc-aac-faststart-chunk-islands.dd",
+        "image_sha256": "46f76b368e087b106668b3a5f60bea6783cc23f0bda5579f80c947dddfde33da",
+        "source_unchanged": true,
+        "elapsed_ms": 2945,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-chunk-islands/files.1/f0004672.mp4",
+            "sha256": "0fbe479dd33a2e27cfddc1c638565f12c0e1212cd5ca327acbee59f2814277c1",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-chunk-islands/recovery-session.json",
+          "sha256": "6755f00a706e35e044ac1fac2f3929243dbdddebcd6d3f66cc716bdaa7521dfc"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-chunk-islands/fragmented-photo-search.json",
+            "sha256": "36997433f1149d39810eb75ce64a926c19af9749c6284614b1066ef234d8c2c4",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "46f76b368e087b106668b3a5f60bea6783cc23f0bda5579f80c947dddfde33da",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-chunk-islands/fragmented-media.json",
+            "sha256": "49ae47dddfc349952ed4cdf948ceb49ec419840374da9230f90e9275c976b7f2",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-4k-islands",
+        "image": "images/avc-aac-faststart-4k-islands.dd",
+        "image_sha256": "83d8579a1c64b7610fa1558bd9da553a5697dd8f299a0dc49c238106a1d33c46",
+        "source_unchanged": true,
+        "elapsed_ms": 2994,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-4k-islands/files.1/f0000768.mp4",
+            "sha256": "a2407158c70840f4a4d0583cb340fba234cedca6450e28cc225cec32fc9e1541",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-4k-islands/recovery-session.json",
+          "sha256": "88bef90a3fd0ef440842826f26268142a24c0ef8e47c6c79dc9d1cd10ce0e6d9"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-4k-islands/fragmented-photo-search.json",
+            "sha256": "5bb47b9a14650ff2732647f05311ed501c54efa02207b2e752ebcfc291d14c00",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "83d8579a1c64b7610fa1558bd9da553a5697dd8f299a0dc49c238106a1d33c46",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-4k-islands/fragmented-media.json",
+            "sha256": "70459be3379f93ed472ced3f55f0bdcf63843243854f30f83a3bf42deeebf621",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-all-chunks",
+        "image": "images/avc-aac-faststart-all-chunks.dd",
+        "image_sha256": "c207b8f369d95a0296beecd49caba615588c27d6f218c015bf0e5e6e3d2dc5f6",
+        "source_unchanged": true,
+        "elapsed_ms": 3043,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-all-chunks/files.1/f0005184_moov.mov",
+            "sha256": "bb69f3df61c7404effb500299fe04070830cd64ba737cfa4ea70e66e85a5d027",
+            "bytes": 30226,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          },
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-all-chunks/files.1/f0006080.mp4",
+            "sha256": "b1c35f1e6d75af66f96c70ff2572346caa6812dee411ad1134cffb50e33fba5c",
+            "bytes": 32,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-all-chunks/recovery-session.json",
+          "sha256": "dbd161382b15b10cf1d9d948860fc2bfc752b92af5f9a80a432b2fe022d5e6a9"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 2,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-all-chunks/fragmented-photo-search.json",
+            "sha256": "7c7437f0210b3acde01a21f2f1b7db941034cdfff1085fe31c57da66af956b3c",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "c207b8f369d95a0296beecd49caba615588c27d6f218c015bf0e5e6e3d2dc5f6",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-all-chunks/fragmented-media.json",
+            "sha256": "49ae47dddfc349952ed4cdf948ceb49ec419840374da9230f90e9275c976b7f2",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-faststart-audio-overwrite",
+        "image": "images/avc-aac-faststart-audio-overwrite.dd",
+        "image_sha256": "5e9edf3001a59d3dade172a4d77241e24434fdf1a16e75ac20857ce66434c31c",
+        "source_unchanged": true,
+        "elapsed_ms": 2989,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-audio-overwrite/files.1/f0001088.mp4",
+            "sha256": "0fbe479dd33a2e27cfddc1c638565f12c0e1212cd5ca327acbee59f2814277c1",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-audio-overwrite/recovery-session.json",
+          "sha256": "a75c2296c41cf6f9631b74fad050f1aee7365d27161b3caa6f5b1d3112f5e4f4"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-audio-overwrite/fragmented-photo-search.json",
+            "sha256": "e5166a44b0b4cdc37e4362bce80e98a7e3448b8cec430550fbb3b9111b42e81e",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "5e9edf3001a59d3dade172a4d77241e24434fdf1a16e75ac20857ce66434c31c",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-faststart-audio-overwrite/fragmented-media.json",
+            "sha256": "f85a62d0797a823352defbda40ea87c006f1cbd43b77d58b176f4ecab6cdd1ac",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-contiguous",
+        "image": "images/avc-aac-tailmoov-contiguous.dd",
+        "image_sha256": "6958375ef5ac50cc890290c39b0024f5314fd8534204c14446af224888715a66",
+        "source_unchanged": true,
+        "elapsed_ms": 3019,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-contiguous/files.1/f0000256.mp4",
+            "sha256": "8f1da8654503241551ae18fd8e26ff196614637a5f0dfb621bbf686bd4bd59d2",
+            "bytes": 30258,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-contiguous/recovery-session.json",
+          "sha256": "2c9d6e969b0721461ac3be534ead6cdf09bf81ab59fcc2f53d667852db359057"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-contiguous/fragmented-photo-search.json",
+            "sha256": "0114597e781e31b997b518829672739e083d77d76c1b47af34841ff43566d038",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "6958375ef5ac50cc890290c39b0024f5314fd8534204c14446af224888715a66",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-contiguous/fragmented-media.json",
+            "sha256": "15111b1d6f73e9955767e060b02a1429d20af59779042d9ac4a98450b38d205a",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "already_contiguous": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-chunk-islands",
+        "image": "images/avc-aac-tailmoov-chunk-islands.dd",
+        "image_sha256": "2805bb589af3f5cbcc5080ba385ab9eef38bc84c448804e50ba5419ccf2522a1",
+        "source_unchanged": true,
+        "elapsed_ms": 2966,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-chunk-islands/files.1/f0004672.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-chunk-islands/recovery-session.json",
+          "sha256": "bee611044cfd16ae9053dec8f935635d2ba725d4bc383ae852128f1d9a8509df"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-chunk-islands/fragmented-photo-search.json",
+            "sha256": "efcc19e5de44a0a0a2d9d12ff850959df28dbfeb66845199fbb23f5d6477ddb4",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "2805bb589af3f5cbcc5080ba385ab9eef38bc84c448804e50ba5419ccf2522a1",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-chunk-islands/fragmented-media.json",
+            "sha256": "49ae47dddfc349952ed4cdf948ceb49ec419840374da9230f90e9275c976b7f2",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-4k-islands",
+        "image": "images/avc-aac-tailmoov-4k-islands.dd",
+        "image_sha256": "88d346360b17b6ea43abe380b2534a0501d323b17e9b92bb1e111acc08f43ab2",
+        "source_unchanged": true,
+        "elapsed_ms": 2783,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-4k-islands/files.1/f0002688.mp4",
+            "sha256": "d8e9ac2f3b82aa41bb9d9be52049cbe13543a2e80c52197b6a7a5e2c69229ad5",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-4k-islands/recovery-session.json",
+          "sha256": "024d9ba3506418ee986e1fda77065fe7e395bafeec967f04f6141a676ac65f19"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-4k-islands/fragmented-photo-search.json",
+            "sha256": "fffbfdf0d8e503b3902ed1aab8b008285af3c6720bff5ecb4798e49826392dcb",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "88d346360b17b6ea43abe380b2534a0501d323b17e9b92bb1e111acc08f43ab2",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-4k-islands/fragmented-media.json",
+            "sha256": "c4d4eecc9a264586551390664dca57fd49a7c410cfb7d6aadc0e09ff2bd16a89",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "box_size": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-all-chunks",
+        "image": "images/avc-aac-tailmoov-all-chunks.dd",
+        "image_sha256": "86ef8566b15dcaa7aade48271da4b9d53298960dd552e4d056b0ae534318d6f1",
+        "source_unchanged": true,
+        "elapsed_ms": 3042,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-all-chunks/files.1/f0001536.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          },
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-all-chunks/files.1/f0007360_moov.mov",
+            "sha256": "94b5bccafc272daf374f93886284ef4267c68418457a9f3d41f71c3f139490b9",
+            "bytes": 1926,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-all-chunks/recovery-session.json",
+          "sha256": "c176f9dcd1c81347db72892d29d285887d0831b3f92e12781feabf29e212e96c"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 2,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-all-chunks/fragmented-photo-search.json",
+            "sha256": "8b022293fdf9a3e5481b9459edab40a36bab27dd1213a82c4b8fd3ca3d440db3",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "86ef8566b15dcaa7aade48271da4b9d53298960dd552e4d056b0ae534318d6f1",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-all-chunks/fragmented-media.json",
+            "sha256": "49ae47dddfc349952ed4cdf948ceb49ec419840374da9230f90e9275c976b7f2",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "avc-aac-tailmoov-audio-overwrite",
+        "image": "images/avc-aac-tailmoov-audio-overwrite.dd",
+        "image_sha256": "794e057b32322b3f869c0e4b35a788d2131134200656030e41fb9f5837d7ccd9",
+        "source_unchanged": true,
+        "elapsed_ms": 2970,
+        "status": "completed",
+        "error": null,
+        "configuration": {
+          "FatMetadata": true,
+          "NtfsMetadata": true,
+          "LostPartitions": true,
+          "AlternateFat": true,
+          "Signatures": true,
+          "SmallBlocks": true,
+          "JpegFragments": true,
+          "KeepCorrupted": true,
+          "EmbeddedPhotos": true,
+          "Containers": true,
+          "TolerateReadErrors": false,
+          "OrphanDirectories": true,
+          "TextFragments": false,
+          "FragmentedPhotos": true,
+          "FragmentedVideo": true,
+          "MetadataRescue": true,
+          "ArchiveMembers": true,
+          "FragmentedArchives": false,
+          "CustomSignatures": false,
+          "CustomRules": [],
+          "TextQuery": "",
+          "Photos": true,
+          "Video": true,
+          "Audio": true,
+          "Documents": true,
+          "Archives": true,
+          "Other": true
+        },
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-audio-overwrite/files.1/f0002496.mp4",
+            "sha256": "db68f2a205277d0b807ea12ad96c7332ec761979d87a91ab34c5e21b726fb58f",
+            "bytes": 28332,
+            "method": "PhotoRec",
+            "status": "Требует проверки",
+            "category": "Видео",
+            "original_path": null
+          }
+        ],
+        "pipeline_status": "finished_with_warnings",
+        "session_evidence": {
+          "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-audio-overwrite/recovery-session.json",
+          "sha256": "fc389ab35003307f0a5301274ca2a3fc35a925072c1e7a9927665e6b91f7f2a7"
+        },
+        "stages": [
+          {
+            "Key": "partitions",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fat",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "ntfs-records",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "photorec",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 1,
+            "Warnings": true
+          },
+          {
+            "Key": "photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "containers",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "archive-members",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-photos",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          },
+          {
+            "Key": "fragmented-media",
+            "Status": "complete",
+            "Message": null,
+            "Candidates": 0,
+            "Warnings": true
+          }
+        ],
+        "bounded_search_evidence": [
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-audio-overwrite/fragmented-photo-search.json",
+            "sha256": "961808e6ca9f27bb5eb80c5d5b791efd469268a743250fc2341b29613eeca63b",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Status": "complete",
+              "SourceSha256": "794e057b32322b3f869c0e4b35a788d2131134200656030e41fb9f5837d7ccd9",
+              "SourceUnchanged": true,
+              "Skipped": {}
+            }
+          },
+          {
+            "source": ".build/benchmarks-v4/final-audio-results-01/avc-aac-tailmoov-audio-overwrite/fragmented-media.json",
+            "sha256": "f85a62d0797a823352defbda40ea87c006f1cbd43b77d58b176f4ecab6cdd1ac",
+            "data": {
+              "Schema": 1,
+              "Candidates": 0,
+              "Recovered": 0,
+              "Status": "complete",
+              "Skipped": {
+                "audio_geometry_unavailable": 1
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "not_tested_explicit": true,
+    "runtime_pairing": "before_after"
+  }
+}

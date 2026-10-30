@@ -230,6 +230,8 @@ class Analyzer:
         self.notification_identities = {}
         self.history_snapshot = None
         self.current_wal = None
+        self.recover_deleted = request.get("options", {}).get("recover_deleted", True) is True
+        self.deleted_current_verified = True
         self.stop = False
         from text_match import Matcher, MatchError
         try:
@@ -454,6 +456,8 @@ class Analyzer:
                     self.remark("TELEGRAM_NOTIFICATION_PREVIEWS", original)
             if {"messages_v2", "messages_topics"} & tables:
                 self.native_messages(connection, tables, original)
+                if not self.history_snapshot and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
+                    self.deleted_records(copied, connection, original)
                 return True
             if {"dialogs", "unread_push_messages"} & tables:
                 return True
@@ -511,7 +515,9 @@ class Analyzer:
                         sender_name=None, timestamp=timestamp, source_record=record,
                         identity_scope=identity, record_kind="tl_message", completeness=value["validation"],
                         native_constructor=value["constructor"], native_layer=value["layer"], application_confirmed=True,
+                        native_tl_body_sha256=hashlib.sha256(data[:value["tl_bytes"]]).hexdigest(),
                         attachments=attachments, **media_fields)
+                    self.confirmed_tl_bodies.add(hashlib.sha256(data[:value["tl_bytes"]]).hexdigest())
                     accepted += 1
                 except (TelegramTlError, OverflowError, OSError, ValueError) as error:
                     rejected += 1
@@ -527,6 +533,87 @@ class Analyzer:
             self.worker.remark("TELEGRAM_NATIVE_RECORDS_CHECKED", original, records=accepted)
         if rejected:
             self.remark("TELEGRAM_TL_HISTORY_UNSUPPORTED", original, rejected_records=rejected, reasons=errors)
+
+    def residual_fragment(self, value, original, *, record_kind="sqlite_residual_fragment"):
+        """Publish typed text without promoting its candidate IDs to a chat."""
+        from memory_fragments import MAX_FRAGMENTS
+        if self.fragments >= MAX_FRAGMENTS or len(self.worker.messages) >= MAX_MESSAGES:
+            self.remark("MEMORY_FRAGMENT_LIMIT", original)
+            return False
+        text = value.pop("text")
+        if self.fragment_matcher is not None and not self.fragment_matcher.matches(text):
+            return
+        self.worker.message("Telegram", text, "fragment", **value,
+            record_kind=record_kind, completeness="typed_tl_body_without_table_or_account_context",
+            source_record=f"sqlite-byte:{value['byte_offset']}:{value.get('sqlite_region', 'unattributed')}")
+        self.fragments += 1
+
+    def deleted_records(self, copied, connection, original):
+        """Recover bounded non-current rows tied to a verified table leaf."""
+        from sqlite_deleted import recover, DeletedError
+        report = {}
+        try:
+            records = recover(copied, connection=connection,
+                include_unattributed=getattr(self, "scan_fragments", False),
+                cancel=lambda: self.stop, report=report)
+        except DeletedError as error:
+            self.remark("TELEGRAM_SQLITE_RESIDUALS_UNAVAILABLE", original, reason=error.code)
+            return
+        self.worker.remark("TELEGRAM_SQLITE_RESIDUALS_CHECKED", original, **report)
+        if report.get("limited") or report.get("skipped_pages"):
+            self.remark("TELEGRAM_SQLITE_RESIDUALS_INCOMPLETE", original)
+        for item in records:
+            if "row" in item:
+                item.update(wal_sha256=report.get("wal_sha256"), wal_db_sha256=report.get("db_sha256"))
+        self.pending_deleted_records.extend(records)
+
+    def publish_deleted_records(self, records, original):
+        source_label = self.worker.source_label or str(original)
+        identity = "telegram-db:" + hashlib.sha256(os.path.normcase(os.path.abspath(source_label)).encode("utf-8")).hexdigest()
+        for item in records:
+            if self.stop:
+                break
+            if "row" not in item:
+                self.residual_fragment(item, original)
+                continue
+            row, value = item.pop("row"), item.pop("value")
+            sender = value["from_peer"]
+            media = value.get("media", {})
+            text = value["text"] or media.get("legacy_caption", "")
+            if not text and media.get("type") != "photo":
+                continue
+            record = f"{item['table']}(uid={row['uid']},mid={row['mid']})@sqlite-page:{item['sqlite_page']}:byte:{item['sqlite_record_page_offset']}"
+            body_hash = hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest()
+            key = ("Telegram", identity, "tl_message", row["uid"], row["mid"])
+            matched = next((previous for previous in self.worker.identities.get(key, [])
+                            if previous.get("native_tl_body_sha256") == body_hash), None)
+            if matched is not None:
+                # Exact typed bytes, row keys and account scope are already
+                # represented by a complete committed snapshot. Preserve its
+                # stronger historical proof and attach independent free-space
+                # evidence rather than inventing a second chat message.
+                matched["recovery_status"] = item["recovery_status"]
+                matched["deletion_interpretation"] = item["deletion_interpretation"]
+                matched["deleted"] = None
+                provenance = {**item, "source_record": record, "source_file": source_label,
+                              "snapshot_id": self.worker.snapshot}
+                matched.setdefault("residual_sources", []).append(provenance)
+                continue
+            media_fields, attachments = self.native_photo(media, record, original)
+            evidence = "previous" if item["recovery_status"] == "previous_version_residual" else "backup"
+            self.message(text, evidence, chat_id=row["uid"], message_id=row["mid"],
+                sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
+                sender_name=None, timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
+                source_record=record, identity_scope=identity, record_kind="sqlite_deleted_record",
+                completeness=value["validation"], native_constructor=value["constructor"],
+                native_layer=value["layer"], application_confirmed=True,
+                native_tl_body_sha256=hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest(),
+                attachments=attachments, **item, **media_fields)
+            self.confirmed_tl_bodies.add(hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest())
+            if len(self.worker.messages) >= MAX_MESSAGES:
+                self.stop = True
+                self.remark("TELEGRAM_MESSAGE_LIMIT", original)
+                break
 
     def native_photo(self, media, record, original):
         """Link only cached image bytes embedded in this validated TL record.
@@ -595,8 +682,17 @@ class Analyzer:
         """Stage prior snapshots before SQLite may replay/remove working WAL."""
         from sqlite_history import iter_committed_snapshots, HistoryError
         wal = Path(str(copied) + "-wal")
+        self.confirmed_tl_bodies = set()
+        self.pending_deleted_records = []
         histories, report = [], {}
+        residuals, residual_report = [], {}
         if wal.is_file() and wal.stat().st_size:
+            if getattr(self, "recover_deleted", True):
+                from sqlite_deleted import wal_fragments, DeletedError
+                try:
+                    residuals = wal_fragments(wal, cancel=lambda: self.stop, report=residual_report)
+                except DeletedError as error:
+                    self.remark("TELEGRAM_WAL_RESIDUALS_UNAVAILABLE", original, reason=error.code)
             try:
                 histories = list(iter_committed_snapshots(copied, wal, self.worker.work,
                     report=report, cancel=lambda: self.stop, base_policy="wal_only"))
@@ -608,7 +704,7 @@ class Analyzer:
                 self.worker.remark("TELEGRAM_WAL_HISTORY_CHECKED", original, **report)
                 if report.get("skipped") or report.get("tail_reason"):
                     self.remark("TELEGRAM_WAL_HISTORY_INCOMPLETE", original)
-        self.validate_wal(copied, original)
+        self.deleted_current_verified = self.validate_wal(copied, original)
         self.current_wal = report if wal.is_file() and report.get("status") == "complete" else None
         original_snapshot = self.worker.snapshot
         try:
@@ -624,6 +720,26 @@ class Analyzer:
                     self.sqlite(Path(history["path"]), original)
                 except (sqlite3.DatabaseError, AutoError):
                     self.remark("TELEGRAM_WAL_HISTORY_PARSE_FAILED", original, commit_frame=history["commit_frame"])
+            self.worker.snapshot = original_snapshot
+            self.history_snapshot = None
+            if native:
+                self.publish_deleted_records(self.pending_deleted_records, original)
+            if residuals and native:
+                saved_origin, saved_label = self.worker.current_origin, self.worker.source_label
+                self.worker.current_origin = self.worker.origins.get(str(wal.resolve()), saved_origin)
+                self.worker.source_label = str(original) + "-wal"
+                self.worker.snapshot = residual_report["wal_sha256"]
+                try:
+                    for item in residuals:
+                        if self.stop:
+                            break
+                        if item.get("native_tl_body_sha256") in self.confirmed_tl_bodies:
+                            continue
+                        self.residual_fragment(item, Path(str(original) + "-wal"), record_kind="sqlite_wal_residual")
+                    self.worker.remark("TELEGRAM_WAL_RESIDUALS_CHECKED", original, **residual_report)
+                finally:
+                    self.worker.current_origin, self.worker.source_label = saved_origin, saved_label
+                    self.worker.snapshot = original_snapshot
             self.last_native_database = native
             return result
         finally:
@@ -639,7 +755,7 @@ class Analyzer:
         """
         wal = Path(str(copied) + "-wal")
         if not wal.exists() or wal.stat().st_size == 0:
-            return
+            return True
         # WALs may be gigabytes long.  Keep only one SQLite page in memory;
         # reading the entire working copy can exceed the helper memory limit.
         with wal.open("rb") as stream:
@@ -678,15 +794,33 @@ class Analyzer:
             self.remark("TELEGRAM_WAL_INVALID", original)
         else:
             self.worker.remark("WAL_CHECKED_COMMITS", original)
+        return valid
 
     def fragments_from(self, copied, original):
-        from memory_fragments import scan, MAX_FRAGMENTS
+        from memory_fragments import scan, scan_tl, MAX_FRAGMENTS
         if self.fragments >= MAX_FRAGMENTS:
             self.remark("MEMORY_FRAGMENT_LIMIT", original)
             return
+        from bisect import bisect_right
+        typed_ranges = []
+        typed = scan_tl(copied, self.fragment_matcher,
+                lambda done: self.emit("progress", phase="telegram_dump", bytes=done, fragments=self.fragments),
+                limit=MAX_FRAGMENTS - self.fragments, cancel=lambda: self.stop)
+        if not getattr(self, "recover_deleted", True):
+            typed = ()
+        for value in typed:
+            typed_ranges.append((value["byte_offset"], value["byte_offset"] + value["byte_length"]))
+            self.residual_fragment(value, original, record_kind="typed_tl_fragment")
+        if self.fragments >= MAX_FRAGMENTS:
+            self.remark("MEMORY_FRAGMENT_LIMIT", original)
+            return
+        typed_starts = [left for left, right in typed_ranges]
         for value in scan(copied, self.fragment_matcher,
                           lambda done: self.emit("progress", phase="telegram_dump", bytes=done, fragments=self.fragments),
                           limit=MAX_FRAGMENTS - self.fragments):
+            range_index = bisect_right(typed_starts, value["byte_offset"]) - 1
+            if range_index >= 0 and value["byte_offset"] + value["byte_length"] <= typed_ranges[range_index][1]:
+                continue
             text = value.pop("text")
             self.worker.message("Telegram", text, "fragment", **value,
                 record_kind="memory_fragment", completeness="unattributed_text",
@@ -883,8 +1017,10 @@ class Analyzer:
             self.warnings = list(dict.fromkeys([*self.warnings, *notes]))
             summary = {"status": "partial" if self.warnings else "complete", "code": "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
                        "messages": len(self.worker.messages), "history_messages": len(history), "notification_records": self.notifications, "fragment_records": self.fragments,
-                       "native_records": sum(m.get("record_kind") == "tl_message" for m in self.worker.messages),
+                       "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record") for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
+                       "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
+                       "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "typed_tl_fragment") for m in self.worker.messages),
                        "photos": sum(p["status"] == "decoded" for p in self.worker.photos.values()),
                        "media": sum(1 for p in (self.output / "media").iterdir() if p.is_file()),
                        "latest_timestamp": latest, "warnings": self.warnings, **self.counts,
@@ -920,6 +1056,11 @@ def import_database(worker, source):
     analyzer.notification_identities = {}
     analyzer.history_snapshot = None
     analyzer.current_wal = None
+    analyzer.recover_deleted = True
+    analyzer.deleted_current_verified = True
+    analyzer.scan_fragments = False
+    analyzer.fragments = 0
+    analyzer.fragment_matcher = None
     analyzer.warnings = []
     analyzer.copied = {}
     analyzer.bytes = 0

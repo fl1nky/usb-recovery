@@ -1,0 +1,60 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/tool-inventory.json",
+    "source_sha256": "60b5d6bdd08a6de678cde067ba89f1a524756b573458274347e522a205db945e",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "schema": 1,
+    "tools": [
+      {
+        "name": "DMDE Console",
+        "version": "4.4.4.842",
+        "edition": "Free",
+        "download": "https://dmde.com/download/dmde-4-4-4-842-win64-con.zip",
+        "executable": "tools/benchmarks/dmde-console/dmde.exe",
+        "sha256": "f2ac479af90a336db0000d07b87c96879968ca98c072201d7d8f6c22dddfe86f",
+        "bytes": 5119376,
+        "notes": "4000 files from active directory per operation; no activation",
+        "evaluation_status": "tested_subset"
+      },
+      {
+        "name": "R-Studio Technician",
+        "version": "9.5.191861",
+        "edition": "Demo",
+        "download": "https://www.r-studio.com/downloads/RStudioTech9.exe",
+        "executable": "tools/benchmarks/rstudio-tech/RStudio64.exe",
+        "sha256": "a331df3dc19bfa83309425bcb04934a575b3282d48a8a91d0b632f1dab154e40",
+        "bytes": 60957304,
+        "notes": "Export <=1024KB/file; no registration/paid activation",
+        "evaluation_status": "tested_subset"
+      },
+      {
+        "name": "FFmpeg",
+        "version": "9.0.2 essentials Gyan",
+        "edition": "GPL build, benchmark only",
+        "download": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+        "executable": "tools/benchmarks/ffmpeg/ffmpeg-9.0.2-essentials_build/bin/ffmpeg.exe",
+        "sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+        "bytes": 105423872,
+        "notes": "No production dependency; source assets procedural",
+        "evaluation_status": "generator_and_validator"
+      },
+      {
+        "name": "UFS Explorer Standard",
+        "version": "not executed",
+        "edition": "Not evaluated",
+        "download": "https://www.ufsexplorer.com/download/",
+        "executable": "tools/benchmarks/ufsxscia64.exe",
+        "sha256": "5f9af70aaf635d9d94454937da113f5a7128786e08274a814429b2365653e50d",
+        "bytes": 12416960,
+        "notes": "Windows installer not installed; official ZIP is macOS app. No result inferred",
+        "evaluation_status": "not_tested"
+      }
+    ],
+    "paid_licenses_available": false,
+    "system_installation_performed": false,
+    "security_settings_changed": false
+  }
+}

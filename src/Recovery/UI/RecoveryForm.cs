@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -24,6 +24,7 @@ namespace UsbRecovery
         RecoverySettingsPanel searchSettings = new RecoverySettingsPanel();
         Button fileList = new Button();
         readonly Button continueJob=new Button();
+        readonly Button verifyVideo=new Button();
         CancellationTokenSource cancellation;
         bool busy, loading;
         string lastDirectory, lastGallery;
@@ -52,7 +53,7 @@ namespace UsbRecovery
         }
         void UpdateSearchSummary()
         {
-            var options=searchSettings.Selection();int methods=(options.LostPartitions?1:0)+(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0);
+            var options=searchSettings.Selection();int methods=(options.LostPartitions?1:0)+(options.FatMetadata?1:0)+(options.NtfsMetadata?1:0)+(options.Signatures?1:0)+(options.EmbeddedPhotos?1:0)+(options.Containers?1:0)+(options.TextFragments?1:0)+(options.MetadataRescue?1:0)+(options.ArchiveMembers?1:0)+(options.FragmentedArchives?1:0)+(options.CustomSignatures?1:0)+(options.FragmentedPhotos?1:0)+(options.FragmentedVideo?1:0);
             if(!busy)activityView.SetPhase("Готово к поиску",methods+" способов · "+Convert.ToString(profile.SelectedItem)+" · выбери источник");
         }
         void PresentActivity(RecoveryStageProgress update)
@@ -75,7 +76,8 @@ namespace UsbRecovery
             header.Controls.Add(new Label{Text="Восстановление с флешки",Font=new Font("Segoe UI",20F,FontStyle.Bold),AutoSize=true,Margin=Padding.Empty},0,0);
             header.Controls.Add(new Label{Text="Выбери источник. Остальное — по шагам.",AutoSize=true,Tag="muted",Margin=new Padding(0,3,0,0)},0,1);
             var badge=new Label{Text="ТОЛЬКО ЧТЕНИЕ",TextAlign=ContentAlignment.MiddleCenter,Dock=DockStyle.Fill,BackColor=Color.FromArgb(231,243,237),ForeColor=Color.FromArgb(41,117,85),Font=new Font("Segoe UI",8F,FontStyle.Bold),Margin=new Padding(8,5,0,5),Tag="safe-badge"};header.Controls.Add(badge,1,0);
-            workflow.Dock=DockStyle.Fill;header.Controls.Add(workflow,0,2);header.SetColumnSpan(workflow,2);layout.Controls.Add(header,0,0);
+            workflow.Dock=DockStyle.Fill;header.Controls.Add(workflow,0,2);
+            Configure(verifyVideo,"Проверить видео…",delegate{VerifyLocalVideo();});verifyVideo.Name="verify-local-video";header.Controls.Add(verifyVideo,1,2);layout.Controls.Add(header,0,0);
             var sourceCard=new SurfaceCard{Dock=DockStyle.Fill,Padding=new Padding(16),Margin=new Padding(0,4,0,10)};
             var sourceLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=3,Margin=Padding.Empty};sourceLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sourceLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,24));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,36));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));sourceCard.Controls.Add(sourceLayout);
             sourceLayout.Controls.Add(new Label{Text="01  ИСТОЧНИК",Font=new Font("Segoe UI",8F,FontStyle.Bold),ForeColor=UiTheme.Muted,AutoSize=true},0,0);sourceLayout.Controls.Add(new Label{Text="02  ПАПКА РЕЗУЛЬТАТОВ",Font=new Font("Segoe UI",8F,FontStyle.Bold),ForeColor=UiTheme.Muted,AutoSize=true},1,0);
@@ -96,7 +98,7 @@ namespace UsbRecovery
             log.Multiline=true;log.ReadOnly=true;log.Text=IdleLogText;log.ScrollBars=ScrollBars.Vertical;log.Dock=DockStyle.Fill;log.Font=new Font("Consolas",8.5F);log.Margin=new Padding(0,0,0,8);var journalBody=new Panel{Dock=DockStyle.Fill,Padding=new Padding(0,0,0,8),Margin=Padding.Empty};journalBody.Controls.Add(log);footerLayout.Controls.Add(journalBody,0,1);footerLayout.SetColumnSpan(journalBody,4);log.Visible=false;var journalHint=new Label{Text="Сначала выбери источник. Здесь появятся сведения о ходе поиска.",Dock=DockStyle.Fill,ForeColor=UiTheme.Muted,Font=new Font("Segoe UI",9F),Name="operation-hint"};journalBody.Controls.Add(journalHint);journalToggle.CheckedChanged+=delegate{log.Visible=journalToggle.Checked;journalHint.Visible=!journalToggle.Checked;if(journalToggle.Checked)log.BringToFront();else journalHint.BringToFront();};status.TextChanged+=delegate{journalHint.Text=status.Text;};Resize+=delegate{if(!ExpertMode)SetExpertMode(false);};
             Configure(open,"Папка результатов",delegate{OpenPath(lastDirectory);});open.Enabled=false;footerLayout.Controls.Add(open,0,2);Configure(gallery,"Фотографии",delegate{OpenPath(lastGallery);});gallery.Enabled=false;footerLayout.Controls.Add(gallery,1,2);Configure(fileList,"Все файлы и экспорт",delegate{ShowRecoveredFiles();});fileList.Enabled=true;footerLayout.Controls.Add(fileList,2,2);Configure(continueJob,"Продолжить…",delegate{ChooseSavedJob();});continueJob.Name="continue-recovery-job";footerLayout.Controls.Add(continueJob,3,2);layout.Controls.Add(footer,0,6);
             UiTheme.ApplyTree(this);badge.BackColor=Color.FromArgb(231,243,237);badge.ForeColor=Color.FromArgb(41,117,85);
-            sourceHelp.AutoEllipsis=true;disks.SelectedIndexChanged+=delegate{var selected=disks.SelectedItem as DiskInfo;if(selected!=null)sourceHelp.Text=String.Format("{0:0.0} ГБ · {1} · только чтение",selected.Size/1000000000.0,String.IsNullOrEmpty(selected.Letters)?"без буквы диска":selected.Letters);};
+            sourceHelp.AutoEllipsis=true;disks.SelectedIndexChanged+=delegate{var selected=disks.SelectedItem as DiskInfo;if(!busy&&!loading)start.Enabled=selected!=null;if(selected!=null)sourceHelp.Text=String.Format("{0:0.0} ГБ · {1} · только чтение",selected.Size/1000000000.0,String.IsNullOrEmpty(selected.Letters)?"без буквы диска":selected.Letters);};
             if(autoDiscover)Shown+=delegate{RefreshDisks();};
             FormClosing+=delegate(object sender,FormClosingEventArgs e){if(busy){e.Cancel=true;MessageBox.Show(this,"Сначала нажми «Остановить» и дождись завершения чтения.","Идёт восстановление");}};
         }
@@ -111,6 +113,41 @@ namespace UsbRecovery
         void UpdateResultAction()
         {
             fileList.Text=!String.IsNullOrEmpty(lastDirectory)&&Directory.Exists(lastDirectory)&&!File.Exists(Path.Combine(lastDirectory,"files-index.json"))?"Подготовить найденное":"Все файлы и экспорт";
+        }
+        async void VerifyLocalVideo()
+        {
+            if(busy||loading)return;
+            string selected;
+            using(var dialog=new OpenFileDialog{Title="Проверить найденное видео",Filter="MP4 / MOV / M4V|*.mp4;*.mov;*.m4v",CheckFileExists=true,Multiselect=false}){
+                if(!String.IsNullOrEmpty(lastDirectory)&&Directory.Exists(lastDirectory))dialog.InitialDirectory=lastDirectory;
+                if(dialog.ShowDialog(this)!=DialogResult.OK)return;selected=dialog.FileName;
+            }
+            Control[] controls={start,resume,refresh,choose,disks,searchSettings,profile,expertButton,continueJob,fileList,open,gallery,verifyVideo};
+            var enabled=controls.ToDictionary(control=>control,control=>control.Enabled);
+            busy=true;cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;
+            foreach(Control control in controls)control.Enabled=false;
+            stop.Enabled=true;progress.Style=ProgressBarStyle.Marquee;
+            BeginActivity("Проверка видео","Чтение кадров и звука · до двух минут");status.Text="Проверяю копию видео. Файл не изменяется.";
+            bool finished=false;
+            try{
+                var report=await Task.Run(()=>MediaDecodeWorker.Validate(selected,new MediaFoundationValidator.DecodeLimits{MaxMilliseconds=120000,MaxVideoFrames=100000},token));
+                finished=report.Status=="decoded_soft"&&report.AllStreamsEnded&&report.SourceUnchanged;
+                string text;
+                if(finished){
+                    long frames=report.Streams.Sum(stream=>stream.VideoFrames);int audio=report.Streams.Count(stream=>stream.Kind=="audio");
+                    text="Прочитан весь ролик: "+frames.ToString("N0")+" кадров, аудиодорожек — "+audio+".\r\n\r\nДекодер Windows может скрывать повреждения. Просмотри ролик и прослушай звук перед сохранением.";
+                    status.Text="Видео прочитано до конца. Подлинность содержимого не подтверждена.";
+                }else if(report.Status=="limited"){text="Проверка дошла до ограничения времени или объёма. Проверена только часть файла.";status.Text="Проверка видео не завершена: достигнут лимит.";}
+                else if(report.Status=="unsupported"){text="Для этого видео недоступен подходящий декодер Windows либо формат не поддерживается этой проверкой.";status.Text="Этот формат видео не проверен.";}
+                else{text="Не удалось прочитать видео полностью. Сохрани файл и проверь другие найденные версии.";status.Text="Полный проход видео не подтверждён.";}
+                Append("Проверка видео: "+report.Code);MessageBox.Show(this,text,"Проверка видео",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            }catch(OperationCanceledException){status.Text="Проверка видео остановлена. Файл сохранён без изменений.";}
+            catch(Exception){status.Text="Не удалось запустить проверку видео. Файл сохранён без изменений.";Append("Проверка видео: MF_WORKER_FAILED");}
+            finally{
+                activityView.IsActive=false;activityView.IsComplete=finished;activityView.SetPhase(finished?"Видео прочитано":"Проверка не завершена",status.Text);
+                busy=false;cancellation.Dispose();cancellation=null;foreach(var state in enabled)state.Key.Enabled=state.Value;
+                stop.Enabled=false;progress.Style=ProgressBarStyle.Continuous;
+            }
         }
         async void ShowRecoveredFiles()
         {
@@ -129,7 +166,7 @@ namespace UsbRecovery
                 lastGallery=galleryFile;complete=true;activityView.IsComplete=true;status.Text="Каталог найденного готов. Состояние исходного поиска сохранено в отчёте.";Append("Каталог подготовлен. result.json и состояние исходного поиска не изменены.");
             }catch(OperationCanceledException){status.Text="Подготовка остановлена. Найденные файлы сохранены; каталог можно подготовить позже.";Append(status.Text);}
             catch(Exception e){status.Text="Не удалось подготовить каталог: "+e.Message;Append(status.Text);}
-            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;progress.Style=ProgressBarStyle.Continuous;open.Enabled=Directory.Exists(lastDirectory);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);UpdateResultAction();}
+            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=verifyVideo.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;progress.Style=ProgressBarStyle.Continuous;open.Enabled=Directory.Exists(lastDirectory);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);UpdateResultAction();}
             return complete;
         }
         void ChooseDirectory()
@@ -151,7 +188,7 @@ namespace UsbRecovery
                 disks.Enabled=list.Length>0;sourceHelp.Text = list.Length == 0 ? "Флешка не найдена. Подключи её или открой уже сохранённый образ." : "Проверь название и объём. В списке только USB-диски, с которых не запущена Windows.";
             }
             catch (Exception e) { if (!IsDisposed) { Append(e.Message); sourceHelp.Text = "Не удалось проверить диски. Нажми «Обновить»."; } }
-            finally { loading = false; if (!IsDisposed) { refresh.Enabled = true; start.Enabled = true; } }
+            finally { loading = false; if (!IsDisposed) { refresh.Enabled = true; start.Enabled = disks.SelectedItem is DiskInfo; } }
         }
 
         string PrepareDestination()
@@ -193,7 +230,7 @@ namespace UsbRecovery
             if(IsBusy)return false;string folder=Path.GetFullPath(directory);
             if(!File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName))&&!File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json"))){status.Text="В этой папке нет сохранённой сессии или сведений о съёме.";return false;}
             BeginActivity("Продолжение поиска","Проверка сохранённой сессии");busy=true;cancellation=new CancellationTokenSource();var token=cancellation.Token;bool complete=false;lastDirectory=folder;lastGallery=null;
-            start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;
+            start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=verifyVideo.Enabled=continueJob.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;
             workflow.Current=1;workflow.Invalidate();status.Text="Проверка сохранённой сессии и результатов…";progress.Style=ProgressBarStyle.Marquee;Append("Продолжение: "+folder+". Используются сохранённые параметры поиска.");
             try{
                 var result=await Task.Run(()=>{
@@ -214,7 +251,7 @@ namespace UsbRecovery
                 lastGallery=result.Gallery;workflow.Current=2;workflow.Invalidate();progress.Style=ProgressBarStyle.Continuous;progress.Value=100;status.Text="Продолжение завершено. Файлов: "+result.UniqueFiles+". Проверенных этапов использовано повторно: "+result.ResumedStages+(result.HasWarnings?". Есть замечания.":".");Append(status.Text);complete=true;activityView.IsComplete=true;
             }catch(OperationCanceledException){status.Text="Остановлено. Сессия и уже найденные файлы сохранены; можно продолжить позже.";Append(status.Text);RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(folder,"result.json"),new{status="cancelled",resumed=true,utc=DateTime.UtcNow.ToString("o")});}
             catch(Exception error){status.Text="Продолжение остановлено: "+error.Message;Append(status.Text);}
-            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;open.Enabled=Directory.Exists(folder);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);progress.Style=ProgressBarStyle.Continuous;UpdateResultAction();}
+            finally{activityView.IsActive=false;activityView.IsComplete=complete;activityView.SetPhase(complete?"Готово":"Операция не завершена",complete?"Открой найденные файлы для проверки и экспорта":"Подробности — в ходе операции");busy=false;cancellation.Dispose();cancellation=null;start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=verifyVideo.Enabled=continueJob.Enabled=fileList.Enabled=true;stop.Enabled=false;open.Enabled=Directory.Exists(folder);gallery.Enabled=lastGallery!=null&&File.Exists(lastGallery);progress.Style=ProgressBarStyle.Continuous;UpdateResultAction();}
             return complete;
         }
 
@@ -223,7 +260,7 @@ namespace UsbRecovery
             string runDirectory = null;
             bool searchFinished=false,searchWarnings=false;
             RecoveryOptions options=searchSettings.Selection();try{options.Validate();}catch(ArgumentException e){MessageBox.Show(this,e.Message,"Способы поиска");return;}
-            BeginActivity("Подготовка поиска","Проверка источника и папки результатов");busy = true; start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = continueJob.Enabled = false; stop.Enabled = true; open.Enabled = gallery.Enabled = fileList.Enabled = false;
+            BeginActivity("Подготовка поиска","Проверка источника и папки результатов");busy = true; start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = verifyVideo.Enabled=continueJob.Enabled= false; stop.Enabled = true; open.Enabled = gallery.Enabled = fileList.Enabled = false;
             workflow.Current=1;workflow.Invalidate();
             cancellation = new CancellationTokenSource(); var token = cancellation.Token;
             try
@@ -296,7 +333,7 @@ namespace UsbRecovery
             finally
             {
                 activityView.IsActive=false;activityView.IsComplete=searchFinished;activityView.SetPhase(searchFinished?(searchWarnings?"Поиск завершён с замечаниями":"Поиск завершён"):"Поиск не завершён",searchFinished?"Открой «Все файлы и экспорт», проверь и сохрани нужное":"Подробности — в ходе операции");busy = false; cancellation.Dispose(); cancellation = null;
-                start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = continueJob.Enabled = true; stop.Enabled = false;
+                start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = verifyVideo.Enabled=continueJob.Enabled= true; stop.Enabled = false;
                 progress.Style = ProgressBarStyle.Continuous; open.Enabled = lastDirectory != null && Directory.Exists(lastDirectory); gallery.Enabled = lastGallery != null && File.Exists(lastGallery);
                 fileList.Enabled=true;UpdateResultAction();
             }

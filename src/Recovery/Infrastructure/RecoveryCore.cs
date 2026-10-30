@@ -378,9 +378,11 @@ namespace UsbRecovery
             string records = Path.Combine(runDirectory, "metadata-rescue", "files"); if (Directory.Exists(records)) roots.Add(records);
             string members = Path.Combine(runDirectory, "salvage-content"); if (Directory.Exists(members)) roots.Add(members);
             string assembled = Path.Combine(runDirectory, "fragmented-archives"); if (Directory.Exists(assembled)) roots.Add(assembled);
+            string photoPieces=Path.Combine(runDirectory,"fragmented-photos"),videoPieces=Path.Combine(runDirectory,"fragmented-media");
+            if(Directory.Exists(photoPieces))roots.Add(photoPieces);if(Directory.Exists(videoPieces))roots.Add(videoPieces);
             string custom = Path.Combine(runDirectory, "user-signatures"); if (Directory.Exists(custom)) roots.Add(custom);
             if (Directory.Exists(ntfs)) foreach (string partition in Directory.EnumerateDirectories(ntfs, "partition-*")) if (Directory.Exists(Path.Combine(partition, "data"))) roots.Add(Path.Combine(partition, "data"));
-            IEnumerable<string> files=roots.SelectMany(d=>Directory.EnumerateFiles(d,"*",SearchOption.AllDirectories)).Where(p=>!Path.GetFileName(p).Equals("report.xml",StringComparison.OrdinalIgnoreCase)&&!p.EndsWith(".partial",StringComparison.OrdinalIgnoreCase));
+            IEnumerable<string> files=roots.SelectMany(d=>Directory.EnumerateFiles(d,"*",SearchOption.AllDirectories)).Where(p=>!Path.GetFileName(p).Equals("report.xml",StringComparison.OrdinalIgnoreCase)&&!p.EndsWith(".partial",StringComparison.OrdinalIgnoreCase)&&!String.Equals(p,Path.Combine(photoPieces,"report.json"),StringComparison.OrdinalIgnoreCase)&&!String.Equals(p,Path.Combine(photoPieces,"job.incomplete"),StringComparison.OrdinalIgnoreCase));
             string history=RecoveryCatalog.SafeFile(runDirectory,"attempt-history");
             if(depth==0&&Directory.Exists(history)){
                 var prior=Directory.EnumerateDirectories(history).Take(257).ToArray();if(prior.Length>256)throw new IOException("Слишком много предыдущих попыток поиска.");

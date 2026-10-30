@@ -1305,10 +1305,10 @@ class Importer:
         script = """const data=JSON.parse(document.getElementById('data').textContent);let page=0;const size=100;
 const labels={export:'из экспорта',backup:'из резервной копии',previous:'предыдущая версия',fragment:'текстовый фрагмент'};
 function draw(){const q=document.getElementById('q').value.toLocaleLowerCase();const cat=document.getElementById('cat').value;
-const list=data.filter(m=>(!cat||m.evidence_kind===cat)&&[m.text,m.sender_name,m.sender_id,m.app,m.chat_name,m.chat_id].some(x=>String(x??'').toLocaleLowerCase().includes(q)));
+const list=data.filter(m=>(!cat||(cat==='deleted'?m.recovery_status==='deleted_supported_by_evidence':m.evidence_kind===cat))&&[m.text,m.sender_name,m.sender_id,m.app,m.chat_name,m.chat_id].some(x=>String(x??'').toLocaleLowerCase().includes(q)));
 page=Math.max(0,Math.min(page,Math.ceil(list.length/size)-1));const root=document.getElementById('messages');root.replaceChildren();
 for(const m of list.slice(page*size,(page+1)*size)){const a=document.createElement('article');const h=document.createElement('strong');h.textContent=[m.app,m.chat_name??m.chat_id??'Чат неизвестен',m.sender_name??m.sender_id??'Автор неизвестен',m.timestamp??m.timestamp_raw??'Дата неизвестна'].join(' · ');a.append(h);
-const b=document.createElement('small');b.textContent=labels[m.evidence_kind]+' · '+(m.source_file??'')+' · '+(m.source_record??'')+(m.record_kind==='memory_fragment'?' · Telegram, автор, дата и факт удаления не подтверждены':'')+(m.record_kind==='notification'?' · неполный текст уведомления':'');a.append(b);const t=document.createElement('pre');t.textContent=m.text;a.append(t);
+const b=document.createElement('small');b.textContent=(m.recovery_status==='deleted_supported_by_evidence'?'сохранившийся остаток записи':labels[m.evidence_kind])+' · '+(m.source_file??'')+' · '+(m.source_record??'')+(m.record_kind==='memory_fragment'?' · Telegram, автор, дата и факт удаления не подтверждены':'')+(m.record_kind==='notification'?' · неполный текст уведомления':'');a.append(b);const t=document.createElement('pre');t.textContent=m.text;a.append(t);
 for(const f of m.attachments??[]){if(!/^media\\/[a-f0-9]{64}\\.[a-z0-9]{1,12}$/.test(f))continue;const link=document.createElement('a');link.href=f;link.textContent='Открыть вложение';link.target='_blank';link.rel='noopener';link.download=f.split('/').pop();a.append(link);}root.append(a);}
 document.getElementById('count').textContent=list.length+' сообщений · страница '+(page+1)+' из '+Math.max(1,Math.ceil(list.length/size));}
 document.getElementById('q').oninput=()=>{page=0;draw()};document.getElementById('cat').onchange=()=>{page=0;draw()};document.getElementById('prev').onclick=()=>{page--;draw()};document.getElementById('next').onclick=()=>{page++;draw()};draw();"""
@@ -1316,7 +1316,7 @@ document.getElementById('q').oninput=()=>{page=0;draw()};document.getElementById
         markup = """<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'sha256-@@HASH@@'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Переписки — локальный архив</title><style>body{font:16px system-ui;max-width:1100px;margin:30px auto;padding:0 20px;background:#f7f8fb;color:#18233a}input,select,button{font:inherit;padding:10px;margin:4px}input{width:45%}article{background:white;padding:18px;margin:12px 0;border-radius:10px}small{display:block;color:#68768e;overflow-wrap:anywhere}pre{white-space:pre-wrap;font:inherit}a{display:block;margin:8px 0}</style>
-<h1>Переписки</h1><p>Локальный архив доступных источников. Фрагменты не подтверждают автора, чат или факт удаления.</p><a href="Фотографии.html">Фотографии</a><input id="q" placeholder="Поиск текста, автора или чата"><select id="cat"><option value="">Все категории</option><option value="export">Из экспорта</option><option value="backup">Из резервной копии</option><option value="previous">Предыдущая версия</option><option value="fragment">Текстовые фрагменты</option></select>
+<h1>Переписки</h1><p>Локальный архив доступных источников. Фрагменты не подтверждают автора, чат или факт удаления.</p><a href="Фотографии.html">Фотографии</a><input id="q" placeholder="Поиск текста, автора или чата"><select id="cat"><option value="">Все категории</option><option value="export">Из экспорта</option><option value="backup">Из резервной копии</option><option value="previous">Предыдущая версия</option><option value="fragment">Текстовые фрагменты</option><option value="deleted">Удалённые записи (остатки)</option></select>
 <div id="count"></div><button id="prev">Назад</button><button id="next">Дальше</button><main id="messages"></main><script type="application/json" id="data">@@DATA@@</script><script>@@SCRIPT@@</script></html>"""
         (self.output / "Переписки.html").write_text(markup.replace("@@HASH@@", script_hash).replace("@@DATA@@", payload).replace("@@SCRIPT@@", script), encoding="utf-8")
 
@@ -1418,6 +1418,17 @@ def main():
     try:
         line = sys.stdin.readline(1024 * 1024)
         request = json.loads(line)
+        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") == "fragmented_photos":
+            from fragmented_photos import recover
+            try:
+                result = recover(request["source"], request["destination"], request.get("options"),
+                                 lambda done, total: emit("progress", completed=done, total=total))
+                emit("result", status="complete" if result["Status"] == "complete" else "partial",
+                     files=result["Candidates"], bytes=result["OutputBytes"])
+                return 0
+            except Exception:
+                emit("result", status="error", code="FRAGMENTED_PHOTO_FAILED")
+                return 2
         if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker"):
             protocol_stdout = sys.stdout
             def storage_emit(event, **fields):

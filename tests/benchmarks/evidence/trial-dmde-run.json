@@ -1,0 +1,185 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/dmde-run.json",
+    "source_sha256": "41df3e0fd9d102a452a648a21164581abc2f2a8c852ef4862851e7050bb858cf",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "schema": 1,
+    "tool": "DMDE",
+    "edition": "Console Free 4.4.4.842",
+    "label": "actual observed exports",
+    "application_sha256": "f2ac479af90a336db0000d07b87c96879968ca98c072201d7d8f6c22dddfe86f",
+    "observations_sha256": "05c82d175e0c10e3bc44375c74c02d0079007030a52bf6099c8919f69fe1500c",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "cases_not_tested": [
+      "fat16-deleted-cleared-chain",
+      "fat16-deleted-retained-chain",
+      "fat16-live-chain",
+      "ntfs-deleted-data-runs",
+      "raw-contiguous-avc-single",
+      "raw-contiguous-mjpeg-single",
+      "raw-contiguous-png",
+      "raw-malformed-decoys",
+      "raw-overwritten-avc-dual",
+      "raw-overwritten-mjpeg-dual",
+      "raw-overwritten-png-crc",
+      "raw-scattered-avc-dual",
+      "raw-scattered-baseline",
+      "raw-scattered-mjpeg-dual",
+      "raw-scattered-png-chunks",
+      "raw-scattered-png-crc-decoy",
+      "raw-scattered-progressive"
+    ],
+    "paid_edition_activated": false,
+    "results": [
+      {
+        "name": "raw-contiguous-baseline",
+        "image": "images/raw-contiguous-baseline.dd",
+        "image_sha256": "f38c06005d2d3d051ceecf6e1ffdc333528c0ee05beb95d177ca7745f46035cf",
+        "source_unchanged": true,
+        "elapsed_ms": null,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "DMDE Console 4.4.4.842 Free; readonly image; Full Scan whole image FAT+Raw; Raw/jpeg active directory; recover one selected file; default signatures; relative destination with long paths disabled after UI create error",
+        "operator_note": "Actual console recovery success: one file, 8257536 bytes. Original JPEG is 45234 bytes; exported file includes image-end padding. Independent Pillow pixel hash matches reference. Free limit not reached. No reliable scan-only time recorded.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/dmde-results/raw-contiguous-baseline/f256.jpeg",
+            "bytes": 8257536,
+            "sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f256.jpeg"
+          }
+        ]
+      },
+      {
+        "name": "raw-contiguous-avc-single",
+        "status": "not_tested",
+        "image_sha256": "2f8a1948d8d17590496c23d94d4e4dc1b023a7b1bf62398c5c3355b055c619bb",
+        "files": []
+      },
+      {
+        "name": "raw-contiguous-mjpeg-single",
+        "status": "not_tested",
+        "image_sha256": "18800ebd67e0302bd24414390cfba9a92e1844aa62d458c10d8785ec0eca938b",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-restart",
+        "image": "images/raw-scattered-restart.dd",
+        "image_sha256": "12d4a32f3db2693164e2eb41e75c49baf7c9e21c4c49a361eb41abe4aa2f4bc6",
+        "source_unchanged": true,
+        "elapsed_ms": null,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "DMDE Console 4.4.4.842 Free; readonly numeric image alias 4.4 verified equal to corpus02; Full Scan whole image FAT+Raw; Raw/jpeg active directory; one selected raw file recovered; default signatures; relative destination with long paths disabled after native create error",
+        "operator_note": "Actual terminal success: one exported file, 6946816 bytes, named f2816.jpeg. Original JPEG is 45393 bytes, three surviving scattered extents. Independent SHA and strict decode determine result. Free 4000-file limit not reached. No reliable scan-only elapsed recorded.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/dmde-results/raw-scattered-restart/f2816.jpeg",
+            "bytes": 6946816,
+            "sha256": "ce3a498b1d9346586a27090962115f73dc463b00b59a660b968d53e95f2a34ef",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f2816.jpeg"
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-progressive",
+        "status": "not_tested",
+        "image_sha256": "9d78145d0e30e665489bc79b038ef1f06bd8cc5c0dd7af48befd8964aecdd55c",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-baseline",
+        "status": "not_tested",
+        "image_sha256": "df58cc99a2d98948efad713d95b0864026ff43ab96462650e8b6348a17b14ebe",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "status": "not_tested",
+        "image_sha256": "c3c8a3435d3812da10fb7b4d7c387f0eb3512891e1aa2c44fb4832c540b4155f",
+        "files": []
+      },
+      {
+        "name": "raw-overwritten-avc-dual",
+        "status": "not_tested",
+        "image_sha256": "d8a3d8f3160262714a05ac92fc1d82ecd070767cc8706935c4725b586910a580",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "status": "not_tested",
+        "image_sha256": "07db5cfa378be3edd0d97158ced60959681bbc49d58c9c3c8fdd974dd590f771",
+        "files": []
+      },
+      {
+        "name": "raw-overwritten-mjpeg-dual",
+        "status": "not_tested",
+        "image_sha256": "eada52ae50b4d54628afa5d121b5d92a5ad3029c53a1d3deb16e547b26b3b454",
+        "files": []
+      },
+      {
+        "name": "fat16-live-chain",
+        "status": "not_tested",
+        "image_sha256": "24b8158efc881880e0fd5ac9c9dd7f667cbaeb043b6608901c81b74dc2c06cce",
+        "files": []
+      },
+      {
+        "name": "fat16-deleted-retained-chain",
+        "status": "not_tested",
+        "image_sha256": "47f93fb095f9ad71b7f5c4afd4f0cd0b288e96ccbb722a3b78a7fc6158646859",
+        "files": []
+      },
+      {
+        "name": "fat16-deleted-cleared-chain",
+        "status": "not_tested",
+        "image_sha256": "67f1e0540bc7d9a7a0a33451d8f7eb92fb629ef065160e1ba69e8554ec604ae1",
+        "files": []
+      },
+      {
+        "name": "ntfs-deleted-data-runs",
+        "status": "not_tested",
+        "image_sha256": "99060761dc5dc90c3f47ad86e3368853d16ae4d250dbcb6d185fa485dff4c553",
+        "files": []
+      },
+      {
+        "name": "raw-malformed-decoys",
+        "status": "not_tested",
+        "image_sha256": "1b14b8d24395296f72e608b05e9afaa84c5f8c3e4f389311b0506237d1e0d877",
+        "files": []
+      },
+      {
+        "name": "raw-contiguous-png",
+        "status": "not_tested",
+        "image_sha256": "8a8204361b180af8534132580c119f061f30bcfcd84b737a31b15692ef8fad08",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "status": "not_tested",
+        "image_sha256": "1b76458667461091ec86b8a2a1f797a5d61e106f1f7aff82dee02d1fca1b3e11",
+        "files": []
+      },
+      {
+        "name": "raw-overwritten-png-crc",
+        "status": "not_tested",
+        "image_sha256": "dc7430a7a29c15517313e64fb9d63878873132f44fea1040c16bdda8d4a71cc1",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-png-crc-decoy",
+        "status": "not_tested",
+        "image_sha256": "67cb3cb393cb02619017c244ad1fabf8fa73f9811603249b7c6b9a7a20700c07",
+        "files": []
+      }
+    ],
+    "not_tested_explicit": true,
+    "runtime_pairing": "legacy_end_only"
+  }
+}

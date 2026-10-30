@@ -1,0 +1,330 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/rstudio-run.json",
+    "source_sha256": "01a9d68a7a2ff7c1f48402881f69331ca48cf8c57c9375eb7daa6af3109d7b6c",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "schema": 1,
+    "tool": "R-Studio",
+    "edition": "Technician Demo 9.5.191861",
+    "label": "actual observed exports",
+    "application_sha256": "a331df3dc19bfa83309425bcb04934a575b3282d48a8a91d0b632f1dab154e40",
+    "observations_sha256": "2fe4f218db187009a79f0544e5605240eadf489d8bae6ba74bd9a4ba740b3097",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "cases_not_tested": [
+      "fat16-deleted-cleared-chain",
+      "fat16-deleted-retained-chain",
+      "fat16-live-chain",
+      "ntfs-deleted-data-runs",
+      "raw-contiguous-avc-single",
+      "raw-contiguous-mjpeg-single",
+      "raw-contiguous-png",
+      "raw-malformed-decoys",
+      "raw-overwritten-avc-dual",
+      "raw-overwritten-mjpeg-dual",
+      "raw-overwritten-png-crc",
+      "raw-scattered-baseline",
+      "raw-scattered-png-crc-decoy",
+      "raw-scattered-progressive"
+    ],
+    "paid_edition_activated": false,
+    "results": [
+      {
+        "name": "raw-contiguous-baseline",
+        "image": "images/raw-contiguous-baseline.dd",
+        "image_sha256": "f38c06005d2d3d051ceecf6e1ffdc333528c0ee05beb95d177ca7745f46035cf",
+        "source_unchanged": true,
+        "elapsed_ms": 33,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "R-Studio Technician Demo 9.5.191861; entire image scan; all default file systems and default known file types; export selected JPEG raw finding",
+        "operator_note": "Completed scan journal confirmed matching corpus01 image path (same SHA as corpus02). Actual 45234-byte JPEG exported, reference SHA and Pillow RGB match. Scan-only 33ms from journal; manual time excluded.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-contiguous-baseline/JPEG Образ/img_320x192x24_00.jpg",
+            "bytes": 45234,
+            "sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "JPEG Образ/img_320x192x24_00.jpg"
+          }
+        ]
+      },
+      {
+        "name": "raw-contiguous-avc-single",
+        "status": "not_tested",
+        "image_sha256": "2f8a1948d8d17590496c23d94d4e4dc1b023a7b1bf62398c5c3355b055c619bb",
+        "files": []
+      },
+      {
+        "name": "raw-contiguous-mjpeg-single",
+        "status": "not_tested",
+        "image_sha256": "18800ebd67e0302bd24414390cfba9a92e1844aa62d458c10d8785ec0eca938b",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-restart",
+        "image": "images/raw-scattered-restart.dd",
+        "image_sha256": "12d4a32f3db2693164e2eb41e75c49baf7c9e21c4c49a361eb41abe4aa2f4bc6",
+        "source_unchanged": true,
+        "elapsed_ms": 35,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "R-Studio Technician Demo 9.5.191861; entire image scan; all default file systems and default known file types; export all root findings",
+        "operator_note": "Completed scan journal confirmed matching corpus01 image path (same SHA as corpus02). Actual one 629-byte JPEG candidate exported; whole original is 45393 bytes. Strict FFmpeg validation fails and original SHA differs. Scan-only 35ms from journal.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-restart/Графика, Изображение/JPEG Образ/img_320x192x24_00.jpg",
+            "bytes": 629,
+            "sha256": "fb913e257ad0df11a10f730bc238915020e732915918dd10bb1dd81a2bc39158",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_320x192x24_00.jpg"
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-progressive",
+        "status": "not_tested",
+        "image_sha256": "9d78145d0e30e665489bc79b038ef1f06bd8cc5c0dd7af48befd8964aecdd55c",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-baseline",
+        "status": "not_tested",
+        "image_sha256": "df58cc99a2d98948efad713d95b0864026ff43ab96462650e8b6348a17b14ebe",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "image": "images/raw-scattered-avc-dual.dd",
+        "image_sha256": "c3c8a3435d3812da10fb7b4d7c387f0eb3512891e1aa2c44fb4832c540b4155f",
+        "source_unchanged": true,
+        "elapsed_ms": null,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "R-Studio Technician Demo 9.5.191861; fresh process, sole image; entire image scan and Known File Types Select All; export all root findings",
+        "operator_note": "Parent operator confirmed exact corpus02 path, scan 15:56:08 and actual export success 15:57:19 local time. Actual 23813-byte MP4 exported, SHA a1103cbef5b2c42fd7d4bc5d4c1c5011ac7603262e03774f8b134dd13c4eb613. Strict FFmpeg fails with CC filler/invalid NAL units.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-avc-dual/Root/Мультимедиа Видео/MP4 Файл/00.mp4",
+            "bytes": 23813,
+            "sha256": "a1103cbef5b2c42fd7d4bc5d4c1c5011ac7603262e03774f8b134dd13c4eb613",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Root/Мультимедиа Видео/MP4 Файл/00.mp4"
+          }
+        ]
+      },
+      {
+        "name": "raw-overwritten-avc-dual",
+        "status": "not_tested",
+        "image_sha256": "d8a3d8f3160262714a05ac92fc1d82ecd070767cc8706935c4725b586910a580",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "image": "images/raw-scattered-mjpeg-dual.dd",
+        "image_sha256": "07db5cfa378be3edd0d97158ced60959681bbc49d58c9c3c8fdd974dd590f771",
+        "source_unchanged": true,
+        "elapsed_ms": 33,
+        "status": "completed",
+        "trial_not_exported": false,
+        "configuration": "R-Studio Technician Demo 9.5.191861; fresh process, only this image; entire image scan; all default file systems and Known File Types Select All; export all 15 root findings",
+        "operator_note": "Exact corpus02 path confirmed in disk properties, scan journal 16:01:46; actual export success 15 files at 16:04:31. MP4 candidate 85295 bytes; 14 additional JPEG candidates may be embedded video frames. Scan-only elapsed from journal, manual time excluded.",
+        "files": [
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_003.jpg",
+            "bytes": 3000,
+            "sha256": "e90089ab4ffa6f6c1d63641e2aa3ad9362d318ba9077d05d91723139546654ec",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_003.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_007.jpg",
+            "bytes": 4389,
+            "sha256": "bb60c4a6be8e4706b7eb1393386f693318a843e06b971f74bac2e6121b3e2e9e",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_007.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_008.jpg",
+            "bytes": 3003,
+            "sha256": "a796149b01e337700221a53d859260f03017a210dc33f45302f6d31f13055b3b",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_008.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_009.jpg",
+            "bytes": 2991,
+            "sha256": "6d0cc4c639c25bb3786692328f654332055133ddfa70ee816663b842103d0818",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_009.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_012.jpg",
+            "bytes": 3014,
+            "sha256": "746fd1d8768c66fa443fed029730e86a3ef51157fa0535152b8647987c5bbcbd",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_012.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_001.jpg",
+            "bytes": 2801,
+            "sha256": "457019fef8eff5b9afe6dbf064d9c734fd0ed8017226ce8135f401c1eddd2a41",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_001.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_004.jpg",
+            "bytes": 2819,
+            "sha256": "702a75f2217d0ce90f4ae08ea323cb816c7a411c2a538437773eb3fde2db56f8",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_004.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_011.jpg",
+            "bytes": 2835,
+            "sha256": "4f3cd8f79410d582c99070f5679cb5261d7009cc5d958c3b7a09074958bd860a",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_011.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_013.jpg",
+            "bytes": 3665,
+            "sha256": "4efebb270d6b2ab22bc1cc67052dd6eb1cb80ef8e8437c851c32c813b08896f7",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_013.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_768x2_000.jpg",
+            "bytes": 4179,
+            "sha256": "a0322e667d98f1c6ed83c3a6f6e3b28df4a3c77d15215de106a6df10b5844fd7",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_768x2_000.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_002.jpg",
+            "bytes": 4106,
+            "sha256": "8ffc408409208a75a0691f6dd46df4def7c2e42bf60f8316f558f946a95d9728",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_002.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_005.jpg",
+            "bytes": 3825,
+            "sha256": "04b65939fe5a35df9600c00d6d64eff4db96d403c16c7abf2890f47f5db874a5",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_005.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_010.jpg",
+            "bytes": 4041,
+            "sha256": "4aa93d8432f160f93dbea4e255bef1abefd3c1a566d854041192234cfa9646af",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_010.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_014.jpg",
+            "bytes": 3733,
+            "sha256": "2522e3d06748039ac4fb7bf4f7ec6fe2a73781bda47adb7718f5bb37a2c2c1d0",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_014.jpg"
+          },
+          {
+            "path": ".build/benchmarks-v4/rstudio-results/raw-scattered-mjpeg-dual/Мультимедиа Видео/MP4 Файл/006.mp4",
+            "bytes": 85295,
+            "sha256": "ddc29e3f9fb3e7f40506a54f386eba9a82c9a3563b7c360e0ff14b0fc791b3b8",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Мультимедиа Видео/MP4 Файл/006.mp4"
+          }
+        ]
+      },
+      {
+        "name": "raw-overwritten-mjpeg-dual",
+        "status": "not_tested",
+        "image_sha256": "eada52ae50b4d54628afa5d121b5d92a5ad3029c53a1d3deb16e547b26b3b454",
+        "files": []
+      },
+      {
+        "name": "fat16-live-chain",
+        "status": "not_tested",
+        "image_sha256": "24b8158efc881880e0fd5ac9c9dd7f667cbaeb043b6608901c81b74dc2c06cce",
+        "files": []
+      },
+      {
+        "name": "fat16-deleted-retained-chain",
+        "status": "not_tested",
+        "image_sha256": "47f93fb095f9ad71b7f5c4afd4f0cd0b288e96ccbb722a3b78a7fc6158646859",
+        "files": []
+      },
+      {
+        "name": "fat16-deleted-cleared-chain",
+        "status": "not_tested",
+        "image_sha256": "67f1e0540bc7d9a7a0a33451d8f7eb92fb629ef065160e1ba69e8554ec604ae1",
+        "files": []
+      },
+      {
+        "name": "ntfs-deleted-data-runs",
+        "status": "not_tested",
+        "image_sha256": "99060761dc5dc90c3f47ad86e3368853d16ae4d250dbcb6d185fa485dff4c553",
+        "files": []
+      },
+      {
+        "name": "raw-malformed-decoys",
+        "status": "not_tested",
+        "image_sha256": "1b14b8d24395296f72e608b05e9afaa84c5f8c3e4f389311b0506237d1e0d877",
+        "files": []
+      },
+      {
+        "name": "raw-contiguous-png",
+        "status": "not_tested",
+        "image_sha256": "8a8204361b180af8534132580c119f061f30bcfcd84b737a31b15692ef8fad08",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "image": "images/raw-scattered-png-chunks.dd",
+        "image_sha256": "1b76458667461091ec86b8a2a1f797a5d61e106f1f7aff82dee02d1fca1b3e11",
+        "source_unchanged": true,
+        "elapsed_ms": 34,
+        "status": "no_findings",
+        "trial_not_exported": false,
+        "configuration": "R-Studio Technician Demo 9.5.191861; fresh process and sole image; entire image scan; all default file systems and Known File Types Select All",
+        "operator_note": "Exact corpus02 path confirmed in properties and completed scan journal at 16:09:20. Whole image scanned in 34ms, no found virtual child or known file findings. This hard profile separates 8-byte PNG signature from IHDR. No export attempted because no findings; no trial restriction.",
+        "files": []
+      },
+      {
+        "name": "raw-overwritten-png-crc",
+        "status": "not_tested",
+        "image_sha256": "dc7430a7a29c15517313e64fb9d63878873132f44fea1040c16bdda8d4a71cc1",
+        "files": []
+      },
+      {
+        "name": "raw-scattered-png-crc-decoy",
+        "status": "not_tested",
+        "image_sha256": "67cb3cb393cb02619017c244ad1fabf8fa73f9811603249b7c6b9a7a20700c07",
+        "files": []
+      }
+    ],
+    "not_tested_explicit": true,
+    "runtime_pairing": "legacy_end_only"
+  }
+}

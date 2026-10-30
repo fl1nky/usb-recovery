@@ -5,6 +5,12 @@ $taskLayout=Get-RecoveryLayout
 $ApplicationDirectory=$taskLayout.Portable
 if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'}
 if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
+& $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
+if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')
+if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
+if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {

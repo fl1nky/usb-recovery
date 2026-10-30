@@ -1,0 +1,22 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/corpus-validation.json",
+    "source_sha256": "068e4a505eedb5381643c3706dfe2e4c4d141b67688a4417992e50d2f6884ce3",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "media": {
+      "cases": 19,
+      "assets": 8,
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "validation": "all hashes, extent bounds/non-overlap and survival flags verified"
+    },
+    "audio": {
+      "cases": 10,
+      "assets": 2,
+      "manifest_sha256": "3d15ea08fcbf0999140a0aaed22f3c539c92145913fc0a5a5016c0590d298011",
+      "validation": "all hashes, extent bounds/non-overlap and survival flags verified"
+    }
+  }
+}

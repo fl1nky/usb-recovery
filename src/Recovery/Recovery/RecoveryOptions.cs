@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,7 +9,7 @@ namespace UsbRecovery
         public bool FatMetadata = true, NtfsMetadata = true, LostPartitions = true, AlternateFat;
         public bool Signatures = true, SmallBlocks = true, JpegFragments, KeepCorrupted;
         public bool EmbeddedPhotos = true, Containers = true, TolerateReadErrors;
-        public bool OrphanDirectories, TextFragments;
+        public bool OrphanDirectories, TextFragments, FragmentedPhotos, FragmentedVideo;
         public bool MetadataRescue, ArchiveMembers, FragmentedArchives;
         public bool CustomSignatures;
         public List<UserSignatureRule> CustomRules=new List<UserSignatureRule>();
@@ -18,7 +18,7 @@ namespace UsbRecovery
         public static RecoveryOptions Legacy(bool deep) { return new RecoveryOptions { LostPartitions = false, Containers = false, SmallBlocks = deep, JpegFragments = deep, KeepCorrupted = deep, EmbeddedPhotos = deep }; }
         public void Validate()
         {
-            if (!(FatMetadata || NtfsMetadata || Signatures || EmbeddedPhotos || Containers || TextFragments || MetadataRescue || ArchiveMembers || FragmentedArchives || CustomSignatures)) throw new ArgumentException("Выбери хотя бы один способ извлечения файлов.");
+            if (!(FatMetadata || NtfsMetadata || Signatures || EmbeddedPhotos || Containers || TextFragments || MetadataRescue || ArchiveMembers || FragmentedArchives || CustomSignatures || FragmentedPhotos || FragmentedVideo)) throw new ArgumentException("Выбери хотя бы один способ извлечения файлов.");
             if(CustomSignatures)try{UserSignatureRecovery.Validate(CustomRules);}catch(System.IO.IOException e){throw new ArgumentException(e.Message.Replace("USER_SIGNATURE_INVALID: ",""));}
             if (Signatures && !(Photos || Video || Audio || Documents || Archives || Other)) throw new ArgumentException("Выбери хотя бы одну группу форматов PhotoRec.");
             if (TextFragments && (String.IsNullOrWhiteSpace(TextQuery) || TextQuery.Length > 256 || TextQuery.Split((char[])null,StringSplitOptions.RemoveEmptyEntries).Length > 8)) throw new ArgumentException("Для текстовых остатков укажи от 1 до 8 ключевых слов, не более 256 символов.");

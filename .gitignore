@@ -55,3 +55,16 @@
 /dist/
 **/bin/
 **/obj/
+
+# Maintained independent benchmark sources only
+!/tests/benchmarks/
+/tests/benchmarks/*
+!/tests/benchmarks/*.py
+!/tests/benchmarks/*.ps1
+!/tests/benchmarks/*.json
+!/tests/benchmarks/*.md
+!/tests/benchmarks/*.cs
+!/tests/benchmarks/evidence/
+/tests/benchmarks/evidence/*
+!/tests/benchmarks/evidence/*.json
+!/tests/benchmarks/evidence/*.md

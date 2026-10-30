@@ -1,0 +1,2035 @@
+{
+  "derived_evidence_schema": 1,
+  "provenance": {
+    "source": ".build/benchmarks-v4/corpus-02/manifest.json",
+    "source_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "transformation": "Paths sanitized; explicit not_tested rows and summarized stage evidence added; original source is unchanged."
+  },
+  "data": {
+    "schema": 1,
+    "seed": 20261030,
+    "scope": "Synthetic regular image files only. No device access.",
+    "generator_sha256": "8085b30cbbf15b7940617e0fde6c048f6e3ae65076cce1f952d8a1c7faaf511f",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "ffmpeg_version": "ffmpeg version 9.0.2-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers",
+    "assets": [
+      {
+        "name": "baseline.jpg",
+        "path": "originals/baseline.jpg",
+        "bytes": 45234,
+        "sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+        "decoded_rgb_sha256": "f3c395b508241f92103f0c7f2ce05bebcd3a99b9f151b69ae52a784ab8a03b86"
+      },
+      {
+        "name": "restart.jpg",
+        "path": "originals/restart.jpg",
+        "bytes": 45393,
+        "sha256": "76bb6e3e72ca51c31078fecbb6bfbb7e9cd26126e695a95477f7e7c3fa3e5e48",
+        "decoded_rgb_sha256": "81a0660577e7b17408ba1a96461f125283b4de977ba1ad457a233cefbbbb7a7a"
+      },
+      {
+        "name": "progressive.jpg",
+        "path": "originals/progressive.jpg",
+        "bytes": 43820,
+        "sha256": "ca760a47df30584b0bfd485577249488eb14dde429f6ae8396f806d73c387385",
+        "decoded_rgb_sha256": "365c151db1d5100ec9330022628785cc0cbe6d4c43cbd32217cf3c0f2904c083"
+      },
+      {
+        "name": "avc-single.mp4",
+        "path": "originals/avc-single.mp4",
+        "bytes": 17095,
+        "sha256": "696819ec106e6418fcd46d3be086cf73a7627e0c3bbd4a4b145c3b30edafc7b2",
+        "chunks": 1,
+        "chunk_offsets": [
+          873
+        ],
+        "mdat_ranges": [
+          [
+            873,
+            17095
+          ]
+        ],
+        "decoded_frames_sha256": "73f60cb86b9b137dd9cf30bc1c021be6497d4e9da5cc197bb0b8c2d9c31432ee"
+      },
+      {
+        "name": "mjpeg-single.mov",
+        "path": "originals/mjpeg-single.mov",
+        "bytes": 49513,
+        "sha256": "695636e9c5cc1729ccc546d0ddb7be4c138998d36b508682d176f52fb620607a",
+        "chunks": 1,
+        "chunk_offsets": [
+          757
+        ],
+        "mdat_ranges": [
+          [
+            757,
+            49513
+          ]
+        ],
+        "decoded_frames_sha256": "e2b99df40eaf8767789c4bfff8a17c2fc34a969c8a184aeb2d518ee1f07840b3"
+      },
+      {
+        "name": "avc-dual.mp4",
+        "path": "originals/avc-dual.mp4",
+        "bytes": 23813,
+        "sha256": "d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f",
+        "chunks": 14,
+        "chunk_offsets": [
+          1665,
+          7056,
+          9278,
+          10319,
+          10556,
+          15729,
+          16354,
+          17407,
+          19493,
+          20432,
+          20619,
+          21474,
+          21859,
+          23629
+        ],
+        "mdat_ranges": [
+          [
+            1665,
+            23813
+          ]
+        ],
+        "decoded_frames_sha256": "9cffa874a20b85c42f0d516bd399f5838a2f871e18d96c42e72094748cb18183"
+      },
+      {
+        "name": "mjpeg-dual.mov",
+        "path": "originals/mjpeg-dual.mov",
+        "bytes": 85295,
+        "sha256": "add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7",
+        "chunks": 14,
+        "chunk_offsets": [
+          1494,
+          8723,
+          14709,
+          18442,
+          21433,
+          25258,
+          31283,
+          35324,
+          46912,
+          51018,
+          53837,
+          75270,
+          78071,
+          82460
+        ],
+        "mdat_ranges": [
+          [
+            1494,
+            85295
+          ]
+        ],
+        "decoded_frames_sha256": "7e0ac3069eb5499b49d0cdc50414a5df609cb228e6d8ead162a19f1370dddc52"
+      },
+      {
+        "name": "chunked.png",
+        "path": "originals/chunked.png",
+        "bytes": 127244,
+        "sha256": "a8a6a292ad06a56169c73182e52e4caadb90f140a78d36b339178b1dbf04584a",
+        "decoded_rgb_sha256": "81a0660577e7b17408ba1a96461f125283b4de977ba1ad457a233cefbbbb7a7a"
+      }
+    ],
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "image": "images/raw-contiguous-baseline.dd",
+        "bytes": 8388608,
+        "sha256": "f38c06005d2d3d051ceecf6e1ffdc333528c0ee05beb95d177ca7745f46035cf",
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 45234
+              }
+            ]
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "raw-contiguous-avc-single",
+        "image": "images/raw-contiguous-avc-single.dd",
+        "bytes": 8388608,
+        "sha256": "2f8a1948d8d17590496c23d94d4e4dc1b023a7b1bf62398c5c3355b055c619bb",
+        "expected": [
+          {
+            "asset": "avc-single.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 17095
+              }
+            ]
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "raw-contiguous-mjpeg-single",
+        "image": "images/raw-contiguous-mjpeg-single.dd",
+        "bytes": 8388608,
+        "sha256": "18800ebd67e0302bd24414390cfba9a92e1844aa62d458c10d8785ec0eca938b",
+        "expected": [
+          {
+            "asset": "mjpeg-single.mov",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 49513
+              }
+            ]
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "raw-scattered-restart",
+        "image": "images/raw-scattered-restart.dd",
+        "bytes": 8388608,
+        "sha256": "12d4a32f3db2693164e2eb41e75c49baf7c9e21c4c49a361eb41abe4aa2f4bc6",
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 1441792,
+                "length": 15353
+              },
+              {
+                "logical_offset": 15353,
+                "image_offset": 3342336,
+                "length": 14404
+              },
+              {
+                "logical_offset": 29757,
+                "image_offset": 557056,
+                "length": 15636
+              }
+            ]
+          }
+        ],
+        "note": "JPEG split at encoder restart boundaries"
+      },
+      {
+        "name": "raw-scattered-progressive",
+        "image": "images/raw-scattered-progressive.dd",
+        "bytes": 8388608,
+        "sha256": "9d78145d0e30e665489bc79b038ef1f06bd8cc5c0dd7af48befd8964aecdd55c",
+        "expected": [
+          {
+            "asset": "progressive.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 524288,
+                "length": 12896
+              },
+              {
+                "logical_offset": 12896,
+                "image_offset": 2818048,
+                "length": 12133
+              },
+              {
+                "logical_offset": 25029,
+                "image_offset": 1409024,
+                "length": 18791
+              }
+            ]
+          }
+        ],
+        "note": "JPEG split at encoder restart boundaries"
+      },
+      {
+        "name": "raw-scattered-baseline",
+        "image": "images/raw-scattered-baseline.dd",
+        "bytes": 8388608,
+        "sha256": "df58cc99a2d98948efad713d95b0864026ff43ab96462650e8b6348a17b14ebe",
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 3735552,
+                "length": 4096
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 3801088,
+                "length": 4096
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 2490368,
+                "length": 37042
+              }
+            ]
+          }
+        ],
+        "note": "JPEG split at arbitrary 4KiB boundaries"
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "image": "images/raw-scattered-avc-dual.dd",
+        "bytes": 8388608,
+        "sha256": "c3c8a3435d3812da10fb7b4d7c387f0eb3512891e1aa2c44fb4832c540b4155f",
+        "expected": [
+          {
+            "asset": "avc-dual.mp4",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2260992,
+                "length": 1665
+              },
+              {
+                "logical_offset": 1665,
+                "image_offset": 851968,
+                "length": 5391
+              },
+              {
+                "logical_offset": 7056,
+                "image_offset": 327680,
+                "length": 2222
+              },
+              {
+                "logical_offset": 9278,
+                "image_offset": 3768320,
+                "length": 1041
+              },
+              {
+                "logical_offset": 10319,
+                "image_offset": 1703936,
+                "length": 237
+              },
+              {
+                "logical_offset": 10556,
+                "image_offset": 163840,
+                "length": 5173
+              },
+              {
+                "logical_offset": 15729,
+                "image_offset": 1671168,
+                "length": 625
+              },
+              {
+                "logical_offset": 16354,
+                "image_offset": 1441792,
+                "length": 1053
+              },
+              {
+                "logical_offset": 17407,
+                "image_offset": 1605632,
+                "length": 2086
+              },
+              {
+                "logical_offset": 19493,
+                "image_offset": 1835008,
+                "length": 939
+              },
+              {
+                "logical_offset": 20432,
+                "image_offset": 65536,
+                "length": 187
+              },
+              {
+                "logical_offset": 20619,
+                "image_offset": 294912,
+                "length": 855
+              },
+              {
+                "logical_offset": 21474,
+                "image_offset": 3833856,
+                "length": 385
+              },
+              {
+                "logical_offset": 21859,
+                "image_offset": 1343488,
+                "length": 1770
+              },
+              {
+                "logical_offset": 23629,
+                "image_offset": 1277952,
+                "length": 184
+              }
+            ]
+          }
+        ],
+        "note": "Original FFmpeg chunks reordered physically; original moov retained; no ground-truth map in image"
+      },
+      {
+        "name": "raw-overwritten-avc-dual",
+        "image": "images/raw-overwritten-avc-dual.dd",
+        "bytes": 8388608,
+        "sha256": "d8a3d8f3160262714a05ac92fc1d82ecd070767cc8706935c4725b586910a580",
+        "expected": [
+          {
+            "asset": "avc-dual.mp4",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2260992,
+                "length": 1665
+              },
+              {
+                "logical_offset": 1665,
+                "image_offset": 851968,
+                "length": 5391
+              },
+              {
+                "logical_offset": 7056,
+                "image_offset": 327680,
+                "length": 2222
+              },
+              {
+                "logical_offset": 9278,
+                "image_offset": 3768320,
+                "length": 1041
+              },
+              {
+                "logical_offset": 10319,
+                "image_offset": 1703936,
+                "length": 237
+              },
+              {
+                "logical_offset": 10556,
+                "image_offset": 163840,
+                "length": 5173
+              },
+              {
+                "logical_offset": 15729,
+                "image_offset": 1671168,
+                "length": 625
+              },
+              {
+                "logical_offset": 16354,
+                "image_offset": 1441792,
+                "length": 1053
+              },
+              {
+                "logical_offset": 17407,
+                "image_offset": 1605632,
+                "length": 2086
+              },
+              {
+                "logical_offset": 19493,
+                "image_offset": 1835008,
+                "length": 939
+              },
+              {
+                "logical_offset": 20432,
+                "image_offset": 65536,
+                "length": 187
+              },
+              {
+                "logical_offset": 20619,
+                "image_offset": 294912,
+                "length": 855
+              },
+              {
+                "logical_offset": 21474,
+                "image_offset": 3833856,
+                "length": 385
+              },
+              {
+                "logical_offset": 21859,
+                "image_offset": 1343488,
+                "length": 1770
+              },
+              {
+                "logical_offset": 23629,
+                "image_offset": 1277952,
+                "length": 184
+              }
+            ]
+          }
+        ],
+        "note": "64 source bytes were overwritten. Whole original recovery must not be claimed"
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "image": "images/raw-scattered-mjpeg-dual.dd",
+        "bytes": 8388608,
+        "sha256": "07db5cfa378be3edd0d97158ced60959681bbc49d58c9c3c8fdd974dd590f771",
+        "expected": [
+          {
+            "asset": "mjpeg-dual.mov",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2031616,
+                "length": 1494
+              },
+              {
+                "logical_offset": 1494,
+                "image_offset": 3538944,
+                "length": 7229
+              },
+              {
+                "logical_offset": 8723,
+                "image_offset": 786432,
+                "length": 5986
+              },
+              {
+                "logical_offset": 14709,
+                "image_offset": 3670016,
+                "length": 3733
+              },
+              {
+                "logical_offset": 18442,
+                "image_offset": 2883584,
+                "length": 2991
+              },
+              {
+                "logical_offset": 21433,
+                "image_offset": 917504,
+                "length": 3825
+              },
+              {
+                "logical_offset": 25258,
+                "image_offset": 2621440,
+                "length": 6025
+              },
+              {
+                "logical_offset": 31283,
+                "image_offset": 3014656,
+                "length": 4041
+              },
+              {
+                "logical_offset": 35324,
+                "image_offset": 3375104,
+                "length": 11588
+              },
+              {
+                "logical_offset": 46912,
+                "image_offset": 262144,
+                "length": 4106
+              },
+              {
+                "logical_offset": 51018,
+                "image_offset": 884736,
+                "length": 2819
+              },
+              {
+                "logical_offset": 53837,
+                "image_offset": 98304,
+                "length": 21433
+              },
+              {
+                "logical_offset": 75270,
+                "image_offset": 229376,
+                "length": 2801
+              },
+              {
+                "logical_offset": 78071,
+                "image_offset": 2228224,
+                "length": 4389
+              },
+              {
+                "logical_offset": 82460,
+                "image_offset": 3178496,
+                "length": 2835
+              }
+            ]
+          }
+        ],
+        "note": "Original FFmpeg chunks reordered physically; original moov retained; no ground-truth map in image"
+      },
+      {
+        "name": "raw-overwritten-mjpeg-dual",
+        "image": "images/raw-overwritten-mjpeg-dual.dd",
+        "bytes": 8388608,
+        "sha256": "eada52ae50b4d54628afa5d121b5d92a5ad3029c53a1d3deb16e547b26b3b454",
+        "expected": [
+          {
+            "asset": "mjpeg-dual.mov",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2031616,
+                "length": 1494
+              },
+              {
+                "logical_offset": 1494,
+                "image_offset": 3538944,
+                "length": 7229
+              },
+              {
+                "logical_offset": 8723,
+                "image_offset": 786432,
+                "length": 5986
+              },
+              {
+                "logical_offset": 14709,
+                "image_offset": 3670016,
+                "length": 3733
+              },
+              {
+                "logical_offset": 18442,
+                "image_offset": 2883584,
+                "length": 2991
+              },
+              {
+                "logical_offset": 21433,
+                "image_offset": 917504,
+                "length": 3825
+              },
+              {
+                "logical_offset": 25258,
+                "image_offset": 2621440,
+                "length": 6025
+              },
+              {
+                "logical_offset": 31283,
+                "image_offset": 3014656,
+                "length": 4041
+              },
+              {
+                "logical_offset": 35324,
+                "image_offset": 3375104,
+                "length": 11588
+              },
+              {
+                "logical_offset": 46912,
+                "image_offset": 262144,
+                "length": 4106
+              },
+              {
+                "logical_offset": 51018,
+                "image_offset": 884736,
+                "length": 2819
+              },
+              {
+                "logical_offset": 53837,
+                "image_offset": 98304,
+                "length": 21433
+              },
+              {
+                "logical_offset": 75270,
+                "image_offset": 229376,
+                "length": 2801
+              },
+              {
+                "logical_offset": 78071,
+                "image_offset": 2228224,
+                "length": 4389
+              },
+              {
+                "logical_offset": 82460,
+                "image_offset": 3178496,
+                "length": 2835
+              }
+            ]
+          }
+        ],
+        "note": "64 source bytes were overwritten. Whole original recovery must not be claimed"
+      },
+      {
+        "name": "fat16-live-chain",
+        "image": "images/fat16-live-chain.dd",
+        "bytes": 33554432,
+        "sha256": "24b8158efc881880e0fd5ac9c9dd7f667cbaeb043b6608901c81b74dc2c06cce",
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 11028992,
+                "length": 1024
+              },
+              {
+                "logical_offset": 1024,
+                "image_offset": 8444416,
+                "length": 1024
+              },
+              {
+                "logical_offset": 2048,
+                "image_offset": 22370816,
+                "length": 1024
+              },
+              {
+                "logical_offset": 3072,
+                "image_offset": 9205248,
+                "length": 1024
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 20633088,
+                "length": 1024
+              },
+              {
+                "logical_offset": 5120,
+                "image_offset": 7394816,
+                "length": 1024
+              },
+              {
+                "logical_offset": 6144,
+                "image_offset": 9148928,
+                "length": 1024
+              },
+              {
+                "logical_offset": 7168,
+                "image_offset": 22679040,
+                "length": 1024
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 22665728,
+                "length": 1024
+              },
+              {
+                "logical_offset": 9216,
+                "image_offset": 21469696,
+                "length": 1024
+              },
+              {
+                "logical_offset": 10240,
+                "image_offset": 15379968,
+                "length": 1024
+              },
+              {
+                "logical_offset": 11264,
+                "image_offset": 3132928,
+                "length": 1024
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 5250560,
+                "length": 1024
+              },
+              {
+                "logical_offset": 13312,
+                "image_offset": 24249856,
+                "length": 1024
+              },
+              {
+                "logical_offset": 14336,
+                "image_offset": 18219520,
+                "length": 1024
+              },
+              {
+                "logical_offset": 15360,
+                "image_offset": 13159936,
+                "length": 1024
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 2127360,
+                "length": 1024
+              },
+              {
+                "logical_offset": 17408,
+                "image_offset": 20079104,
+                "length": 1024
+              },
+              {
+                "logical_offset": 18432,
+                "image_offset": 10242560,
+                "length": 1024
+              },
+              {
+                "logical_offset": 19456,
+                "image_offset": 15586816,
+                "length": 1024
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 11010560,
+                "length": 1024
+              },
+              {
+                "logical_offset": 21504,
+                "image_offset": 14700032,
+                "length": 1024
+              },
+              {
+                "logical_offset": 22528,
+                "image_offset": 17660416,
+                "length": 1024
+              },
+              {
+                "logical_offset": 23552,
+                "image_offset": 3218944,
+                "length": 1024
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 10497536,
+                "length": 1024
+              },
+              {
+                "logical_offset": 25600,
+                "image_offset": 10349056,
+                "length": 1024
+              },
+              {
+                "logical_offset": 26624,
+                "image_offset": 1935872,
+                "length": 1024
+              },
+              {
+                "logical_offset": 27648,
+                "image_offset": 9473536,
+                "length": 1024
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 15860224,
+                "length": 1024
+              },
+              {
+                "logical_offset": 29696,
+                "image_offset": 6412800,
+                "length": 1024
+              },
+              {
+                "logical_offset": 30720,
+                "image_offset": 22418944,
+                "length": 1024
+              },
+              {
+                "logical_offset": 31744,
+                "image_offset": 10069504,
+                "length": 1024
+              },
+              {
+                "logical_offset": 32768,
+                "image_offset": 18524672,
+                "length": 1024
+              },
+              {
+                "logical_offset": 33792,
+                "image_offset": 10048000,
+                "length": 1024
+              },
+              {
+                "logical_offset": 34816,
+                "image_offset": 10777088,
+                "length": 1024
+              },
+              {
+                "logical_offset": 35840,
+                "image_offset": 22115840,
+                "length": 1024
+              },
+              {
+                "logical_offset": 36864,
+                "image_offset": 8829440,
+                "length": 1024
+              },
+              {
+                "logical_offset": 37888,
+                "image_offset": 702976,
+                "length": 1024
+              },
+              {
+                "logical_offset": 38912,
+                "image_offset": 23553536,
+                "length": 1024
+              },
+              {
+                "logical_offset": 39936,
+                "image_offset": 23629312,
+                "length": 1024
+              },
+              {
+                "logical_offset": 40960,
+                "image_offset": 7268864,
+                "length": 1024
+              },
+              {
+                "logical_offset": 41984,
+                "image_offset": 22550016,
+                "length": 1024
+              },
+              {
+                "logical_offset": 43008,
+                "image_offset": 11635200,
+                "length": 1024
+              },
+              {
+                "logical_offset": 44032,
+                "image_offset": 4921856,
+                "length": 1024
+              },
+              {
+                "logical_offset": 45056,
+                "image_offset": 18273792,
+                "length": 337
+              }
+            ]
+          }
+        ],
+        "note": "Scatter at ordinary 1KiB allocation units; BPB/FAT/root directory independently constructed"
+      },
+      {
+        "name": "fat16-deleted-retained-chain",
+        "image": "images/fat16-deleted-retained-chain.dd",
+        "bytes": 33554432,
+        "sha256": "47f93fb095f9ad71b7f5c4afd4f0cd0b288e96ccbb722a3b78a7fc6158646859",
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 3207680,
+                "length": 1024
+              },
+              {
+                "logical_offset": 1024,
+                "image_offset": 4038144,
+                "length": 1024
+              },
+              {
+                "logical_offset": 2048,
+                "image_offset": 13377024,
+                "length": 1024
+              },
+              {
+                "logical_offset": 3072,
+                "image_offset": 2158080,
+                "length": 1024
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 23478784,
+                "length": 1024
+              },
+              {
+                "logical_offset": 5120,
+                "image_offset": 1610240,
+                "length": 1024
+              },
+              {
+                "logical_offset": 6144,
+                "image_offset": 1845760,
+                "length": 1024
+              },
+              {
+                "logical_offset": 7168,
+                "image_offset": 22006272,
+                "length": 1024
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 7508480,
+                "length": 1024
+              },
+              {
+                "logical_offset": 9216,
+                "image_offset": 9370112,
+                "length": 1024
+              },
+              {
+                "logical_offset": 10240,
+                "image_offset": 11205120,
+                "length": 1024
+              },
+              {
+                "logical_offset": 11264,
+                "image_offset": 4357632,
+                "length": 1024
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 4920832,
+                "length": 1024
+              },
+              {
+                "logical_offset": 13312,
+                "image_offset": 15133184,
+                "length": 1024
+              },
+              {
+                "logical_offset": 14336,
+                "image_offset": 18954752,
+                "length": 1024
+              },
+              {
+                "logical_offset": 15360,
+                "image_offset": 16546304,
+                "length": 1024
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 3206656,
+                "length": 1024
+              },
+              {
+                "logical_offset": 17408,
+                "image_offset": 4727296,
+                "length": 1024
+              },
+              {
+                "logical_offset": 18432,
+                "image_offset": 21095936,
+                "length": 1024
+              },
+              {
+                "logical_offset": 19456,
+                "image_offset": 199168,
+                "length": 1024
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 12017152,
+                "length": 1024
+              },
+              {
+                "logical_offset": 21504,
+                "image_offset": 1037824,
+                "length": 1024
+              },
+              {
+                "logical_offset": 22528,
+                "image_offset": 16653824,
+                "length": 1024
+              },
+              {
+                "logical_offset": 23552,
+                "image_offset": 13172224,
+                "length": 1024
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 3619328,
+                "length": 1024
+              },
+              {
+                "logical_offset": 25600,
+                "image_offset": 16796160,
+                "length": 1024
+              },
+              {
+                "logical_offset": 26624,
+                "image_offset": 382464,
+                "length": 1024
+              },
+              {
+                "logical_offset": 27648,
+                "image_offset": 6409728,
+                "length": 1024
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 23101952,
+                "length": 1024
+              },
+              {
+                "logical_offset": 29696,
+                "image_offset": 3807744,
+                "length": 1024
+              },
+              {
+                "logical_offset": 30720,
+                "image_offset": 21268992,
+                "length": 1024
+              },
+              {
+                "logical_offset": 31744,
+                "image_offset": 11226624,
+                "length": 1024
+              },
+              {
+                "logical_offset": 32768,
+                "image_offset": 8445440,
+                "length": 1024
+              },
+              {
+                "logical_offset": 33792,
+                "image_offset": 6295040,
+                "length": 1024
+              },
+              {
+                "logical_offset": 34816,
+                "image_offset": 10466816,
+                "length": 1024
+              },
+              {
+                "logical_offset": 35840,
+                "image_offset": 11076096,
+                "length": 1024
+              },
+              {
+                "logical_offset": 36864,
+                "image_offset": 1133056,
+                "length": 1024
+              },
+              {
+                "logical_offset": 37888,
+                "image_offset": 5404160,
+                "length": 1024
+              },
+              {
+                "logical_offset": 38912,
+                "image_offset": 8172032,
+                "length": 1024
+              },
+              {
+                "logical_offset": 39936,
+                "image_offset": 14004736,
+                "length": 1024
+              },
+              {
+                "logical_offset": 40960,
+                "image_offset": 10141184,
+                "length": 1024
+              },
+              {
+                "logical_offset": 41984,
+                "image_offset": 11593216,
+                "length": 1024
+              },
+              {
+                "logical_offset": 43008,
+                "image_offset": 8501760,
+                "length": 1024
+              },
+              {
+                "logical_offset": 44032,
+                "image_offset": 15565312,
+                "length": 1024
+              },
+              {
+                "logical_offset": 45056,
+                "image_offset": 13859328,
+                "length": 337
+              }
+            ]
+          }
+        ],
+        "note": "Scatter at ordinary 1KiB allocation units; BPB/FAT/root directory independently constructed"
+      },
+      {
+        "name": "fat16-deleted-cleared-chain",
+        "image": "images/fat16-deleted-cleared-chain.dd",
+        "bytes": 33554432,
+        "sha256": "67f1e0540bc7d9a7a0a33451d8f7eb92fb629ef065160e1ba69e8554ec604ae1",
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 19162624,
+                "length": 1024
+              },
+              {
+                "logical_offset": 1024,
+                "image_offset": 2379264,
+                "length": 1024
+              },
+              {
+                "logical_offset": 2048,
+                "image_offset": 12809728,
+                "length": 1024
+              },
+              {
+                "logical_offset": 3072,
+                "image_offset": 21299712,
+                "length": 1024
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 21660160,
+                "length": 1024
+              },
+              {
+                "logical_offset": 5120,
+                "image_offset": 5502464,
+                "length": 1024
+              },
+              {
+                "logical_offset": 6144,
+                "image_offset": 4234752,
+                "length": 1024
+              },
+              {
+                "logical_offset": 7168,
+                "image_offset": 14066176,
+                "length": 1024
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 1653248,
+                "length": 1024
+              },
+              {
+                "logical_offset": 9216,
+                "image_offset": 21955072,
+                "length": 1024
+              },
+              {
+                "logical_offset": 10240,
+                "image_offset": 6963712,
+                "length": 1024
+              },
+              {
+                "logical_offset": 11264,
+                "image_offset": 13751808,
+                "length": 1024
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 17464832,
+                "length": 1024
+              },
+              {
+                "logical_offset": 13312,
+                "image_offset": 20853248,
+                "length": 1024
+              },
+              {
+                "logical_offset": 14336,
+                "image_offset": 15819264,
+                "length": 1024
+              },
+              {
+                "logical_offset": 15360,
+                "image_offset": 6621696,
+                "length": 1024
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 20233728,
+                "length": 1024
+              },
+              {
+                "logical_offset": 17408,
+                "image_offset": 6401536,
+                "length": 1024
+              },
+              {
+                "logical_offset": 18432,
+                "image_offset": 23761408,
+                "length": 1024
+              },
+              {
+                "logical_offset": 19456,
+                "image_offset": 18918912,
+                "length": 1024
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 13825536,
+                "length": 1024
+              },
+              {
+                "logical_offset": 21504,
+                "image_offset": 19112448,
+                "length": 1024
+              },
+              {
+                "logical_offset": 22528,
+                "image_offset": 15001088,
+                "length": 1024
+              },
+              {
+                "logical_offset": 23552,
+                "image_offset": 20032000,
+                "length": 1024
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 11023872,
+                "length": 1024
+              },
+              {
+                "logical_offset": 25600,
+                "image_offset": 6839808,
+                "length": 1024
+              },
+              {
+                "logical_offset": 26624,
+                "image_offset": 18484736,
+                "length": 1024
+              },
+              {
+                "logical_offset": 27648,
+                "image_offset": 22684160,
+                "length": 1024
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 16967168,
+                "length": 1024
+              },
+              {
+                "logical_offset": 29696,
+                "image_offset": 2005504,
+                "length": 1024
+              },
+              {
+                "logical_offset": 30720,
+                "image_offset": 21406208,
+                "length": 1024
+              },
+              {
+                "logical_offset": 31744,
+                "image_offset": 3049984,
+                "length": 1024
+              },
+              {
+                "logical_offset": 32768,
+                "image_offset": 3617280,
+                "length": 1024
+              },
+              {
+                "logical_offset": 33792,
+                "image_offset": 21639680,
+                "length": 1024
+              },
+              {
+                "logical_offset": 34816,
+                "image_offset": 2626048,
+                "length": 1024
+              },
+              {
+                "logical_offset": 35840,
+                "image_offset": 17814016,
+                "length": 1024
+              },
+              {
+                "logical_offset": 36864,
+                "image_offset": 23150080,
+                "length": 1024
+              },
+              {
+                "logical_offset": 37888,
+                "image_offset": 18357760,
+                "length": 1024
+              },
+              {
+                "logical_offset": 38912,
+                "image_offset": 281088,
+                "length": 1024
+              },
+              {
+                "logical_offset": 39936,
+                "image_offset": 823808,
+                "length": 1024
+              },
+              {
+                "logical_offset": 40960,
+                "image_offset": 15456768,
+                "length": 1024
+              },
+              {
+                "logical_offset": 41984,
+                "image_offset": 12210688,
+                "length": 1024
+              },
+              {
+                "logical_offset": 43008,
+                "image_offset": 19188224,
+                "length": 1024
+              },
+              {
+                "logical_offset": 44032,
+                "image_offset": 18439680,
+                "length": 1024
+              },
+              {
+                "logical_offset": 45056,
+                "image_offset": 2494976,
+                "length": 337
+              }
+            ]
+          }
+        ],
+        "note": "Scatter at ordinary 1KiB allocation units; BPB/FAT/root directory independently constructed"
+      },
+      {
+        "name": "ntfs-deleted-data-runs",
+        "image": "images/ntfs-deleted-data-runs.dd",
+        "bytes": 67108864,
+        "sha256": "99060761dc5dc90c3f47ad86e3368853d16ae4d250dbcb6d185fa485dff4c553",
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 10444800,
+                "length": 4096
+              },
+              {
+                "logical_offset": 4096,
+                "image_offset": 22036480,
+                "length": 4096
+              },
+              {
+                "logical_offset": 8192,
+                "image_offset": 6250496,
+                "length": 4096
+              },
+              {
+                "logical_offset": 12288,
+                "image_offset": 19410944,
+                "length": 4096
+              },
+              {
+                "logical_offset": 16384,
+                "image_offset": 28557312,
+                "length": 4096
+              },
+              {
+                "logical_offset": 20480,
+                "image_offset": 24494080,
+                "length": 4096
+              },
+              {
+                "logical_offset": 24576,
+                "image_offset": 24707072,
+                "length": 4096
+              },
+              {
+                "logical_offset": 28672,
+                "image_offset": 16220160,
+                "length": 4096
+              },
+              {
+                "logical_offset": 32768,
+                "image_offset": 24813568,
+                "length": 4096
+              },
+              {
+                "logical_offset": 36864,
+                "image_offset": 22593536,
+                "length": 4096
+              },
+              {
+                "logical_offset": 40960,
+                "image_offset": 12926976,
+                "length": 4096
+              },
+              {
+                "logical_offset": 45056,
+                "image_offset": 11116544,
+                "length": 178
+              }
+            ]
+          }
+        ],
+        "note": "Deleted FILE record42 retains nonresident signed-delta data runs; independently written USA fixups"
+      },
+      {
+        "name": "raw-malformed-decoys",
+        "image": "images/raw-malformed-decoys.dd",
+        "bytes": 8388608,
+        "sha256": "1b14b8d24395296f72e608b05e9afaa84c5f8c3e4f389311b0506237d1e0d877",
+        "expected": [],
+        "note": "JPEG/ISO-BMFF headers with invalid structure; no recoverable original"
+      },
+      {
+        "name": "raw-contiguous-png",
+        "image": "images/raw-contiguous-png.dd",
+        "bytes": 8388608,
+        "sha256": "8a8204361b180af8534132580c119f061f30bcfcd84b737a31b15692ef8fad08",
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 131072,
+                "length": 127244
+              }
+            ]
+          }
+        ],
+        "note": ""
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "image": "images/raw-scattered-png-chunks.dd",
+        "bytes": 8388608,
+        "sha256": "1b76458667461091ec86b8a2a1f797a5d61e106f1f7aff82dee02d1fca1b3e11",
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2228224,
+                "length": 8
+              },
+              {
+                "logical_offset": 8,
+                "image_offset": 753664,
+                "length": 25
+              },
+              {
+                "logical_offset": 33,
+                "image_offset": 1179648,
+                "length": 4108
+              },
+              {
+                "logical_offset": 4141,
+                "image_offset": 1474560,
+                "length": 4108
+              },
+              {
+                "logical_offset": 8249,
+                "image_offset": 3342336,
+                "length": 4108
+              },
+              {
+                "logical_offset": 12357,
+                "image_offset": 2555904,
+                "length": 4108
+              },
+              {
+                "logical_offset": 16465,
+                "image_offset": 360448,
+                "length": 4108
+              },
+              {
+                "logical_offset": 20573,
+                "image_offset": 1441792,
+                "length": 4108
+              },
+              {
+                "logical_offset": 24681,
+                "image_offset": 327680,
+                "length": 4108
+              },
+              {
+                "logical_offset": 28789,
+                "image_offset": 32768,
+                "length": 4108
+              },
+              {
+                "logical_offset": 32897,
+                "image_offset": 786432,
+                "length": 4108
+              },
+              {
+                "logical_offset": 37005,
+                "image_offset": 688128,
+                "length": 4108
+              },
+              {
+                "logical_offset": 41113,
+                "image_offset": 1540096,
+                "length": 4108
+              },
+              {
+                "logical_offset": 45221,
+                "image_offset": 3801088,
+                "length": 4108
+              },
+              {
+                "logical_offset": 49329,
+                "image_offset": 720896,
+                "length": 4108
+              },
+              {
+                "logical_offset": 53437,
+                "image_offset": 3440640,
+                "length": 4108
+              },
+              {
+                "logical_offset": 57545,
+                "image_offset": 2523136,
+                "length": 4108
+              },
+              {
+                "logical_offset": 61653,
+                "image_offset": 3506176,
+                "length": 4108
+              },
+              {
+                "logical_offset": 65761,
+                "image_offset": 1671168,
+                "length": 4108
+              },
+              {
+                "logical_offset": 69869,
+                "image_offset": 3473408,
+                "length": 4108
+              },
+              {
+                "logical_offset": 73977,
+                "image_offset": 3276800,
+                "length": 4108
+              },
+              {
+                "logical_offset": 78085,
+                "image_offset": 3735552,
+                "length": 4108
+              },
+              {
+                "logical_offset": 82193,
+                "image_offset": 491520,
+                "length": 4108
+              },
+              {
+                "logical_offset": 86301,
+                "image_offset": 1048576,
+                "length": 4108
+              },
+              {
+                "logical_offset": 90409,
+                "image_offset": 1736704,
+                "length": 4108
+              },
+              {
+                "logical_offset": 94517,
+                "image_offset": 3637248,
+                "length": 4108
+              },
+              {
+                "logical_offset": 98625,
+                "image_offset": 1998848,
+                "length": 4108
+              },
+              {
+                "logical_offset": 102733,
+                "image_offset": 3702784,
+                "length": 4108
+              },
+              {
+                "logical_offset": 106841,
+                "image_offset": 1376256,
+                "length": 4108
+              },
+              {
+                "logical_offset": 110949,
+                "image_offset": 655360,
+                "length": 4108
+              },
+              {
+                "logical_offset": 115057,
+                "image_offset": 393216,
+                "length": 4108
+              },
+              {
+                "logical_offset": 119165,
+                "image_offset": 983040,
+                "length": 4108
+              },
+              {
+                "logical_offset": 123273,
+                "image_offset": 2850816,
+                "length": 3959
+              },
+              {
+                "logical_offset": 127232,
+                "image_offset": 884736,
+                "length": 12
+              }
+            ]
+          }
+        ],
+        "note": "Each complete PNG chunk is physically scattered; CRC and zlib unchanged"
+      },
+      {
+        "name": "raw-overwritten-png-crc",
+        "image": "images/raw-overwritten-png-crc.dd",
+        "bytes": 8388608,
+        "sha256": "dc7430a7a29c15517313e64fb9d63878873132f44fea1040c16bdda8d4a71cc1",
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": false,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2228224,
+                "length": 8
+              },
+              {
+                "logical_offset": 8,
+                "image_offset": 753664,
+                "length": 25
+              },
+              {
+                "logical_offset": 33,
+                "image_offset": 1179648,
+                "length": 4108
+              },
+              {
+                "logical_offset": 4141,
+                "image_offset": 1474560,
+                "length": 4108
+              },
+              {
+                "logical_offset": 8249,
+                "image_offset": 3342336,
+                "length": 4108
+              },
+              {
+                "logical_offset": 12357,
+                "image_offset": 2555904,
+                "length": 4108
+              },
+              {
+                "logical_offset": 16465,
+                "image_offset": 360448,
+                "length": 4108
+              },
+              {
+                "logical_offset": 20573,
+                "image_offset": 1441792,
+                "length": 4108
+              },
+              {
+                "logical_offset": 24681,
+                "image_offset": 327680,
+                "length": 4108
+              },
+              {
+                "logical_offset": 28789,
+                "image_offset": 32768,
+                "length": 4108
+              },
+              {
+                "logical_offset": 32897,
+                "image_offset": 786432,
+                "length": 4108
+              },
+              {
+                "logical_offset": 37005,
+                "image_offset": 688128,
+                "length": 4108
+              },
+              {
+                "logical_offset": 41113,
+                "image_offset": 1540096,
+                "length": 4108
+              },
+              {
+                "logical_offset": 45221,
+                "image_offset": 3801088,
+                "length": 4108
+              },
+              {
+                "logical_offset": 49329,
+                "image_offset": 720896,
+                "length": 4108
+              },
+              {
+                "logical_offset": 53437,
+                "image_offset": 3440640,
+                "length": 4108
+              },
+              {
+                "logical_offset": 57545,
+                "image_offset": 2523136,
+                "length": 4108
+              },
+              {
+                "logical_offset": 61653,
+                "image_offset": 3506176,
+                "length": 4108
+              },
+              {
+                "logical_offset": 65761,
+                "image_offset": 1671168,
+                "length": 4108
+              },
+              {
+                "logical_offset": 69869,
+                "image_offset": 3473408,
+                "length": 4108
+              },
+              {
+                "logical_offset": 73977,
+                "image_offset": 3276800,
+                "length": 4108
+              },
+              {
+                "logical_offset": 78085,
+                "image_offset": 3735552,
+                "length": 4108
+              },
+              {
+                "logical_offset": 82193,
+                "image_offset": 491520,
+                "length": 4108
+              },
+              {
+                "logical_offset": 86301,
+                "image_offset": 1048576,
+                "length": 4108
+              },
+              {
+                "logical_offset": 90409,
+                "image_offset": 1736704,
+                "length": 4108
+              },
+              {
+                "logical_offset": 94517,
+                "image_offset": 3637248,
+                "length": 4108
+              },
+              {
+                "logical_offset": 98625,
+                "image_offset": 1998848,
+                "length": 4108
+              },
+              {
+                "logical_offset": 102733,
+                "image_offset": 3702784,
+                "length": 4108
+              },
+              {
+                "logical_offset": 106841,
+                "image_offset": 1376256,
+                "length": 4108
+              },
+              {
+                "logical_offset": 110949,
+                "image_offset": 655360,
+                "length": 4108
+              },
+              {
+                "logical_offset": 115057,
+                "image_offset": 393216,
+                "length": 4108
+              },
+              {
+                "logical_offset": 119165,
+                "image_offset": 983040,
+                "length": 4108
+              },
+              {
+                "logical_offset": 123273,
+                "image_offset": 2850816,
+                "length": 3959
+              },
+              {
+                "logical_offset": 127232,
+                "image_offset": 884736,
+                "length": 12
+              }
+            ]
+          }
+        ],
+        "note": "IDAT bytes overwritten; CRC and whole zlib verification must fail"
+      },
+      {
+        "name": "raw-scattered-png-crc-decoy",
+        "image": "images/raw-scattered-png-crc-decoy.dd",
+        "bytes": 8388608,
+        "sha256": "67cb3cb393cb02619017c244ad1fabf8fa73f9811603249b7c6b9a7a20700c07",
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": true,
+            "extents": [
+              {
+                "logical_offset": 0,
+                "image_offset": 2392064,
+                "length": 8
+              },
+              {
+                "logical_offset": 8,
+                "image_offset": 2129920,
+                "length": 25
+              },
+              {
+                "logical_offset": 33,
+                "image_offset": 1015808,
+                "length": 4108
+              },
+              {
+                "logical_offset": 4141,
+                "image_offset": 2654208,
+                "length": 4108
+              },
+              {
+                "logical_offset": 8249,
+                "image_offset": 1638400,
+                "length": 4108
+              },
+              {
+                "logical_offset": 12357,
+                "image_offset": 2818048,
+                "length": 4108
+              },
+              {
+                "logical_offset": 16465,
+                "image_offset": 2588672,
+                "length": 4108
+              },
+              {
+                "logical_offset": 20573,
+                "image_offset": 163840,
+                "length": 4108
+              },
+              {
+                "logical_offset": 24681,
+                "image_offset": 262144,
+                "length": 4108
+              },
+              {
+                "logical_offset": 28789,
+                "image_offset": 3801088,
+                "length": 4108
+              },
+              {
+                "logical_offset": 32897,
+                "image_offset": 3768320,
+                "length": 4108
+              },
+              {
+                "logical_offset": 37005,
+                "image_offset": 3375104,
+                "length": 4108
+              },
+              {
+                "logical_offset": 41113,
+                "image_offset": 98304,
+                "length": 4108
+              },
+              {
+                "logical_offset": 45221,
+                "image_offset": 720896,
+                "length": 4108
+              },
+              {
+                "logical_offset": 49329,
+                "image_offset": 1835008,
+                "length": 4108
+              },
+              {
+                "logical_offset": 53437,
+                "image_offset": 2097152,
+                "length": 4108
+              },
+              {
+                "logical_offset": 57545,
+                "image_offset": 3014656,
+                "length": 4108
+              },
+              {
+                "logical_offset": 61653,
+                "image_offset": 3407872,
+                "length": 4108
+              },
+              {
+                "logical_offset": 65761,
+                "image_offset": 983040,
+                "length": 4108
+              },
+              {
+                "logical_offset": 69869,
+                "image_offset": 3604480,
+                "length": 4108
+              },
+              {
+                "logical_offset": 73977,
+                "image_offset": 1540096,
+                "length": 4108
+              },
+              {
+                "logical_offset": 78085,
+                "image_offset": 1277952,
+                "length": 4108
+              },
+              {
+                "logical_offset": 82193,
+                "image_offset": 1703936,
+                "length": 4108
+              },
+              {
+                "logical_offset": 86301,
+                "image_offset": 2228224,
+                "length": 4108
+              },
+              {
+                "logical_offset": 90409,
+                "image_offset": 1114112,
+                "length": 4108
+              },
+              {
+                "logical_offset": 94517,
+                "image_offset": 2916352,
+                "length": 4108
+              },
+              {
+                "logical_offset": 98625,
+                "image_offset": 2981888,
+                "length": 4108
+              },
+              {
+                "logical_offset": 102733,
+                "image_offset": 2195456,
+                "length": 4108
+              },
+              {
+                "logical_offset": 106841,
+                "image_offset": 1998848,
+                "length": 4108
+              },
+              {
+                "logical_offset": 110949,
+                "image_offset": 1212416,
+                "length": 4108
+              },
+              {
+                "logical_offset": 115057,
+                "image_offset": 1441792,
+                "length": 4108
+              },
+              {
+                "logical_offset": 119165,
+                "image_offset": 589824,
+                "length": 4108
+              },
+              {
+                "logical_offset": 123273,
+                "image_offset": 1671168,
+                "length": 3959
+              },
+              {
+                "logical_offset": 127232,
+                "image_offset": 3538944,
+                "length": 12
+              }
+            ]
+          }
+        ],
+        "note": "Additional CRC-valid but incompatible IDAT stream"
+      }
+    ],
+    "independent_scope_limits": [
+      "Procedural small media; mostly 0xCC image filler; no personal device or production data.",
+      "ntfs-deleted-data-runs is a damaged incomplete MFT probe, not normally formatted NTFS.",
+      "All original bytes present describes survival; it does not promise recoverability."
+    ]
+  }
+}
