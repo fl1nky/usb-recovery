@@ -53,7 +53,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
     for name in ("build-helper.ps1", "ProjectPaths.ps1"):
         shutil.copyfile(ROOT / "scripts" / name, rebuild / "scripts" / name)
     (rebuild / "tests").mkdir(exist_ok=True)
-    for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py"):
+    for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "ArchiveTextTests.py", "ArchiveTextAuditTests.py", "TelegramLegacyTests.py", "build_telegram_legacy_fixtures.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "Oct30IndependentReviewTests.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py','build_telegram_wal_tail_fixtures.py','build_telegram_overflow_fixtures.py'):
         if (ROOT / "tests" / name).is_file():

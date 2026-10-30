@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scope": "Actual preserved publishedV7 engine on two initial engineering calibration images. These inputs are separately identified and are not the final9 corpus. No paid-tool/device/speed superiority comparison.",
+  "pipeline_used": false,
+  "helper_used": false,
+  "cases": [
+    {
+      "image": "large-front-128m.dd",
+      "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+      "elapsed_ms": 331,
+      "peak_working_set": 33935360,
+      "candidates": 0,
+      "error": "IOException:MEDIA_SEARCH_LIMIT_REACHED",
+      "source_unchanged": true,
+      "input_sha256": "b65b112d43c5909a4b5e0d0158034605f37ac3aa09a563b6519cc8fd358ef78b",
+      "input_bytes": 134217728,
+      "original_sha256": "746f26a09aa2c97b2d79aad92e997c73d481d9ba83c15f531e7c5b9ab9c3afea",
+      "original_bytes": 20748275,
+      "status": "limited",
+      "verified_bytes": 0
+    },
+    {
+      "image": "large-tail-128m.dd",
+      "application_sha256": "d86dbd5acef8434c18bc3c59b806bb859d3b505b7e93f93909441656369f136e",
+      "elapsed_ms": 344,
+      "peak_working_set": 35102720,
+      "candidates": 0,
+      "error": "IOException:MEDIA_SEARCH_LIMIT_REACHED",
+      "source_unchanged": true,
+      "input_sha256": "bb76a1014ffcb4c6fca49345f157a30ec6f1101c29328e41a9d6ffc0481c530c",
+      "input_bytes": 134217728,
+      "original_sha256": "2b6d2e62e4d3c4da79a88c2775c73bf4d56dfb3eb8f0b0381aa2b3c797e69c64",
+      "original_bytes": 20748275,
+      "status": "limited",
+      "verified_bytes": 0
+    }
+  ]
+}

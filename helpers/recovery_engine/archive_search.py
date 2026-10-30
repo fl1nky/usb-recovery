@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import datetime as dt
 import heapq
+import hashlib
 import os
 from pathlib import Path
 import sqlite3
@@ -103,8 +104,16 @@ def _overflow_provenance(raw):
     return dict(zip(OVERFLOW_FIELDS, (length, digest, cleaned, list(pages), verified)))
 
 
+def _valid_unicode(value):
+    try:
+        value.encode("utf-8")
+        return True
+    except UnicodeError:
+        return False
+
+
 def _normalized(raw):
-    if not isinstance(raw, dict) or not isinstance(raw.get("text"), str):
+    if not isinstance(raw, dict) or not isinstance(raw.get("text"), str) or not _valid_unicode(raw["text"]):
         return None
     # Keep only known display/provenance fields. Never forward app crypto keys.
     names = ("app", "snapshot_id", "chat_id", "chat_name", "sender_id", "sender_name",
@@ -115,7 +124,7 @@ def _normalized(raw):
              "native_constructor", "native_layer", "wal_commit_frame", "wal_proof", "wal_db_sha256",
              "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit", "wal_current_state_confirmed",
              "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count",
-             "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region",
+             "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region", "sqlite_stored_mid",
              "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
@@ -124,6 +133,8 @@ def _normalized(raw):
     if overflow is None:
         return None
     result = {name: raw.get(name) for name in names}
+    if result["sqlite_stored_mid"] is not None and (type(result["sqlite_stored_mid"]) is not int or not -(1 << 63) <= result["sqlite_stored_mid"] < (1 << 63)):
+        result["sqlite_stored_mid"] = None
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))
     if not isinstance(result["app"], str) or result["app"] not in APPS - {""}:
         return None
@@ -133,7 +144,7 @@ def _normalized(raw):
         if result[name] is not None and not isinstance(result[name], (str, int, float, bool)):
             result[name] = None
         if name != "text" and isinstance(result[name], str):
-            result[name] = result[name][:4096]
+            result[name] = result[name][:4096] if _valid_unicode(result[name]) else None
     result.update(overflow)
     residuals = raw.get("residual_sources", [])
     provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
@@ -142,11 +153,14 @@ def _normalized(raw):
         if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None:
             continue
         origin = {k: (v[:4096] if isinstance(v, str) else v) for k, v in item.items()
-                  if k in provenance_names and isinstance(v, (str, int, bool))}
+                  if k in provenance_names and isinstance(v, (str, int, bool)) and (not isinstance(v, str) or _valid_unicode(v))}
         origin.update(overflow)
+        stored_mid = item.get("sqlite_stored_mid")
+        if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
+            origin["sqlite_stored_mid"] = stored_mid
         result["residual_sources"].append(origin)
     refs = raw.get("attachments", [])
-    result["attachments"] = [x for x in refs[:100] if isinstance(x, str) and len(x) < 4096] if isinstance(refs, list) else []
+    result["attachments"] = [x for x in refs[:100] if isinstance(x, str) and len(x) < 4096 and _valid_unicode(x)] if isinstance(refs, list) else []
     origins = raw.get("additional_sources", raw.get("sources", []))
     result["sources"] = []
     for item in origins[:10] if isinstance(origins, list) else []:
@@ -154,10 +168,13 @@ def _normalized(raw):
             continue
         origin = {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
              "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count")
-         if isinstance(item.get(k), (str, int))}
+         if isinstance(item.get(k), (str, int)) and (not isinstance(item[k], str) or _valid_unicode(item[k]))}
         origin.update({name: item[name][:4096] if isinstance(item[name], str) else item[name]
-                       for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool))})
+                       for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool)) and (not isinstance(item[name], str) or _valid_unicode(item[name]))})
         origin.update(overflow)
+        stored_mid = item.get("sqlite_stored_mid")
+        if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
+            origin["sqlite_stored_mid"] = stored_mid
         result["sources"].append(origin)
     return result
 
@@ -168,6 +185,7 @@ def _jsonl(path, warnings):
         raise SearchError("ARCHIVE_TOO_LARGE")
     with path.open("rb") as source:
         while True:
+            position = source.tell()
             line = source.readline(MAX_RECORD + 1)
             if not line:
                 break
@@ -183,6 +201,7 @@ def _jsonl(path, warnings):
             if value is None:
                 warnings.add("RECORD_SKIPPED")
             else:
+                value["archive_record_key"] = "jsonl:" + str(position) + ":" + hashlib.sha256(line).hexdigest()
                 yield value
 
 
@@ -202,14 +221,17 @@ def _sqlite(path, warnings):
         columns = {r[1] for r in connection.execute("PRAGMA table_info(messages)")}
         if not {"id", "json"}.issubset(columns):
             raise SearchError("ARCHIVE_SCHEMA_UNSUPPORTED")
-        for (raw,) in connection.execute("SELECT CASE WHEN length(json)<=? THEN json ELSE NULL END FROM messages ORDER BY id", (MAX_RECORD,)):
+        for ordinal, (record_id, raw) in enumerate(connection.execute("SELECT id,CASE WHEN length(json)<=? THEN json ELSE NULL END FROM messages ORDER BY id", (MAX_RECORD,))):
             try:
-                value = _normalized(json.loads(raw)) if isinstance(raw, str) else None
+                encoded = raw.encode("utf-8") if isinstance(raw, str) else None
+                value = _normalized(json.loads(raw)) if encoded is not None and len(encoded) <= MAX_RECORD else None
             except (ValueError, UnicodeError):
                 value = None
             if value is None:
                 warnings.add("RECORD_SKIPPED")
             else:
+                kind, position = ("sqlite", record_id) if type(record_id) is int else ("sqlite-ordinal", ordinal)
+                value["archive_record_key"] = kind + ":" + str(position) + ":" + hashlib.sha256(encoded).hexdigest()
                 yield value
     finally:
         connection.close()
@@ -248,8 +270,18 @@ def search(request):
 
     def displayed(value):
         if len(value["text"]) > MAX_TEXT_RESULT:
-            value["text_length"] = len(value["text"])
-            value["text"] = value["text"][:MAX_TEXT_RESULT]
+            text = value["text"]
+            try:
+                span = matcher.first_span(text)
+            except MatchError as error:
+                raise SearchError(error.code) from None
+            start = max(0, min((span[0] if span else 0) - MAX_TEXT_RESULT // 4, len(text) - MAX_TEXT_RESULT))
+            value["text_length"] = len(text)
+            value["text_offset"] = start
+            value["text_end"] = start + min(MAX_TEXT_RESULT, len(text) - start)
+            if span is not None:
+                value["match_offset"], value["match_end"] = span
+            value["text"] = text[start:start + MAX_TEXT_RESULT]
             value["text_truncated"] = True
         return value
 

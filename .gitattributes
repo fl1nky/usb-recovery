@@ -11,3 +11,6 @@
 *.db-wal binary
 # Preserve the exact bytes referenced by immutable benchmark hash indexes.
 /tests/benchmarks/evidence-v7-telegram/** -text
+/tests/benchmarks/evidence-v8-telegram/** -text whitespace=cr-at-eol
+/tests/benchmarks/evidence-v8-media-scale/** -text whitespace=cr-at-eol
+/tests/benchmarks/evidence-v8-scale/** -text whitespace=cr-at-eol

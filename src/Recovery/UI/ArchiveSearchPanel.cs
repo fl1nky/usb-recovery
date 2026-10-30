@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -22,6 +22,7 @@ namespace UsbRecovery
         public string recovery_status,deletion_interpretation,physical_source,record_sha256,proof,native_tl_body_sha256;
         public Dictionary<string,object>[] residual_sources;
         public object sqlite_page,record_page_offset,blob_page_offset,record_length,physical_byte_offset,wal_frame,candidate_message_id,candidate_peer,candidate_date;
+        public object sqlite_stored_mid;
         public string sqlite_region,offset_kind,sqlite_record_sha256;
         public object sqlite_record_page_offset,sqlite_record_length,sqlite_blob_page_offset;
         public bool? sqlite_header_length_reconstructed;
@@ -42,6 +43,8 @@ namespace UsbRecovery
         public object native_layer, wal_commit_frame;
         public object byte_offset, byte_length;
         public string encoding;
+        public string archive_record_key;
+        public long text_offset,text_end,match_offset,match_end;
         public bool? application_confirmed;
         public object chat_id, sender_id, message_id, timestamp, timestamp_raw;
         public bool text_truncated;
@@ -51,13 +54,23 @@ namespace UsbRecovery
         public Dictionary<string, object>[] sources;
     }
 
-    public sealed class ArchiveSearchResult
+    public class ArchiveResponse
     {
         public string status, code, archive;
+    }
+    public sealed class ArchiveSearchResult : ArchiveResponse
+    {
         public long total, offset;
         public int limit;
         public string[] warnings;
         public List<ArchiveMessage> records;
+    }
+    public sealed class ArchiveTextPage : ArchiveResponse
+    {
+        public string record_key,text;
+        public long text_offset,next_offset,text_length;
+        public int limit;
+        public bool eof;
     }
 
     public static class ArchiveSearchService
@@ -66,6 +79,48 @@ namespace UsbRecovery
         public static ArchiveSearchResult Search(string archive, string application, string query, string evidence, long offset, CancellationToken cancel)
         { return Search(archive, application, query, evidence, offset, cancel, false); }
         public static ArchiveSearchResult Search(string archive, string application, string query, string evidence, long offset, CancellationToken cancel, bool useRegex)
+        {
+            return RunRequest<ArchiveSearchResult>(new{protocol=1,operation="search",archive=archive,app="Telegram",query=query??"",query_mode=useRegex?"regex":"literal",evidence=evidence??"",offset=offset,limit=100,sort="latest"},cancel,
+                candidate=>ValidSearch(candidate,offset));
+        }
+        public static ArchiveTextPage ReadPage(string archive,string recordKey,long offset,CancellationToken cancel)
+        {
+            if(offset<0||offset>4*1024*1024||String.IsNullOrEmpty(recordKey)||recordKey.Length>128)throw new IOException("MESSAGE_REQUEST_INVALID");
+            return RunRequest<ArchiveTextPage>(new{protocol=1,operation="message_page",archive=archive,record_key=recordKey,text_offset=offset,limit=65536},cancel,
+                candidate=>candidate.status=="complete"&&candidate.record_key==recordKey&&candidate.text_offset==offset&&candidate.limit==65536&&candidate.text!=null&&candidate.text.Length<=131072&&candidate.text_length<=4*1024*1024&&candidate.next_offset>=offset&&candidate.next_offset<=candidate.text_length&&candidate.next_offset-offset<=65536&&candidate.next_offset-offset==CodePoints(candidate.text)&&candidate.eof==(candidate.next_offset==candidate.text_length)&&(candidate.eof||candidate.next_offset>offset));
+        }
+        static bool ValidSearch(ArchiveSearchResult candidate,long offset)
+        {
+            if(candidate.total<0||candidate.offset!=offset||candidate.limit!=100||candidate.records==null||candidate.records.Count>100)return false;
+            foreach(var message in candidate.records){
+                if(message==null||message.app!="Telegram"||message.text==null||message.text.Length>131072)return false;
+                long length=CodePoints(message.text);if(length<0||length>65536)return false;
+                if(message.text_truncated&&(message.text_length<=length||message.text_length>4*1024*1024||message.text_offset<0||message.text_end<message.text_offset||message.text_end>message.text_length||message.text_end-message.text_offset!=length||message.match_offset<message.text_offset||message.match_offset>message.text_end||message.match_end<message.match_offset||message.match_end>message.text_length))return false;
+            }return true;
+        }
+        static long CodePoints(string text)
+        {
+            long count=0;for(int index=0;index<text.Length;index++,count++){
+                if(Char.IsHighSurrogate(text[index])){if(index+1>=text.Length||!Char.IsLowSurrogate(text[index+1]))return -1;index++;}
+                else if(Char.IsLowSurrogate(text[index]))return -1;
+            }return count;
+        }
+        static bool JsonUnicode(string text)
+        {
+            for(int index=0;index<text.Length;index++){
+                if(text[index]=='\\'){
+                    if(++index>=text.Length)return false;
+                    if(text[index]!='u')continue;
+                    int value;if(index+4>=text.Length||!Int32.TryParse(text.Substring(index+1,4),NumberStyles.HexNumber,CultureInfo.InvariantCulture,out value))return false;index+=4;
+                    if(value>=0xdc00&&value<=0xdfff)return false;
+                    if(value>=0xd800&&value<=0xdbff){
+                        int following;if(index+6>=text.Length||text[index+1]!='\\'||text[index+2]!='u'||!Int32.TryParse(text.Substring(index+3,4),NumberStyles.HexNumber,CultureInfo.InvariantCulture,out following)||following<0xdc00||following>0xdfff)return false;index+=6;
+                    }
+                }else if(Char.IsHighSurrogate(text[index])){if(index+1>=text.Length||!Char.IsLowSurrogate(text[index+1]))return false;index++;}
+                else if(Char.IsLowSurrogate(text[index]))return false;
+            }return true;
+        }
+        static T RunRequest<T>(object request,CancellationToken cancel,Func<T,bool> valid) where T:ArchiveResponse
         {
             cancel.ThrowIfCancellationRequested();
             string executable = HelperClient.Executable;
@@ -76,22 +131,23 @@ namespace UsbRecovery
             {
                 process.StartInfo = new ProcessStartInfo(executable) { Arguments = "", WorkingDirectory = Path.GetDirectoryName(executable), UseShellExecute = false,
                     RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-                    StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8, CreateNoWindow = true };
+                    StandardOutputEncoding = new UTF8Encoding(false,true), StandardErrorEncoding = Encoding.UTF8, CreateNoWindow = true };
                 try { process.Start(); job.Attach(process); } catch { throw new IOException("HELPER_START_FAILED"); }
-                ArchiveSearchResult result = null;
+                T result = null;
                 Task errors = Task.Run(() => { var buffer = new char[4096]; while (process.StandardError.Read(buffer, 0, buffer.Length) > 0) { } });
                 Task output = Task.Run(() => {
                     string line;
                     while ((line = BoundedLine(process.StandardOutput)) != null)
                     {
                         try {
+                            if(!JsonUnicode(line))continue;
                             var header = serializer.Deserialize<Dictionary<string, object>>(line);
                             object type, protocol;
                             if (header == null || !header.TryGetValue("type", out type) || Convert.ToString(type) != "result" || !header.TryGetValue("protocol", out protocol) || Convert.ToInt32(protocol) != 1 || result != null) continue;
-                            var candidate = serializer.Deserialize<ArchiveSearchResult>(line);
+                            var candidate = serializer.Deserialize<T>(line);
                             if (candidate.status != "complete" && candidate.status != "partial" && candidate.status != "error") continue;
                             if (!Regex.IsMatch(candidate.code ?? "", "^[A-Z_]{2,40}$")) candidate.code = "SEARCH_FAILED";
-                            if (candidate.status != "error" && (candidate.total < 0 || candidate.offset != offset || candidate.limit != 100 || candidate.records == null || candidate.records.Count > 100)) continue;
+                            if (candidate.status != "error" && !valid(candidate)) continue;
                             result = candidate;
                         } catch { }
                     }
@@ -99,9 +155,9 @@ namespace UsbRecovery
                 using (cancel.Register(() => job.Stop()))
                 {
                     try {
-                        byte[] input = new UTF8Encoding(false).GetBytes(serializer.Serialize(new { protocol = 1, operation = "search", archive = archive, app = "Telegram", query = query ?? "", query_mode = useRegex ? "regex" : "literal", evidence = evidence ?? "", offset = offset, limit = 100, sort = "latest" }) + "\n");
-                        process.StandardInput.BaseStream.Write(input, 0, input.Length); process.StandardInput.BaseStream.Flush(); process.StandardInput.Close();
-                        while (!process.WaitForExit(200)) cancel.ThrowIfCancellationRequested();
+                        byte[] input = new UTF8Encoding(false).GetBytes(serializer.Serialize(request) + "\n");
+                        try{process.StandardInput.BaseStream.Write(input, 0, input.Length); process.StandardInput.BaseStream.Flush();}finally{Array.Clear(input,0,input.Length);process.StandardInput.Close();}
+                        while (!process.WaitForExit(200)){cancel.ThrowIfCancellationRequested();if(output.IsFaulted||errors.IsFaulted)throw new IOException("SEARCH_PROTOCOL_ERROR");}
                         Task.WaitAll(output, errors); cancel.ThrowIfCancellationRequested();
                         if (result == null || (process.ExitCode != 0 && result.status != "error")) throw new IOException("SEARCH_PROTOCOL_ERROR");
                         return result;
@@ -150,7 +206,7 @@ namespace UsbRecovery
     {
         readonly TextBox archive = new TextBox(), query = new TextBox(), body = new TextBox(), provenance = new TextBox();
         readonly ComboBox evidence = new ComboBox(), attachments = new ComboBox();
-        readonly Button choose = new Button(), analyze = new Button(), search = new Button(), previous = new Button(), next = new Button(), cancelButton = new Button(), openAttachment = new Button(), copy = new Button();
+        readonly Button choose = new Button(), analyze = new Button(), search = new Button(), previous = new Button(), next = new Button(), cancelButton = new Button(), openAttachment = new Button(), copy = new Button(), fullText = new Button();
         readonly Label count = new Label();
         readonly TextBox analysisStatus = new TextBox();
         readonly RecoveryActivityView analysisActivity=new RecoveryActivityView();
@@ -208,10 +264,10 @@ namespace UsbRecovery
             Column("chat", "Чат", 125); Column("author", "Автор", 125); Column("date", "Дата", 150); Column("category", "Категория", 130); Column("text", "Сообщение", 200); grid.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             grid.Name = "telegram-messages"; grid.SelectionChanged += delegate { ShowMessage(); }; layout.Controls.Add(grid, 0, 5);
             var selected = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0, 10, 0, 0) };
-            selected.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); selected.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); var actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4 };
-            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125));
+            selected.RowStyles.Add(new RowStyle(SizeType.Absolute, 38)); selected.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); var actions = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 5 };
+            actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170)); actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 125));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,110));
             actions.Controls.Add(new Label { Text = "Выбранное сообщение", AutoSize = true }, 0, 0); Configure(copy, "Копировать текст", delegate { if (!String.IsNullOrEmpty(body.Text)) { try { Clipboard.SetText(body.Text); } catch { } } }); actions.Controls.Add(copy, 1, 0);
-            attachments.DropDownStyle = ComboBoxStyle.DropDownList; attachments.Dock = DockStyle.Fill; actions.Controls.Add(attachments, 2, 0); Configure(openAttachment, "Вложение", delegate { OpenAttachment(); }); actions.Controls.Add(openAttachment, 3, 0); selected.Controls.Add(actions, 0, 0);
+            attachments.DropDownStyle = ComboBoxStyle.DropDownList; attachments.Dock = DockStyle.Fill; actions.Controls.Add(attachments, 2, 0); Configure(openAttachment, "Вложение", delegate { OpenAttachment(); }); actions.Controls.Add(openAttachment, 3, 0);Configure(fullText,"Полный текст",delegate{OpenFullText();});fullText.Name="telegram-full-text";fullText.Enabled=false;actions.Controls.Add(fullText,4,0);selected.Controls.Add(actions, 0, 0);
             body.Multiline = true; body.ReadOnly = true; body.HideSelection = false; body.ScrollBars = ScrollBars.Vertical; body.Dock = DockStyle.Fill; body.BackColor = Color.White; selected.Controls.Add(body, 0, 1); layout.Controls.Add(selected, 0, 6);
             provenance.Multiline = true; provenance.ReadOnly = true; provenance.ScrollBars = ScrollBars.Vertical; provenance.Dock = DockStyle.Fill; provenance.BackColor = Color.FromArgb(246, 246, 246); provenance.BorderStyle = BorderStyle.None; provenance.Margin = new Padding(0, 8, 0, 0); layout.Controls.Add(provenance, 0, 7);
             copy.Enabled = openAttachment.Enabled = false; Disposed += delegate { if (cancellation != null) cancellation.Cancel(); };
@@ -287,7 +343,7 @@ namespace UsbRecovery
                 current = result; pageOffset = result.offset; grid.Rows.Clear(); body.Clear(); provenance.Clear();
                 foreach (var message in result.records) {
                     if (!String.Equals(message.app, "Telegram", StringComparison.OrdinalIgnoreCase)) throw new IOException("SEARCH_APP_MISMATCH");
-                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind == "notification" ? "Уведомление" : Category(message.evidence_kind), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text)); grid.Rows[row].Tag = message;
+                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind == "notification" ? "Уведомление" : Category(message.evidence_kind), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text,message)); grid.Rows[row].Tag = message;
                 }
                 long last = Math.Min(result.total, pageOffset + result.records.Count); count.Text = result.total == 0 ? "По запросу ничего не найдено" : "Найдено: " + result.total.ToString("N0") + " · " + (pageOffset + 1) + "–" + last;
                 if (result.status == "partial") count.Text += " · есть замечания к архиву";
@@ -296,7 +352,7 @@ namespace UsbRecovery
             finally { busy = false; if (cancellation != null) { cancellation.Dispose(); cancellation = null; } if (!IsDisposed) { SetBusy(false); if (rerun) { rerun = false; BeginInvoke(new Action(() => StartSearch(0))); } } }
         }
 
-        void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset + 100 < current.total; }
+        void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset + 100 < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
         void ClearResults() { current = null; pageOffset = 0; grid.Rows.Clear(); ShowMessage(); }
         static string Known(string preferred, object fallback, string unknown) { return !String.IsNullOrEmpty(preferred) ? preferred : fallback == null || String.IsNullOrEmpty(Convert.ToString(fallback)) ? unknown : Convert.ToString(fallback); }
         static string DisplayDate(ArchiveMessage message)
@@ -307,8 +363,27 @@ namespace UsbRecovery
             return value;
         }
         string FirstTerm() { var terms = Regex.Split(query.Text.Trim(), "\\s+"); return terms.Length == 0 ? "" : terms[0]; }
-        string OneLine(string value) { value = (value ?? "").Replace('\r', ' ').Replace('\n', ' '); if (value.Length <= 300) return value; string term = FirstTerm(); int match = String.IsNullOrEmpty(term) ? -1 : value.IndexOf(term, StringComparison.OrdinalIgnoreCase); int start = match < 0 ? 0 : Math.Max(0, match - 100); int length = Math.Min(300, value.Length - start); return (start > 0 ? "…" : "") + value.Substring(start, length) + (start + length < value.Length ? "…" : ""); }
+        string OneLine(string value,ArchiveMessage message)
+        {
+            value=(value??"").Replace('\r',' ').Replace('\n',' ');if(value.Length<=300)return value;
+            string term=FirstTerm();int match=message.text_truncated&&message.match_offset>=message.text_offset&&message.match_offset<=message.text_end?CodePointIndex(value,message.match_offset-message.text_offset):String.IsNullOrEmpty(term)?-1:value.IndexOf(term,StringComparison.OrdinalIgnoreCase);
+            int start=match<0?0:Math.Max(0,match-100);if(start>0&&start<value.Length&&Char.IsLowSurrogate(value[start]))start--;
+            int length=Math.Min(300,value.Length-start);if(length>0&&start+length<value.Length&&Char.IsHighSurrogate(value[start+length-1]))length--;
+            return(start>0?"…":"")+value.Substring(start,length)+(start+length<value.Length?"…":"");
+        }
         static string Category(string value) { switch (value) { case "export": return "Из экспорта"; case "backup": return "Из резервной копии"; case "previous": return "Предыдущая версия"; case "fragment": return "Текстовый фрагмент"; default: return "Категория неизвестна"; } }
+        static int CodePointIndex(string text,long points)
+        {
+            int index=0;while(index<text.Length&&points>0){if(Char.IsHighSurrogate(text[index])&&index+1<text.Length&&Char.IsLowSurrogate(text[index+1]))index++;index++;points--;}return index;
+        }
+        static string DisplayText(string text){return (text??"").Replace("\r\n","\n").Replace('\r','\n').Replace("\n","\r\n");}
+        static int DisplayIndex(string text,int original)
+        {
+            int shown=0;for(int index=0;index<original;index++){
+                if(text[index]=='\r'&&index+1<text.Length&&text[index+1]=='\n'){shown++;if(index+1<original){shown++;index++;}}
+                else shown+=text[index]=='\r'||text[index]=='\n'?2:1;
+            }return shown;
+        }
         static Dictionary<string,object> UnconfirmedWalOrigin(ArchiveMessage message)
         {
             if(message.wal_current_state_confirmed==false)return new Dictionary<string,object>{{"wal_tail_reason",message.wal_tail_reason},{"wal_validated_prefix_bytes",message.wal_validated_prefix_bytes}};
@@ -321,9 +396,11 @@ namespace UsbRecovery
         void ShowMessage()
         {
             var message = grid.SelectedRows.Count == 0 ? null : grid.SelectedRows[0].Tag as ArchiveMessage;
-            body.Text = message == null ? "" : (message.text ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "\r\n"); provenance.Clear(); attachments.Items.Clear(); copy.Enabled = message != null; openAttachment.Enabled = false;
+            body.Text = message == null ? "" : DisplayText(message.text); provenance.Clear(); attachments.Items.Clear(); copy.Enabled = message != null; openAttachment.Enabled = false;fullText.Enabled=!IsBusy&&message!=null&&message.text_truncated&&!String.IsNullOrEmpty(message.archive_record_key);copy.Text=message!=null&&message.text_truncated?"Копировать фрагмент":"Копировать текст";
             if (message == null) return;
             string term = FirstTerm(); int location = String.IsNullOrEmpty(term) ? -1 : body.Text.IndexOf(term, StringComparison.OrdinalIgnoreCase); if (location >= 0) { body.Select(location, term.Length); body.ScrollToCaret(); }
+            if(message.text_truncated&&message.match_end>message.match_offset&&message.match_offset>=message.text_offset&&message.match_offset<message.text_end){
+                string raw=message.text??"";int begin=CodePointIndex(raw,message.match_offset-message.text_offset),end=CodePointIndex(raw,message.match_end-message.text_offset);int shownBegin=DisplayIndex(raw,begin),shownEnd=DisplayIndex(raw,end);body.Select(shownBegin,Math.Max(0,shownEnd-shownBegin));body.ScrollToCaret();}
             var details = new StringBuilder(); details.AppendLine("Источник: " + Known(message.source_file, null, "неизвестен") + " · запись: " + Known(message.source_record, null, "неизвестна"));
             details.AppendLine("Дата записи: " + Known(null, message.timestamp ?? message.timestamp_raw, "неизвестна"));
             details.Append("Снимок: " + Known(message.snapshot_id, null, "неизвестен") + " · ID чата: " + Known(null, message.chat_id, "неизвестен") + " · ID автора: " + Known(null, message.sender_id, "неизвестен") + " · ID сообщения: " + Known(null, message.message_id, "неизвестен"));
@@ -331,6 +408,7 @@ namespace UsbRecovery
             if (message.date_ambiguous == true || message.timezone_unknown == true) details.AppendLine("\r\nДата или часовой пояс требуют уточнения по исходному экспорту.");
             if (message.record_kind == "notification") details.AppendLine("\r\nСохранённый текст уведомления: может содержать только часть сообщения. Полная переписка в источнике может отсутствовать.");
             if (message.record_kind == "tl_message") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
+            if(message.sqlite_stored_mid!=null)details.AppendLine("Ключ записи в SQLite: "+Known(null,message.sqlite_stored_mid,"неизвестен")+". ID самого сообщения показан отдельно.");
             if (message.media_kind == "photo") details.AppendLine("\r\nВ записи есть фотография. Вложения включают только найденные локальные байты; наличие подписи не доказывает сохранность оригинального фото.");
             if (message.wal_proof == "all_pages_from_validated_wal") {
                 details.AppendLine("\r\n"+(message.wal_snapshot_latest_known_commit==true?"Последний полностью проверенный коммит WAL":"Предыдущий зафиксированный снимок SQLite")+": кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
@@ -353,12 +431,18 @@ namespace UsbRecovery
                 details.AppendLine("Класс: "+message.heap_class+"; идентификатор объекта дампа: "+message.heap_object_id+"; позиция: "+message.physical_byte_offset+". Это идентификатор в файле, а не доступ к памяти устройства.");
                 details.AppendLine("Поля объекта (предположительные): сообщение "+Known(null,message.candidate_message_id,"неизвестно")+", получатель "+Known(null,message.candidate_peer,"неизвестен")+", автор "+Known(null,message.candidate_sender,"неизвестен")+", дата Unix "+Known(null,message.candidate_date,"неизвестна")+". SHA256 записи: "+message.heap_record_sha256);
             }
-            if (message.text_truncated) details.AppendLine("\r\nПоказаны первые 65 536 символов. Полная запись остаётся в исходном архиве.");
+            if (message.text_truncated) details.AppendLine("\r\nПоказан фрагмент: символы "+message.text_offset+"–"+(message.text_end>0?message.text_end:Math.Min(message.text_length,65536))+" из "+message.text_length+". Полная запись остаётся в архиве; открой «Полный текст» для чтения частями.");
             if (current != null && current.warnings != null && current.warnings.Length > 0) details.AppendLine("\r\nПри чтении архива часть некорректных записей пропущена или использован резервный JSONL.");
             if (message.sources != null) foreach (var origin in message.sources) { object file, record; origin.TryGetValue("source_file", out file); origin.TryGetValue("source_record", out record); details.AppendLine("\r\nТакже: " + Known(null, file, "источник неизвестен") + " · " + Known(null, record, "запись неизвестна")); }
             provenance.Text = details.ToString();
             if (message.attachments != null) foreach (string item in message.attachments) if (Regex.IsMatch(item ?? "", "^media/[a-f0-9]{64}\\.[a-z0-9]{1,12}$")) attachments.Items.Add(new AttachmentChoice { Path = item, Number = attachments.Items.Count + 1 });
             if (attachments.Items.Count > 0) { attachments.SelectedIndex = 0; openAttachment.Enabled = true; }
+        }
+        void OpenFullText()
+        {
+            var message=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;
+            if(message==null||String.IsNullOrEmpty(message.archive_record_key))return;
+            using(var viewer=new ArchiveMessageTextForm(archive.Text,message))viewer.ShowDialog(this);
         }
         sealed class AttachmentChoice { public string Path; public int Number; public override string ToString() { return "Вложение " + Number + " · " + System.IO.Path.GetExtension(Path).TrimStart('.').ToUpperInvariant(); } }
         async void OpenAttachment()

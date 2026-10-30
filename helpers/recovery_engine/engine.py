@@ -315,7 +315,7 @@ class Importer:
                             "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256",
                             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
                             "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
-                            "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified") if m.get(name) is not None})
+                            "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified", "sqlite_stored_mid") if m.get(name) is not None})
                     return
             if candidates and evidence == "previous":
                 m["evidence_kind"] = "previous"
@@ -1474,10 +1474,11 @@ def main():
                 return 2
             emit("result", **result)
             return 2 if result["status"] == "error" else 0
-        if request.get("protocol") == 1 and request.get("operation") == "search":
+        if request.get("protocol") == 1 and request.get("operation") in ("search", "message_page"):
             from archive_search import search, SearchError
+            from archive_text import read_page
             try:
-                result = search(request)
+                result = read_page(request) if request["operation"] == "message_page" else search(request)
             except SearchError as error:
                 emit("result", status="error", code=error.code)
                 return 2

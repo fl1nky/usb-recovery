@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "scope": "Paired frozen-helper stdin API; no V8 application/UI/C# pipeline executed; same five logical target contents reused across four corpus cases",
+  "v7": {
+    "primary_cases": 4,
+    "gold_case_specific_target_occurrences": 20,
+    "verified_target_occurrences": 0,
+    "complete_five_target_cases": 0,
+    "literal_search_verified_occurrences": 0,
+    "regex_search_verified_occurrences": 0,
+    "negative_controls": 5,
+    "wrongly_linked_control_rows": 0,
+    "wrongly_linked_control_search_rows": 0
+  },
+  "v8": {
+    "primary_cases": 4,
+    "gold_case_specific_target_occurrences": 20,
+    "verified_target_occurrences": 20,
+    "complete_five_target_cases": 4,
+    "literal_search_verified_occurrences": 20,
+    "regex_search_verified_occurrences": 20,
+    "negative_controls": 5,
+    "wrongly_linked_control_rows": 0,
+    "wrongly_linked_control_search_rows": 0
+  },
+  "paid_results": "not_tested",
+  "real_devices_tested": false,
+  "helper_sha256": {
+    "v7": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+    "v8": "29e66798fd750c6672046bc8178aac54184ae3391e0a4ff8fd0d563f0c1f9786"
+  },
+  "helper_reruns": 0,
+  "collector_scorer_auditor_before": {
+    "run_telegram_legacy.py": "86586258c0e2a1e171a7495a6f972132a65f36b555e998029e3e25e3d8989a0e",
+    "score_telegram_legacy.py": "ae4bbc48ee213333b610d85bbdc71ae5ca8ef9745650b4817b1a3e323342915c",
+    "prepare_telegram_legacy_controls.py": "c48f1b909f3d44fa905ac4031f01fc01048572eee8ec0ff2d0d51ba5cc7d46f3",
+    "audit_telegram_legacy_scorer.py": "3bb9966c1d8934a8de2e5d93c816326666e24af56e61931c9ec4fe4c8666f7c7"
+  },
+  "collector_scorer_auditor_after": {
+    "run_telegram_legacy.py": "86586258c0e2a1e171a7495a6f972132a65f36b555e998029e3e25e3d8989a0e",
+    "score_telegram_legacy.py": "ae4bbc48ee213333b610d85bbdc71ae5ca8ef9745650b4817b1a3e323342915c",
+    "prepare_telegram_legacy_controls.py": "c48f1b909f3d44fa905ac4031f01fc01048572eee8ec0ff2d0d51ba5cc7d46f3",
+    "audit_telegram_legacy_scorer.py": "3bb9966c1d8934a8de2e5d93c816326666e24af56e61931c9ec4fe4c8666f7c7"
+  },
+  "exporter_sha256_before": "48f1ece9860d174f36dbcc916db5087c21ea57924662e054098d776fe0c83bdd",
+  "exporter_sha256_after": "48f1ece9860d174f36dbcc916db5087c21ea57924662e054098d776fe0c83bdd",
+  "input_envelope_sha256": "e321c00c65170d358b477ce131e6ddd882bdd24d2ab2635f81daea0962a288ef",
+  "raw_envelope_sha256": "0d69ffd9926284413eb8e4d8b5d3db47003a22285f012069f2617793518f4f51",
+  "restoration": {
+    "status": "passed",
+    "files": 429,
+    "bytes": 2095152,
+    "inventory_sha256": "ee1407b3ba6e9131a1fb85dcc1bbc9771735d85844ac4f49cb6a6141fa76e609"
+  },
+  "audit_checks": 76
+}

@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "scope": "Separate source-driver and actual packaged-app engine proofs; no new paid/device results",
+  "files": {
+    "released-app.json": {
+      "bytes": 15304,
+      "sha256": "b01b3620812e5355519ba99986df0f8ba633ad1f6768318c56e01c28d4323dfc"
+    },
+    "source-driver.json": {
+      "bytes": 16183,
+      "sha256": "17a23b54b1487b4d13d803702a5dc28342172f884b74176e4063c834ba9dd22f"
+    },
+    "v7-initial-calibration.json": {
+      "bytes": 1581,
+      "sha256": "55524f69030bfc1a5aaeed35b27411120b3ee3ae5e1b7a01bb0373f2672bb3c1"
+    }
+  }
+}

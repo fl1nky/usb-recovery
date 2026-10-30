@@ -202,6 +202,18 @@ def _safe_reference(reference):
     return Path(*value.split("/"))
 
 
+def _legacy_messages_schema(connection):
+    """Exact supported Android messages layout, not a generic archive table."""
+    expected = (("mid", "INTEGER"), ("uid", "INTEGER"), ("read_state", "INTEGER"),
+        ("send_state", "INTEGER"), ("date", "INTEGER"), ("data", "BLOB"),
+        ("out", "INTEGER"), ("ttl", "INTEGER"), ("media", "INTEGER"),
+        ("replydata", "BLOB"), ("imp", "INTEGER"), ("mention", "INTEGER"))
+    actual = connection.execute("PRAGMA table_info(messages)").fetchall()
+    return len(actual) == len(expected) and all(
+        row[1] == name and row[2].upper() == kind and row[5] == (1 if index == 0 else 0)
+        for index, (row, (name, kind)) in enumerate(zip(actual, expected)))
+
+
 class Analyzer:
     def __init__(self, request, importer, emit):
         self.request = request
@@ -423,7 +435,8 @@ class Analyzer:
             if connection.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                 raise AutoError("TELEGRAM_SQLITE_INVALID")
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            self.last_native_database = bool({"messages_v2", "messages_topics", "unread_push_messages"} & tables)
+            legacy_messages = "messages" in tables and _legacy_messages_schema(connection)
+            self.last_native_database = legacy_messages or bool({"messages_v2", "messages_topics", "unread_push_messages"} & tables)
             if "messages" in tables:
                 cols = {row[1] for row in connection.execute("PRAGMA table_info(messages)")}
                 if {"id", "app", "json"} <= cols:
@@ -467,8 +480,11 @@ class Analyzer:
                             self.stop = True
                             break
                     self.remark("TELEGRAM_NOTIFICATION_PREVIEWS", original)
-            if {"messages_v2", "messages_topics"} & tables:
-                self.native_messages(connection, tables, original)
+            native_tables = {"messages_v2", "messages_topics"} & tables
+            if legacy_messages:
+                native_tables.add("messages")
+            if native_tables:
+                self.native_messages(connection, native_tables, original)
                 if not self.history_snapshot and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
                     self.deleted_records(copied, connection, original)
                 return True
@@ -489,7 +505,7 @@ class Analyzer:
         source_label = self.worker.source_label or str(original)
         identity = "telegram-db:" + hashlib.sha256(os.path.normcase(os.path.abspath(source_label)).encode("utf-8")).hexdigest()
         rejected, accepted, errors = 0, 0, {}
-        for table in ("messages_v2", "messages_topics"):
+        for table in ("messages_v2", "messages_topics", "messages"):
             if table not in tables:
                 continue
             columns = {row[1] for row in connection.execute("PRAGMA table_info(" + table + ")")}
@@ -505,9 +521,20 @@ class Analyzer:
                     if not all(type(v) is int for v in (mid, uid, date)) or not isinstance(data, bytes):
                         raise TelegramTlError("TL_DB_ROW_INVALID")
                     value = parse_message(data)
-                    if mid != value["id"] or date != value["date"]:
-                        raise TelegramTlError("TL_DB_KEYS_MISMATCH")
                     peer, sender = value["peer"], value["from_peer"]
+                    expected_mid = value["id"]
+                    if table == "messages":
+                        # Legacy Android uses signed int32 dialog peers and
+                        # Java's signed long OR, including negative local IDs.
+                        # Do not merely mask SQLmid to its low 32 bits.
+                        if not 0 < abs(uid) <= 0x7fffffff:
+                            raise TelegramTlError("TL_DB_DIALOG_MISMATCH")
+                        if peer["kind"] == "channel":
+                            if not 0 < peer["id"] <= 0x7fffffff:
+                                raise TelegramTlError("TL_DB_DIALOG_MISMATCH")
+                            expected_mid |= peer["id"] << 32
+                    if mid != expected_mid or date != value["date"]:
+                        raise TelegramTlError("TL_DB_KEYS_MISMATCH")
                     if peer["kind"] in ("chat", "channel"):
                         related = uid == -peer["id"]
                     elif value["out"] or sender is None:
@@ -523,13 +550,13 @@ class Analyzer:
                     timestamp = dt.datetime.fromtimestamp(date, dt.timezone.utc).isoformat() if date else None
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
                     media_fields, attachments = self.native_photo(media, record, original)
-                    self.message(text, "backup", chat_id=uid, message_id=mid,
+                    self.message(text, "backup", chat_id=uid, message_id=value["id"],
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                         sender_name=None, timestamp=timestamp, source_record=record,
                         identity_scope=identity, record_kind="tl_message", completeness=value["validation"],
                         native_constructor=value["constructor"], native_layer=value["layer"], application_confirmed=True,
                         native_tl_body_sha256=hashlib.sha256(data[:value["tl_bytes"]]).hexdigest(),
-                        attachments=attachments, **media_fields)
+                        attachments=attachments, **media_fields, **({"sqlite_stored_mid": mid} if table == "messages" else {}))
                     self.confirmed_tl_bodies.add(hashlib.sha256(data[:value["tl_bytes"]]).hexdigest())
                     accepted += 1
                 except (TelegramTlError, OverflowError, OSError, ValueError) as error:

@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "scope": "Frozen standalone C# engine on owned synthetic inputs. No application Pipeline, phone, personal-device or paid-tool comparison claim.",
+  "outcome": {
+    "cases": 7,
+    "expectations_met": 5,
+    "expectations_unmet": 2,
+    "exact_fragmented_cases": 2,
+    "distinct_exact_originals": 1,
+    "near_boundary_seed_checks_passed": 4,
+    "remaining_gap": "One real23.6MiB AVC-only all-I source is ambiguous in both contiguous and two-region whole-chunk arrangements; no heuristic selection requested."
+  },
+  "authored_resource_gates": {
+    "peak_working_set_max_bytes": 268435456,
+    "source_read_bytes_max_multiple_of_image": 32,
+    "cancellation_return_max_ms": 3000,
+    "published_map_ranges_per_file_max": 4096
+  },
+  "bindings": {
+    "manifest_sha256": "0da0bb3d6e4cebe68a371ecf883d64da00d78e9d1caa5637316cdaebab950394",
+    "source_manifest_sha256": "2c230b70930e1459071be1baf4cab5040edd1b975590538f78bc1e8c3bb04355",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "runtime_snapshot_before_remaining_cases": {
+      "AacLcValidator.cs": "efd386a64723325fa9c02a59c033e6eca28014bf751681168d717b1a00a349a0",
+      "AacSyntaxTables.cs": "ac791f7d789ed8ec0acd45db5d16810c35b10ad7ce1f90117ea14f2662e1e1f6",
+      "FragmentedMediaRecovery.cs": "161adf6cf3c32ec984893fa801f6f6a9f3b1dd69c07ca2bc0e5d696658b0c0c0",
+      "FragmentedMediaRecovery.Ranges.cs": "65aff671ba16b8768352e983aad5ad35deb5be49504bfbfd13e87633556304ad",
+      "FragmentedMediaRecovery.Units.cs": "4be06536885826537f600c7044cc473d3b0ef8a98dbb0d83929b9075459e5cec",
+      "HevcSampleValidator.cs": "973090a2bc1f52d477247153def4383d527b7c99a9666961cd22b130ff980e56",
+      "ScaleCaseAuditRunner.cs": "1832a45d920823c5400b272e2389fedccb789d7dd56a1788d932d531be432572",
+      "ScaleCaseAuditRunner.exe": "7dcf5e41f57d316638d698b08883983ab7653bd23fc273258fd2f7076cefaa48"
+    },
+    "runtime_snapshot_after": {
+      "AacLcValidator.cs": "efd386a64723325fa9c02a59c033e6eca28014bf751681168d717b1a00a349a0",
+      "AacSyntaxTables.cs": "ac791f7d789ed8ec0acd45db5d16810c35b10ad7ce1f90117ea14f2662e1e1f6",
+      "FragmentedMediaRecovery.cs": "161adf6cf3c32ec984893fa801f6f6a9f3b1dd69c07ca2bc0e5d696658b0c0c0",
+      "FragmentedMediaRecovery.Ranges.cs": "65aff671ba16b8768352e983aad5ad35deb5be49504bfbfd13e87633556304ad",
+      "FragmentedMediaRecovery.Units.cs": "4be06536885826537f600c7044cc473d3b0ef8a98dbb0d83929b9075459e5cec",
+      "HevcSampleValidator.cs": "973090a2bc1f52d477247153def4383d527b7c99a9666961cd22b130ff980e56",
+      "ScaleCaseAuditRunner.cs": "1832a45d920823c5400b272e2389fedccb789d7dd56a1788d932d531be432572",
+      "ScaleCaseAuditRunner.exe": "7dcf5e41f57d316638d698b08883983ab7653bd23fc273258fd2f7076cefaa48"
+    },
+    "runtime_unchanged": true,
+    "original_driver_sha256_before_first_case": "7dcf5e41f57d316638d698b08883983ab7653bd23fc273258fd2f7076cefaa48",
+    "scorer_v1_sha256": "3f79825a566ce1c394d655917f5cde1c16891306ed5968909bb5ce162ea64b1a",
+    "scorer_v2_sha256": "6a1651a760a9dc891c137afb1e1b859075f32ffbc9b852b47a88106de556f3ec",
+    "raw_summary_sha256": "0f6c10246c6c0b9271ecf0199bd2c2846578924447b231d2d059c1baeec7992e",
+    "seed_test_sha256": "4f3afcdd23dbbe6193a174bea98ab16c3933d7cb7b4c47dcd4ea61edd5576d49"
+  },
+  "cases": [
+    {
+      "name": "random-phase24",
+      "pass_": true,
+      "count": 1,
+      "error": null,
+      "status": "complete",
+      "elapsed_ms": 21107,
+      "peak_working_set_bytes": 44986368,
+      "source_read_bytes": 529531879,
+      "verified_bytes": 102292403,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [
+        {
+          "sha256": "98f7743659209631f1942e0b2c6c8b356d48aa6c208c5585134cfa673cb675a0",
+          "map_replay_sha256": "98f7743659209631f1942e0b2c6c8b356d48aa6c208c5585134cfa673cb675a0",
+          "decoded_frames_sha256": "228fc9e937d5fc1c1ed47a91286e0175136b4622761883d851f2b54b3ebf0d49",
+          "decoded_audio_sha256": "10e045dd2d45b80a4f7eac72dc7f9bf4210fd4de693b9b1bcee59ce089101416",
+          "proven": true
+        }
+      ],
+      "skipped": {},
+      "raw_receipt_sha256": "478ee97be94632c7b2385395b94bdfa1da4400984aab2bce99198614575d7de9",
+      "input_bytes": 134217735,
+      "input_sha256": "cfa72c949a19938c2dc1e7e416ceb223070b460c4135088e746b04917509d9d8",
+      "intended_output_count": 1,
+      "intended_skip": null
+    },
+    {
+      "name": "late64m-phase511",
+      "pass_": true,
+      "count": 1,
+      "error": null,
+      "status": "complete",
+      "elapsed_ms": 16790,
+      "peak_working_set_bytes": 44675072,
+      "source_read_bytes": 730860957,
+      "verified_bytes": 102292402,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [
+        {
+          "sha256": "98f7743659209631f1942e0b2c6c8b356d48aa6c208c5585134cfa673cb675a0",
+          "map_replay_sha256": "98f7743659209631f1942e0b2c6c8b356d48aa6c208c5585134cfa673cb675a0",
+          "decoded_frames_sha256": "228fc9e937d5fc1c1ed47a91286e0175136b4622761883d851f2b54b3ebf0d49",
+          "decoded_audio_sha256": "10e045dd2d45b80a4f7eac72dc7f9bf4210fd4de693b9b1bcee59ce089101416",
+          "proven": true
+        }
+      ],
+      "skipped": {},
+      "raw_receipt_sha256": "a0497ad36a3867982d712dcdb5f83abb8ca006cbf1bf44a2827a7a3d62da02c5",
+      "input_bytes": 201327086,
+      "input_sha256": "1b6b928d44a87631ab887dc1f56814eb035d55894475e48d3b53a150b6d6c5c6",
+      "intended_output_count": 1,
+      "intended_skip": null
+    },
+    {
+      "name": "opaque-contiguous23m",
+      "pass_": false,
+      "count": 0,
+      "error": null,
+      "status": "complete",
+      "elapsed_ms": 384,
+      "peak_working_set_bytes": 41959424,
+      "source_read_bytes": 252012134,
+      "verified_bytes": 204808390,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [],
+      "skipped": {
+        "chunk_payload_ambiguous": 1
+      },
+      "raw_receipt_sha256": "bec6d358f9325978d15fb0864de01a5c43f597dc10be460d4b2b96cd38d2b03f",
+      "input_bytes": 23602068,
+      "input_sha256": "3db9a946dc86bd35d99cd8c0a5fed72f1963ada9b2228ca28affcc85225c4391",
+      "intended_output_count": 0,
+      "intended_skip": "already_contiguous",
+      "assessment": "NOT_RECOVERED: engine reports chunk_payload_ambiguous; no output published. Source clip itself fully decodes. Alternative matches were not independently decoded."
+    },
+    {
+      "name": "opaque-wholechunk23m",
+      "pass_": false,
+      "count": 0,
+      "error": null,
+      "status": "complete",
+      "elapsed_ms": 1021,
+      "peak_working_set_bytes": 43618304,
+      "source_read_bytes": 473243469,
+      "verified_bytes": 204808415,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [],
+      "skipped": {
+        "chunk_payload_ambiguous": 1
+      },
+      "raw_receipt_sha256": "482b3d26007a47e717a66674776cf7492790e4bf524071e1c311be572f0e3b51",
+      "input_bytes": 134217728,
+      "input_sha256": "bbec309054a1f0c94dc01f75b8d8307ffdc9ce6600f85586617da284dbbec7f9",
+      "intended_output_count": 1,
+      "intended_skip": null,
+      "assessment": "NOT_RECOVERED: engine reports chunk_payload_ambiguous; no output published. Source clip itself fully decodes. Alternative matches were not independently decoded."
+    },
+    {
+      "name": "random-only64m",
+      "pass_": true,
+      "count": 0,
+      "error": null,
+      "status": "complete",
+      "elapsed_ms": 217,
+      "peak_working_set_bytes": 32260096,
+      "source_read_bytes": 67108864,
+      "verified_bytes": 0,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [],
+      "skipped": {},
+      "raw_receipt_sha256": "51bb1b9da0ae3c4dc63e83598925f4ad313de851021df53357a094d55ca2cfec",
+      "input_bytes": 67108864,
+      "input_sha256": "a9be69b0ba07cc7d35f4169b9994ee1f0314fff2081407195eebc67010cb7603",
+      "intended_output_count": 0,
+      "intended_skip": null
+    },
+    {
+      "name": "cancel-after-index",
+      "pass_": true,
+      "count": -1,
+      "error": "OperationCanceledException",
+      "status": "cancelled",
+      "elapsed_ms": 403,
+      "peak_working_set_bytes": 41472000,
+      "source_read_bytes": 134373225,
+      "verified_bytes": 103644,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": 73,
+      "outputs": [],
+      "skipped": {},
+      "raw_receipt_sha256": "7481f592216e53bffc8699585d666bcae5103a8e956e2399705fd8c7335c38bb",
+      "input_bytes": 134217735,
+      "input_sha256": "cfa72c949a19938c2dc1e7e416ceb223070b460c4135088e746b04917509d9d8",
+      "intended_output_count": 0,
+      "intended_skip": null
+    },
+    {
+      "name": "bounded-verification",
+      "pass_": true,
+      "count": -1,
+      "error": "MEDIA_SEARCH_LIMIT_REACHED",
+      "status": "limited",
+      "elapsed_ms": 6360,
+      "peak_working_set_bytes": 38318080,
+      "source_read_bytes": 269529000,
+      "verified_bytes": 1040661,
+      "source_unchanged": true,
+      "cancel_return_latency_ms": null,
+      "outputs": [],
+      "skipped": {},
+      "raw_receipt_sha256": "10cd2b1b05c905afcf3f3ee583d56389878d09974d8ef1b715b25ed57d00d4ca",
+      "input_bytes": 134217735,
+      "input_sha256": "cfa72c949a19938c2dc1e7e416ceb223070b460c4135088e746b04917509d9d8",
+      "intended_output_count": 0,
+      "intended_skip": null
+    }
+  ],
+  "preserved_v7_standalone_baselines": {
+    "executable_sha256": "bde027a2da944bd0388840aa9c943e188bc5e2379fb5436a2e456765294a4cc2",
+    "source_main_sha256": "33e7064d89bfdc933cd9c924a72150b884cc6b5c6f406bda0e28ee0a45c9ef34",
+    "cases": [
+      {
+        "name": "opaque-contiguous23m",
+        "count": null,
+        "failure": "MEDIA_SEARCH_LIMIT_REACHED",
+        "status": "limited",
+        "unchanged": true,
+        "elapsed_ms": 842,
+        "files": [],
+        "skips": {},
+        "verified": 536721543,
+        "evidence_sha256": "31cbb32855747a4815f39b1a5dc17e4b49ad12b203959e0b2c880b24cce22168"
+      },
+      {
+        "name": "opaque-wholechunk23m",
+        "count": null,
+        "failure": "MEDIA_SEARCH_LIMIT_REACHED",
+        "status": "limited",
+        "unchanged": true,
+        "elapsed_ms": 1821,
+        "files": [],
+        "skips": {},
+        "verified": 536762726,
+        "evidence_sha256": "ed4ffa51bad5966a1c6c62251a644e6b13f617a262e17199262780430b119575"
+      }
+    ]
+  },
+  "orchestration_note": "Initial scorer incorrectly treated relative output path as absolute. V1 preserved. V2 resolved paths and reused the saved first-case receipt; every recovery case executed once. No timeout or recovery restart.",
+  "limits": [
+    "Only AVC/AAC scale cases were decoded here; no large HEVC/JPEG validation claim.",
+    "Seed regression validates source-backed structural anchors only, not a decoded or authentic video.",
+    "All sources and frozen runtime hashes remained unchanged. No failed/limited/cancelled case published a candidate or partial output.",
+    "Opaque source was also limited in preserved V7 standalone; no demonstrated prior-exact regression."
+  ],
+  "local_raw_evidence": ".build/scale-controls-audit-20261031-01/final-run-01 (not distributed fixture payloads)",
+  "opaque_source_decode_proof": {
+    "scope": "Actual full FFmpeg decode of owned source only; no recovery claim",
+    "original_sha256": "3db9a946dc86bd35d99cd8c0a5fed72f1963ada9b2228ca28affcc85225c4391",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "decoded_frames_sha256": "3dcf7cc55806846ecde780c3c59d13a3d1fdefacac18e26796964dab5f1045f1",
+    "source_unchanged": true
+  }
+}

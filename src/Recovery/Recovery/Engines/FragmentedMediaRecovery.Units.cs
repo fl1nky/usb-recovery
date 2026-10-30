@@ -9,17 +9,18 @@ namespace UsbRecovery
         // Allocation-unit search is a narrower, explicit hypothesis than a
         // general byte permutation. Every unit needs a container/sample anchor.
         // Sample tables declare offsets and lengths, not hashes or ownership.
-        const int UnitFileLimit=16*1024*1024,UnitCellLimit=4096,UnitStateLimit=8192;
+        const int UnitCellLimit=4096,UnitStateLimit=8192;
         const int UnitMetadataLimit=65536,UnitMetadataParts=8,UnitMemoryLimit=32*1024*1024;
         sealed class UnitHead {public long At;public byte[] Raw;}
         sealed class UnitIndex
         {
             public Dictionary<string,List<long>> Audio=new Dictionary<string,List<long>>(StringComparer.Ordinal);
             public int States,MetadataProbes,AudioMatches;
+            public long MetadataCacheBytes;
         }
         sealed class UnitAudioQuery {public int Residue;public UnitSample Sample;public List<long> Positions=new List<long>();}
         sealed class UnitSample {public long Logical;public int Bytes;public Chunk Chunk;}
-        sealed class UnitCopy {public long At;public byte[] Raw;public List<long> Copies=new List<long>(),Choices=new List<long>();}
+        sealed class UnitCopy {public long At;public int Length,ContentId;public string Sha;public List<long> Copies=new List<long>(),Choices=new List<long>();}
         sealed class UnitLocation {public int Cell;public long At,End;public string Key;}
         sealed class UnitOption {public UnitCopy Copy;public long At;}
         sealed class UnitFixed {public long Logical;public byte[] Raw;}
@@ -112,7 +113,10 @@ namespace UsbRecovery
         static List<Extent> UnitSolve(Context c,int unit,int length,List<UnitFixed> known,List<UnitSample> samples,List<Extent> metadata,int phase,out string digest)
         {
             digest=null;int count=(length+unit-1)/unit;if(count>UnitCellLimit)return null;
+            bool ranged=length>16*1024*1024;
             var seeds=Enumerable.Range(0,count).Select(x=>new HashSet<long>()).ToArray();
+            if(ranged){seeds=RangeUnitSeeds(c,unit,length,known,samples,metadata,phase);if(seeds==null)return null;}
+            else {
             foreach(var e in metadata){for(long p=e.LogicalOffset;p<e.LogicalOffset+e.Length;p=(p/unit+1)*unit)UnitSeed(c,seeds,unit,length,phase,p,e.ImageOffset+p-e.LogicalOffset);}
             foreach(var sample in samples){
                 c.Cancel.ThrowIfCancellationRequested();int within=(int)(sample.Logical%unit);
@@ -126,41 +130,44 @@ namespace UsbRecovery
                 }
             }
             if(seeds.Any(x=>x.Count==0))return null;
+            }
             var candidates=new List<UnitCopy>[count];long retained=0;
             for(int cell=0;cell<count;cell++){
                 int bytes=Math.Min(unit,length-cell*unit);var groups=new Dictionary<string,UnitCopy>(StringComparer.Ordinal);
                 foreach(long at in seeds[cell].OrderBy(x=>x)){
-                    byte[] raw=c.Read(at,bytes,true);if(!UnitCellValid(raw,(long)cell*unit,known,samples))continue;string hash=Sha(raw);UnitCopy copy;
-                    if(groups.TryGetValue(hash,out copy)){copy.Copies.Add(at);continue;}
-                    if((retained+=bytes)>UnitMemoryLimit)throw new Budget();copy=new UnitCopy{At=at,Raw=raw};copy.Copies.Add(at);groups.Add(hash,copy);
+                    if(ranged){if(!UnitCellRangeValid(c,at,(long)cell*unit,bytes,known,samples))continue;}
+                    else {byte[] raw=c.Read(at,bytes,true);if(!UnitCellValid(raw,(long)cell*unit,known,samples))continue;}
+                    string hash=HashRange(c,at,bytes);UnitCopy copy;
+                    if((retained+=512)>UnitMemoryLimit)throw new Budget();if(groups.TryGetValue(hash,out copy)){copy.Copies.Add(at);continue;}
+                    if((retained+=1024)>UnitMemoryLimit)throw new Budget();copy=new UnitCopy{At=at,Length=bytes,Sha=hash,ContentId=groups.Count};copy.Copies.Add(at);groups.Add(hash,copy);
                 }
                 candidates[cell]=groups.Values.ToList();if(candidates[cell].Count==0)return null;
             }
             // Equal-byte copies are interchangeable only if every other cell
             // sees exactly the same overlap constraints. Greedy copy selection
             // otherwise can hide a second, distinct valid file assignment.
-            var locations=new List<UnitLocation>();for(int cell=0;cell<count;cell++)for(int item=0;item<candidates[cell].Count;item++)foreach(long at in candidates[cell][item].Copies)locations.Add(new UnitLocation{Cell=cell,At=at,End=at+candidates[cell][item].Raw.Length,Key=cell+":"+item+":"+at});
+            var locations=new List<UnitLocation>();for(int cell=0;cell<count;cell++)for(int item=0;item<candidates[cell].Count;item++)foreach(long at in candidates[cell][item].Copies)locations.Add(new UnitLocation{Cell=cell,At=at,End=at+candidates[cell][item].Length,Key=cell+":"+item+":"+at});
             locations=locations.OrderBy(x=>x.At).ThenBy(x=>x.Cell).ToList();int comparisons=0;
             for(int cell=0;cell<count;cell++)foreach(var item in candidates[cell]){
                 c.Cancel.ThrowIfCancellationRequested();var seen=new HashSet<string>(StringComparer.Ordinal);
                 foreach(long at in item.Copies){int low=0,high=locations.Count;while(low<high){int middle=low+(high-low)/2;if(locations[middle].At<at-unit+1)low=middle+1;else high=middle;}var key=new System.Text.StringBuilder();
-                    for(int n=low;n<locations.Count&&locations[n].At<at+item.Raw.Length;n++){if((++comparisons&255)==0)c.Cancel.ThrowIfCancellationRequested();if(comparisons>1000000)throw new Budget();var other=locations[n];if(other.Cell!=cell&&other.End>at)key.Append(other.Key).Append('|');}
+                    for(int n=low;n<locations.Count&&locations[n].At<at+item.Length;n++){if((++comparisons&255)==0)c.Cancel.ThrowIfCancellationRequested();if(comparisons>1000000)throw new Budget();var other=locations[n];if(other.Cell!=cell&&other.End>at)key.Append(other.Key).Append('|');}
                     if(seen.Add(key.ToString()))item.Choices.Add(at);
                 }
             }
-            int[] order=Enumerable.Range(0,count).OrderBy(x=>candidates[x].Sum(item=>item.Choices.Count)).ThenBy(x=>x).ToArray();var assigned=new UnitCopy[count];var positionsChosen=new long[count];var mapped=new bool[count];byte[] assembled=new byte[length];List<Extent> result=null;string firstHash=null;
+            int[] order=Enumerable.Range(0,count).OrderBy(x=>candidates[x].Sum(item=>item.Choices.Count)).ThenBy(x=>x).ToArray();var assigned=new UnitCopy[count];var positionsChosen=new long[count];var mapped=new bool[count];List<Extent> result=null;string firstHash=null,firstContent=null;
             var options=order.Select(cell=>candidates[cell].SelectMany(item=>item.Choices.Select(at=>new UnitOption{Copy=item,At=at})).ToArray()).ToArray();var next=new int[count];int depth=0;
             // Iterative DFS: the cell limit is a resource bound, not a CLR
             // recursion-depth assumption. A long uniquely anchored movie must
             // not be able to cause an uncatchable stack overflow.
             while(depth>=0){
                 c.Cancel.ThrowIfCancellationRequested();
-                if(depth==count){string hash=Sha(assembled);if(firstHash!=null&&hash!=firstHash)throw new Reject("unit_mapping_ambiguous");if(firstHash==null){firstHash=hash;result=Enumerable.Range(0,count).Select(x=>new Extent{ImageOffset=positionsChosen[x],LogicalOffset=(long)x*unit,Length=assigned[x].Raw.Length,Kind="allocation_unit",EquivalentOffsets=new List<long>(assigned[x].Copies)}).ToList();}depth--;if(depth>=0)mapped[order[depth]]=false;continue;}
+                if(depth==count){string key=String.Join(",",assigned.Select(x=>x.ContentId));string hash=key==firstContent?firstHash:HashUnitMap(c,assigned,positionsChosen);if(firstHash!=null&&hash!=firstHash)throw new Reject("unit_mapping_ambiguous");if(firstHash==null){firstHash=hash;firstContent=key;result=Enumerable.Range(0,count).Select(x=>new Extent{ImageOffset=positionsChosen[x],LogicalOffset=(long)x*unit,Length=assigned[x].Length,Kind="allocation_unit",EquivalentOffsets=new List<long>(assigned[x].Copies)}).ToList();}depth--;if(depth>=0)mapped[order[depth]]=false;continue;}
                 int cell=order[depth];if(next[depth]>=options[depth].Length){next[depth]=0;assigned[cell]=null;mapped[cell]=false;depth--;if(depth>=0)mapped[order[depth]]=false;continue;}
                 var option=options[depth][next[depth]++];var item=option.Copy;long at=option.At;if(++c.Units.States>UnitStateLimit)throw new Budget();
-                    bool overlap=false;for(int x=0;x<count;x++)if(mapped[x]&&at<positionsChosen[x]+assigned[x].Raw.Length&&positionsChosen[x]<at+item.Raw.Length){overlap=true;break;}
-                    if(overlap)continue;assigned[cell]=item;positionsChosen[cell]=at;mapped[cell]=true;Buffer.BlockCopy(item.Raw,0,assembled,cell*unit,item.Raw.Length);bool valid=true;
-                    foreach(var sample in samples){int first=(int)(sample.Logical/unit),last=(int)((sample.Logical+sample.Bytes-1)/unit);if(cell<first||cell>last)continue;bool complete=true;for(int x=first;x<=last;x++)if(!mapped[x]){complete=false;break;}if(!complete)continue;byte[] raw=new byte[sample.Bytes];Buffer.BlockCopy(assembled,(int)sample.Logical,raw,0,raw.Length);if(!UnitSampleValid(raw,sample.Chunk)){valid=false;break;}}
+                    bool overlap=false;for(int x=0;x<count;x++)if(mapped[x]&&at<positionsChosen[x]+assigned[x].Length&&positionsChosen[x]<at+item.Length){overlap=true;break;}
+                    if(overlap)continue;assigned[cell]=item;positionsChosen[cell]=at;mapped[cell]=true;bool valid=true;
+                    foreach(var sample in samples){int first=(int)(sample.Logical/unit),last=(int)((sample.Logical+sample.Bytes-1)/unit);if(cell<first||cell>last)continue;bool complete=true;for(int x=first;x<=last;x++)if(!mapped[x]){complete=false;break;}if(!complete)continue;if(!UnitRangeSampleValid(sample,(logical,bytes)=>ReadUnitMap(c,assigned,positionsChosen,unit,length,logical,bytes))){valid=false;break;}}
                     if(valid){depth++;if(depth<count)next[depth]=0;}else{mapped[cell]=false;assigned[cell]=null;}
             }
             digest=firstHash;return result;
@@ -168,8 +175,8 @@ namespace UsbRecovery
         static UnitPlan PlanUnits(Context c,Movie movie)
         {
             var metadata=Layout(c,movie);long end=Math.Max(metadata.Max(x=>x.LogicalOffset+x.Length),movie.Chunks.Max(x=>x.Logical+x.Bytes));
-            if(end>UnitFileLimit)throw new Reject("unit_file_limit");int length=(int)end;var samples=UnitSamples(movie);if(!samples.Any(x=>x.Chunk.Codec!="mp4a"))throw new Reject("video_anchor_missing");UnitIndexAt(c);
-            var known=metadata.Select(x=>new UnitFixed{Logical=x.LogicalOffset,Raw=c.Read(x.ImageOffset,(int)x.Length,true)}).ToList();int phase=Mod(metadata.Single(x=>x.Kind=="ftyp").ImageOffset,512);UnitAudioIndex(c,samples,phase);List<Extent> chosen=null;string expected=null;
+            if(end>MaximumFileBytes||end>UnitCellLimit*65536L)throw new Reject("unit_file_limit");int length=(int)end;var samples=UnitSamples(movie);if(!samples.Any(x=>x.Chunk.Codec!="mp4a"))throw new Reject("video_anchor_missing");UnitIndexAt(c);
+            var known=metadata.Select(x=>new UnitFixed{Logical=x.LogicalOffset,Raw=c.Read(x.ImageOffset,(int)x.Length,true)}).ToList();int phase=Mod(metadata.Single(x=>x.Kind=="ftyp").ImageOffset,512);if(length<=16*1024*1024)UnitAudioIndex(c,samples,phase);List<Extent> chosen=null;string expected=null;
             for(int unit=512;unit<=65536;unit*=2){string hash;var extents=UnitSolve(c,unit,length,known,samples,metadata,phase,out hash);if(extents==null)continue;if(expected!=null&&hash!=expected)throw new Reject("unit_mapping_ambiguous");if(chosen==null){chosen=extents;expected=hash;}}
             if(chosen==null)throw new Reject("unit_mapping_missing");return new UnitPlan{Movie=movie,Extents=chosen,Hash=expected};
         }
@@ -194,7 +201,7 @@ namespace UsbRecovery
                     if((++boxes&255)==0)c.Cancel.ThrowIfCancellationRequested();if(boxes>10000)return false;int have=Math.Min(available-p,end-p);if(have<=0)return true;
                     for(int n=4;n<Math.Min(have,8);n++)if(raw[p+n]<32||raw[p+n]>126)return false;
                     if(have<4)return true;uint size=U32(raw,p);int header=size==1?16:8;if(size!=1&&(size<header||size>end-p))return false;if(have<header)return true;
-                    long bytes=size==1?U64(raw,p+8):size;if(bytes<header||bytes>end-p)return false;string type=Type(raw,p+4);
+                    long bytes=size==1?U64(raw,p+8):size;if(bytes<header||bytes>end-p)return false;string type=Type(raw,p+4);if(!MetadataLeafPrefix(raw,p,header,(int)bytes,available,type))return false;
                     if(type=="moov"||type=="trak"||type=="mdia"||type=="minf"||type=="stbl"||type=="dinf"||type=="edts"||type=="udta"||type=="ilst")if(!walk(p+header,p+(int)bytes,depth+1))return false;
                     if(type=="meta"){
                         if(bytes<header+4)return false;if(available>=p+header+4&&U32(raw,p+header)!=0)return false;
@@ -222,12 +229,20 @@ namespace UsbRecovery
                         var runs=new List<Extent>();foreach(var part in candidate.Parts){var last=runs.LastOrDefault();if(last!=null&&last.LogicalOffset+last.Length==part.LogicalOffset&&last.ImageOffset+last.Length==part.ImageOffset)last.Length+=part.Length;else runs.Add(new Extent{LogicalOffset=part.LogicalOffset,ImageOffset=part.ImageOffset,Length=part.Length});}
                         string hash=Sha(raw)+"|"+String.Join(";",runs.Select(x=>x.LogicalOffset+":"+x.ImageOffset+":"+x.Length));if(hashes.Add(hash)){if(selected.Count>=64)throw new Budget();selected.Add(movie);}return;
                     }
-                    int bytes=Math.Min(unit,raw.Length-filled);foreach(var head in UnitHeads(c,phase)){
+                    int bytes=Math.Min(unit,raw.Length-filled);var rejectedHeads=new HashSet<string>(StringComparer.Ordinal);long cachedBytes=0;bool rejectedZero=false;try{foreach(var head in UnitHeads(c,phase)){
                         if(head.At>c.Input.Length-bytes||extents.Any(x=>head.At<x.ImageOffset+x.Length&&x.ImageOffset<head.At+bytes))continue;
-                        if(++c.Units.MetadataProbes>1000000)throw new Budget();int prefix=Math.Min(bytes,head.Raw.Length);Buffer.BlockCopy(head.Raw,0,raw,filled,prefix);if(!MetadataPrefix(c,raw,filled+prefix,raw.Length))continue;
-                        Buffer.BlockCopy(c.Read(head.At,bytes,true),0,raw,filled,bytes);if(!MetadataPrefix(c,raw,filled+bytes,raw.Length))continue;
+                        int prefix=Math.Min(bytes,head.Raw.Length);bool uniform=true;for(int n=1;n<prefix;n++)if(head.Raw[n]!=head.Raw[0]){uniform=false;break;}string headKey=uniform?prefix+":"+head.Raw[0]:null;if(headKey!=null&&rejectedHeads.Contains(headKey))continue;
+                        if(++c.Units.MetadataProbes>1000000)throw new Budget();Buffer.BlockCopy(head.Raw,0,raw,filled,prefix);if(!MetadataPrefix(c,raw,filled+prefix,raw.Length)){
+                            // Cache repeated padding prefixes, not every unique
+                            // entropy fragment. A full optimization cache must
+                            // never consume the budget needed to test mappings.
+                            if(headKey!=null&&c.Units.MetadataCacheBytes+256<=UnitMemoryLimit){rejectedHeads.Add(headKey);cachedBytes+=256;c.Units.MetadataCacheBytes+=256;}continue;
+                        }
+                        bool zero=SourceZeroRange(c,head.At,bytes);if(zero&&rejectedZero)continue;byte[] body;
+                        if(zero){if(bytes>c.Limits.MaxVerifiedBytes-c.Report.VerifiedBytes)throw new Budget();c.Report.VerifiedBytes+=bytes;body=new byte[bytes];}else body=c.Read(head.At,bytes,true);
+                        Buffer.BlockCopy(body,0,raw,filled,bytes);if(!MetadataPrefix(c,raw,filled+bytes,raw.Length)){if(zero)rejectedZero=true;continue;}
                         extents.Add(new Extent{ImageOffset=head.At,LogicalOffset=filled,Length=bytes,Kind="moov"});join(filled+bytes);extents.RemoveAt(extents.Count-1);
-                    }
+                    }}finally{c.Units.MetadataCacheBytes-=cachedBytes;}
                 };join(first);
             }}
             if(selected.Count==0)throw new Reject("moov_unit_missing");return selected;

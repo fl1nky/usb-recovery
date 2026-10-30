@@ -3,6 +3,8 @@
 Protocol facts were checked against official Telegram Android sources pinned at
 4de548e79fed27f1a66fbdff84223321838fe925 (layer 232):
 https://github.com/DrKLO/Telegram/blob/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/TLRPC.java
+The legacy text/scalar profile 114 additionally uses Android 6.2.0 TLRPC.java
+at f424ea165af4e868391b24640d2e715d1a45ce3c, constructor 0x452c0e65.
 https://github.com/DrKLO/Telegram/blob/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/tl/legacy/TL_legacy_message.java
 
 This is an independent reader of the public wire format, not Android code.
@@ -55,6 +57,11 @@ PROFILES = {
     0xBCE383D2: (131, False, 0x12C6032, 0, 0x2C38FCC, 0),
     0x58AE39C9: (123, False, 0x12C6032, 0, 0xC38FCC, 0),
     0xF52E6B7F: (118, False, 0x2C6032, 0, 0x438FCC, 0),
+    # Android 6.2.0, f424ea165af4e868391b24640d2e715d1a45ce3c:
+    # scalar/text subset only. Sender/reply IDs and the sole views counter
+    # are int32; unlike profile 118 there is no following forwards counter.
+    # Nested media/forward/markup/entities/restrictions fail closed here.
+    0x452C0E65: (114, False, 0x2C6032, 0, 0x38D08, 0),
 }
 PEERS = {
     0x59511722: ("user", 8), 0x36C6019A: ("chat", 8),
@@ -430,7 +437,7 @@ def parse_message(blob: bytes | bytearray | memoryview, *, allow_trailing=False)
     if result["id"] == 0:
         raise TelegramTlError("TL_INVALID_MESSAGE_ID")
     if flags & 256:
-        if layer == 118:
+        if layer in (114, 118):
             sender = _nonnegative(reader.i32())
             result["from_peer"] = {"kind": "user", "id": sender} if sender else None
         else:
@@ -451,7 +458,7 @@ def parse_message(blob: bytes | bytearray | memoryview, *, allow_trailing=False)
     if flags2 & (1 << 19):
         result["guestchat_via_from"] = _peer(reader)
     if flags & 8:
-        result["reply"] = {"message_id": reader.i32()} if layer == 118 else _reply(reader)
+        result["reply"] = {"message_id": reader.i32()} if layer in (114, 118) else _reply(reader)
     result["date"] = _nonnegative(reader.i32())
     result["text"] = reader.string()
     if flags & 512:
@@ -461,7 +468,9 @@ def parse_message(blob: bytes | bytearray | memoryview, *, allow_trailing=False)
     if flags & 128:
         result["entities"] = _entities(reader, result["text"])
     if flags & 1024:
-        result["views"], result["forwards"] = _nonnegative(reader.i32()), _nonnegative(reader.i32())
+        result["views"] = _nonnegative(reader.i32())
+        if layer != 114:
+            result["forwards"] = _nonnegative(reader.i32())
     if flags & (1 << 23):
         result["replies"] = _replies(reader)
     if flags & (1 << 15):

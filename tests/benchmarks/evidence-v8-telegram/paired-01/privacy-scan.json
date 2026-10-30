@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "scope": "Workspace paths only for owned project fixture/runtime/output locations; no AppData sourcepaths, personal profiles, screenshots or runtime binaries",
+  "inputs": {
+    "scanned_files": 15,
+    "omitted": []
+  },
+  "raw_runs": {
+    "scanned_files": 414,
+    "omitted": []
+  }
+}

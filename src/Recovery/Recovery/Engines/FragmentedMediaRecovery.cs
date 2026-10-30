@@ -47,11 +47,13 @@ namespace UsbRecovery
         public sealed class Report
         {
             public int Schema=1,Headers,Movies,Candidates,Recovered;
-            public long InputBytes,OutputBytes,VerifiedBytes;
+            public int SourceRangeCount,SourceAlternativeCount;
+            public int PayloadProbes;
+            public long InputBytes,OutputBytes,VerifiedBytes,SourceReadBytes;
             public string Status="incomplete";
             public Dictionary<string,int> Skipped=new Dictionary<string,int>(StringComparer.Ordinal);
             public List<Result> Files=new List<Result>();
-            public string Scope="Classic self-contained MP4/MOV, one mdat, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Bounds: 16MiB file, 4096 cells, 8192 assignment states, 32MiB retained unit data; metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
+            public string Scope="Classic self-contained MP4/MOV, one mdat, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Source-backed unit descriptors and streamed assignment hashes/output avoid a whole-file buffer; AVC validation range-reads NAL headers, AAC and supported HEVC/JPEG reads remain sample-bounded. Unit capacity <=256MiB from 4096 cells/65536-byte units, with 8192 samples and 8192 assignment states, estimated32MiB mapping metadata and the shared512MiB verification budget; whole-chunk recovery remains a fallback up to its existing file bound. Codec indexes are built lazily; bounded AVC header reuse avoids repeated source reads, legacy payload probes are capped at16 times MaxCandidates, and source-read bytes are separately reported. Metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
         }
         sealed class Reject:Exception {public string Code;public bool VideoOnly;public Reject(string code){Code=code;}}
         sealed class Budget:Exception {}
@@ -60,6 +62,7 @@ namespace UsbRecovery
         sealed class Movie {public Atom Moov;public List<Chunk> Chunks=new List<Chunk>();public int Tracks;}
         sealed class Box {public int At,Bytes,Header;public string Type;public int Data{get{return At+Header;}}public int End{get{return At+Bytes;}}}
         sealed class Payload {public long Offset,Bytes;public string Sha;}
+        sealed class AvcHeader {public uint Length;public int Kind;public bool Valid,Charged;}
         sealed class Context
         {
             public FileStream Input;public Report Report;public Limits Limits;public CancellationToken Cancel;
@@ -70,10 +73,14 @@ namespace UsbRecovery
             public long RetainedMetadataBytes;
             public int LayoutAttempts;
             public UnitIndex Units;
+            public bool AvcIndexed,JpegIndexed;
+            public int HevcIndexed;
+            public Dictionary<long,AvcHeader> AvcHeaders=new Dictionary<long,AvcHeader>();
+            public List<Payload> ZeroRanges=new List<Payload>();
             public byte[] Read(long at,int count,bool charge=false){
                 Cancel.ThrowIfCancellationRequested();if(at<0||count<0||at>Input.Length-count)throw new Reject("source_bounds");
                 if(charge){if(count>Limits.MaxVerifiedBytes-Report.VerifiedBytes)throw new Budget();Report.VerifiedBytes+=count;}
-                Input.Position=at;byte[] b=new byte[count];int done=0,n;while(done<count&&(n=Input.Read(b,done,count-done))>0)done+=n;if(done!=count)throw new IOException("MEDIA_SOURCE_TRUNCATED");return b;
+                Input.Position=at;byte[] b=new byte[count];int done=0,n;while(done<count&&(n=Input.Read(b,done,count-done))>0){done+=n;Report.SourceReadBytes+=n;}if(done!=count)throw new IOException("MEDIA_SOURCE_TRUNCATED");return b;
             }
         }
         static uint U32(byte[] b,int at){return (uint)b[at]<<24|(uint)b[at+1]<<16|(uint)b[at+2]<<8|b[at+3];}
@@ -203,23 +210,27 @@ namespace UsbRecovery
         }
         static bool SamplesValid(Context c,long at,Chunk chunk)
         {
-            long p=at;foreach(int length in chunk.Samples){if(p<0||p>c.Input.Length-length)return false;byte[] b=c.Read(p,length,true);if(chunk.Codec=="jpeg"||chunk.Codec=="mjpg"){if(!JpegValid(b,chunk.Width,chunk.Height))return false;}else if(chunk.Hevc!=null){HevcSampleValidator.SampleInfo info;string code;if(!HevcSampleValidator.TryValidateSample(b,chunk.Hevc,out info,out code))return false;}else if(!AvcValid(b))return false;p+=length;}return true;
+            long p=at;foreach(int length in chunk.Samples){if(p<0||p>c.Input.Length-length)return false;
+                if(chunk.Codec=="avc1"||chunk.Codec=="avc3"){if(!AvcPhysicalValid(c,p,length))return false;}
+                else {var sample=new UnitSample{Logical=0,Bytes=length,Chunk=chunk};if(!UnitRangeSampleValid(sample,(logical,bytes)=>c.Read(p+logical,bytes,true)))return false;}p+=length;
+            }return true;
         }
         static string HashRange(Context c,long at,long bytes)
         {
             if(bytes>c.Limits.MaxVerifiedBytes-c.Report.VerifiedBytes)throw new Budget();c.Report.VerifiedBytes+=bytes;
-            using(var sha=SHA256.Create()){byte[] buffer=new byte[65536];c.Input.Position=at;while(bytes>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(buffer,0,(int)Math.Min(bytes,buffer.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");sha.TransformBlock(buffer,0,n,null,0);bytes-=n;}sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();}
+            using(var sha=SHA256.Create()){byte[] buffer=new byte[65536];c.Input.Position=at;while(bytes>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(buffer,0,(int)Math.Min(bytes,buffer.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");c.Report.SourceReadBytes+=n;sha.TransformBlock(buffer,0,n,null,0);bytes-=n;}sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();}
         }
         static List<Payload> FindPayload(Context c,Chunk chunk)
         {
+            EnsurePayloadIndex(c,chunk);
             string key=chunk.Codec+":"+chunk.Width+"x"+chunk.Height+":"+(chunk.Hevc==null?"":chunk.Hevc.Fingerprint)+":"+String.Join(",",chunk.Samples.Select(x=>x.ToString(System.Globalization.CultureInfo.InvariantCulture)));List<Payload> found;if(c.Cache.TryGetValue(key,out found))return found;found=new List<Payload>();
             foreach(long at in chunk.Codec=="jpeg"||chunk.Codec=="mjpg"?c.Jpeg:chunk.Hevc!=null?c.Hevc:c.Avc){
                 if(at>c.Input.Length-chunk.Bytes)continue;
                 // Cheap last-byte/length checks precede any charged payload read.
                 if(chunk.Codec=="jpeg"||chunk.Codec=="mjpg"){byte[] tail=c.Read(at+chunk.Samples[0]-2,2);if(tail[0]!=255||tail[1]!=217)continue;}
                 else if(chunk.Hevc!=null){int bytes=chunk.Hevc.NalLengthBytes;byte[] prefix=c.Read(at,Math.Min(bytes+3,chunk.Samples[0]));if(!HevcSampleValidator.IsPossibleSampleStart(prefix,0,prefix.Length,bytes))continue;long first=0;for(int i=0;i<bytes;i++)first=(first<<8)|prefix[i];if(first>chunk.Samples[0]-bytes)continue;}
-                else {byte[] prefix=c.Read(at,4);long first=U32(prefix,0);if(first<1||first>chunk.Samples[0]-4)continue;}
-                if(SamplesValid(c,at,chunk))found.Add(new Payload{Offset=at,Bytes=chunk.Bytes,Sha=HashRange(c,at,chunk.Bytes)});
+                else {AvcHeader prefix;long first=c.AvcHeaders.TryGetValue(at,out prefix)?prefix.Length:U32(c.Read(at,4),0);if(first<1||first>chunk.Samples[0]-4)continue;}
+                if(++c.Report.PayloadProbes>c.Limits.MaxCandidates*16L)throw new Budget();if(SamplesValid(c,at,chunk))found.Add(new Payload{Offset=at,Bytes=chunk.Bytes,Sha=HashRange(c,at,chunk.Bytes)});
                 if(found.Count>256)throw new Reject("chunk_candidate_limit");
             }
             c.Cache.Add(key,found);return found;
@@ -235,17 +246,12 @@ namespace UsbRecovery
         {
             byte[] block=new byte[BlockBytes+16];int carry=0;long position=0;var atomOffsets=new HashSet<long>();
             while(position<c.Input.Length){
-                c.Cancel.ThrowIfCancellationRequested();int count=(int)Math.Min(BlockBytes,c.Input.Length-position);byte[] next=c.Read(position,count);Buffer.BlockCopy(next,0,block,carry,count);int total=carry+count;long start=position-carry;
+                c.Cancel.ThrowIfCancellationRequested();int count=(int)Math.Min(BlockBytes,c.Input.Length-position);byte[] next=c.Read(position,count);RecordZeroRanges(c,position,next);Buffer.BlockCopy(next,0,block,carry,count);int total=carry+count;long start=position-carry;
                 for(int p=0;p+8<=total;p++){
                     long at=start+p;if(at<position-carry)continue;
                     bool atom=(block[p+4]==102&&block[p+5]==116&&block[p+6]==121&&block[p+7]==112)||(block[p+4]==109&&block[p+5]==111&&block[p+6]==111&&block[p+7]==118)||(block[p+4]==109&&block[p+5]==100&&block[p+6]==97&&block[p+7]==116)||(block[p+4]==102&&block[p+5]==114&&block[p+6]==101&&block[p+7]==101)||(block[p+4]==119&&block[p+5]==105&&block[p+6]==100&&block[p+7]==101);
                     if(atom&&atomOffsets.Add(at)){
                         if(++c.Report.Headers>c.Limits.MaxCandidates)throw new Budget();try{var a=AtomAt(c,at);if(a.Type=="ftyp")c.Ftyp.Add(a);else if(a.Type=="moov"){if(c.Moov.Count>=MaximumMovies)throw new Budget();c.Moov.Add(a);}else if(a.Type=="mdat")c.Mdat.Add(a);else c.Free.Add(a);}catch(Reject error){Skip(c.Report,error.Code);}
-                    }
-                    if(block[p]==255&&block[p+1]==216&&block[p+2]==255){if(c.Jpeg.Count>=c.Limits.MaxCandidates)throw new Budget();if(c.Jpeg.Count==0||c.Jpeg[c.Jpeg.Count-1]!=at)c.Jpeg.Add(at);}
-                    if(block[p]==0){uint n=U32(block,p);int nal=block[p+4]&31;if(n>0&&n<MaximumSampleBytes&&(block[p+4]&128)==0&&(nal==1||nal==5||nal==6||nal==7||nal==8||nal==9)){if(c.Avc.Count>=c.Limits.MaxCandidates)throw new Budget();if(c.Avc.Count==0||c.Avc[c.Avc.Count-1]!=at)c.Avc.Add(at);}}
-                    if(PossibleHevcStart(block,p,total-p,4)||PossibleHevcStart(block,p,total-p,2)||PossibleHevcStart(block,p,total-p,1)){
-                        if(c.Hevc.Count>=c.Limits.MaxCandidates)throw new Budget();if(c.Hevc.Count==0||c.Hevc[c.Hevc.Count-1]!=at)c.Hevc.Add(at);
                     }
                 }
                 // Positions with fewer than eight remaining bytes are deferred.
@@ -293,12 +299,13 @@ namespace UsbRecovery
         static Result WriteCandidate(Context c,Movie movie,string folder,List<Extent> extents,bool audioSyntax,string expectedSha=null)
         {
             var audio=movie.Chunks.Where(x=>x.Codec=="mp4a").ToArray();extents=extents.OrderBy(e=>e.LogicalOffset).ToList();long length=0;foreach(var e in extents){if(e.LogicalOffset!=length)throw new Reject("output_gaps_or_overlap");length+=e.Length;}if(length>MaximumFileBytes)throw new Reject("file_size_limit");
+            long alternatives=extents.Sum(e=>(long)e.EquivalentOffsets.Count);if(extents.Count>MaximumHeaders-c.Report.SourceRangeCount||alternatives>4L*MaximumHeaders-c.Report.SourceAlternativeCount)throw new Budget();
             if(length>c.Limits.MaxOutputBytes-c.Report.OutputBytes||c.Report.Files.Count>=c.Limits.MaxFiles)throw new Budget();
             bool contiguous=true;long physical=extents[0].ImageOffset;foreach(var e in extents){if(e.ImageOffset!=physical)contiguous=false;physical=e.ImageOffset+e.Length;}if(contiguous)throw new Reject("already_contiguous");
             string temporary=Path.Combine(folder,".media-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
             try{
                 string digest;using(var sha=SHA256.Create())using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
-                    owned=true;byte[] b=new byte[65536];foreach(var e in extents){c.Input.Position=e.ImageOffset;long left=e.Length;while(left>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(b,0,(int)Math.Min(left,b.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);left-=n;}}sha.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
+                    owned=true;byte[] b=new byte[65536];foreach(var e in extents){c.Input.Position=e.ImageOffset;long left=e.Length;while(left>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(b,0,(int)Math.Min(left,b.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");c.Report.SourceReadBytes+=n;output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);left-=n;}}sha.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
                 }
                 if(expectedSha!=null&&digest!=expectedSha)throw new IOException("MEDIA_SOURCE_CHANGED");
                 string name="candidate-"+digest+".mp4",target=Path.Combine(folder,name);if(File.Exists(target)){File.Delete(temporary);owned=false;throw new Reject("duplicate_output");}File.Move(temporary,target);owned=false;
@@ -413,8 +420,9 @@ namespace UsbRecovery
                         Movie movie=null;Reject parseError=null;try{movie=ParseMovie(atom);}catch(Reject error){parseError=error;}
                         report.Movies++;Result result;
                         if(movie==null){try{result=AssembleRepairedUnits(c,atom,folder);}catch(Reject repair){if(repair.Code=="moov_unit_missing"||repair.Code=="moov_unit_limit"||repair.Code=="unit_mapping_missing")throw parseError;throw;}}
+                        else if(movie.Chunks.Last().Logical+movie.Chunks.Last().Bytes>16*1024*1024){try{result=AssembleUnits(c,movie,folder);}catch(Reject unit){if(unit.Code!="unit_mapping_missing"&&unit.Code!="unit_file_limit"&&unit.Code!="unit_sample_limit")throw;result=Assemble(c,movie,folder);}}
                         else try{result=Assemble(c,movie,folder);}catch(Reject error){if(!UnitFallbackCode(error.Code)&&!error.VideoOnly)throw;try{result=AssembleUnits(c,movie,folder);}catch(Reject unit){if(unit.Code=="unit_mapping_missing"||unit.Code=="unit_file_limit"||unit.Code=="unit_sample_limit")throw error;throw;}}
-                        report.Files.Add(result);report.OutputBytes+=result.Bytes;report.Candidates++;report.Recovered++;
+                        report.Files.Add(result);report.OutputBytes+=result.Bytes;report.SourceRangeCount+=result.Extents.Count;report.SourceAlternativeCount+=(int)result.Extents.Sum(e=>(long)e.EquivalentOffsets.Count);report.Candidates++;report.Recovered++;
                     }catch(Reject error){Skip(report,error.Code);}}
                 }
                 report.Status="complete";return report.Candidates;

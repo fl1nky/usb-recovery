@@ -54,6 +54,14 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskUnitFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_media_unit_fixtures.py') --extract (Join-Path $taskLayout.Tests 'fixtures\media-units') --destination $taskUnitFixtures
  if($LASTEXITCODE-ne0){throw 'Offline media-unit fixture extraction failed.'}
 }
+$taskScaleFixtures=Join-Path $taskLayout.Root '.build\media-scale-fixtures-01'
+if(-not(Test-Path -LiteralPath (Join-Path $taskScaleFixtures 'manifest.json'))){
+ $taskFfmpegRoot=Join-Path $taskLayout.Tools 'benchmarks\ffmpeg'
+ $taskScaleEncoder=if(Test-Path -LiteralPath $taskFfmpegRoot){@(Get-ChildItem -LiteralPath $taskFfmpegRoot -Recurse -File -Filter ffmpeg.exe)}else{@()}
+ if($taskScaleEncoder.Count-ne1){throw 'Prepare large-video fixtures with tests/build_media_scale_fixtures.py and the documented pinned developer FFmpeg.'}
+ & $Python312 (Join-Path $taskLayout.Tests 'build_media_scale_fixtures.py') --destination $taskScaleFixtures --ffmpeg $taskScaleEncoder[0].FullName
+ if($LASTEXITCODE-ne0){throw 'Large-video fixture generation failed.'}
+}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {
@@ -65,6 +73,9 @@ try {
 foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflineTests.ps1'){
  & (Join-Path $taskLayout.Tests $name) -ApplicationDirectory $ApplicationDirectory
 }
+& (Join-Path $taskLayout.Tests 'ArchiveTextUiTests.ps1')
+& (Join-Path $taskLayout.Tests 'ArchiveTextProtocolAuditTests.ps1')
+& (Join-Path $taskLayout.Tests 'MediaRangeAnchorAuditTests.ps1')
 & $Python312 (Join-Path $taskLayout.Tests 'UpgradeEvidenceTests.py')
 if($LASTEXITCODE-ne0){throw 'Evidence regression failed.'}
 foreach($name in 'verify_upgrade_package.py','audit_oct30_package.py'){

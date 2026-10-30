@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "revision": 2,
+  "executed_run_sha256": "0e262adfc16de32cf703336dba1bed76abbfbd9117162fd408e43114c6dd42d4",
+  "helper_sha256": "612d613cf30e970820a1cde34cf4aa32cea674fb0dea3dedc695d977afab76d5",
+  "scope": "Frozen-helper API only; case-specific target occurrences, not distinct people/chats across repeated fixtures",
+  "helper_rerun": false,
+  "paid_results": "not_tested",
+  "real_devices_tested": false,
+  "results": [
+    {
+      "name": "legacy-active-114",
+      "suite": "legacy",
+      "targets": [
+        {
+          "message_id": 21,
+          "chat_id": 77,
+          "sqlite_stored_mid": 21,
+          "text_sha256": "528e303e815189f68408b60af37972c7016f6b1b83585fa97709eaa0e4a4eeda",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 22,
+          "chat_id": 99,
+          "sqlite_stored_mid": 22,
+          "text_sha256": "424a3646f360da73eb8a498ad58c79615054dc62bb42fe7bb99f74b7ecbd3473",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 23,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122071,
+          "text_sha256": "527fe8f8336191b1c9e2f30d39890ad9495512234279b52655c8fa6dcec337e5",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 24,
+          "chat_id": -55,
+          "sqlite_stored_mid": 24,
+          "text_sha256": "2d356cca5f29c89553434218089608533a8cd6f039dc282856196ff39f6af7b9",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 25,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122073,
+          "text_sha256": "cdc7679eebf43d7031ca57dd9a759af2e0574d43f1c11db8f8c944125e52eda2",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        }
+      ],
+      "gold_target_occurrences": 5,
+      "verified_target_occurrences": 0,
+      "logical_public_ids": 0,
+      "verified_gold_content_versions": 0,
+      "verified_extra_edited_content_versions": 0,
+      "verified_snapshot_origin_links": 0,
+      "unique_verified_snapshot_ids": 0,
+      "raw_archive_rows": 0
+    },
+    {
+      "name": "legacy-wal-114",
+      "suite": "legacy",
+      "targets": [
+        {
+          "message_id": 21,
+          "chat_id": 77,
+          "sqlite_stored_mid": 21,
+          "text_sha256": "528e303e815189f68408b60af37972c7016f6b1b83585fa97709eaa0e4a4eeda",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 22,
+          "chat_id": 99,
+          "sqlite_stored_mid": 22,
+          "text_sha256": "424a3646f360da73eb8a498ad58c79615054dc62bb42fe7bb99f74b7ecbd3473",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 23,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122071,
+          "text_sha256": "527fe8f8336191b1c9e2f30d39890ad9495512234279b52655c8fa6dcec337e5",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 24,
+          "chat_id": -55,
+          "sqlite_stored_mid": 24,
+          "text_sha256": "2d356cca5f29c89553434218089608533a8cd6f039dc282856196ff39f6af7b9",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 25,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122073,
+          "text_sha256": "cdc7679eebf43d7031ca57dd9a759af2e0574d43f1c11db8f8c944125e52eda2",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        }
+      ],
+      "gold_target_occurrences": 5,
+      "verified_target_occurrences": 0,
+      "logical_public_ids": 0,
+      "verified_gold_content_versions": 0,
+      "verified_extra_edited_content_versions": 0,
+      "verified_snapshot_origin_links": 0,
+      "unique_verified_snapshot_ids": 0,
+      "raw_archive_rows": 0
+    },
+    {
+      "name": "legacy-active-118",
+      "suite": "legacy",
+      "targets": [
+        {
+          "message_id": 21,
+          "chat_id": 77,
+          "sqlite_stored_mid": 21,
+          "text_sha256": "528e303e815189f68408b60af37972c7016f6b1b83585fa97709eaa0e4a4eeda",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 22,
+          "chat_id": 99,
+          "sqlite_stored_mid": 22,
+          "text_sha256": "424a3646f360da73eb8a498ad58c79615054dc62bb42fe7bb99f74b7ecbd3473",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 23,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122071,
+          "text_sha256": "527fe8f8336191b1c9e2f30d39890ad9495512234279b52655c8fa6dcec337e5",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 24,
+          "chat_id": -55,
+          "sqlite_stored_mid": 24,
+          "text_sha256": "2d356cca5f29c89553434218089608533a8cd6f039dc282856196ff39f6af7b9",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 25,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122073,
+          "text_sha256": "cdc7679eebf43d7031ca57dd9a759af2e0574d43f1c11db8f8c944125e52eda2",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        }
+      ],
+      "gold_target_occurrences": 5,
+      "verified_target_occurrences": 0,
+      "logical_public_ids": 0,
+      "verified_gold_content_versions": 0,
+      "verified_extra_edited_content_versions": 0,
+      "verified_snapshot_origin_links": 0,
+      "unique_verified_snapshot_ids": 0,
+      "raw_archive_rows": 0
+    },
+    {
+      "name": "legacy-wal-118",
+      "suite": "legacy",
+      "targets": [
+        {
+          "message_id": 21,
+          "chat_id": 77,
+          "sqlite_stored_mid": 21,
+          "text_sha256": "528e303e815189f68408b60af37972c7016f6b1b83585fa97709eaa0e4a4eeda",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 22,
+          "chat_id": 99,
+          "sqlite_stored_mid": 22,
+          "text_sha256": "424a3646f360da73eb8a498ad58c79615054dc62bb42fe7bb99f74b7ecbd3473",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 23,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122071,
+          "text_sha256": "527fe8f8336191b1c9e2f30d39890ad9495512234279b52655c8fa6dcec337e5",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 24,
+          "chat_id": -55,
+          "sqlite_stored_mid": 24,
+          "text_sha256": "2d356cca5f29c89553434218089608533a8cd6f039dc282856196ff39f6af7b9",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        },
+        {
+          "message_id": 25,
+          "chat_id": -88,
+          "sqlite_stored_mid": 377957122073,
+          "text_sha256": "cdc7679eebf43d7031ca57dd9a759af2e0574d43f1c11db8f8c944125e52eda2",
+          "exact_text_anywhere_rows": 0,
+          "verified": false,
+          "verified_content_rows": 0,
+          "literal_search_verified": false,
+          "regex_search_verified": false
+        }
+      ],
+      "gold_target_occurrences": 5,
+      "verified_target_occurrences": 0,
+      "logical_public_ids": 0,
+      "verified_gold_content_versions": 0,
+      "verified_extra_edited_content_versions": 0,
+      "verified_snapshot_origin_links": 0,
+      "unique_verified_snapshot_ids": 0,
+      "raw_archive_rows": 0
+    },
+    {
+      "name": "control-wrong-channel-high-bits",
+      "suite": "control",
+      "exact_text_anywhere_rows": 0,
+      "wrongly_linked_rows": 0,
+      "wrongly_linked_search_rows": 0
+    },
+    {
+      "name": "control-wrong-dialog",
+      "suite": "control",
+      "exact_text_anywhere_rows": 0,
+      "wrongly_linked_rows": 0,
+      "wrongly_linked_search_rows": 0
+    },
+    {
+      "name": "control-wrong-date",
+      "suite": "control",
+      "exact_text_anywhere_rows": 0,
+      "wrongly_linked_rows": 0,
+      "wrongly_linked_search_rows": 0
+    },
+    {
+      "name": "control-unsupported-114-media",
+      "suite": "control",
+      "exact_text_anywhere_rows": 0,
+      "wrongly_linked_rows": 0,
+      "wrongly_linked_search_rows": 0
+    },
+    {
+      "name": "control-nonofficial-schema",
+      "suite": "control",
+      "exact_text_anywhere_rows": 0,
+      "wrongly_linked_rows": 0,
+      "wrongly_linked_search_rows": 0
+    }
+  ],
+  "summary": {
+    "primary_cases": 4,
+    "gold_case_specific_target_occurrences": 20,
+    "verified_target_occurrences": 0,
+    "complete_five_target_cases": 0,
+    "literal_search_verified_occurrences": 0,
+    "regex_search_verified_occurrences": 0,
+    "negative_controls": 5,
+    "wrongly_linked_control_rows": 0,
+    "wrongly_linked_control_search_rows": 0
+  },
+  "scoring_before": {
+    "scorer_sha256": "ae4bbc48ee213333b610d85bbdc71ae5ca8ef9745650b4817b1a3e323342915c",
+    "fixture_writer_sha256": "35e8b74517c938bae175c8981d8e4a5d270e045d23fa8bd57bf41daa29b9a9ef"
+  },
+  "scoring_after": {
+    "scorer_sha256": "ae4bbc48ee213333b610d85bbdc71ae5ca8ef9745650b4817b1a3e323342915c",
+    "fixture_writer_sha256": "35e8b74517c938bae175c8981d8e4a5d270e045d23fa8bd57bf41daa29b9a9ef"
+  }
+}
