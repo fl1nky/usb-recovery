@@ -18,6 +18,18 @@ foreach($taskTelegramKind in 'wal_tail','overflow'){
   if($LASTEXITCODE-ne0){throw 'Independent Telegram recovery fixture generation failed.'}
  }
 }
+$taskRollbackContextGenerator=Join-Path $taskLayout.Tests 'build_telegram_rollback_context_fixtures.py'
+$taskRollbackContextTarget=Join-Path $taskLayout.Root '.build\telegram-rollback-context-fixtures-current'
+$taskRollbackContextManifest=Join-Path $taskRollbackContextTarget 'manifest.json'
+if(-not(Test-Path -LiteralPath $taskRollbackContextManifest)){
+ if(Test-Path -LiteralPath $taskRollbackContextTarget){throw 'Incomplete rollback context fixture cache exists; preserve it and prepare a fresh destination before testing.'}
+ & $Python312 $taskRollbackContextGenerator $taskRollbackContextTarget
+ if($LASTEXITCODE-ne0){throw 'Native SQLite copied-phone/ZIP/generic rollback context fixture generation failed.'}
+}
+$taskRollbackContextReceipt=Get-Content -LiteralPath $taskRollbackContextManifest -Raw -Encoding UTF8|ConvertFrom-Json
+if($taskRollbackContextReceipt.generator_sha256-ne(Get-FileHash -LiteralPath $taskRollbackContextGenerator -Algorithm SHA256).Hash.ToLowerInvariant()){
+ throw 'Rollback context fixture cache belongs to another generator; preserve old fixtures and prepare the current corpus before testing.'
+}
 $taskRollbackGenerator=Join-Path $taskLayout.Tests 'build_telegram_rollback_fixtures.py'
 $taskRollbackGeneratorHash=(Get-FileHash -LiteralPath $taskRollbackGenerator -Algorithm SHA256).Hash.ToLowerInvariant()
 foreach($taskRollbackKind in 'normal','overflow'){

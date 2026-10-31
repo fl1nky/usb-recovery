@@ -295,14 +295,31 @@ class Analyzer:
                 h.update(chunk)
                 out.write(chunk)
         after = source.stat()
-        if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns) or h.hexdigest() != _hash(source):
+        actual_hash = h.hexdigest()
+        provided = self.worker.origins.get(str(source.resolve()))
+        if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns) or actual_hash != _hash(source):
+            partial.unlink(missing_ok=True)
+            raise AutoError("TELEGRAM_SOURCE_CHANGED")
+        if provided and "Sha256" in provided and (not isinstance(provided["Sha256"], str) or
+                         provided["Sha256"].lower() != actual_hash or
+                         type(provided.get("Size")) is int and provided["Size"] != before.st_size):
             partial.unlink(missing_ok=True)
             raise AutoError("TELEGRAM_SOURCE_CHANGED")
         partial.replace(target)
         self.bytes += before.st_size
         record = {"Id": hashlib.sha256(str(source).encode()).hexdigest(), "OriginalPath": str(source),
                   "RelativePath": source.name, "Size": before.st_size, "Modified": before.st_mtime_ns,
-                  "Sha256": h.hexdigest(), "Status": "complete"}
+                  "Sha256": actual_hash, "Status": "complete"}
+        if provided:
+            # Acquisition and ZIP origins name the persistent logical object,
+            # not this disposable filesystem staging path. Hash/size above are
+            # always verified per file; a container hash is a separate field.
+            for name in ("Id", "OriginalPath", "RelativePath", "ContainerSha256",
+                         "ContainerSourceId", "ContainerOriginalPath"):
+                if isinstance(provided.get(name), str) and provided[name]:
+                    record[name] = provided[name]
+            if not isinstance(provided.get("Id"), str) or not provided["Id"]:
+                record["Id"] = hashlib.sha256(record["OriginalPath"].encode()).hexdigest()
         self.worker.origins[str(target.resolve())] = record
         self.copy_records.append(record)
         self.copied[str(source).casefold()] = target
@@ -427,12 +444,30 @@ class Analyzer:
                      additional_sources=provided_sources,
                      attachments=attachments, **value)
 
-    def message(self, text, evidence, **fields):
+    def message(self, text, evidence, *, _native_row_verified=False, **fields):
+        archive_fragment = False
         if getattr(self, "rollback_snapshot", None):
             fields.update(self.rollback_snapshot)
             fields.update(previous_version=False, deleted=None,
                 recovery_status="rollback_before_image_snapshot", deletion_interpretation="unknown")
-            evidence = "backup"
+            if _native_row_verified is True:
+                evidence = "backup"
+            else:
+                from memory_fragments import MAX_FRAGMENTS
+                if self.fragments >= MAX_FRAGMENTS or len(self.worker.messages) >= MAX_MESSAGES:
+                    self.remark("MEMORY_FRAGMENT_LIMIT", self.worker.source_label)
+                    return
+                archive_fragment = True
+                evidence = "fragment"
+                for name in ("native_constructor", "native_layer", "native_tl_body_sha256",
+                             "sqlite_stored_mid", "identity_scope", "candidate_message_id",
+                             "candidate_peer", "candidate_date", "candidate_sender"):
+                    fields.pop(name, None)
+                fields.update(rollback_proof="archive_text_from_rollback_snapshot",
+                    record_kind="sqlite_rollback_archive_text", application_confirmed=False,
+                    completeness="archive_text_without_confirmed_telegram_sql_tl_context",
+                    recovery_status="unattributed_archive_text", chat_id=None, chat_name=None,
+                    message_id=None, sender_id=None, sender_name=None, timestamp=None, timestamp_raw=None)
             fields["source_record"] = str(fields.get("source_record") or "record") + "@rollback:" + self.rollback_snapshot["rollback_snapshot_sha256"]
         elif self.history_snapshot:
             history = self.history_snapshot
@@ -457,7 +492,10 @@ class Analyzer:
                 wal_proof="validated_wal_commit", wal_sha256=self.current_wal.get("wal_sha256"),
                 wal_db_sha256=self.current_wal.get("db_sha256"))
         if fields.get("record_kind") != "notification":
-            return self.worker.message("Telegram", text, evidence, **fields)
+            result = self.worker.message("Telegram", text, evidence, **fields)
+            if archive_fragment:
+                self.fragments += 1
+            return result
         # A notification preview cannot replace a verified full export just
         # because its visible text happens to be identical. Deduplicate IDs
         # separately within this explicitly marked evidence class.
@@ -492,11 +530,27 @@ class Analyzer:
                     from archive_search import _normalized
                     for record, raw in connection.execute("SELECT id, CASE WHEN length(json)<=? THEN json ELSE NULL END FROM messages WHERE app=? ORDER BY id", (MAX_RECORD, "Telegram")):
                         try:
-                            value = _normalized(json.loads(raw)) if isinstance(raw, str) else None
+                            decoded = json.loads(raw) if isinstance(raw, str) else None
+                            if getattr(self, "rollback_snapshot", None):
+                                value = decoded if (isinstance(decoded, dict) and decoded.get("app") == "Telegram" and
+                                                    isinstance(decoded.get("text"), str)) else None
+                                if value is not None:
+                                    value["text"].encode("utf-8", "strict")
+                            else:
+                                value = _normalized(decoded) if decoded is not None else None
                         except (ValueError, UnicodeError):
                             value = None
                         if value and value["app"] == "Telegram":
-                            self.canonical_message(value, copied, original, f"messages.id:{record}")
+                            if getattr(self, "rollback_snapshot", None):
+                                # A JSON row's own app/IDs are not the strict
+                                # Android SQL/TL relation checked below. Keep
+                                # useful text without following claimed media
+                                # paths or promoting its self-declared fields.
+                                self.message(value["text"], "fragment",
+                                    source_record=f"messages.id:{record}",
+                                    record_kind="sqlite_rollback_archive_text", application_confirmed=False)
+                            else:
+                                self.canonical_message(value, copied, original, f"messages.id:{record}")
                         if len(self.worker.messages) >= MAX_MESSAGES:
                             self.remark("TELEGRAM_MESSAGE_LIMIT", original)
                             self.stop = True
@@ -602,6 +656,7 @@ class Analyzer:
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
                     media_fields, attachments = self.native_photo(media, record, original)
                     self.message(text, "backup", chat_id=uid, message_id=value["id"],
+                        _native_row_verified=True,
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                         sender_name=None, timestamp=timestamp, source_record=record,
                         identity_scope=identity, record_kind="tl_message", completeness=value["validation"],
@@ -850,7 +905,8 @@ class Analyzer:
                         stream.write(raw_map)
                 metadata.update(rollback_page_map=relative,
                     rollback_page_map_sha256=hashlib.sha256(raw_map).hexdigest())
-            self.worker.current_origin, self.worker.source_label = origin, str(original)
+            self.worker.current_origin = origin
+            self.worker.source_label = origin.get("OriginalPath") or str(original)
             self.worker.snapshot = "rollback:" + parsed["journal_sha256"]
             self.history_snapshot = None
             found = False
@@ -1358,6 +1414,16 @@ def import_database(worker, source):
     analyzer.copy_records = []
     analyzer.counts = dict(discovered_sources=0, readable_sources=0, encrypted_sources=0, blocked_sources=0)
     source = Path(source)
+    label = worker.source_label if isinstance(worker.source_label, str) and worker.source_label else str(source)
+    for suffix in ("", "-journal", "-wal", "-shm"):
+        member = Path(str(source) + suffix)
+        if member.is_file():
+            existing = worker.origins.get(str(member.resolve()), {})
+            if not isinstance(existing.get("OriginalPath"), str) or not existing["OriginalPath"]:
+                # Some validated logical extractors have a descriptive label,
+                # but no pre-existing per-file hash/origin. Preserve that
+                # persistent label; copy() independently hashes actual bytes.
+                worker.origins[str(member.resolve())] = {**existing, "OriginalPath": label + suffix}
     target = worker.work / "telegram-sqlite" / hashlib.sha256(str(source).encode()).hexdigest()[:24] / source.name
     analyzer.copy(source, target)
     analyzer.copy_sqlite_sidecars(source, target)

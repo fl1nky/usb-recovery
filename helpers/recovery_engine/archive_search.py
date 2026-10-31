@@ -10,6 +10,7 @@ import datetime as dt
 import heapq
 import hashlib
 import os
+import re
 from pathlib import Path
 import sqlite3
 import stat
@@ -113,6 +114,19 @@ def _valid_unicode(value):
         return False
 
 
+def _container_provenance(raw):
+    names = ("container_sha256", "container_source_id", "container_source_file")
+    if not any(raw.get(name) is not None for name in names):
+        return {}
+    values = {name: raw.get(name) for name in names}
+    if (not isinstance(values["container_sha256"], str) or
+            not re.fullmatch(r"[a-f0-9]{64}", values["container_sha256"]) or
+            any(not isinstance(values[name], str) or not values[name] or not _valid_unicode(values[name])
+                for name in ("container_source_id", "container_source_file"))):
+        return {name: None for name in names}
+    return {name: value[:4096] for name, value in values.items()}
+
+
 def _normalized(raw):
     if not isinstance(raw, dict) or not isinstance(raw.get("text"), str) or not _valid_unicode(raw["text"]):
         return None
@@ -129,7 +143,8 @@ def _normalized(raw):
              "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
-             "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes")
+             "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes",
+             "container_sha256", "container_source_id", "container_source_file")
     overflow = _overflow_provenance(raw)
     rollback = _rollback_provenance(raw)
     if overflow is None or rollback is None:
@@ -152,15 +167,27 @@ def _normalized(raw):
     result.update(rollback)
     if rollback:
         result.update(deleted=None, deletion_interpretation="unknown", previous_version=False)
-        if rollback["rollback_proof"] != "all_pages_from_validated_rollback_journal":
+        if (rollback["rollback_proof"] == "all_pages_from_validated_rollback_journal" and
+                (result.get("record_kind") != "tl_message" or result.get("application_confirmed") is not True)):
+            result["rollback_proof"] = "archive_text_from_rollback_snapshot"
+        if result["rollback_proof"] != "all_pages_from_validated_rollback_journal":
             result.update(evidence_kind="fragment", chat_id=None, chat_name=None,
                           message_id=None, sender_id=None, sender_name=None,
                           timestamp=None, timestamp_raw=None,
                           recovery_status="unattributed_structured_fragment")
+            if result["rollback_proof"] == "archive_text_from_rollback_snapshot":
+                result.update(record_kind="sqlite_rollback_archive_text", application_confirmed=False,
+                    recovery_status="unattributed_archive_text",
+                    completeness="archive_text_without_confirmed_telegram_sql_tl_context")
+                for name in ("native_constructor", "native_layer", "native_tl_body_sha256",
+                             "sqlite_stored_mid", "identity_scope", "candidate_message_id",
+                             "candidate_peer", "candidate_date", "candidate_sender"):
+                    result[name] = None
         else:
             result.update(evidence_kind="backup", recovery_status="rollback_before_image_snapshot")
+    result.update(_container_provenance(raw))
     residuals = raw.get("residual_sources", [])
-    provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
+    provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256", "container_sha256", "container_source_id", "container_source_file")
     result["residual_sources"] = []
     for item in residuals[:20] if isinstance(residuals, list) else []:
         if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:
@@ -169,6 +196,7 @@ def _normalized(raw):
                   if k in provenance_names and isinstance(v, (str, int, bool)) and (not isinstance(v, str) or _valid_unicode(v))}
         origin.update(overflow)
         origin.update(rollback)
+        origin.update(_container_provenance(item))
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid
@@ -181,12 +209,13 @@ def _normalized(raw):
         if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:
             continue
         origin = {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
-             "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count")
+             "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count", "container_sha256", "container_source_id", "container_source_file")
          if isinstance(item.get(k), (str, int)) and (not isinstance(item[k], str) or _valid_unicode(item[k]))}
         origin.update({name: item[name][:4096] if isinstance(item[name], str) else item[name]
                        for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool)) and (not isinstance(item[name], str) or _valid_unicode(item[name]))})
         origin.update(overflow)
         origin.update(rollback)
+        origin.update(_container_provenance(item))
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid

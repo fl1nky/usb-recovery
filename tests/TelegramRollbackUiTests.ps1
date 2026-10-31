@@ -85,8 +85,17 @@ public static class TelegramRollbackUiTests
             {"rollback_payload_sha256",overflow?new string('d',64):null},
             {"rollback_payload_ranges",overflow?Ranges():null},
             {"candidate_message_id",21},{"candidate_peer",77},{"candidate_sender","user:77"},{"candidate_date",1767225600},
-            {"sqlite_page",21},{"physical_byte_offset",516},{"physical_source","rollback_journal"},{"proof","Validated owned before-image pages"}
+            {"sqlite_page",full?3:21},{"physical_byte_offset",516},{"physical_source","rollback_journal"},{"proof","Validated owned before-image pages"}
         };
+        return value;
+    }
+    static Dictionary<string,object> GenericRecord()
+    {
+        var value=Record(false,false);value["rollback_proof"]="archive_text_from_rollback_snapshot";
+        value["rollback_snapshot_sha256"]=SnapshotHash;value["rollback_initial_pages"]=4;value["rollback_page"]=3;value["sqlite_page"]=3;
+        value["record_kind"]="sqlite_rollback_archive_text";value["application_confirmed"]=false;
+        value["source_record"]="messages.id:1@rollback:"+JournalHash;
+        foreach(string name in new[]{"candidate_message_id","candidate_peer","candidate_sender","candidate_date"})value.Remove(name);
         return value;
     }
     static Dictionary<string,object>[] Ranges()
@@ -141,6 +150,8 @@ public static class TelegramRollbackUiTests
             Check(full.records[0].rollback_snapshot_sha256==SnapshotHash&&Convert.ToInt64(full.records[0].rollback_initial_pages)==4,"full snapshot hash/page count survive protocol");
             var overflow=Search(Archive("overflow",Record(false,true)));Common(overflow.records[0],"overflow");
             Check(overflow.records[0].rollback_payload_chain_verified==true&&Convert.ToInt64(overflow.records[0].rollback_payload_length)==9268&&overflow.records[0].rollback_payload_ranges.Length==19,"overflow proof, length and physical ranges survive protocol");
+            var generic=Search(Archive("generic-json",GenericRecord()));
+            Check(generic.records[0].rollback_proof=="archive_text_from_rollback_snapshot"&&generic.records[0].rollback_snapshot_sha256==SnapshotHash&&generic.records[0].application_confirmed==false,"generic archive text keeps physical snapshot with unconfirmed Telegram semantics");
             using(var host=new Host{ClientSize=new Size(1000,800),ShowInTaskbar=false,StartPosition=FormStartPosition.Manual,Location=new Point(-20000,-20000)})
             using(var panel=new ArchiveSearchPanel()){
                 host.Controls.Add(panel);host.Show();Pump();
@@ -157,6 +168,9 @@ public static class TelegramRollbackUiTests
                 details=Display(panel,overflow);
                 Check(details.Contains("Текст собран из цепочки сохранившихся страниц журнала")&&details.Contains("не подставлялись из текущей базы"),"overflow explains preserved-chain construction without current DB fill");
                 Check(!details.Contains("все исходные страницы присутствуют")&&Convert.ToString(grid.Rows[0].Cells["category"].Value)=="Текстовый фрагмент","overflow proof remains an unattributed partial fragment");Conservative(details,"overflow");
+                details=Display(panel,generic);
+                Check(Convert.ToString(grid.Rows[0].Cells["category"].Value)=="Текстовый фрагмент"&&Convert.ToString(grid.Rows[0].Cells["chat"].Value)=="Чат неизвестен"&&Convert.ToString(grid.Rows[0].Cells["author"].Value)=="Автор неизвестен"&&Convert.ToString(grid.Rows[0].Cells["date"].Value)=="Дата неизвестна","generic snapshot text remains an unknown fragment in the grid");
+                Check(details.Contains("Текст из локального архива")&&details.Contains("Принадлежность записи Telegram")&&details.Contains("не подтверждены")&&!details.Contains("связи записи проверены внутри снимка")&&!details.Contains("Запись Telegram Android:"),"generic archive-text explanation never claims native SQL/TL qualification");Conservative(details,"generic archive text");
                 var tail=Record(false,false);tail["rollback_parse_status"]="validated_prefix";tail["rollback_tail_reason"]="torn_record";
                 details=Display(panel,Search(Archive("partial-tail",tail)));
                 Check(details.Contains("Журнал прочитан частично: torn_record"),"validated-prefix tail limitation is visible");
@@ -178,6 +192,8 @@ public static class TelegramRollbackUiTests
             var proof=Record(false,false);proof["rollback_proof"]="all_pages_from_validated_rollback_journal";Reject("partial-as-complete-snapshot",proof);
             var overlap=Record(false,true);((Dictionary<string,object>[])overlap["rollback_payload_ranges"])[1]["physical_byte_offset"]=1000;Reject("overlapping-physical-ranges",overlap);
             var length=Record(false,true);length["rollback_payload_length"]=9269;Reject("chain-length-mismatch",length);
+            var unconfirmed=Record(true,false);unconfirmed["application_confirmed"]=false;Reject("unconfirmed-full-native-proof",unconfirmed);
+            var fullJson=Record(true,false);fullJson["record_kind"]="sqlite_rollback_archive_text";Reject("generic-json-with-native-full-proof",fullJson);
         }catch(Exception error){failed.Add("Unhandled controlled UI test failure: "+error);Console.WriteLine(error);}
         var receipt=new{schema=1,status=failed.Count==0?"passed":"failed",scope="Controlled source C# WinForms/protocol/display with owned fake helper and synthetic archives; not portable helper/device acceptance",
             assertions=passed.Count+failed.Count,passed=passed.Count,failures=failed.Count,passed_checks=passed.ToArray(),failed_checks=failed.ToArray(),screenshots_used=false,personal_data_used=false};

@@ -295,6 +295,11 @@ class Importer:
             m["source_id"] = self.current_origin.get("Id")
             m["original_relative_path"] = self.current_origin.get("RelativePath")
             m["source_sha256"] = self.current_origin.get("Sha256")
+            for name, key in (("container_sha256", "ContainerSha256"),
+                              ("container_source_id", "ContainerSourceId"),
+                              ("container_source_file", "ContainerOriginalPath")):
+                if isinstance(self.current_origin.get(key), str):
+                    m[name] = self.current_origin[key]
         if evidence not in EVIDENCE:
             raise RecoveryError("INVALID_EVIDENCE")
         # IDs and chat identity are required for deduplication. Exports with no
@@ -317,6 +322,7 @@ class Importer:
                             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
                             "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
                             "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified", "sqlite_stored_mid",
+                            "container_sha256", "container_source_id", "container_source_file",
                             *ROLLBACK_FIELDS) if m.get(name) is not None})
                     return
             if candidates and evidence == "previous":
@@ -1155,12 +1161,22 @@ class Importer:
         emit("progress", phase="scan", files=self.source_count, messages=len(self.messages), photos=len(self.photos))
         self.sources.append({"source": self.source_label, "sha256": self.snapshot, "size": size,
                              "status": "copied_input", "source_id": self.current_origin.get("Id"),
-                             "relative_path": self.current_origin.get("RelativePath")})
+                             "relative_path": self.current_origin.get("RelativePath"),
+                             **{name: self.current_origin[key] for name, key in
+                                (("container_sha256", "ContainerSha256"),
+                                 ("container_source_id", "ContainerSourceId"),
+                                 ("container_source_file", "ContainerOriginalPath"))
+                                if isinstance(self.current_origin.get(key), str)}})
         if path.name.lower().endswith(".partial") and self.current_origin.get("Status") != "complete":
             self.remark("INCOMPLETE_SOURCE", self.source_label)
             return
         name = path.name.lower()
         try:
+            if "Sha256" in self.current_origin:
+                expected = self.current_origin.get("Sha256")
+                if (not isinstance(expected, str) or expected.lower() != self.snapshot or
+                        type(self.current_origin.get("Size")) is int and self.current_origin["Size"] != size):
+                    raise RecoveryError("ACQUISITION_HASH_MISMATCH")
             if name.endswith((".crypt12", ".crypt14", ".crypt15")):
                 if self.telegram_only:
                     return
@@ -1176,12 +1192,20 @@ class Importer:
                 extraction = self.work / f"zip-{self.snapshot[:16]}"
                 extraction.mkdir()
                 safe_unzip(path, extraction)
-                if self.current_origin:
-                    for member in files_under(extraction):
-                        relative = member.relative_to(extraction).as_posix()
-                        self.origins[str(member.resolve())] = {**self.current_origin,
-                            "OriginalPath": f"{self.source_label}!/{relative}",
-                            "RelativePath": f"{self.current_origin.get('RelativePath', path.name)}!/{relative}"}
+                if digest(path) != self.snapshot:
+                    raise RecoveryError("SOURCE_CHANGED")
+                container = self.current_origin
+                container_id = container.get("Id") or hashlib.sha256(str(self.source_label).encode()).hexdigest()
+                for member in files_under(extraction):
+                    relative = member.relative_to(extraction).as_posix()
+                    member_size = member.stat().st_size
+                    self.origins[str(member.resolve())] = {
+                        "Id": hashlib.sha256((str(container_id) + "!/" + relative).encode()).hexdigest(),
+                        "OriginalPath": f"{self.source_label}!/{relative}",
+                        "RelativePath": f"{container.get('RelativePath') or path.name}!/{relative}",
+                        "Sha256": digest(member), "Size": member_size, "Status": "complete",
+                        "ContainerSha256": self.snapshot, "ContainerSourceId": str(container_id),
+                        "ContainerOriginalPath": self.source_label}
                 self.extracted_roots.append((extraction, self.source_label))
                 return
             with path.open("rb") as f:

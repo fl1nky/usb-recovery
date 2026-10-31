@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using UsbRecovery;
 
@@ -123,6 +124,49 @@ public static class TelegramRollbackPortableTests
               Hash(Safe(imported,transfer.rollback_page_map))==transfer.rollback_page_map_sha256,"actual canonical reimport preserves journal snapshot and bound map");
         Check(Same(source,Binding(archive)),"search, rejected keys and reimport leave original archive unchanged");
     }
+    static void Contexts(string project,string output)
+    {
+        string corpus=Path.Combine(project,".build","telegram-rollback-context-fixtures-current"),manifestPath=Path.Combine(corpus,"manifest.json"),manifestBefore=Hash(manifestPath);
+        foreach(var pair in Cases(corpus)){
+            var fixture=pair.Value;string name=pair.Key,expected=(string)fixture["expected_text"],source=Safe(corpus,(string)fixture["source_path"]),archive=Path.Combine(output,"context-"+name);
+            var declared=(Dictionary<string,object>)fixture["source_files"];
+            Check(declared.All(file=>Hash(Safe(corpus,file.Key))==(string)file.Value),"context input bytes match independent fixture manifest: "+name);
+            HelperResult result;
+            if((string)fixture["operation"]=="scan")result=HelperClient.Scan(source,archive,new Dictionary<string,string>(),true,CancellationToken.None,null);
+            else result=TelegramAnalysisService.AnalyzeSelected(archive,source,"",false,CancellationToken.None,null);
+            Check(result.Status!="error"&&File.Exists(Path.Combine(archive,"messages.jsonl"))&&!Directory.Exists(archive+".work")&&!File.Exists(Path.Combine(archive,"job.incomplete")),"actual copied-phone/ZIP/generic context publishes a complete archive: "+name);
+            var literal=ArchiveSearchService.Search(archive,"Telegram",expected,"",0,CancellationToken.None);
+            var message=literal.records.Single(row=>row.text==expected&&row.rollback_proof==(string)fixture["expected_proof"]);
+            var canonical=Rows(archive).Single(row=>row.text==expected&&row.rollback_proof==(string)fixture["expected_proof"]);
+            Check(message.source_file==(string)fixture["expected_origin_path"]&&message.source_id==(string)fixture["expected_source_id"]&&
+                  message.original_relative_path==(string)fixture["expected_relative_path"]&&message.source_sha256==(string)fixture["expected_source_sha256"]&&
+                  canonical.source_file==message.source_file&&canonical.source_id==message.source_id&&canonical.original_relative_path==message.original_relative_path&&canonical.source_sha256==message.source_sha256,
+                  "canonical archive and actual C# DTO preserve original URI/ID/relative path/member SHA: "+name);
+            Check(!message.source_file.Contains(".work")&&!message.source_file.Contains("validated-input")&&message.rollback_journal_sha256==(string)fixture["expected_journal_sha256"],"published context never exposes removed working-copy origin: "+name);
+            Check(Hash(Safe(archive,message.rollback_page_map))==message.rollback_page_map_sha256,"context page-map copy remains bound to its actual bytes: "+name);
+            bool native=(bool)fixture["native_confirmed"];
+            if(native)Check(message.application_confirmed==true&&message.record_kind=="tl_message"&&message.evidence_kind=="backup"&&message.rollback_proof=="all_pages_from_validated_rollback_journal"&&Number(message.chat_id)==77&&Number(message.message_id)==21,"only native SQL/TL context qualifies attributed full snapshot: "+name);
+            else{
+                Check(message.application_confirmed==false&&message.record_kind=="sqlite_rollback_archive_text"&&message.evidence_kind=="fragment"&&message.rollback_proof=="archive_text_from_rollback_snapshot"&&
+                      message.rollback_snapshot_sha256!=null&&message.rollback_snapshot_sha256.Length==64&&message.chat_id==null&&message.chat_name==null&&message.message_id==null&&message.sender_id==null&&message.sender_name==null&&message.timestamp==null&&message.deleted==null&&message.native_constructor==null,
+                      "generic JSON-derived text keeps physical snapshot but loses all unsupported Telegram identity: "+name);
+                Check(ArchiveSearchService.Search(archive,"Telegram",expected,"backup",0,CancellationToken.None).total==0&&ArchiveSearchService.Search(archive,"Telegram",expected,"deleted",0,CancellationToken.None).total==0,"generic archived JSON cannot become native backup or proven deletion");
+            }
+            if(name=="zip"){
+                string container=(string)fixture["container_source_id"],member=(string)fixture["member_path"];
+                Check(message.container_sha256==(string)fixture["container_sha256"]&&message.container_source_id==container&&message.container_source_file==(string)fixture["container_origin_path"]&&
+                      canonical.container_sha256==message.container_sha256&&canonical.container_source_id==message.container_source_id&&canonical.container_source_file==message.container_source_file,
+                      "ZIP container proof survives canonical archive and actual C# DTO");
+                Check(message.source_file.EndsWith("!/"+member,StringComparison.Ordinal)&&message.source_id==Hash(new UTF8Encoding(false).GetBytes(container+"!/"+member))&&message.source_sha256!=message.container_sha256,
+                      "ZIP journal identity/hash belong to actual member and preserve the container separately");
+            }
+            var regex=ArchiveSearchService.Search(archive,"Telegram",Regex.Escape(expected),"",0,CancellationToken.None,true);
+            var full=ArchiveSearchService.ReadPage(archive,message.archive_record_key,0,CancellationToken.None);
+            Check(regex.records.Any(row=>row.text==expected&&row.source_file==message.source_file)&&full.status=="complete"&&full.eof&&full.text==expected,"context keyword/Regex/full-text paths retain exact useful text: "+name);
+            Check(declared.All(file=>Hash(Safe(corpus,file.Key))==(string)file.Value),"copied phone/ZIP/generic context source files remain unchanged: "+name);
+        }
+        Check(Hash(manifestPath)==manifestBefore,"independent context manifest remains unchanged");
+    }
     public static int Main(string[] args)
     {
         try{
@@ -135,8 +179,9 @@ public static class TelegramRollbackPortableTests
             foreach(string name in new[]{"partial-overflow-delete","partial-overflow-update"})Positive(overflow,longCases[name],output);
             foreach(string name in new[]{"bad-magic","bad-checksum","torn-record","zero-count","sentinel-count","super-journal","persist-zero"})Negative(normal,cases[name],output);
             ReimportAndKeys(full,output);
+            Contexts(project,output);
             Check(Hash(Path.Combine(normal,"manifest.json"))==normalManifest&&Hash(Path.Combine(overflow,"manifest.json"))==overflowManifest,"both independent manifests remain unchanged");
-            Console.WriteLine("PASS TelegramRollbackPortable: "+checks+" checks; actual packaged helper/C# protocol, native full/partial/overflow journals, physical provenance replay, literal/regex/full text, invalid journals/keys, canonical reimport and immutable owned sources. No real devices or paid-tool claim.");return 0;
+            Console.WriteLine("PASS TelegramRollbackPortable: "+checks+" checks; actual packaged helper/C# protocol, native full/partial/overflow journals, physical provenance replay, literal/regex/full text, invalid journals/keys, canonical reimport, copied-phone/ZIP origins, conservative generic archive text and immutable owned sources. No real devices or paid-tool claim.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }

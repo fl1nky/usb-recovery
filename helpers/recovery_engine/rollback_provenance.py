@@ -37,7 +37,7 @@ def normalized(raw):
             not _hash(result.get("rollback_page_map_sha256"))):
         return None
     proof = result.get("rollback_proof")
-    if proof == "all_pages_from_validated_rollback_journal":
+    if proof in ("all_pages_from_validated_rollback_journal", "archive_text_from_rollback_snapshot"):
         if not _hash(result.get("rollback_snapshot_sha256")) or result["rollback_parse_status"] != "complete" or result.get("rollback_tail_reason") is not None:
             return None
     elif proof in ("validated_rollback_page_fragment", "validated_rollback_payload_chain"):
@@ -54,6 +54,8 @@ def normalized(raw):
     if reason is not None and (not isinstance(reason, str) or not re.fullmatch(r"[a-z_]{1,64}", reason)):
         return None
     payload_fields = ("rollback_payload_length", "rollback_payload_sha256", "rollback_payload_ranges", "rollback_payload_chain_verified")
+    if proof == "archive_text_from_rollback_snapshot" and any(name in result for name in payload_fields):
+        return None
     if any(name in result for name in payload_fields):
         length = result.get("rollback_payload_length")
         ranges = result.get("rollback_payload_ranges")

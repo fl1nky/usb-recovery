@@ -39,6 +39,7 @@ namespace UsbRecovery
         public object wal_validated_prefix_bytes;
         public bool? wal_snapshot_latest_known_commit,wal_current_state_confirmed;
         public string rollback_journal_sha256,rollback_snapshot_sha256,rollback_proof;
+        public string container_sha256,container_source_id,container_source_file;
         public string rollback_page_map,rollback_page_map_sha256,rollback_hot_state,rollback_checksum_kind;
         public string rollback_parse_status,rollback_tail_reason,rollback_payload_sha256;
         public object rollback_initial_pages,rollback_validated_prefix_bytes,rollback_header_offset,rollback_record_offset,rollback_page,rollback_payload_length;
@@ -101,6 +102,10 @@ namespace UsbRecovery
             foreach(var message in candidate.records){
                 if(message==null||message.app!="Telegram"||message.text==null||message.text.Length>131072)return false;
                 if(!DisplayBound(message.source_file)||!DisplayBound(message.source_record)||!DisplayBound(message.source_sha256)||!DisplayBound(message.snapshot_id))return false;
+                if(message.container_sha256!=null||message.container_source_id!=null||message.container_source_file!=null){
+                    if(!LowerHash(message.container_sha256)||String.IsNullOrEmpty(message.container_source_id)||String.IsNullOrEmpty(message.container_source_file)||
+                        !DisplayBound(message.container_source_id)||!DisplayBound(message.container_source_file))return false;
+                }
                 if(!ValidRollback(message))return false;
                 long length=CodePoints(message.text);if(length<0||length>65536)return false;
                 if(message.text_truncated&&(message.text_length<=length||message.text_length>4*1024*1024||message.text_offset<0||message.text_end<message.text_offset||message.text_end>message.text_length||message.text_end-message.text_offset!=length||message.match_offset<message.text_offset||message.match_offset>message.text_end||message.match_end<message.match_offset||message.match_end>message.text_length))return false;
@@ -131,8 +136,13 @@ namespace UsbRecovery
             if(message.rollback_record_offset!=null&&!BoundedInteger(message.rollback_record_offset,0,256*1024*1024))return false;
             if(message.rollback_page!=null&&!BoundedInteger(message.rollback_page,1,Convert.ToInt64(message.rollback_initial_pages,CultureInfo.InvariantCulture)))return false;
             bool complete=message.rollback_proof=="all_pages_from_validated_rollback_journal";
-            if(complete){
-                if(message.evidence_kind!="backup"||!LowerHash(message.rollback_snapshot_sha256)||message.rollback_parse_status!="complete"||message.rollback_tail_reason!=null)return false;
+            bool archiveText=message.rollback_proof=="archive_text_from_rollback_snapshot";
+            if(complete||archiveText){
+                if(!LowerHash(message.rollback_snapshot_sha256)||message.rollback_parse_status!="complete"||message.rollback_tail_reason!=null)return false;
+                if(complete&&(message.evidence_kind!="backup"||message.record_kind!="tl_message"||message.application_confirmed!=true))return false;
+                if(archiveText&&(message.evidence_kind!="fragment"||message.record_kind!="sqlite_rollback_archive_text"||message.application_confirmed!=false||
+                    message.chat_id!=null||message.message_id!=null||message.sender_id!=null||message.sender_name!=null||message.timestamp!=null||message.timestamp_raw!=null||
+                    message.rollback_payload_ranges!=null||message.rollback_payload_length!=null||message.rollback_payload_sha256!=null||message.rollback_payload_chain_verified!=null))return false;
             }else if((message.rollback_proof!="validated_rollback_page_fragment"&&message.rollback_proof!="validated_rollback_payload_chain")||
                 message.evidence_kind!="fragment"||message.rollback_snapshot_sha256!=null||message.chat_id!=null||message.message_id!=null||message.sender_id!=null||message.sender_name!=null||message.timestamp!=null||message.timestamp_raw!=null)return false;
             if(message.rollback_payload_ranges==null)return message.rollback_proof!="validated_rollback_payload_chain"&&message.rollback_payload_length==null&&message.rollback_payload_sha256==null&&message.rollback_payload_chain_verified==null;
@@ -460,6 +470,7 @@ namespace UsbRecovery
             details.AppendLine("Дата записи: " + Known(null, message.timestamp ?? message.timestamp_raw, "неизвестна"));
             details.Append("Снимок: " + Known(message.snapshot_id, null, "неизвестен") + " · ID чата: " + Known(null, message.chat_id, "неизвестен") + " · ID автора: " + Known(null, message.sender_id, "неизвестен") + " · ID сообщения: " + Known(null, message.message_id, "неизвестен"));
             if (!String.IsNullOrEmpty(message.source_sha256)) details.AppendLine("\r\nSHA256 источника: " + message.source_sha256);
+            if(!String.IsNullOrEmpty(message.container_source_file))details.AppendLine("\r\nАрхив-источник: "+message.container_source_file+" · SHA256: "+message.container_sha256);
             if (message.date_ambiguous == true || message.timezone_unknown == true) details.AppendLine("\r\nДата или часовой пояс требуют уточнения по исходному экспорту.");
             if (message.record_kind == "notification") details.AppendLine("\r\nСохранённый текст уведомления: может содержать только часть сообщения. Полная переписка в источнике может отсутствовать.");
             if (message.record_kind == "tl_message") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
@@ -467,6 +478,8 @@ namespace UsbRecovery
             if(!String.IsNullOrEmpty(message.rollback_journal_sha256)){
                 details.AppendLine(message.rollback_proof=="all_pages_from_validated_rollback_journal"
                     ? "\r\nСнимок из сохранившегося журнала SQLite: все исходные страницы присутствуют, связи записи проверены внутри снимка."
+                    : message.rollback_proof=="archive_text_from_rollback_snapshot"
+                    ? "\r\nТекст из локального архива в снимке SQLite. Принадлежность записи Telegram и связи чата не подтверждены."
                     : "\r\nФрагмент из сохранившегося журнала SQLite. Чат, автор и дата не установлены.");
                 details.AppendLine("Журнал не подтверждает удаление или текущее состояние переписки. Контрольная сумма проверяет только часть байтов и не удостоверяет подлинность текста.");
                 details.AppendLine("SHA256 журнала: "+message.rollback_journal_sha256);
