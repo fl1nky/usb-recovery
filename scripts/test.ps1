@@ -18,6 +18,29 @@ foreach($taskTelegramKind in 'wal_tail','overflow'){
   if($LASTEXITCODE-ne0){throw 'Independent Telegram recovery fixture generation failed.'}
  }
 }
+$taskRollbackGenerator=Join-Path $taskLayout.Tests 'build_telegram_rollback_fixtures.py'
+$taskRollbackGeneratorHash=(Get-FileHash -LiteralPath $taskRollbackGenerator -Algorithm SHA256).Hash.ToLowerInvariant()
+foreach($taskRollbackKind in 'normal','overflow'){
+ $taskRollbackName=if($taskRollbackKind-eq'overflow'){'telegram-rollback-overflow-fixtures-current'}else{'telegram-rollback-fixtures-current'}
+ $taskRollbackTarget=Join-Path $taskLayout.Root ('.build\'+$taskRollbackName)
+ $taskRollbackManifest=Join-Path $taskRollbackTarget 'manifest.json'
+ if(-not(Test-Path -LiteralPath $taskRollbackManifest)){
+  if(Test-Path -LiteralPath $taskRollbackTarget){throw 'Incomplete rollback fixture cache exists; preserve it and prepare a fresh destination before testing.'}
+  $taskRollbackArguments=@($taskRollbackGenerator,$taskRollbackTarget)
+  if($taskRollbackKind-eq'overflow'){$taskRollbackArguments+='--overflow'}
+  & $Python312 @taskRollbackArguments
+  if($LASTEXITCODE-ne0){throw 'Native SQLite rollback fixture generation failed.'}
+ }
+ $taskRollbackReceipt=Get-Content -LiteralPath $taskRollbackManifest -Raw -Encoding UTF8|ConvertFrom-Json
+ if($taskRollbackReceipt.generator_sha256-ne$taskRollbackGeneratorHash){throw 'Rollback fixture cache belongs to another generator; preserve old fixtures and prepare the current corpus before testing.'}
+ & $Python312 (Join-Path $taskLayout.Tests 'audit_telegram_rollback_fixtures.py') --corpus $taskRollbackTarget
+ if($LASTEXITCODE-ne0){throw 'Independent rollback before-image/coverage verification failed.'}
+ if($taskRollbackKind-eq'overflow'){
+  $taskRollbackChainReceipt=Join-Path $taskLayout.Root ('.build\telegram-rollback-overflow-proof-'+[Guid]::NewGuid().ToString('N')+'.json')
+  & $Python312 (Join-Path $taskLayout.Tests 'audit_telegram_rollback_overflow.py') --corpus $taskRollbackTarget --out $taskRollbackChainReceipt
+  if($LASTEXITCODE-ne0){throw 'Independent native rollback overflow-chain verification failed.'}
+ }
+}
 & $Python312 (Join-Path $taskLayout.Tests 'build_progressive_jpeg_fixtures.py') (Join-Path $taskLayout.Root '.build\progressive-jpeg-fixtures')
 if($LASTEXITCODE-ne0){throw 'Progressive fixture generation failed.'}
 $taskMdFixtures=Join-Path $taskLayout.Root '.build\raid-metadata-fixtures'
@@ -75,6 +98,7 @@ foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflin
 }
 & (Join-Path $taskLayout.Tests 'ArchiveTextUiTests.ps1')
 & (Join-Path $taskLayout.Tests 'ArchiveTextProtocolAuditTests.ps1')
+& (Join-Path $taskLayout.Tests 'TelegramRollbackUiTests.ps1')
 & (Join-Path $taskLayout.Tests 'MediaRangeAnchorAuditTests.ps1')
 & $Python312 (Join-Path $taskLayout.Tests 'UpgradeEvidenceTests.py')
 if($LASTEXITCODE-ne0){throw 'Evidence regression failed.'}

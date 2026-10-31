@@ -38,6 +38,12 @@ namespace UsbRecovery
         public string wal_tail_reason;
         public object wal_validated_prefix_bytes;
         public bool? wal_snapshot_latest_known_commit,wal_current_state_confirmed;
+        public string rollback_journal_sha256,rollback_snapshot_sha256,rollback_proof;
+        public string rollback_page_map,rollback_page_map_sha256,rollback_hot_state,rollback_checksum_kind;
+        public string rollback_parse_status,rollback_tail_reason,rollback_payload_sha256;
+        public object rollback_initial_pages,rollback_validated_prefix_bytes,rollback_header_offset,rollback_record_offset,rollback_page,rollback_payload_length;
+        public bool? rollback_current_state_confirmed,rollback_content_authenticity_verified,rollback_payload_chain_verified;
+        public Dictionary<string,object>[] rollback_payload_ranges;
         public string media_kind,media_id,media_status;
         public object thumbnail_count;
         public object native_layer, wal_commit_frame;
@@ -94,9 +100,54 @@ namespace UsbRecovery
             if(candidate.total<0||candidate.offset!=offset||candidate.limit!=100||candidate.records==null||candidate.records.Count>100)return false;
             foreach(var message in candidate.records){
                 if(message==null||message.app!="Telegram"||message.text==null||message.text.Length>131072)return false;
+                if(!DisplayBound(message.source_file)||!DisplayBound(message.source_record)||!DisplayBound(message.source_sha256)||!DisplayBound(message.snapshot_id))return false;
+                if(!ValidRollback(message))return false;
                 long length=CodePoints(message.text);if(length<0||length>65536)return false;
                 if(message.text_truncated&&(message.text_length<=length||message.text_length>4*1024*1024||message.text_offset<0||message.text_end<message.text_offset||message.text_end>message.text_length||message.text_end-message.text_offset!=length||message.match_offset<message.text_offset||message.match_offset>message.text_end||message.match_end<message.match_offset||message.match_end>message.text_length))return false;
             }return true;
+        }
+        static bool LowerHash(string value)
+        {
+            if(value==null||value.Length!=64)return false;
+            foreach(char character in value)if(!(character>='0'&&character<='9'||character>='a'&&character<='f'))return false;
+            return true;
+        }
+        static bool DisplayBound(string value){return value==null||value.Length<=8192;}
+        static bool BoundedInteger(object value,long minimum,long maximum)
+        {
+            if(!(value is int)&&!(value is long))return false;
+            long number=Convert.ToInt64(value,CultureInfo.InvariantCulture);return number>=minimum&&number<=maximum;
+        }
+        static bool ValidRollback(ArchiveMessage message)
+        {
+            if(message.rollback_journal_sha256==null)return message.rollback_proof==null&&message.rollback_page_map==null&&message.rollback_payload_ranges==null&&message.rollback_snapshot_sha256==null;
+            if(!LowerHash(message.rollback_journal_sha256)||!LowerHash(message.rollback_page_map_sha256)||message.rollback_page_map!="provenance/rollback/"+message.rollback_journal_sha256+".json"||
+                message.rollback_hot_state!="unknown"||message.rollback_current_state_confirmed!=false||message.rollback_content_authenticity_verified!=false||message.rollback_checksum_kind!="sqlite_sparse_32bit"||
+                !BoundedInteger(message.rollback_initial_pages,1,131072)||message.deleted!=null||
+                message.rollback_parse_status!="complete"&&message.rollback_parse_status!="validated_prefix")return false;
+            if(message.rollback_tail_reason!=null&&(message.rollback_tail_reason.Length>64||!Regex.IsMatch(message.rollback_tail_reason,"^[a-z_]+$",RegexOptions.CultureInvariant)))return false;
+            if(message.rollback_validated_prefix_bytes!=null&&!BoundedInteger(message.rollback_validated_prefix_bytes,0,256*1024*1024))return false;
+            if(message.rollback_header_offset!=null&&!BoundedInteger(message.rollback_header_offset,0,256*1024*1024))return false;
+            if(message.rollback_record_offset!=null&&!BoundedInteger(message.rollback_record_offset,0,256*1024*1024))return false;
+            if(message.rollback_page!=null&&!BoundedInteger(message.rollback_page,1,Convert.ToInt64(message.rollback_initial_pages,CultureInfo.InvariantCulture)))return false;
+            bool complete=message.rollback_proof=="all_pages_from_validated_rollback_journal";
+            if(complete){
+                if(message.evidence_kind!="backup"||!LowerHash(message.rollback_snapshot_sha256)||message.rollback_parse_status!="complete"||message.rollback_tail_reason!=null)return false;
+            }else if((message.rollback_proof!="validated_rollback_page_fragment"&&message.rollback_proof!="validated_rollback_payload_chain")||
+                message.evidence_kind!="fragment"||message.rollback_snapshot_sha256!=null||message.chat_id!=null||message.message_id!=null||message.sender_id!=null||message.sender_name!=null||message.timestamp!=null||message.timestamp_raw!=null)return false;
+            if(message.rollback_payload_ranges==null)return message.rollback_proof!="validated_rollback_payload_chain"&&message.rollback_payload_length==null&&message.rollback_payload_sha256==null&&message.rollback_payload_chain_verified==null;
+            if(message.rollback_payload_ranges.Length<2||message.rollback_payload_ranges.Length>4096||message.rollback_payload_chain_verified!=true||!LowerHash(message.rollback_payload_sha256)||!BoundedInteger(message.rollback_payload_length,1,4*1024*1024))return false;
+            long position=0;var pages=new HashSet<long>();var physical=new List<Tuple<long,long>>();
+            foreach(var range in message.rollback_payload_ranges){
+                object logical,amount,page,source,offset;
+                if(range==null||range.Count!=5||!range.TryGetValue("logical_offset",out logical)||!range.TryGetValue("bytes",out amount)||!range.TryGetValue("sqlite_page",out page)||!range.TryGetValue("physical_source",out source)||!range.TryGetValue("physical_byte_offset",out offset)||
+                    !BoundedInteger(logical,position,position)||!BoundedInteger(amount,1,65536)||!BoundedInteger(page,1,Convert.ToInt64(message.rollback_initial_pages,CultureInfo.InvariantCulture))||
+                    !(source is string)||(string)source!="rollback_journal"||!BoundedInteger(offset,0,256*1024*1024-Convert.ToInt64(amount,CultureInfo.InvariantCulture))||!pages.Add(Convert.ToInt64(page,CultureInfo.InvariantCulture)))return false;
+                long size=Convert.ToInt64(amount,CultureInfo.InvariantCulture),start=Convert.ToInt64(offset,CultureInfo.InvariantCulture);position+=size;physical.Add(Tuple.Create(start,start+size));
+            }
+            physical.Sort((first,second)=>first.Item1.CompareTo(second.Item1));
+            for(int index=1;index<physical.Count;index++)if(physical[index-1].Item2>physical[index].Item1)return false;
+            return position==Convert.ToInt64(message.rollback_payload_length,CultureInfo.InvariantCulture);
         }
         static long CodePoints(string text)
         {
@@ -354,7 +405,11 @@ namespace UsbRecovery
 
         void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset + 100 < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
         void ClearResults() { current = null; pageOffset = 0; grid.Rows.Clear(); ShowMessage(); }
-        static string Known(string preferred, object fallback, string unknown) { return !String.IsNullOrEmpty(preferred) ? preferred : fallback == null || String.IsNullOrEmpty(Convert.ToString(fallback)) ? unknown : Convert.ToString(fallback); }
+        static string Known(string preferred, object fallback, string unknown)
+        {
+            string result=!String.IsNullOrEmpty(preferred)?preferred:fallback==null||String.IsNullOrEmpty(Convert.ToString(fallback))?unknown:Convert.ToString(fallback);
+            if(result.Length<=4096)return result;int end=4096;if(Char.IsHighSurrogate(result[end-1]))end--;return result.Substring(0,end)+"…";
+        }
         static string DisplayDate(ArchiveMessage message)
         {
             string value = Known(null, message.timestamp ?? message.timestamp_raw, "Дата неизвестна");
@@ -409,6 +464,17 @@ namespace UsbRecovery
             if (message.record_kind == "notification") details.AppendLine("\r\nСохранённый текст уведомления: может содержать только часть сообщения. Полная переписка в источнике может отсутствовать.");
             if (message.record_kind == "tl_message") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
             if(message.sqlite_stored_mid!=null)details.AppendLine("Ключ записи в SQLite: "+Known(null,message.sqlite_stored_mid,"неизвестен")+". ID самого сообщения показан отдельно.");
+            if(!String.IsNullOrEmpty(message.rollback_journal_sha256)){
+                details.AppendLine(message.rollback_proof=="all_pages_from_validated_rollback_journal"
+                    ? "\r\nСнимок из сохранившегося журнала SQLite: все исходные страницы присутствуют, связи записи проверены внутри снимка."
+                    : "\r\nФрагмент из сохранившегося журнала SQLite. Чат, автор и дата не установлены.");
+                details.AppendLine("Журнал не подтверждает удаление или текущее состояние переписки. Контрольная сумма проверяет только часть байтов и не удостоверяет подлинность текста.");
+                details.AppendLine("SHA256 журнала: "+message.rollback_journal_sha256);
+                if(!String.IsNullOrEmpty(message.rollback_snapshot_sha256))details.AppendLine("SHA256 снимка: "+message.rollback_snapshot_sha256);
+                if(message.rollback_payload_chain_verified==true)details.AppendLine("Текст собран из цепочки сохранившихся страниц журнала; отсутствующие страницы не подставлялись из текущей базы.");
+                if(!String.IsNullOrEmpty(message.rollback_tail_reason))details.AppendLine("Журнал прочитан частично: "+message.rollback_tail_reason);
+                if(!String.IsNullOrEmpty(message.rollback_page_map))details.AppendLine("Карта исходных байтов: "+message.rollback_page_map);
+            }
             if (message.media_kind == "photo") details.AppendLine("\r\nВ записи есть фотография. Вложения включают только найденные локальные байты; наличие подписи не доказывает сохранность оригинального фото.");
             if (message.wal_proof == "all_pages_from_validated_wal") {
                 details.AppendLine("\r\n"+(message.wal_snapshot_latest_known_commit==true?"Последний полностью проверенный коммит WAL":"Предыдущий зафиксированный снимок SQLite")+": кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
@@ -423,7 +489,7 @@ namespace UsbRecovery
             }
             if(message.recovery_status=="deleted_supported_by_evidence")details.AppendLine("\r\nСтруктурная запись в свободной области страницы Telegram: отсутствует в текущей таблице. Ручное удаление пользователем не доказано. "+message.deletion_interpretation);
             if(message.residual_sources!=null)foreach(var origin in message.residual_sources){object at,page,kind;origin.TryGetValue("physical_byte_offset",out at);origin.TryGetValue("sqlite_page",out page);origin.TryGetValue("physical_source",out kind);details.AppendLine("\r\nТакже сохранился остаток: "+kind+", страница "+page+", позиция "+at+". Факт ручного удаления не установлен.");}
-            if(message.sqlite_page!=null)details.AppendLine("\r\nSQLite: страница "+message.sqlite_page+", область "+message.sqlite_region+", позиция "+message.physical_byte_offset+", источник "+message.physical_source+"; WAL frame "+message.wal_frame+". "+message.proof);
+            if(message.sqlite_page!=null)details.AppendLine("\r\nSQLite: страница "+message.sqlite_page+", область "+message.sqlite_region+", позиция "+message.physical_byte_offset+", источник "+message.physical_source+(message.physical_source=="rollback_journal"?"":"; WAL frame "+message.wal_frame)+". "+message.proof);
             if (message.evidence_kind == "fragment") details.AppendLine("\r\nТекстовый фрагмент: принадлежность переписке и автору может быть неизвестна.");
             if (message.record_kind == "memory_fragment") details.AppendLine("\r\nФрагмент файла, Telegram не подтверждён. Позиция в файле: " + Convert.ToString(message.byte_offset) + " байт; кодировка: " + message.encoding + ". Дата, автор и факт удаления не установлены.");
             if(message.record_kind=="android_heap_message"){
@@ -434,6 +500,8 @@ namespace UsbRecovery
             if (message.text_truncated) details.AppendLine("\r\nПоказан фрагмент: символы "+message.text_offset+"–"+(message.text_end>0?message.text_end:Math.Min(message.text_length,65536))+" из "+message.text_length+". Полная запись остаётся в архиве; открой «Полный текст» для чтения частями.");
             if (current != null && current.warnings != null && current.warnings.Length > 0) details.AppendLine("\r\nПри чтении архива часть некорректных записей пропущена или использован резервный JSONL.");
             if (message.sources != null) foreach (var origin in message.sources) { object file, record; origin.TryGetValue("source_file", out file); origin.TryGetValue("source_record", out record); details.AppendLine("\r\nТакже: " + Known(null, file, "источник неизвестен") + " · " + Known(null, record, "запись неизвестна")); }
+            const int maximumDetails=24576;
+            if(details.Length>maximumDetails){details.Length=maximumDetails;if(Char.IsHighSurrogate(details[details.Length-1]))details.Length--;details.Append("\r\n… Полное происхождение сохранено в JSON архива.");}
             provenance.Text = details.ToString();
             if (message.attachments != null) foreach (string item in message.attachments) if (Regex.IsMatch(item ?? "", "^media/[a-f0-9]{64}\\.[a-z0-9]{1,12}$")) attachments.Items.Add(new AttachmentChoice { Path = item, Number = attachments.Items.Count + 1 });
             if (attachments.Items.Count > 0) { attachments.SelectedIndex = 0; openAttachment.Enabled = true; }

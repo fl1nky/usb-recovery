@@ -27,6 +27,7 @@ import tempfile
 import zipfile
 import zlib
 from html.parser import HTMLParser
+from rollback_provenance import ROLLBACK_FIELDS
 
 MAX_IMAGE = 128 * 1024 * 1024
 MAX_PIXELS = 60_000_000
@@ -315,7 +316,8 @@ class Importer:
                             "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256",
                             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
                             "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
-                            "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified", "sqlite_stored_mid") if m.get(name) is not None})
+                            "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified", "sqlite_stored_mid",
+                            *ROLLBACK_FIELDS) if m.get(name) is not None})
                     return
             if candidates and evidence == "previous":
                 m["evidence_kind"] = "previous"

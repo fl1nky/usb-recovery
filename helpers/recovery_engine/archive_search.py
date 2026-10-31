@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import sqlite3
 import stat
+from rollback_provenance import ROLLBACK_FIELDS, normalized as _rollback_provenance
 
 MAX_RECORD = 4 * 1024 * 1024
 MAX_TEXT_RESULT = 64 * 1024
@@ -130,8 +131,10 @@ def _normalized(raw):
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
              "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes")
     overflow = _overflow_provenance(raw)
-    if overflow is None:
+    rollback = _rollback_provenance(raw)
+    if overflow is None or rollback is None:
         return None
+    names += ROLLBACK_FIELDS
     result = {name: raw.get(name) for name in names}
     if result["sqlite_stored_mid"] is not None and (type(result["sqlite_stored_mid"]) is not int or not -(1 << 63) <= result["sqlite_stored_mid"] < (1 << 63)):
         result["sqlite_stored_mid"] = None
@@ -146,15 +149,26 @@ def _normalized(raw):
         if name != "text" and isinstance(result[name], str):
             result[name] = result[name][:4096] if _valid_unicode(result[name]) else None
     result.update(overflow)
+    result.update(rollback)
+    if rollback:
+        result.update(deleted=None, deletion_interpretation="unknown", previous_version=False)
+        if rollback["rollback_proof"] != "all_pages_from_validated_rollback_journal":
+            result.update(evidence_kind="fragment", chat_id=None, chat_name=None,
+                          message_id=None, sender_id=None, sender_name=None,
+                          timestamp=None, timestamp_raw=None,
+                          recovery_status="unattributed_structured_fragment")
+        else:
+            result.update(evidence_kind="backup", recovery_status="rollback_before_image_snapshot")
     residuals = raw.get("residual_sources", [])
     provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256")
     result["residual_sources"] = []
     for item in residuals[:20] if isinstance(residuals, list) else []:
-        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None:
+        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:
             continue
         origin = {k: (v[:4096] if isinstance(v, str) else v) for k, v in item.items()
                   if k in provenance_names and isinstance(v, (str, int, bool)) and (not isinstance(v, str) or _valid_unicode(v))}
         origin.update(overflow)
+        origin.update(rollback)
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid
@@ -164,7 +178,7 @@ def _normalized(raw):
     origins = raw.get("additional_sources", raw.get("sources", []))
     result["sources"] = []
     for item in origins[:10] if isinstance(origins, list) else []:
-        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None:
+        if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:
             continue
         origin = {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
              "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count")
@@ -172,6 +186,7 @@ def _normalized(raw):
         origin.update({name: item[name][:4096] if isinstance(item[name], str) else item[name]
                        for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool)) and (not isinstance(item[name], str) or _valid_unicode(item[name]))})
         origin.update(overflow)
+        origin.update(rollback)
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid

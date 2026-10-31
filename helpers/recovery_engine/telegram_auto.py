@@ -241,6 +241,9 @@ class Analyzer:
         self.notifications = 0
         self.notification_identities = {}
         self.history_snapshot = None
+        self.rollback_snapshot = None
+        self.rollback_seen = set()
+        self.confirmed_tl_bodies = set()
         self.current_wal = None
         self.ignore_unverified_wal = False
         self.recover_deleted = request.get("options", {}).get("recover_deleted", True) is True
@@ -253,6 +256,7 @@ class Analyzer:
             raise AutoError(error.code) from None
         self.fragments = 0
         self.explicit = request.get("options", {}).get("roots") is not None
+        self.explicit_files = set()
         self.scan_fragments = self.explicit and request.get("options", {}).get("scan_fragments") is True
 
     def remark(self, code, source=None, **details):
@@ -266,9 +270,15 @@ class Analyzer:
             # Each parser requires its own relative sibling layout. Reuse only
             # a verified working copy, never create a hardlink to an original.
             previous = self.copied[str(source).casefold()]
+            origin = self.worker.origins[str(previous.resolve())]
+            if _hash(previous) != origin["Sha256"] or _hash(source) != origin["Sha256"]:
+                raise AutoError("TELEGRAM_SOURCE_CHANGED")
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(previous, target)
-            self.worker.origins[str(target.resolve())] = self.worker.origins[str(previous.resolve())]
+            if previous.resolve() != target.resolve():
+                shutil.copyfile(previous, target)
+                if _hash(target) != origin["Sha256"]:
+                    raise AutoError("TELEGRAM_SOURCE_CHANGED")
+            self.worker.origins[str(target.resolve())] = origin
             return target
         before = source.stat()
         if not stat.S_ISREG(before.st_mode) or before.st_size > MAX_SOURCE or self.bytes + before.st_size > MAX_COPY_BYTES:
@@ -371,6 +381,35 @@ class Analyzer:
                     return
 
     def canonical_message(self, value, copied, original, record):
+        from rollback_provenance import ROLLBACK_FIELDS
+        lost_maps = []
+        for origin in (value, *value.get("sources", []), *value.get("residual_sources", [])):
+            relative = origin.get("rollback_page_map")
+            if not relative:
+                continue
+            try:
+                source_map = _plain_path(original.parent / relative)
+                if not _within(source_map, original.parent) or source_map.stat().st_size > 32 * 1024 * 1024:
+                    raise AutoError("TELEGRAM_JOURNAL_MAP_LIMIT")
+                map_copy = self.copy(source_map, copied.parent / relative)
+                if _hash(map_copy) != origin.get("rollback_page_map_sha256"):
+                    raise AutoError("TELEGRAM_JOURNAL_MAP_CHANGED")
+                target = self.worker.output / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists():
+                    if _hash(target) != origin["rollback_page_map_sha256"]:
+                        raise AutoError("TELEGRAM_JOURNAL_MAP_CONFLICT")
+                else:
+                    with map_copy.open("rb") as source, target.open("xb") as sink:
+                        shutil.copyfileobj(source, sink, 1024 * 1024)
+                    if _hash(target) != origin["rollback_page_map_sha256"]:
+                        target.unlink(missing_ok=True)
+                        raise AutoError("TELEGRAM_JOURNAL_MAP_CHANGED")
+            except (OSError, AutoError):
+                # Keep the text as an imported record; a missing map cannot
+                # remain a claim about newly available physical provenance.
+                lost_maps.append({name: origin.pop(name) for name in ROLLBACK_FIELDS if name in origin})
+                self.remark("TELEGRAM_ROLLBACK_MAP_UNAVAILABLE", original)
         refs = value.pop("attachments", [])
         self.references(refs, original.parent, copied.parent)
         attachments = [item for ref in refs if (item := self.worker.attachment(ref, copied.parent))]
@@ -379,13 +418,23 @@ class Analyzer:
         text = value.pop("text")
         evidence = value.pop("evidence_kind")
         previous_provenance = {name: value.get(name) for name in ("source_file", "source_record", "snapshot_id", "source_sha256") if value.get(name) is not None}
+        if lost_maps:
+            previous_provenance["unavailable_rollback_maps"] = lost_maps
+        provided_sources = value.pop("sources", [])
         for field in ("app", "snapshot_id", "sources", "source_file", "source_record", "source_id", "source_sha256", "original_relative_path"):
             value.pop(field, None)
         self.message(text, evidence, source_record=record, previous_provenance=previous_provenance,
+                     additional_sources=provided_sources,
                      attachments=attachments, **value)
 
     def message(self, text, evidence, **fields):
-        if self.history_snapshot:
+        if getattr(self, "rollback_snapshot", None):
+            fields.update(self.rollback_snapshot)
+            fields.update(previous_version=False, deleted=None,
+                recovery_status="rollback_before_image_snapshot", deletion_interpretation="unknown")
+            evidence = "backup"
+            fields["source_record"] = str(fields.get("source_record") or "record") + "@rollback:" + self.rollback_snapshot["rollback_snapshot_sha256"]
+        elif self.history_snapshot:
             history = self.history_snapshot
             evidence = "previous"
             fields.update(previous_version=True, wal_commit_frame=history["commit_frame"],
@@ -420,7 +469,7 @@ class Analyzer:
             self.worker.identities = history_ids
 
     def sqlite(self, copied, original):
-        immutable = self.history_snapshot or getattr(self, "ignore_unverified_wal", False)
+        immutable = self.history_snapshot or getattr(self, "rollback_snapshot", None) or getattr(self, "ignore_unverified_wal", False)
         connection = sqlite3.connect(copied.as_uri() + ("?mode=ro&immutable=1" if immutable else "?mode=ro"), uri=True)
         connection.enable_load_extension(False)
         connection.execute("PRAGMA query_only=ON")
@@ -485,7 +534,7 @@ class Analyzer:
                 native_tables.add("messages")
             if native_tables:
                 self.native_messages(connection, native_tables, original)
-                if not self.history_snapshot and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
+                if not self.history_snapshot and not getattr(self, "rollback_snapshot", None) and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
                     self.deleted_records(copied, connection, original)
                 return True
             if {"dialogs", "unread_push_messages"} & tables:
@@ -504,6 +553,8 @@ class Analyzer:
         from telegram_tl import parse_message, TelegramTlError
         source_label = self.worker.source_label or str(original)
         identity = "telegram-db:" + hashlib.sha256(os.path.normcase(os.path.abspath(source_label)).encode("utf-8")).hexdigest()
+        if getattr(self, "rollback_snapshot", None):
+            identity = "telegram-rollback:" + self.rollback_snapshot["rollback_journal_sha256"]
         rejected, accepted, errors = 0, 0, {}
         for table in ("messages_v2", "messages_topics", "messages"):
             if table not in tables:
@@ -670,6 +721,8 @@ class Analyzer:
         history_fields = {name: snapshot[key] for name, key in (
             ("wal_commit_frame", "commit_frame"), ("wal_sha256", "wal_sha256"),
             ("wal_snapshot_sha256", "sha256"))} if snapshot else {}
+        if getattr(self, "rollback_snapshot", None):
+            history_fields.update(self.rollback_snapshot)
         if snapshot:
             record += "@wal_commit:" + str(snapshot["commit_frame"])
         for index, size in enumerate(photo.get("sizes", [])):
@@ -718,12 +771,141 @@ class Analyzer:
                 "thumbnail_count": len(attachments),
                 "media_status": "cached_thumbnail_available" if attachments else "photo_reference_only"}, attachments
 
+    def copy_sqlite_sidecars(self, source, copied):
+        """Keep the journal away from SQLite's automatic hot-journal replay.
+
+        Copy and recheck it before any SQLite connection is opened; the renamed
+        evidence copy stays indexed under its real source path and hash.
+        """
+        for suffix in ("-journal", "-wal", "-shm"):
+            member = Path(str(source) + suffix)
+            if member.is_file():
+                destination = Path(str(copied) + (".rollback-journal" if suffix == "-journal" else suffix))
+                self.copy(member, destination)
+        for suffix in ("", "-journal", "-wal", "-shm"):
+            member = Path(str(source) + suffix)
+            saved = self.copied.get(str(member).casefold())
+            if saved and _hash(member) != self.worker.origins[str(saved.resolve())]["Sha256"]:
+                raise AutoError("TELEGRAM_SOURCE_CHANGED")
+
+    def rollback_journal(self, copied, original):
+        """Publish journal-owned full snapshots or explicitly unattributed text."""
+        if not getattr(self, "recover_deleted", True) or self.stop:
+            return False
+        from sqlite_rollback import extract_rollback_journal, RollbackError
+        from sqlite_rollback_records import recover_fragments
+        seen = getattr(self, "rollback_seen", None)
+        if seen is None:
+            self.rollback_seen = seen = set()
+        key = str(_plain_path(original)).casefold()
+        if key in seen:
+            return False
+        saved_origin = self.worker.current_origin
+        saved_label, saved_snapshot = self.worker.source_label, self.worker.snapshot
+        saved_history = self.history_snapshot
+        saved_rollback = getattr(self, "rollback_snapshot", None)
+        saved_bodies = getattr(self, "confirmed_tl_bodies", set())
+        self.confirmed_tl_bodies = set()
+        origin = self.worker.origins.get(str(copied.resolve()))
+        if origin is None:
+            raise AutoError("TELEGRAM_JOURNAL_ORIGIN_MISSING")
+        try:
+            parsed = extract_rollback_journal(copied, self.worker.work, cancel=lambda: self.stop)
+            if parsed["journal_sha256"] != origin["Sha256"]:
+                raise AutoError("TELEGRAM_SOURCE_CHANGED")
+            staged, fragments_report = [], {}
+            if parsed.get("snapshot") is None and parsed.get("records"):
+                from memory_fragments import MAX_FRAGMENTS
+                available = min(MAX_FRAGMENTS - self.fragments, MAX_MESSAGES - len(self.worker.messages))
+                if available > 0:
+                    staged = recover_fragments(copied, parsed,
+                        matcher=self.fragment_matcher.matches if self.fragment_matcher else None,
+                        cancel=lambda: self.stop, limits={"max_records": available}, report=fragments_report)
+                else:
+                    fragments_report["limited"] = True
+            if _hash(copied) != origin["Sha256"]:
+                raise AutoError("TELEGRAM_SOURCE_CHANGED")
+            metadata = dict(rollback_journal_sha256=parsed["journal_sha256"],
+                rollback_initial_pages=parsed.get("initial_pages"),
+                rollback_hot_state="unknown", rollback_current_state_confirmed=False,
+                rollback_checksum_kind="sqlite_sparse_32bit", rollback_content_authenticity_verified=False,
+                rollback_parse_status=parsed["status"], rollback_tail_reason=parsed.get("tail_reason"),
+                rollback_validated_prefix_bytes=parsed.get("validated_prefix_bytes"))
+            snapshot = parsed.get("snapshot")
+            if snapshot is not None or staged:
+                page_map = dict(format="sqlite_rollback_page_map", journal_sha256=parsed["journal_sha256"],
+                    page_size=parsed["page_size"], initial_pages=parsed["initial_pages"],
+                    parse_status=parsed["status"], tail_reason=parsed.get("tail_reason"),
+                    checksum_kind="sqlite_sparse_32bit", content_authenticity_verified=False,
+                    records=parsed["records"])
+                raw_map = (json.dumps(page_map, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+                relative = "provenance/rollback/" + parsed["journal_sha256"] + ".json"
+                target = self.output / relative if hasattr(self, "output") else self.worker.output / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if target.exists():
+                    if target.read_bytes() != raw_map:
+                        raise AutoError("TELEGRAM_JOURNAL_MAP_CONFLICT")
+                else:
+                    with target.open("xb") as stream:
+                        stream.write(raw_map)
+                metadata.update(rollback_page_map=relative,
+                    rollback_page_map_sha256=hashlib.sha256(raw_map).hexdigest())
+            self.worker.current_origin, self.worker.source_label = origin, str(original)
+            self.worker.snapshot = "rollback:" + parsed["journal_sha256"]
+            self.history_snapshot = None
+            found = False
+            if snapshot is not None:
+                self.rollback_snapshot = dict(metadata, rollback_snapshot_sha256=snapshot["sha256"],
+                    rollback_proof="all_pages_from_validated_rollback_journal")
+                if _hash(Path(snapshot["path"])) != snapshot["sha256"]:
+                    raise AutoError("TELEGRAM_SOURCE_CHANGED")
+                self.worker.snapshot = snapshot["snapshot_id"]
+                found = self.sqlite(Path(snapshot["path"]), original)
+            else:
+                self.rollback_snapshot = None
+                for item in staged:
+                    from memory_fragments import MAX_FRAGMENTS
+                    if self.stop or self.fragments >= MAX_FRAGMENTS or len(self.worker.messages) >= MAX_MESSAGES:
+                        break
+                    text = item.pop("text")
+                    self.worker.message("Telegram", text, "fragment", **item, **metadata,
+                        rollback_proof="validated_rollback_payload_chain" if item.get("rollback_payload_chain_verified") else "validated_rollback_page_fragment",
+                        record_kind="sqlite_rollback_fragment", completeness="typed_tl_body_without_table_or_account_context",
+                        source_record="rollback-byte:" + str(item["byte_offset"]) + ":page:" + str(item["sqlite_page"]))
+                    self.fragments += 1
+                    found = True
+            seen.add(key)
+            self.worker.remark("TELEGRAM_ROLLBACK_JOURNAL_CHECKED", original,
+                journal_sha256=parsed["journal_sha256"], parse_status=parsed["status"],
+                initial_pages=parsed.get("initial_pages"), validated_pages=len(parsed["records"]),
+                snapshot_sha256=snapshot["sha256"] if snapshot else None,
+                tail_reason=parsed.get("tail_reason"), fragments=fragments_report.get("fragments", 0),
+                fragments_limited=fragments_report.get("limited", False),
+                checksum_kind="sqlite_sparse_32bit", content_authenticity_verified=False,
+                hot_state="unknown", current_state_confirmed=False)
+            if parsed.get("tail_reason") or parsed.get("snapshot_skipped_reason") or fragments_report.get("limited"):
+                self.remark("TELEGRAM_ROLLBACK_JOURNAL_PARTIAL", original,
+                    reason=parsed.get("tail_reason") or parsed.get("snapshot_skipped_reason"))
+            return found
+        except RollbackError as error:
+            if error.code == "CANCELLED":
+                raise AutoError("CANCELLED") from None
+            self.remark("TELEGRAM_ROLLBACK_JOURNAL_UNAVAILABLE", original, reason=error.code)
+            return False
+        finally:
+            self.worker.current_origin = saved_origin
+            self.worker.source_label, self.worker.snapshot = saved_label, saved_snapshot
+            self.history_snapshot, self.rollback_snapshot = saved_history, saved_rollback
+            self.confirmed_tl_bodies = saved_bodies
+
     def sqlite_pair(self, copied, original):
         """Stage prior snapshots before SQLite may replay/remove working WAL."""
         from sqlite_history import iter_committed_snapshots, HistoryError
         wal = Path(str(copied) + "-wal")
         self.confirmed_tl_bodies = set()
         self.pending_deleted_records = []
+        journal = Path(str(copied) + ".rollback-journal")
+        journal_found = self.rollback_journal(journal, Path(str(original) + "-journal")) if journal.is_file() else False
         histories, report = [], {}
         residuals, residual_report = [], {}
         if wal.is_file() and wal.stat().st_size:
@@ -752,7 +934,7 @@ class Analyzer:
             try:
                 result = self.sqlite(copied, original)
             except (sqlite3.DatabaseError, AutoError):
-                if not histories:
+                if not histories and not journal_found:
                     raise
                 # A damaged base B-tree must not hide independently checked,
                 # fully WAL-covered snapshots. It also cannot establish the
@@ -794,7 +976,7 @@ class Analyzer:
                     self.worker.current_origin, self.worker.source_label = saved_origin, saved_label
                     self.worker.snapshot = original_snapshot
             self.last_native_database = native
-            return result
+            return result or journal_found
         finally:
             self.history_snapshot = None
             self.current_wal = None
@@ -880,7 +1062,7 @@ class Analyzer:
         self.remark("HPROF_GRAPH_NOT_CONFIRMED_DELETED_HISTORY", original)
         return ranges
 
-    def fragments_from(self, copied, original, excluded_ranges=()):
+    def fragments_from(self, copied, original, excluded_ranges=(), *, known_tl_records=()):
         from memory_fragments import scan, scan_tl, MAX_FRAGMENTS
         if self.stop:
             return
@@ -896,6 +1078,8 @@ class Analyzer:
             typed = ()
         for value in typed:
             typed_ranges.append((value["byte_offset"], value["byte_offset"] + value["byte_length"]))
+            if (value.get("physical_byte_offset"), value.get("native_tl_body_sha256")) in known_tl_records:
+                continue
             self.residual_fragment(value, original, record_kind="typed_tl_fragment")
         if self.fragments >= MAX_FRAGMENTS:
             self.remark("MEMORY_FRAGMENT_LIMIT", original)
@@ -936,7 +1120,7 @@ class Analyzer:
             self.counts["encrypted_sources"] += 1
             self.remark("ENCRYPTED_CACHE_UNSUPPORTED", source)
             return
-        if lower == "chat-index.sqlite" and (source.parent / "messages.jsonl").is_file():
+        if lower == "chat-index.sqlite" and (source.parent / "messages.jsonl").is_file() and str(source).casefold() not in getattr(self, "explicit_files", set()):
             return
         self.files += 1
         if self.files > MAX_FILES:
@@ -959,6 +1143,7 @@ class Analyzer:
                 self.remark("ENCRYPTED_CACHE_UNSUPPORTED", source, size=size)
                 return
             sqlite = head.startswith(b"SQLite format 3\x00")
+            journal = lower.endswith("-journal") or head.startswith(bytes.fromhex("d9d505f920a163d7"))
             heap = head.startswith(b"JAVA PROFILE ")
             dump = self.scan_fragments and (kind == "dump" or standalone_wal or lower.endswith((".dmp", ".dump", ".mem", ".hprof", ".raw", ".bin")))
             jsonl = lower == "messages.jsonl"
@@ -968,7 +1153,7 @@ class Analyzer:
             # Plain media containers within Telegram's own file cache are also
             # inspected for embedded images. Unknown app/account blobs aren't.
             container = kind in {"telegram_files", "desktop_cache"} and (lower.endswith((".cache", ".bin", ".dat")) or not source.suffix) and (b"\xff\xd8\xff" in head or b"\x89PNG\r\n\x1a\n" in head or b"RIFF" in head)
-            if not any((sqlite, heap, jsonl, markup, json_candidate, image, container, dump)):
+            if not any((sqlite, journal, heap, jsonl, markup, json_candidate, image, container, dump)):
                 return
             token = hashlib.sha256(str(source).encode()).hexdigest()[:24]
             copied = self.copy(source, self.worker.work / "input" / token / source.name)
@@ -981,15 +1166,7 @@ class Analyzer:
             if sqlite:
                 # Published JSONL already contains the same canonical archive,
                 # choose it once to avoid importing duplicate unknown-ID HTML.
-                for suffix in ("-wal", "-shm"):
-                    sidecar = Path(str(source) + suffix)
-                    if sidecar.is_file():
-                        self.copy(sidecar, Path(str(copied) + suffix))
-                for suffix in ("", "-wal", "-shm"):
-                    original_member = Path(str(source) + suffix)
-                    verified_copy = self.copied.get(str(original_member).casefold())
-                    if verified_copy and _hash(original_member) != self.worker.origins[str(verified_copy.resolve())]["Sha256"]:
-                        raise AutoError("TELEGRAM_SOURCE_CHANGED")
+                self.copy_sqlite_sidecars(source, copied)
                 self.last_native_database = False
                 try:
                     self.sqlite_pair(copied, source)
@@ -1006,6 +1183,17 @@ class Analyzer:
                         self.worker.source_label = str(source) + "-wal"
                         self.worker.snapshot = self.worker.current_origin["Sha256"]
                         self.fragments_from(wal, Path(str(source) + "-wal"))
+            elif journal:
+                before_journal = len(self.worker.messages)
+                self.rollback_journal(copied, source)
+                if dump:
+                    # Explicit dump analysis keeps its pre-existing raw/typed
+                    # fallback even for unsupported or zeroed journal headers.
+                    # Already decoded exact TL bodies need no second candidate.
+                    known = {(item["physical_byte_offset"], item["native_tl_body_sha256"])
+                             for item in self.worker.messages[before_journal:]
+                             if item.get("native_tl_body_sha256") and item.get("physical_byte_offset") is not None}
+                    self.fragments_from(copied, source, known_tl_records=known)
             elif heap:
                 ranges = self.heap_from(copied, source)
                 if self.scan_fragments:
@@ -1080,6 +1268,8 @@ class Analyzer:
                         continue
                     seen_roots.add(identity)
                     self.counts["discovered_sources"] += 1
+                    if root.is_file():
+                        self.explicit_files.add(str(root).casefold())
                     self.emit("progress", phase="telegram_discovery", sources=self.counts["discovered_sources"])
                     if kind == "desktop_cache":
                         self.counts["encrypted_sources"] += 1
@@ -1118,7 +1308,7 @@ class Analyzer:
                        "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record") for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
-                       "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "typed_tl_fragment", "android_heap_message") for m in self.worker.messages),
+                       "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "sqlite_rollback_fragment", "typed_tl_fragment", "android_heap_message") for m in self.worker.messages),
                        "photos": sum(p["status"] == "decoded" for p in self.worker.photos.values()),
                        "media": sum(1 for p in (self.output / "media").iterdir() if p.is_file()),
                        "latest_timestamp": latest, "warnings": self.warnings, **self.counts,
@@ -1153,6 +1343,9 @@ def import_database(worker, source):
     analyzer.notifications = 0
     analyzer.notification_identities = {}
     analyzer.history_snapshot = None
+    analyzer.rollback_snapshot = None
+    analyzer.rollback_seen = set()
+    analyzer.confirmed_tl_bodies = set()
     analyzer.current_wal = None
     analyzer.recover_deleted = True
     analyzer.deleted_current_verified = True
@@ -1167,8 +1360,5 @@ def import_database(worker, source):
     source = Path(source)
     target = worker.work / "telegram-sqlite" / hashlib.sha256(str(source).encode()).hexdigest()[:24] / source.name
     analyzer.copy(source, target)
-    for suffix in ("-wal", "-shm"):
-        sidecar = Path(str(source) + suffix)
-        if sidecar.is_file():
-            analyzer.copy(sidecar, Path(str(target) + suffix))
+    analyzer.copy_sqlite_sidecars(source, target)
     return analyzer.sqlite_pair(target, source)
