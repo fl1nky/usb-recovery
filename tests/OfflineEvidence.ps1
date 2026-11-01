@@ -1,4 +1,5 @@
 ﻿# Shared evidence for synthetic packaged tests. No source medium is opened here.
+$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 function Get-RecoveryEvidenceHash([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }

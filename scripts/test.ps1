@@ -1,5 +1,6 @@
 ﻿param([string]$Python312='')
 $ErrorActionPreference='Stop'
+$PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
 $ApplicationDirectory=$taskLayout.Portable
