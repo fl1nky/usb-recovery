@@ -83,15 +83,48 @@ namespace UsbRecovery
                 if(parent.Exists&&(parent.Attributes&FileAttributes.ReparsePoint)!=0)throw Error("Перенаправление рабочей папки недопустимо.");
         }
         static string Normalize(string path){SafePath(path);return Path.GetFullPath(path);}
-        static void Atomic(string path,string text)
+        static bool RetryAtomic(IOException error)
         {
-            string temp=path+"."+Guid.NewGuid().ToString("N")+".partial";
-            try{byte[] data=Utf8.GetBytes(text);using(var file=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(data,0,data.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);}
-            finally{if(File.Exists(temp))File.Delete(temp);}
+            uint code=unchecked((uint)error.HResult);
+            // ReplaceFileW documents 1175 as retaining both original names.
+            // 1176/1177 may already move/remove the target and are not retried.
+            return code==0x80070020U||code==0x80070021U||code==0x80070497U;
+        }
+        static void Atomic(string path,string text,CancellationToken cancel=default(CancellationToken))
+        {
+            cancel.ThrowIfCancellationRequested();path=Normalize(path);
+            string temp=Normalize(path+"."+Guid.NewGuid().ToString("N")+".partial");
+            bool staged=false,retain=false;
+            try{
+                byte[] data=Utf8.GetBytes(text);
+                using(var file=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
+                    file.Write(data,0,data.Length);file.Flush(true);
+                }
+                staged=true;
+                for(int attempt=0;;attempt++){
+                    cancel.ThrowIfCancellationRequested();SafePath(path);SafePath(temp);
+                    try{if(File.Exists(path))File.Replace(temp,path,null);else File.Move(temp,path);return;}
+                    catch(IOException error){
+                        if(attempt>=3||!RetryAtomic(error)||!File.Exists(temp))throw;
+                        // The same flushed file is retried atomically. Readers
+                        // may briefly deny delete sharing; never remove the
+                        // previous valid checkpoint or use an overwrite copy.
+                        if(cancel.WaitHandle.WaitOne(25<<attempt))cancel.ThrowIfCancellationRequested();
+                    }
+                }
+            }catch(IOException error){
+                // A failed, fully staged replacement is evidence only. Normal
+                // resume reads the named checkpoint, never this GUID partial.
+                retain=staged;if(staged)error.Data["AtomicCheckpointWriteFailed"]=true;throw;
+            }finally{if(!retain&&File.Exists(temp)){SafePath(temp);File.Delete(temp);}}
         }
         static void SaveHead(string file,Head head)
         {
-            head.Checksum=null;head.Checksum=HeaderDigest(head);Atomic(file,Json().Serialize(head));
+            SaveHeadCancellable(file,head,CancellationToken.None);
+        }
+        static void SaveHeadCancellable(string file,Head head,CancellationToken cancel)
+        {
+            head.Checksum=null;head.Checksum=HeaderDigest(head);Atomic(file,Json().Serialize(head),cancel);
         }
         static Head Load(string file)
         {
@@ -217,11 +250,11 @@ namespace UsbRecovery
             journal.Position=head.JournalBytes;journal.Write(bytes,0,bytes.Length);journal.Flush(true);head.JournalBytes+=bytes.Length;head.LastHash=digest;head.Records++;
             if(chunk.Kind=="copy")head.CompletedBytes+=chunk.Length;
         }
-        static void Map(string path,Head head,List<ResumableRange> gaps)
+        static void Map(string path,Head head,List<ResumableRange> gaps,CancellationToken cancel)
         {
-            Atomic(path,Json().Serialize(new{status=head.Status,size=head.Size,copied=head.CompletedBytes,unreadBytes=gaps.Sum(x=>x.Length),ranges=gaps,sourceIdentitySha256=Hash(Utf8.GetBytes(head.Identity)),note="Unread ranges are zero-filled placeholders. Source is never written. Resume verifies completed output hashes and sampled source fingerprints; arbitrary unsampled source changes cannot be detected."}));
+            Atomic(path,Json().Serialize(new{status=head.Status,size=head.Size,copied=head.CompletedBytes,unreadBytes=gaps.Sum(x=>x.Length),ranges=gaps,sourceIdentitySha256=Hash(Utf8.GetBytes(head.Identity)),note="Unread ranges are zero-filled placeholders. Source is never written. Resume verifies completed output hashes and sampled source fingerprints; arbitrary unsampled source changes cannot be detected."}),cancel);
         }
-        static void Persist(string checkpoint,string map,Head head,List<ResumableRange> gaps){SaveHead(checkpoint,head);Map(map,head,gaps);}
+        static void Persist(string checkpoint,string map,Head head,List<ResumableRange> gaps,CancellationToken cancel=default(CancellationToken)){SaveHeadCancellable(checkpoint,head,cancel);Map(map,head,gaps,cancel);}
         static void Write(FileStream output,long offset,byte[] bytes){output.Position=offset;output.Write(bytes,0,bytes.Length);output.Flush(true);}
         static void RestorePending(Stream source,FileStream output,FileStream journal,Head head,SortedDictionary<long,Chunk> chunks,string patch,string checkpoint,string map,CancellationToken cancel,Func<bool> available)
         {
@@ -237,7 +270,7 @@ namespace UsbRecovery
                 if(!Read(source,at,sector,0,sector.Length,head.SectorSize,cancel)){Available(available);throw Error("Новый фрагмент повторного чтения больше не доступен.");}
                 for(int i=0;i<sector.Length;i++)if(sector[i]!=bytes[(int)(at-old.Offset)+i])throw Error("Источник изменился при повторном чтении.");
             }
-            CheckCapturedSamples(head,pending.Next,bytes);Write(output,old.Offset,bytes);Commit(journal,head,pending.Next);chunks[old.Offset]=pending.Next;head.Pending=null;Persist(checkpoint,map,head,Merge(chunks.Values.SelectMany(x=>x.Missing)));File.Delete(patch);
+            CheckCapturedSamples(head,pending.Next,bytes);Write(output,old.Offset,bytes);Commit(journal,head,pending.Next);chunks[old.Offset]=pending.Next;head.Pending=null;Persist(checkpoint,map,head,Merge(chunks.Values.SelectMany(x=>x.Missing)),cancel);File.Delete(patch);
         }
         public static ResumableCaptureResult Copy(Stream source,string partial,long size,int sector,string identity,string checkpoint,string map,CancellationToken cancel,Action<long,long> progress,Func<bool> available,bool resume=false,bool tolerateErrors=false,bool retryUnread=true)
         {
@@ -272,7 +305,7 @@ namespace UsbRecovery
                     if(head.Pending==null&&File.Exists(patch))File.Delete(patch);
                     gaps=Merge(chunks.Values.SelectMany(x=>x.Missing));
                 }
-                verified=true;head.Status="copying";Persist(checkpoint,map,head,gaps);
+                verified=true;head.Status="copying";Persist(checkpoint,map,head,gaps,cancel);
                 try{
                     if(progress!=null)progress(head.CompletedBytes,size);
                     while(head.CompletedBytes<size){
@@ -282,10 +315,10 @@ namespace UsbRecovery
                             for(int p=0;p<count;p+=65536){cancel.ThrowIfCancellationRequested();int n=Math.Min(65536,count-p);if(Read(source,at+p,buffer,p,n,sector,cancel))continue;Available(available);Array.Clear(buffer,p,n);missing.Add(new ResumableRange{Offset=at+p,Length=n});}
                         }
                         var chunk=new Chunk{Kind="copy",Offset=at,Length=count,Sha256=Hash(buffer),Missing=Merge(missing)};var newGaps=Merge(gaps.Concat(chunk.Missing));
-                        CheckCapturedSamples(head,chunk,buffer);Write(output,at,buffer);Commit(journal,head,chunk);chunks[at]=chunk;gaps=newGaps;Persist(checkpoint,map,head,gaps);if(progress!=null)progress(head.CompletedBytes,size);
+                        CheckCapturedSamples(head,chunk,buffer);Write(output,at,buffer);Commit(journal,head,chunk);chunks[at]=chunk;gaps=newGaps;Persist(checkpoint,map,head,gaps,cancel);if(progress!=null)progress(head.CompletedBytes,size);
                     }
                     if(tolerateErrors&&retryUnread&&gaps.Count>0){
-                        head.Status="retrying";Persist(checkpoint,map,head,gaps);int attempts=0;
+                        head.Status="retrying";Persist(checkpoint,map,head,gaps,cancel);int attempts=0;
                         foreach(var old in chunks.Values.Where(x=>x.Missing.Count>0).ToList()){
                             cancel.ThrowIfCancellationRequested();if(attempts>=MaximumRetrySectors)break;Available(immediateAvailable);byte[] buffer=Bytes(output,old,cancel);var missing=new List<ResumableRange>();bool changed=false;
                             foreach(var gap in old.Missing)for(long at=gap.Offset;at<gap.Offset+gap.Length;at+=sector){
@@ -296,14 +329,27 @@ namespace UsbRecovery
                             if(!changed)continue;
                             var next=new Chunk{Kind="repair",Offset=old.Offset,Length=old.Length,Sha256=Hash(buffer),Missing=Merge(missing)};var nextGaps=Merge(chunks.Values.Where(x=>x.Offset!=old.Offset).SelectMany(x=>x.Missing).Concat(next.Missing));
                             CheckCapturedSamples(head,next,buffer);using(var staged=new FileStream(patch,FileMode.CreateNew,FileAccess.Write,FileShare.None)){staged.Write(buffer,0,buffer.Length);staged.Flush(true);}
-                            head.Pending=new Pending{OldSha256=old.Sha256,Next=next};SaveHead(checkpoint,head);Write(output,old.Offset,buffer);Commit(journal,head,next);chunks[old.Offset]=next;gaps=nextGaps;head.Pending=null;Persist(checkpoint,map,head,gaps);File.Delete(patch);if(progress!=null)progress(size,size);
+                            head.Pending=new Pending{OldSha256=old.Sha256,Next=next};SaveHeadCancellable(checkpoint,head,cancel);Write(output,old.Offset,buffer);Commit(journal,head,next);chunks[old.Offset]=next;gaps=nextGaps;head.Pending=null;Persist(checkpoint,map,head,gaps,cancel);File.Delete(patch);if(progress!=null)progress(size,size);
                         }
                     }
                     cancel.ThrowIfCancellationRequested();output.Position=0;string digest;using(var sha=SHA256.Create()){
                         byte[] block=new byte[ChunkBytes];long total=0;int n;while((n=output.Read(block,0,block.Length))>0){cancel.ThrowIfCancellationRequested();sha.TransformBlock(block,0,n,null,0);total+=n;}if(total!=size)throw Error("Размер рабочей копии изменился.");sha.TransformFinalBlock(new byte[0],0,0);digest=Hex(sha.Hash);
                     }
-                    Available(immediateAvailable);head.Status=gaps.Count==0?"complete":"complete_with_read_errors";Persist(checkpoint,map,head,gaps);return new ResumableCaptureResult{Sha256=digest,UnreadBytes=gaps.Sum(x=>x.Length),ResumedBytes=resumed,CopiedBytes=head.CompletedBytes,Ranges=gaps};
-                }catch(OperationCanceledException){head.Status="cancelled";if(verified)Persist(checkpoint,map,head,gaps);throw;}catch{head.Status="incomplete";if(verified)Persist(checkpoint,map,head,gaps);throw;}
+                    Available(immediateAvailable);head.Status=gaps.Count==0?"complete":"complete_with_read_errors";Persist(checkpoint,map,head,gaps,cancel);return new ResumableCaptureResult{Sha256=digest,UnreadBytes=gaps.Sum(x=>x.Length),ResumedBytes=resumed,CopiedBytes=head.CompletedBytes,Ranges=gaps};
+                }catch(OperationCanceledException error){
+                    head.Status="cancelled";
+                    if(verified)try{Persist(checkpoint,map,head,gaps);}
+                    catch(IOException){error.Data["CheckpointStatusNotSaved"]=true;}
+                    catch(UnauthorizedAccessException){error.Data["CheckpointStatusNotSaved"]=true;}
+                    throw;
+                }catch(Exception error){
+                    head.Status="incomplete";
+                    // Do not turn a failed atomic replacement into a second
+                    // write through the status-saving path. In particular,
+                    // Windows 1176/1177 may have changed the file names.
+                    if(verified&&!(error is IOException&&error.Data.Contains("AtomicCheckpointWriteFailed")))Persist(checkpoint,map,head,gaps);
+                    throw;
+                }
             }
         }
     }

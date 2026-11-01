@@ -104,13 +104,107 @@ public static class ResumableCaptureTests
             else{var result=Copy(input,run,true,true,false);byte[] expected=(byte[])data.Clone();Array.Clear(expected,0,65536);Buffer.BlockCopy(data,1024,expected,1024,512);Check(result.Sha256==Hash(expected)&&Hash(run.Partial)==Hash(expected),"torn pending repair resumes transaction exactly");Check(result.UnreadBytes==65536-512&&!File.Exists(patch),"pending commit updates gap map and removes staging file");}
         }
     }
+    static Exception AtomicFailure(string path,string text,CancellationToken token)
+    {
+        try{typeof(ResumableCapture).GetMethod("Atomic",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{path,text,token});return null;}
+        catch(TargetInvocationException error){return error.InnerException;}
+    }
+    static string NextHead(Run run)
+    {
+        object head=PrivateLoad(run.Head);Set(head,"Status","copying");string candidate=Path.Combine(run.Folder,"candidate.json");SavePrivateHead(candidate,head);return File.ReadAllText(candidate,Encoding.UTF8);
+    }
+    static string[] AtomicPartials(Run run){return Directory.GetFiles(run.Folder,Path.GetFileName(run.Head)+".*.partial");}
+    static Thread AfterFlushedAtomic(Run run,ManualResetEvent stop,ManualResetEvent observed,Action after)
+    {
+        var worker=new Thread(()=>{
+            var clock=System.Diagnostics.Stopwatch.StartNew();
+            while(clock.ElapsedMilliseconds<2000&&!stop.WaitOne(1)){
+                foreach(string file in AtomicPartials(run))try{
+                    // The production writer uses FileShare.None until fsync.
+                    using(var input=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)){}
+                    observed.Set();after();return;
+                }catch(IOException){}
+            }
+        });worker.IsBackground=true;worker.Start();return worker;
+    }
+    static void AtomicReaders()
+    {
+        var run=Cancelled("atomic-transient");string next=NextHead(run),old=Hash(run.Head);
+        var held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read);
+        string probe=Path.Combine(run.Folder,"reader-block-probe.tmp");File.WriteAllText(probe,next,Encoding.UTF8);
+        bool blocked=false;try{File.Replace(probe,run.Head,null);}catch(IOException){blocked=true;}
+        Check(blocked&&Hash(run.Head)==old&&File.Exists(probe),"controlled reader denies atomic replacement without changing either file");
+        using(var stop=new ManualResetEvent(false))using(var observed=new ManualResetEvent(false)){
+            var release=AfterFlushedAtomic(run,stop,observed,()=>{Thread.Sleep(60);held.Dispose();});
+            Exception error;var clock=System.Diagnostics.Stopwatch.StartNew();
+            try{error=AtomicFailure(run.Head,next,CancellationToken.None);}finally{stop.Set();Check(release.Join(3000),"transient reader worker exits within bound");held.Dispose();}
+            Check(error==null&&observed.WaitOne(0),"atomic write survives a real transient reader after its new file was flushed");
+            Check(clock.ElapsedMilliseconds<3000&&File.ReadAllText(run.Head,Encoding.UTF8)==next,"transient atomic replacement publishes the exact new checkpoint within bound");
+            Check(ResumableCapture.Inspect(run.Head).Status=="copying"&&AtomicPartials(run).Length==0,"successful atomic replacement is valid and leaves no GUID partial");
+        }
+        run=Cancelled("atomic-permanent");next=NextHead(run);old=Hash(run.Head);string payload=Hash(run.Partial),journal=Hash(run.Head+".chunks.jsonl");
+        using(held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read)){
+            var clock=System.Diagnostics.Stopwatch.StartNew();var error=AtomicFailure(run.Head,next,CancellationToken.None);
+            Check(error is IOException&&clock.ElapsedMilliseconds>=100&&clock.ElapsedMilliseconds<3000,"permanent reader fails after bounded atomic retries");
+            Check(Hash(run.Head)==old&&ResumableCapture.Inspect(run.Head).Status=="cancelled","permanent reader cannot damage or replace the old valid checkpoint");
+            Check(Hash(run.Partial)==payload&&Hash(run.Head+".chunks.jsonl")==journal,"permanent replacement failure leaves captured payload and durable journal unchanged");
+            var staging=AtomicPartials(run);Check(staging.Length==1&&File.ReadAllText(staging[0],Encoding.UTF8)==next,"failed new checkpoint bytes remain only in a non-authoritative GUID partial");
+        }
+        run=Cancelled("atomic-cancel");next=NextHead(run);old=Hash(run.Head);
+        using(held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read))
+        using(var token=new CancellationTokenSource())using(var stop=new ManualResetEvent(false))using(var observed=new ManualResetEvent(false)){
+            var cancel=AfterFlushedAtomic(run,stop,observed,()=>{Thread.Sleep(10);token.Cancel();});Exception error;
+            var clock=System.Diagnostics.Stopwatch.StartNew();
+            try{error=AtomicFailure(run.Head,next,token.Token);}finally{stop.Set();Check(cancel.Join(3000),"atomic cancellation worker exits within bound");}
+            Check(error is OperationCanceledException&&observed.WaitOne(0)&&clock.ElapsedMilliseconds<2000,"cancellation interrupts a real atomic reader retry wait");
+            Check(Hash(run.Head)==old&&AtomicPartials(run).Length==0,"cancelled atomic write preserves old proof and cleans its own new stage");
+        }
+        using(var token=new CancellationTokenSource()){
+            token.Cancel();Check(AtomicFailure(run.Head,next,token.Token) is OperationCanceledException&&AtomicPartials(run).Length==0,"pre-cancelled atomic operation creates no staging file");
+        }
+        var retry=typeof(ResumableCapture).GetMethod("RetryAtomic",BindingFlags.Static|BindingFlags.NonPublic);
+        foreach(uint code in new uint[]{0x80070020U,0x80070021U,0x80070497U})Check((bool)retry.Invoke(null,new object[]{new IOException("owned safe Windows retry",unchecked((int)code))}),"safe unchanged-name Windows error may retry "+code);
+        foreach(uint code in new uint[]{0x80070498U,0x80070499U,0x80070005U})Check(!(bool)retry.Invoke(null,new object[]{new IOException("owned non-retryable Windows error",unchecked((int)code))}),"changed-name/permission Windows error is never blindly retried "+code);
+    }
+    static void CaptureAtomicCancellation()
+    {
+        var run=Cancelled("capture-atomic-cancel");FileStream held=null;Thread worker=null;
+        using(var input=new TestSource(data))using(var token=new CancellationTokenSource())
+        using(var stop=new ManualResetEvent(false))using(var observed=new ManualResetEvent(false)){
+            OperationCanceledException cancelled=null;
+            try{Copy(input,run,true,progress:(done,total)=>{
+                if(held==null){held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read);
+                    worker=AfterFlushedAtomic(run,stop,observed,()=>{Thread.Sleep(10);token.Cancel();});}
+            },token:token.Token);}catch(OperationCanceledException error){cancelled=error;}
+            finally{stop.Set();if(worker!=null)Check(worker.Join(3000),"capture cancellation worker terminates");if(held!=null)held.Dispose();}
+            Check(cancelled!=null&&observed.WaitOne(0)&&cancelled.Data.Contains("CheckpointStatusNotSaved"),"failure to save final cancelled status cannot replace the original cancellation");
+            var info=ResumableCapture.Inspect(run.Head);
+            Check(info.CompletedBytes==ResumableCapture.ChunkBytes&&info.Status=="copying","held checkpoint retains its last valid durable prefix instead of false completion");
+            Check(input.Writes==0&&AtomicPartials(run).Length==1,"interrupted capture never writes source and retains failed status only as non-authoritative staging");
+        }
+        using(var input=new TestSource(data))Check(Copy(input,run,true).Sha256==Hash(data),"capture safely resumes from old proof after a cancelled atomic update");
+    }
+    static void CaptureAtomicFailure()
+    {
+        var run=Cancelled("capture-atomic-failure");FileStream held=null;string oldHead=null;
+        using(var input=new TestSource(data)){
+            IOException failure=null;var clock=System.Diagnostics.Stopwatch.StartNew();
+            try{Copy(input,run,true,progress:(done,total)=>{
+                if(held==null){oldHead=Hash(run.Head);held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read);}
+            });}catch(IOException error){failure=error;}finally{if(held!=null)held.Dispose();}
+            Check(failure!=null&&failure.Data.Contains("AtomicCheckpointWriteFailed")&&clock.ElapsedMilliseconds<3000,"capture reports a bounded atomic checkpoint failure without a status-write fallback");
+            Check(Hash(run.Head)==oldHead&&ResumableCapture.Inspect(run.Head).CompletedBytes==ResumableCapture.ChunkBytes,"failed capture checkpoint keeps its previous valid durable prefix");
+            Check(AtomicPartials(run).Length==1&&input.Writes==0,"failed capture does not retry through final status saving or write the source");
+        }
+        using(var input=new TestSource(data))Check(Copy(input,run,true).Sha256==Hash(data),"persistent reader failure can safely resume after the reader closes");
+    }
     public static int Main(string[] args)
     {
         try{
             if(args.Length==2&&args[0]=="--inspect"){var info=ResumableCapture.Inspect(args[1]);Console.WriteLine("INSPECT OK "+info.Status);return 0;}
             string project=Path.GetFullPath(args.Length>0?args[0]:Directory.GetCurrentDirectory());root=Path.Combine(project,".build","resume-capture-tests-"+DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ"));Directory.CreateDirectory(root);data=new byte[ResumableCapture.ChunkBytes*2+512];new Random(3301).NextBytes(data);string original=Hash(data);
-            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
-            string summary="PASS ResumableCapture: "+checks+" checks; exact/rescue resume, output hashes and journal/source identity,16x4KiB sampled source checks (not arbitrary-write detection), good-first late bounded retry, bad ranges, transactional torn repair, cancellation/disconnect/EOF/alignment, tamper/path/hardlink rejection; synthetic regular files/streams only. Results: "+root;
+            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();AtomicReaders();CaptureAtomicCancellation();CaptureAtomicFailure();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
+            string summary="PASS ResumableCapture: "+checks+" checks; exact/rescue resume, output hashes and journal/source identity,16x4KiB sampled source checks (not arbitrary-write detection), good-first late bounded retry, bad ranges, transactional torn repair, cancellation/disconnect/EOF/alignment, tamper/path/hardlink rejection, bounded atomic reader retries/cancellation and unchanged durable data; synthetic regular files/streams only. Results: "+root;
             Console.WriteLine(summary);File.WriteAllText(Path.Combine(project,"tests","ResumableCaptureTests.result.txt"),summary,Encoding.UTF8);return 0;
         }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
     }
