@@ -425,8 +425,17 @@ namespace UsbRecovery
             try
             {
                 File.WriteAllText(temporary, content, new UTF8Encoding(false));
-                cancel.ThrowIfCancellationRequested();
-                if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+                for (int attempt = 0; ; attempt++)
+                {
+                    cancel.ThrowIfCancellationRequested();
+                    try { if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path); break; }
+                    catch (IOException error)
+                    {
+                        uint code = unchecked((uint)error.HResult);
+                        if (attempt >= 3 || !File.Exists(temporary) || (code != 0x80070020U && code != 0x80070021U && code != 0x80070497U)) throw;
+                        if (cancel.WaitHandle.WaitOne(25 << attempt)) cancel.ThrowIfCancellationRequested();
+                    }
+                }
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }

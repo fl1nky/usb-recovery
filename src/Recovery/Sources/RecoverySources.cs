@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -500,7 +500,16 @@ namespace UsbRecovery
             {
                 using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) { writer.Write(Serializer().Serialize(value)); writer.Flush(); stream.Flush(true); }
-                if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+                for (int attempt = 0; ; attempt++)
+                {
+                    try { if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path); break; }
+                    catch (IOException error)
+                    {
+                        uint code = unchecked((uint)error.HResult);
+                        if (attempt >= 3 || !File.Exists(temporary) || (code != 0x80070020U && code != 0x80070021U && code != 0x80070497U)) throw;
+                        Thread.Sleep(25 << attempt);
+                    }
+                }
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }

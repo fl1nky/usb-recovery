@@ -347,7 +347,11 @@ namespace UsbRecovery
                     // Do not turn a failed atomic replacement into a second
                     // write through the status-saving path. In particular,
                     // Windows 1176/1177 may have changed the file names.
-                    if(verified&&!(error is IOException&&error.Data.Contains("AtomicCheckpointWriteFailed")))Persist(checkpoint,map,head,gaps);
+                    if(verified&&!(error is IOException&&error.Data.Contains("AtomicCheckpointWriteFailed"))){
+                        try{Persist(checkpoint,map,head,gaps);}
+                        catch(IOException){error.Data["CheckpointStatusNotSaved"]=true;}
+                        catch(UnauthorizedAccessException){error.Data["CheckpointStatusNotSaved"]=true;}
+                    }
                     throw;
                 }
             }

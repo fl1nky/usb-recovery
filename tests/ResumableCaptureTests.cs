@@ -198,12 +198,27 @@ public static class ResumableCaptureTests
         }
         using(var input=new TestSource(data))Check(Copy(input,run,true).Sha256==Hash(data),"persistent reader failure can safely resume after the reader closes");
     }
+    static void IncompleteAtomicReaderPreservesOriginalError()
+    {
+        var run=Cancelled("capture-incomplete-held");FileStream held=null;bool triggerEof=false;
+        using(var input=new TestSource(data){Zero=(p,n)=>triggerEof&&p>=ResumableCapture.ChunkBytes}){
+            EndOfStreamException failure=null;
+            try{Copy(input,run,true,progress:(done,total)=>{
+                if(held==null&&done>=ResumableCapture.ChunkBytes){
+                    held=new FileStream(run.Head,FileMode.Open,FileAccess.Read,FileShare.Read);
+                    triggerEof=true;
+                }
+            });}catch(EndOfStreamException error){failure=error;}finally{if(held!=null)held.Dispose();}
+            Check(failure!=null&&failure.Data.Contains("CheckpointStatusNotSaved"),"failure to save incomplete status cannot mask the original stream exception");
+            Check(ResumableCapture.Inspect(run.Head).Status=="copying","held checkpoint retains previous valid durable status");
+        }
+    }
     public static int Main(string[] args)
     {
         try{
             if(args.Length==2&&args[0]=="--inspect"){var info=ResumableCapture.Inspect(args[1]);Console.WriteLine("INSPECT OK "+info.Status);return 0;}
             string project=Path.GetFullPath(args.Length>0?args[0]:Directory.GetCurrentDirectory());root=Path.Combine(project,".build","resume-capture-tests-"+DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ"));Directory.CreateDirectory(root);data=new byte[ResumableCapture.ChunkBytes*2+512];new Random(3301).NextBytes(data);string original=Hash(data);
-            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();AtomicReaders();CaptureAtomicCancellation();CaptureAtomicFailure();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
+            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();AtomicReaders();CaptureAtomicCancellation();CaptureAtomicFailure();IncompleteAtomicReaderPreservesOriginalError();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
             string summary="PASS ResumableCapture: "+checks+" checks; exact/rescue resume, output hashes and journal/source identity,16x4KiB sampled source checks (not arbitrary-write detection), good-first late bounded retry, bad ranges, transactional torn repair, cancellation/disconnect/EOF/alignment, tamper/path/hardlink rejection, bounded atomic reader retries/cancellation and unchanged durable data; synthetic regular files/streams only. Results: "+root;
             Console.WriteLine(summary);File.WriteAllText(Path.Combine(project,"tests","ResumableCaptureTests.result.txt"),summary,Encoding.UTF8);return 0;
         }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
