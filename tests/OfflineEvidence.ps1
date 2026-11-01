@@ -27,7 +27,7 @@ function New-RecoveryTestSources([string[]]$Paths) {
     return @($Paths | ForEach-Object { [ordered]@{path=[IO.Path]::GetFileName($_);sha256=(Get-RecoveryEvidenceHash $_)} })
 }
 function Add-RecoveryTestEvidence($Report,[string]$Name,[string]$Log,[string]$Harness,$Sources,[string]$StartedUtc) {
-    $taskSummary=Get-Content -LiteralPath $Log -Tail 1
+    $taskSummary=[string](Get-Content -LiteralPath $Log -Tail 1)
     $taskMatch=[regex]::Match($taskSummary,'(?i)\b(\d+)\s+(?:[A-Za-z-]+\s+){0,4}(?:assertions|checks)\b')
     if(-not $taskMatch.Success -or [int]$taskMatch.Groups[1].Value -le 0){throw ('Missing actual assertion count: '+$Name)}
     foreach($taskSource in $Sources) {
