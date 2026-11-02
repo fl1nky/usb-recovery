@@ -2,10 +2,12 @@ param([string]$Python312='')
 $ErrorActionPreference='Stop'
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
+. (Join-Path $PSScriptRoot 'FixtureCache.ps1')
 $taskLayout=Get-RecoveryLayout
 $ApplicationDirectory=$taskLayout.Portable
 if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'}
 if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
+& (Join-Path $taskLayout.Tests 'FixtureCacheTests.ps1') -Python312 $Python312
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')
@@ -62,15 +64,14 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskMdFixtures 'manifest.json'))){
  if($LASTEXITCODE-ne0){throw 'Pinned MD fixture preparation failed.'}
 }
 $taskExt4Fixtures=Join-Path $taskLayout.Root '.build\ext4-fixtures-current'
-if(-not(Test-Path -LiteralPath (Join-Path $taskExt4Fixtures 'manifest.json'))){
- & $Python312 (Join-Path $taskLayout.Tests 'ext4_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\ext4') --destination $taskExt4Fixtures
- if($LASTEXITCODE-ne0){throw 'Offline ext4 fixture extraction failed.'}
-}
+$taskExt4Source=Join-Path $taskLayout.Tests 'fixtures\ext4'
+Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'ext4_fixture_generator.py') -Source $taskExt4Source -Destination $taskExt4Fixtures -GeneratorArguments @('--extract',$taskExt4Source,'--destination',$taskExt4Fixtures)
 $taskRefsFixtures=Join-Path $taskLayout.Root '.build\refs-fixtures-current'
-if(-not(Test-Path -LiteralPath (Join-Path $taskRefsFixtures 'manifest.json'))){
- & $Python312 (Join-Path $taskLayout.Tests 'refs_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\refs') --destination $taskRefsFixtures
- if($LASTEXITCODE-ne0){throw 'Offline ReFS fixture extraction failed.'} } $taskRaidCtrlFixtures=Join-Path $taskLayout.Root '.build\raid-controller-fixtures-current'; if(-not(Test-Path -LiteralPath (Join-Path $taskRaidCtrlFixtures 'manifest.json'))){ & $Python312 (Join-Path $taskLayout.Tests 'raid_controller_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\raid-controller') $taskRaidCtrlFixtures; if($LASTEXITCODE-ne0){throw 'Offline RAID controller fixture extraction failed.'}
-}
+$taskRefsSource=Join-Path $taskLayout.Tests 'fixtures\refs'
+Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'refs_fixture_generator.py') -Source $taskRefsSource -Destination $taskRefsFixtures -GeneratorArguments @('--extract',$taskRefsSource,'--destination',$taskRefsFixtures)
+$taskRaidCtrlFixtures=Join-Path $taskLayout.Root '.build\raid-controller-fixtures-current'
+$taskRaidCtrlSource=Join-Path $taskLayout.Tests 'fixtures\raid-controller'
+Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'raid_controller_fixture_generator.py') -Source $taskRaidCtrlSource -Destination $taskRaidCtrlFixtures -GeneratorArguments @('--extract',$taskRaidCtrlSource,$taskRaidCtrlFixtures)
 $taskHeapFixtures=Join-Path $taskLayout.Root '.build\telegram-heap-portable-fixtures'
 if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_heap_fixtures.py') $taskHeapFixtures
