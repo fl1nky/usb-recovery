@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Web.Script.Serialization;
 using UsbRecovery;
 
 public static class LongPathRecoveryTests
@@ -44,6 +45,19 @@ public static class LongPathRecoveryTests
             string longNameFile=Directory.GetFiles(longNameExport,"*",SearchOption.AllDirectories).Single(x=>Hash(x)==original);
             Check(Path.GetFileName(longNameFile).Length<=255&&File.ReadAllBytes(longNameFile).SequenceEqual(payload),"valid long extension never creates an oversized output component");
             Check(Hash(image)==before,"long source image remains unchanged");
+            string acquisitionRoot=Path.Combine(Path.GetTempPath(),"recovery-acq-"+Guid.NewGuid().ToString("N"));
+            string sourceRoot=Path.Combine(acquisitionRoot,"source"),sourceFolder=sourceRoot,copyRoot=Path.Combine(acquisitionRoot,"copy");
+            while(sourceFolder.Length<340)sourceFolder=Path.Combine(sourceFolder,new string('q',40));
+            Directory.CreateDirectory(sourceFolder);string nested=Path.Combine(sourceFolder,"recipe.txt");File.WriteAllBytes(nested,payload);
+            var source=new LocalFolderSource(sourceRoot);SourceAcquisition.Copy(source,"",copyRoot,CancellationToken.None,null);
+            var manifest=new JavaScriptSerializer().Deserialize<AcquisitionManifest>(File.ReadAllText(Path.Combine(copyRoot,"acquisition.json")));
+            var record=manifest.Files.Single();string local=Path.Combine(copyRoot,record.LocalPath.Replace('/',Path.DirectorySeparatorChar));
+            Check(copyRoot.Length<=140&&local.Length>320,"logical acquisition uses a short root and an actual long nested target");
+            Check(manifest.Status=="finished"&&record.Status=="complete"&&record.LocalPath.EndsWith(record.RelativePath,StringComparison.Ordinal)&&record.LocalPath.IndexOf("path-conflicts",StringComparison.Ordinal)<0,"logical acquisition preserves the complete safe relative tree");
+            Check(Hash(local)==original&&Hash(nested)==original,"logical copy matches original bytes without modifying source");
+            DateTime written=File.GetLastWriteTimeUtc(local);SourceAcquisition.Copy(source,"",copyRoot,CancellationToken.None,null);
+            var resumed=new JavaScriptSerializer().Deserialize<AcquisitionManifest>(File.ReadAllText(Path.Combine(copyRoot,"acquisition.json")));
+            Check(resumed.Status=="finished"&&resumed.Files.Single().Sha256==original&&Hash(local)==original&&File.GetLastWriteTimeUtc(local)==written,"second logical acquisition verifies unchanged long output without recopying");
             Console.WriteLine("PASS LongPathRecovery: "+checks+" checks; actual fragmented FAT recovery, source ranges, export and immutable regular image at paths over 320 characters; no system policy changes.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }

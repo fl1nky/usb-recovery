@@ -559,7 +559,7 @@ namespace UsbRecovery
                     string identity = SourcePaths.HashText(source.Info.Kind + "\n" + source.Info.Id + "\n" + entry.Id + "\n" + relative);
                     if (!identities.Add(identity)) throw new IOException("Источник вернул повторную запись файла.");
                     string output = Path.Combine(snapshot, relative.Replace('/', '\\'));
-                    bool representable = relative.Split('/').All(part => SourcePaths.SafeName(part) == part) && output.Length < 245;
+                    bool representable = relative.Split('/').All(part => SourcePaths.SafeName(part) == part) && output.Length < 32700;
                     if (!representable || !outputPaths.Add(output))
                     {
                         // Preserve standard backup trees exactly. Exceptional Android names cannot

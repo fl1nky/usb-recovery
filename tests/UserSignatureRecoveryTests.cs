@@ -74,6 +74,6 @@ public static class UserSignatureRecoveryTests
     }
     public static int Main(string[] args)
     {
-        try{string project=Path.GetFullPath(args[0]);root=Path.Combine(project,".build","user-signature-tests-"+Guid.NewGuid().ToString("N").Substring(0,8));Directory.CreateDirectory(root);Positive();Negatives();Validation();GuardsAndLimits();Console.WriteLine("PASS UserSignatureRecovery: "+checks+" checks; literal fixed/footer boundaries, block boundaries, offsets, normalization/invalid rules, caps/cancellation/path guards/source SHA; candidates never asserted intact. Synthetic regular files only. "+root);return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        try{string project=Path.GetFullPath(args[0]);root=Path.Combine(project,".build","user-signature-tests-"+Guid.NewGuid().ToString("N").Substring(0,8));while(root.Length<320)root=Path.Combine(root,new string('s',40));Directory.CreateDirectory(root);Check(root.Length>=320,"custom signature operations use a genuinely long path");Positive();Negatives();Validation();GuardsAndLimits();Console.WriteLine("PASS UserSignatureRecovery: "+checks+" checks; literal fixed/footer boundaries, block boundaries, offsets, normalization/invalid rules, caps/cancellation/path guards/source SHA; candidates never asserted intact. Synthetic regular files only. "+root);return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }

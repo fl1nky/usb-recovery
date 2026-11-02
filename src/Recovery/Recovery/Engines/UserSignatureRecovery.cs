@@ -155,7 +155,7 @@ namespace UsbRecovery
             if(image.EndsWith(".partial",StringComparison.OrdinalIgnoreCase))throw new IOException("Незавершённый образ .partial не подходит для поиска.");
             string folder=RecoveryCatalog.SafeFile(runDirectory,"user-signatures"),reportPath=RecoveryCatalog.SafeFile(runDirectory,"user-signatures.json");
             if(String.Equals(image,reportPath,StringComparison.OrdinalIgnoreCase)||image.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||Directory.Exists(folder)||File.Exists(folder)||File.Exists(reportPath)||Directory.Exists(reportPath))throw new IOException("Источник пересекается с отчётами или папка уже содержит результаты сигнатур.");
-            if(folder.Length+80>245)throw new IOException("Выбери более короткую папку для результатов сигнатур.");
+            if(folder.Length+80>32700)throw new IOException("Выбери более короткую папку для результатов сигнатур.");
             Directory.CreateDirectory(folder);var report=new Report{Rules=normalized};var byFirst=new Dictionary<byte,List<Compiled>>();int longest=0;
             foreach(var rule in normalized){var compiled=new Compiled{Rule=rule,Header=DecodeHex(rule.HeaderHex),Footer=String.IsNullOrEmpty(rule.FooterHex)?null:DecodeHex(rule.FooterHex)};if(compiled.Footer!=null)compiled.Failure=Failure(compiled.Footer);List<Compiled> bucket;if(!byFirst.TryGetValue(compiled.Header[0],out bucket)){bucket=new List<Compiled>();byFirst.Add(compiled.Header[0],bucket);}bucket.Add(compiled);longest=Math.Max(longest,compiled.Header.Length);}
             try{using(var source=new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read)){

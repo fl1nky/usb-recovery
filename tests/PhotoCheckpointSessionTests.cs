@@ -57,7 +57,7 @@ public static class PhotoCheckpointSessionTests
     }
     static void RestartWithoutAnchor()
     {
-        string root=Folder("old-job");var session=Start(root);session.Begin("fragmented-photos");var unacknowledged=Checkpoint(root,1);string candidate=Payload(root),before=Hash(candidate);session.Fail("fragmented-photos","cancelled",null);
+        string root=Folder("old-job");while(root.Length<320)root=Path.Combine(root,new string('h',40));Directory.CreateDirectory(root);Check(root.Length>=320,"previous attempt retention runs beyond the classic path limit");var session=Start(root);session.Begin("fragmented-photos");var unacknowledged=Checkpoint(root,1);string candidate=Payload(root),before=Hash(candidate);session.Fail("fragmented-photos","cancelled",null);
         string quarantined=Path.Combine(root,"fragmented-photos.state","orphan-owned");Directory.CreateDirectory(quarantined);using(var bitmap=new Bitmap(4,4))bitmap.Save(Path.Combine(quarantined,"unacknowledged.png"),ImageFormat.Png);
         Check(session.PhotoCheckpoint()==null,"unacknowledged local checkpoint is never implicitly trusted");Check(Io(()=>session.Begin("fragmented-photos",true)),"explicit continuation requires a parent anchor");
         session.Begin("fragmented-photos");Check(!File.Exists(candidate)&&!File.Exists(unacknowledged.Path),"unanchored job is moved before an independent restart");
