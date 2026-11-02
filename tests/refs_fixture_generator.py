@@ -1,754 +1,247 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Independent synthetic ReFS fixture generator.
+"""Synthetic ReFS structural regressions, not Windows-formatted volume evidence.
 
-Generates bit-accurate ReFS v1.2 and v3.4 test volumes without external dependencies.
-Sources: libfsrefs (Joachim Metz), Ballenthin (2012), Green (2013), Prade et al. (2019).
-Only newly created synthetic image files are opened for writing.
+Layouts are based on libyal/libfsrefs and xbqt/forefst primary documentation.
+Native-volume and independent extraction evidence is recorded separately; these
+writer-defined images cannot independently establish native compatibility.
 """
 from __future__ import annotations
-
 import argparse
 import gzip
 import hashlib
 import json
-import os
 from pathlib import Path
-import re
 import shutil
 import struct
 
-
-def sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def crc32c(data: bytes, seed: int = 0xFFFFFFFF) -> int:
-    """Castagnoli CRC32-C (polynomial 0x1EDC6F41, reflected 0x82F63B78)."""
-    for byte in data:
-        seed ^= byte
-        for _ in range(8):
-            seed = (seed >> 1) ^ (0x82F63B78 if seed & 1 else 0)
-    return seed ^ 0xFFFFFFFF
-
-
-def crc64_ecma(data: bytes, seed: int = 0xFFFFFFFFFFFFFFFF) -> int:
-    """CRC64-ECMA-182 (polynomial 0x42F0E1EBA9EA3693, reflected 0xC96C5795D7870F42)."""
-    poly = 0xC96C5795D7870F42
+def sha256_bytes(data): return hashlib.sha256(data).hexdigest()
+def copy_native_metadata(source, destination):
+    source=Path(source);destination=Path(destination)
+    manifest=source/'native_metadata.json'
+    if not manifest.exists(): return
+    meta=json.loads(manifest.read_text(encoding='utf-8-sig'))
+    destination.mkdir(parents=True,exist_ok=True)
+    for item in meta['fixtures']:
+        name=item['file']
+        if Path(name).name!=name: raise ValueError('Native metadata path is not a basename')
+        data=(source/name).read_bytes()
+        if len(data)!=item['bytes'] or sha256_bytes(data)!=item['sha256']: raise ValueError('Native metadata hash mismatch')
+        (destination/name).write_bytes(data)
+    (destination/'native_metadata.json').write_text(json.dumps(meta,indent=2)+'\n',encoding='utf-8')
+def crc32c(data, seed=0xffffffff):
     for b in data:
         seed ^= b
-        for _ in range(8):
-            seed = (seed >> 1) ^ poly if (seed & 1) else (seed >> 1)
-    return seed ^ 0xFFFFFFFFFFFFFFFF
+        for _ in range(8): seed = (seed >> 1) ^ (0x82f63b78 if seed & 1 else 0)
+    return seed ^ 0xffffffff
+def crc64_nvme(data, seed=0xffffffffffffffff):
+    for b in data:
+        seed ^= b
+        for _ in range(8): seed = (seed >> 1) ^ (0x9a6c9329ac4bc9b5 if seed & 1 else 0)
+    result = seed ^ 0xffffffffffffffff
+    return 0xabbaffffabbaffff if result == 0xabbaffffabbafffe else result
 
+def row(key, value, flags=0):
+    size = (16 + len(key) + len(value) + 7) & ~7
+    result = bytearray(size)
+    struct.pack_into('<I6H', result, 0, size, 16, len(key), flags, 16+len(key), len(value), 0)
+    result[16:16+len(key)] = key
+    result[16+len(key):16+len(key)+len(value)] = value
+    return result
+
+def node(records, major=3, header=b'', level=0, total_size=None):
+    hdr = 32 if major == 1 else 40
+    start = 40 + len(header)
+    packed = [row(*r) for r in records]
+    needed = start + hdr + sum(map(len,packed)) + 4*len(records)
+    result = bytearray(total_size or ((needed+7)&~7))
+    struct.pack_into('<I', result, 0, start)
+    struct.pack_into('<H', result, 4, 40)
+    result[40:40+len(header)] = header
+    offsets=[]; at=start+hdr
+    for r in packed:
+        offsets.append(at-start);result[at:at+len(r)] = r;at+=len(r)
+    end=at-start; array=len(result)-start-4*len(records)
+    struct.pack_into('<III',result,start,hdr,end,array-end)
+    result[start+12]=level;result[start+13]=1 if level else 2
+    struct.pack_into('<III',result,start+16,array,len(records),array+len(records)*4)
+    if major==3:struct.pack_into('<I',result,start+32,array+len(records)*4)
+    for i,off in enumerate(offsets):struct.pack_into('<I',result,start+array+i*4,off | (0xffff0000 if major==3 else 0))
+    return result
 
 class ReFSVolumeBuilder:
-    def __init__(
-        self,
-        major: int = 3,
-        minor: int = 4,
-        cluster_size: int = 4096,
-        total_clusters: int = 1024,
-        sector_size: int = 512,
-        container_size: int = 0x4000,
-    ):
-        self.major = major
-        self.minor = minor
-        self.cluster_size = cluster_size
-        self.sector_size = sector_size
-        self.total_clusters = total_clusters
-        self.meta_block_size = 16384 if major == 1 else cluster_size
-        self.header_size = 48 if major == 1 else 80
-        self.ref_size = 24 if major == 1 else 48
-        self.container_size = container_size if major >= 3 else 0
-        self.image = bytearray(total_clusters * cluster_size)
-
-    def write_vbr(self, sector_offset: int = 0, backup: bool = False):
-        vbr = bytearray(self.sector_size)
-        vbr[0:3] = b"\xeb\x52\x90"
-        vbr[3:11] = b"ReFS\0\0\0\0"
-        vbr[16:20] = b"FSRS"
-        struct.pack_into("<I", vbr, 20, 32)  # Header size
-        total_sectors = (len(self.image)) // self.sector_size
-        struct.pack_into("<Q", vbr, 24, total_sectors)
-        struct.pack_into("<I", vbr, 32, self.sector_size)
-        struct.pack_into("<I", vbr, 36, self.cluster_size // self.sector_size)
-        vbr[40] = self.major
-        vbr[41] = self.minor
-        struct.pack_into("<Q", vbr, 56, 0x1234567890ABCDEF)
-        if self.major >= 3:
-            struct.pack_into("<Q", vbr, 64, self.container_size)
-        vbr[510:512] = b"\x55\xaa"
-        self.image[sector_offset : sector_offset + self.sector_size] = vbr
-
-    def write_block_ref(self, target: bytearray, offset: int, block_num: int, expected_crc: int = 0, crc_type: int = 1):
-        if expected_crc == 0:
-            crc_type = 0
-        if self.major == 1:
-            struct.pack_into("<Q", target, offset, block_num)
-            target[offset + 8] = 0   # checksum offset
-            target[offset + 9] = 4 if crc_type == 1 else 8
-            target[offset + 10] = crc_type
-            target[offset + 11] = 0
-            if crc_type == 1:
-                struct.pack_into("<I", target, offset + 12, expected_crc & 0xFFFFFFFF)
+    def __init__(self, major=3, minor=14, cluster_size=4096, total_clusters=2048, sector_size=512, checksum_type=2):
+        self.major=major;self.minor=minor;self.cluster_size=cluster_size;self.sector_size=sector_size
+        self.meta_block_size=16384 if major==1 else cluster_size
+        self.page_size=16384 if self.meta_block_size==4096 else self.meta_block_size
+        self.header_size=48 if major==1 else 80
+        self.checksum_type=checksum_type
+        self.ref_size=24 if major==1 else (72 if checksum_type==4 else 48)
+        self.page_blocks={}
+        self.image=bytearray(total_clusters*cluster_size)
+    def address(self,label): return label*4 if self.major==3 and self.cluster_size==4096 and label>=33 else label
+    def digest(self,data,kind=None):
+        kind=self.checksum_type if kind is None else kind
+        if kind==1:return struct.pack('<I',crc32c(data))
+        if kind==2:return struct.pack('<Q',crc64_nvme(data))
+        if kind==4:return hashlib.sha256(data).digest()
+        return b''
+    def write_vbr(self, sector_offset=0, backup=False):
+        b=bytearray(self.sector_size);b[:3]=b'\xebR\x90';b[3:11]=b'ReFS\0\0\0\0';b[16:20]=b'FSRS'
+        struct.pack_into('<QII',b,24,len(self.image)//self.sector_size,self.sector_size,self.cluster_size//self.sector_size)
+        b[40]=self.major;b[41]=self.minor;struct.pack_into('<Q',b,64,0x4000000)
+        b[510:512]=b'\x55\xaa';self.image[sector_offset:sector_offset+len(b)]=b
+    def write_block_ref(self,target,offset,block_num,expected_crc=None,crc_type=None,physical=False):
+        kind=self.checksum_type if crc_type is None else crc_type
+        number=block_num if physical else self.address(block_num)
+        slots=1 if self.major==1 else 4
+        for i in range(slots):
+            numbers=self.page_blocks.get(block_num)
+            n=numbers[i] if numbers and not physical else number+i if number and i<self.page_size//self.meta_block_size and not physical else number if i==0 else 0
+            struct.pack_into('<Q',target,offset+i*8,n)
+        d=offset+(8 if self.major==1 else 32)
+        digest=expected_crc
+        if digest is None:kind=0;digest=b''
+        if isinstance(digest,int):digest=struct.pack('<I' if kind==1 else '<Q',digest)
+        struct.pack_into('<HBBHH',target,d,0,kind,8,len(digest),0)
+        target[d+8:d+8+len(digest)]=digest
+    def seal_self(self,b,at,size,number,kind=1,corrupt=False):
+        struct.pack_into('<II',b,self.header_size+(40 if b[:4]==b'SUPB' or self.major==1 and number==30 else 8),at,size)
+        b[at:at+size]=bytes(size)
+        digest=self.digest(b,kind)
+        if corrupt:digest=bytes([digest[0]^1])+digest[1:]
+        self.write_block_ref(b,at,number,digest,kind,physical=True)
+    def meta_header(self,b,number,signature):
+        if self.major==1:struct.pack_into('<Q',b,0,number)
+        else:b[:4]=signature;struct.pack_into('<I',b,4,2);struct.pack_into('<Q',b,32,number)
+    def write_superblock(self,primary_chkp=31,secondary_chkp=32,seq=1):
+        b=bytearray(self.meta_block_size);self.meta_header(b,30,b'SUPB');h=self.header_size
+        struct.pack_into('<QII',b,h+24,seq,128 if self.major==1 else 192,2)
+        cp=128 if self.major==1 else 192;struct.pack_into('<QQ',b,cp,primary_chkp,secondary_chkp)
+        at=144 if self.major==1 else 208;size=24 if self.major==1 else 48
+        self.seal_self(b,at,size,30)
+        self.image[30*self.meta_block_size:31*self.meta_block_size]=b
+    def write_checkpoint(self,block_num,seq,tree0_block,tree0_crc=None,tree7_block=0,tree7_crc=None,corrupt=False,**kwargs):
+        b=bytearray(self.meta_block_size);self.meta_header(b,block_num,b'CHKP');h=self.header_size
+        struct.pack_into('<HH',b,h+4,self.major,self.minor);struct.pack_into('<Q',b,h+16,seq)
+        count=1 if self.major==1 else 8;cp=h+16+(24 if self.major==1 else 48)
+        struct.pack_into('<I',b,cp,count);base=512
+        for i in range(count):struct.pack_into('<I',b,cp+4+i*4,base+i*self.ref_size)
+        self.write_block_ref(b,base,tree0_block,tree0_crc)
+        if tree7_block:self.write_block_ref(b,base+7*self.ref_size,tree7_block,tree7_crc)
+        self.seal_self(b,256,24 if self.major==1 else 48,block_num,corrupt=corrupt)
+        off=block_num*self.meta_block_size;self.image[off:off+len(b)]=b
+    def write_btree_leaf(self,block_num,records,corrupt=False,level=0):
+        b=bytearray(self.page_size);number=self.address(block_num);self.meta_header(b,number,b'MSB+')
+        b[self.header_size:]=node(records,self.major,level=level,total_size=len(b)-self.header_size)
+        checksum=self.digest(b)
+        if corrupt:b[-1]^=1
+        numbers=self.page_blocks.get(block_num)
+        if numbers:
+            for i,n in enumerate(numbers):
+                off=n*self.meta_block_size;self.image[off:off+self.meta_block_size]=b[i*self.meta_block_size:(i+1)*self.meta_block_size]
+        else:
+            off=number*self.meta_block_size;self.image[off:off+len(b)]=b
+        return checksum
+    def build_object_record_key(self,object_id):return struct.pack('<QQ',0,object_id)
+    def build_object_record_value(self,target_block,expected_crc=None):
+        prefix=0 if self.major==1 else 32
+        v=bytearray(max(48,prefix+self.ref_size));self.write_block_ref(v,prefix,target_block,expected_crc);return bytes(v)
+    def build_container_record(self,container_id,physical_start_cluster,cluster_count=None):
+        v=bytearray(224 if self.cluster_size==65536 or self.checksum_type==4 else 160)
+        struct.pack_into('<Q',v,0,container_id);struct.pack_into('<I',v,24,cluster_count or 0x4000000//self.cluster_size)
+        struct.pack_into('<QQ',v,len(v)-16,physical_start_cluster,cluster_count or 0x4000000//self.cluster_size)
+        return bytes(v[:16]),bytes(v)
+    def build_dir_entry_record(self,name,entry_type,child_object_id=0,payload=b'',is_resident=True,cluster_extents=None,compressed=False):
+        key=struct.pack('<HH',0x30,entry_type)+name.encode('utf-16le',errors='surrogatepass');ft=133443264000000000
+        if entry_type==2:
+            v=bytearray(72);struct.pack_into('<Q',v,0 if self.major==1 else 8,child_object_id)
+            struct.pack_into('<I',v,64,0x10 if self.major==1 else 0x10000000);return key,bytes(v)
+        fh=bytearray(128);struct.pack_into('<QQQQI',fh,0,ft,ft,ft,ft,0x820 if compressed else 0x20)
+        struct.pack_into('<QQ',fh,64,len(payload),len(payload))
+        if self.major==1:
+            ak=struct.pack('<QI',44+len(payload),0x80)+b'\0\0'
+            if is_resident:
+                av=bytearray(44)+payload;struct.pack_into('<III',av,0,0,44,len(payload))
             else:
-                struct.pack_into("<Q", target, offset + 16, expected_crc)
+                rh=bytearray(96);struct.pack_into('<I',rh,0,1);struct.pack_into('<Q',rh,20,len(payload))
+                runs=[(struct.pack('<QQ',log//16384,cnt),struct.pack('<QQQ',log//16384,cnt,phys//4)) for log,cnt,phys in cluster_extents]
+                av=node(runs,1,bytes(rh))
+        elif is_resident:
+            ak=struct.pack('<QIHH',60+len(payload),0x80000001,0x80,0x000e)
+            av=bytearray(60)+payload;struct.pack_into('<III',av,0,0,len(av)-12,12);struct.pack_into('<I',av,12,48)
+            struct.pack_into('<QQQ',av,24,len(payload),len(payload),len(payload))
         else:
-            struct.pack_into("<QQQQ", target, offset, block_num, 0, 0, 0)
-            target[offset + 32] = 0  # checksum offset
-            target[offset + 33] = 4 if crc_type == 1 else 8
-            target[offset + 34] = crc_type
-            target[offset + 35] = 0
-            struct.pack_into("<I", target, offset + 36, 0)
-            if crc_type == 1:
-                struct.pack_into("<Q", target, offset + 40, expected_crc & 0xFFFFFFFF)
-            else:
-                struct.pack_into("<Q", target, offset + 40, expected_crc)
-
-    def write_superblock(self, primary_chkp: int = 31, secondary_chkp: int = 32, seq: int = 1):
-        sb_offset = 30 * self.meta_block_size
-        sb = bytearray(self.meta_block_size)
-        chkp_offset = 128 if self.major == 1 else 160
-        num_checkpoints = 2
-
-        if self.major == 1:
-            struct.pack_into("<QQ", sb, 0, 30, seq)
-            # Body at 48:
-            guid = b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"
-            sb[48:64] = guid
-            struct.pack_into("<Q", sb, 72, seq)
-            struct.pack_into("<II", sb, 80, chkp_offset, num_checkpoints)
-            self.write_block_ref(sb, chkp_offset, primary_chkp)
-            self.write_block_ref(sb, chkp_offset + self.ref_size, secondary_chkp)
-        else:
-            sb[0:4] = b"SUPB"
-            struct.pack_into("<II", sb, 4, 1, 0)
-            struct.pack_into("<QQ", sb, 16, seq, 0)
-            # Body at 80:
-            guid = b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"
-            sb[80:96] = guid
-            struct.pack_into("<Q", sb, 104, seq)
-            struct.pack_into("<II", sb, 112, chkp_offset, num_checkpoints)
-            self.write_block_ref(sb, chkp_offset, primary_chkp)
-            self.write_block_ref(sb, chkp_offset + self.ref_size, secondary_chkp)
-
-        self.image[sb_offset : sb_offset + self.meta_block_size] = sb
-
-    def write_checkpoint(
-        self,
-        block_num: int,
-        seq: int,
-        tree0_block: int,
-        tree0_crc: int = 0,
-        tree7_block: int = 0,
-        tree7_crc: int = 0,
-        crc_type: int = 1,
-        corrupt: bool = False,
-    ):
-        chkp_offset = block_num * self.meta_block_size
-        chkp = bytearray(self.meta_block_size)
-        table_start = 256 if self.major >= 3 else 128
-
-        if self.major >= 3:
-            chkp[0:4] = b"CHKP"
-            struct.pack_into("<II", chkp, 4, 1, 0)
-            struct.pack_into("<QQ", chkp, 16, seq, seq)
-            # Checkpoint header (16B at 80):
-            struct.pack_into("<HH", chkp, 84, self.major, self.minor)
-            # Trailer at 96:
-            struct.pack_into("<QQ", chkp, 96, seq, seq)
-            # Tree table offsets at 144:
-            struct.pack_into("<I", chkp, 144, 8)  # 8 trees
-            # Tree 0 at table_start, Tree 7 at table_start + 7 * 48
-            for i in range(8):
-                off = table_start + i * self.ref_size
-                struct.pack_into("<I", chkp, 148 + i * 4, off)
-            self.write_block_ref(chkp, table_start, tree0_block, tree0_crc)
-            if tree7_block:
-                self.write_block_ref(chkp, table_start + 7 * self.ref_size, tree7_block, tree7_crc)
-        else:
-            struct.pack_into("<QQ", chkp, 0, block_num, seq)
-            struct.pack_into("<HH", chkp, 48 + 4, self.major, self.minor)
-            # Trailer at 64:
-            struct.pack_into("<Q", chkp, 64, seq)
-            struct.pack_into("<I", chkp, 64 + 24, 7)
-            for i in range(7):
-                off = table_start + i * self.ref_size
-                struct.pack_into("<I", chkp, 64 + 28 + i * 4, off)
-            self.write_block_ref(chkp, table_start, tree0_block, tree0_crc)
-
-        # Update self checksum in superblock pointer or block itself
-        calc_crc = crc32c(chkp) if crc_type == 1 else crc64_ecma(chkp)
-        if corrupt:
-            calc_crc ^= 0xDEADBEEF
-        sb_offset = 30 * self.meta_block_size
-        chkp_slot = 128 if self.major == 1 else 160
-        # Determine whether this is primary (index 0) or secondary (index 1)
-        if block_num == 31:
-            self.write_block_ref(self.image, sb_offset + chkp_slot, block_num, calc_crc, crc_type)
-        elif block_num == 32:
-            self.write_block_ref(self.image, sb_offset + chkp_slot + self.ref_size, block_num, calc_crc, crc_type)
-
-        self.image[chkp_offset : chkp_offset + self.meta_block_size] = chkp
-
-    def write_btree_leaf(
-        self,
-        block_num: int,
-        records: list[tuple[bytes, bytes]],
-        corrupt: bool = False,
-    ) -> int:
-        offset = block_num * self.meta_block_size
-        page = bytearray(self.meta_block_size)
-        node_hdr_start = self.header_size
-
-        if self.major >= 3:
-            page[0:4] = b"MSB+"
-            struct.pack_into("<II", page, 4, 1, 0)
-            struct.pack_into("<QQ", page, 16, 1, 1)
-
-        # 32-byte NodeHeader at node_hdr_start:
-        record_offsets_start = 32
-        struct.pack_into(
-            "<IIIBBHIII",
-            page,
-            node_hdr_start,
-            0,
-            0,
-            0,
-            0,  # NodeLevel = 0 (Leaf)
-            2,  # NodeTypeFlags = 2 (Root/Leaf)
-            0,  # Reserved = 0
-            record_offsets_start,
-            len(records),
-            0,  # RecordOffsetsEnd
-        )
-
-        tail = self.meta_block_size
-        rec_rel_offsets = []
-
-        for key, val in records:
-            # Record header: size(4), key_off(2), key_size(2), flags(2), val_off(2), val_size(2) = 14 bytes
-            rec_hdr_size = 14
-            rec_len = rec_hdr_size + len(key) + len(val)
-            tail -= rec_len
-            rel_key = rec_hdr_size
-            rel_val = rec_hdr_size + len(key)
-            struct.pack_into(
-                "<IHHHHH",
-                page,
-                tail,
-                rec_len,
-                rel_key,
-                len(key),
-                0,
-                rel_val,
-                len(val),
-            )
-            page[tail + rel_key : tail + rel_key + len(key)] = key
-            page[tail + rel_val : tail + rel_val + len(val)] = val
-            rec_rel_offsets.append(tail - node_hdr_start)
-
-        # Write record offsets array
-        off_pos = node_hdr_start + record_offsets_start
-        for roff in rec_rel_offsets:
-            if self.major >= 3:
-                # Mask high word with 0xFFFF
-                val32 = 0xFFFF0000 | (roff & 0xFFFF)
-                struct.pack_into("<I", page, off_pos, val32)
-                off_pos += 4
-            else:
-                struct.pack_into("<H", page, off_pos, roff & 0xFFFF)
-                off_pos += 2
-
-        computed_crc = crc32c(page)
-        if corrupt:
-            # Flip a bit in the node header or records so stored block does not match expected CRC
-            page[node_hdr_start + 12] ^= 0x01
-
-        self.image[offset : offset + self.meta_block_size] = page
-        return computed_crc
-
-    def build_object_record_key(self, object_id: int) -> bytes:
-        return struct.pack("<QQ", 0, object_id)
-
-    def build_object_record_value(self, target_block: int, expected_crc: int = 0) -> bytes:
-        val = bytearray(self.ref_size)
-        self.write_block_ref(val, 0, target_block, expected_crc)
-        return bytes(val)
-
-    def build_container_record(self, container_id: int, physical_start_cluster: int, cluster_count: int = 0x4000) -> tuple[bytes, bytes]:
-        key = struct.pack("<Q", container_id)
-        val = bytearray(160)
-        struct.pack_into("<Q", val, 0, container_id)
-        struct.pack_into("<Q", val, 144, physical_start_cluster)
-        struct.pack_into("<Q", val, 152, cluster_count)
-        return key, bytes(val)
-
-    def build_dir_entry_record(
-        self,
-        name: str,
-        entry_type: int,  # 1 = File, 2 = Directory
-        child_object_id: int = 0,
-        payload: bytes = b"",
-        is_resident: bool = True,
-        cluster_extents: list[tuple[int, int, int]] | None = None,  # (logical_offset, block_count, physical_block)
-        compressed: bool = False,
-    ) -> tuple[bytes, bytes]:
-        name_utf16 = name.encode("utf-16le")
-        key = struct.pack("<HH", 0x0030, entry_type) + name_utf16
-
-        # Standard Windows FILETIME timestamp: 1700000000 epoch -> 133443264000000000
-        ft = 133443264000000000
-
-        if entry_type == 2:
-            # Directory value: 72 bytes
-            val = bytearray(72)
-            struct.pack_into("<Q", val, 0, child_object_id)
-            struct.pack_into("<QQQQ", val, 16, ft, ft, ft, ft)
-            struct.pack_into("<I", val, 64, 0x10)  # FILE_ATTRIBUTE_DIRECTORY
-            return key, bytes(val)
-
-        # File value: 128-byte file header + Attribute 0x80 ($DATA)
-        attr_flags = 0x20  # FILE_ATTRIBUTE_ARCHIVE
-        if compressed:
-            attr_flags |= 0x800  # FILE_ATTRIBUTE_COMPRESSED
-
-        val = bytearray(128)
-        struct.pack_into("<QQQQ", val, 0, ft, ft, ft, ft)
-        struct.pack_into("<I", val, 32, attr_flags)
-        file_len = len(payload) if (is_resident or not cluster_extents) else sum(cnt * self.cluster_size for _, cnt, _ in cluster_extents)
-        if not is_resident and payload:
-            file_len = len(payload)
-        struct.pack_into("<QQ", val, 64, file_len, file_len)
-
-        # Attribute 0x80 ($DATA)
-        attr = bytearray()
-        if is_resident:
-            # Resident Attribute header: 16 bytes
-            # attr_type(4) = 0x80, attr_flags(2) = 0 (bit 3 is 0), inline_off(4), inline_size(4)
-            inline_off = 16
-            attr_hdr = struct.pack("<IIII", 0x80, 0, inline_off, len(payload))
-            attr = attr_hdr + payload
-        else:
-            # Non-resident Attribute header: 16 bytes
-            # attr_type(4) = 0x80, attr_flags(2) = 0x08 (bit 3 is 1: embedded data runs)
-            runs_data = bytearray()
-            if cluster_extents:
-                for log_off, blk_cnt, phys_blk in cluster_extents:
-                    runs_data += struct.pack("<QQQ", log_off, blk_cnt, phys_blk)
-            attr_hdr = struct.pack("<IIII", 0x80, 0x08, 16, len(runs_data))
-            attr = attr_hdr + runs_data
-
-        return key, bytes(val + attr)
-
-    def write_raw_data(self, cluster: int, data: bytes):
-        offset = cluster * self.cluster_size
-        self.image[offset : offset + len(data)] = data
-
-    def finalize(self) -> bytes:
-        return bytes(self.image)
-
-
-# ---------------------------------------------------------------------------
-# Generator Cases: 10 Synthetic Test Images
-# ---------------------------------------------------------------------------
-
-def generate_fixtures(destination: Path) -> dict:
-    destination.mkdir(parents=True, exist_ok=True)
-    manifest = {
-        "version": 1,
-        "provenance": "Pure Python synthetic ReFS v1.2 and v3.4 fixtures without external dependencies.",
-        "cases": [],
-    }
-
-    # Case 1: refs-v12-minimal (v1.2, 16K meta blocks, 4K clusters, resident + non-resident)
-    print("Generating refs-v12-minimal...")
-    b1 = ReFSVolumeBuilder(major=1, minor=2, cluster_size=4096, total_clusters=2048)
-    b1.write_vbr(0)
-    p1_resident = b"Hello, ReFS v1.2 resident payload!"
-    p1_nonres = bytes((i % 256 for i in range(8192)))
-    b1.write_raw_data(200, p1_nonres)
-
-    rec_res = b1.build_dir_entry_record("hello.txt", 1, payload=p1_resident, is_resident=True)
-    rec_nonres = b1.build_dir_entry_record("data.bin", 1, payload=p1_nonres, is_resident=False, cluster_extents=[(0, 2, 200)])
-    crc_root = b1.write_btree_leaf(34, [rec_res, rec_nonres])
-
-    rec_obj600 = (b1.build_object_record_key(0x600), b1.build_object_record_value(34, crc_root))
-    crc_tree0 = b1.write_btree_leaf(33, [rec_obj600])
-
-    b1.write_superblock(31, 32, seq=1)
-    b1.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc_tree0)
-    b1.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc_tree0)
-
-    img1 = b1.finalize()
-    p1 = destination / "refs-v12-minimal.dd"
-    p1.write_bytes(img1)
-    manifest["cases"].append({
-        "name": "refs-v12-minimal",
-        "image": "refs-v12-minimal.dd",
-        "sha256": sha256_bytes(img1),
-        "outcome": "recover",
-        "expected_version": "1.2",
-        "target_name": "hello.txt",
-        "payload_sha256": sha256_bytes(p1_resident),
-    })
-
-    # Case 2: refs-v34-minimal (v3.4, 4K meta blocks, 4K clusters, Tree 7 containers)
-    print("Generating refs-v34-minimal...")
-    b2 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b2.write_vbr(0)
-    p2_resident = b"Welcome to ReFS v3.4 structured recovery!"
-    p2_nonres = bytes(((i * 7) % 256 for i in range(4096)))
-    b2.write_raw_data(100, p2_nonres)
-
-    rec2_res = b2.build_dir_entry_record("welcome.txt", 1, payload=p2_resident, is_resident=True)
-    rec2_nonres = b2.build_dir_entry_record("sample.dat", 1, payload=p2_nonres, is_resident=False, cluster_extents=[(0, 1, 100)])
-    crc2_root = b2.write_btree_leaf(34, [rec2_res, rec2_nonres])
-
-    rec2_obj600 = (b2.build_object_record_key(0x600), b2.build_object_record_value(34, crc2_root))
-    crc2_tree0 = b2.write_btree_leaf(33, [rec2_obj600])
-
-    c0_rec = b2.build_container_record(0, physical_start_cluster=0)
-    crc2_tree7 = b2.write_btree_leaf(35, [c0_rec])
-
-    b2.write_superblock(31, 32, seq=1)
-    b2.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc2_tree0, tree7_block=35, tree7_crc=crc2_tree7)
-    b2.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc2_tree0, tree7_block=35, tree7_crc=crc2_tree7)
-
-    img2 = b2.finalize()
-    p2 = destination / "refs-v34-minimal.dd"
-    p2.write_bytes(img2)
-    manifest["cases"].append({
-        "name": "refs-v34-minimal",
-        "image": "refs-v34-minimal.dd",
-        "sha256": sha256_bytes(img2),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "welcome.txt",
-        "payload_sha256": sha256_bytes(p2_resident),
-    })
-
-    # Case 3: refs-v34-nested-dirs (/Documents/Work/report.pdf)
-    print("Generating refs-v34-nested-dirs...")
-    b3 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b3.write_vbr(0)
-    p3_pdf = b"%PDF-1.5 Synthetic ReFS nested document payload in /Documents/Work/report.pdf\n%%EOF"
-    rec3_pdf = b3.build_dir_entry_record("report.pdf", 1, payload=p3_pdf, is_resident=True)
-    crc3_work = b3.write_btree_leaf(38, [rec3_pdf])
-
-    rec3_work_dir = b3.build_dir_entry_record("Work", 2, child_object_id=0x702)
-    crc3_docs = b3.write_btree_leaf(37, [rec3_work_dir])
-
-    rec3_docs_dir = b3.build_dir_entry_record("Documents", 2, child_object_id=0x701)
-    crc3_root = b3.write_btree_leaf(34, [rec3_docs_dir])
-
-    rec3_obj600 = (b3.build_object_record_key(0x600), b3.build_object_record_value(34, crc3_root))
-    rec3_obj701 = (b3.build_object_record_key(0x701), b3.build_object_record_value(37, crc3_docs))
-    rec3_obj702 = (b3.build_object_record_key(0x702), b3.build_object_record_value(38, crc3_work))
-    crc3_tree0 = b3.write_btree_leaf(33, [rec3_obj600, rec3_obj701, rec3_obj702])
-
-    crc3_tree7 = b3.write_btree_leaf(35, [b3.build_container_record(0, 0)])
-
-    b3.write_superblock(31, 32, seq=1)
-    b3.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc3_tree0, tree7_block=35, tree7_crc=crc3_tree7)
-    b3.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc3_tree0, tree7_block=35, tree7_crc=crc3_tree7)
-
-    img3 = b3.finalize()
-    p3 = destination / "refs-v34-nested-dirs.dd"
-    p3.write_bytes(img3)
-    manifest["cases"].append({
-        "name": "refs-v34-nested-dirs",
-        "image": "refs-v34-nested-dirs.dd",
-        "sha256": sha256_bytes(img3),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "report.pdf",
-        "expected_path": "Documents/Work/report.pdf",
-        "payload_sha256": sha256_bytes(p3_pdf),
-    })
-
-    # Case 4: refs-v34-discontiguous (4 extents across separate bands, Tree 7 container mapping)
-    print("Generating refs-v34-discontiguous...")
-    b4 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024, container_size=0x4000)
-    b4.write_vbr(0)
-
-    # 4 extents:
-    # Extent 1: logical 0, 1 cluster (4096B) at physical 100
-    # Extent 2: logical 4096, 2 clusters (8192B) at physical 120
-    # Extent 3: logical 12288, 1 cluster (4096B) at physical 150
-    # Extent 4: logical 16384, 1 cluster (4096B) at container 1 (virtual block 0x4000 + 10 -> physical 300 + 10 = 310)
-    chunk1 = b"PART_1_AAAA" * 372 + b"1111"  # 4096
-    chunk2 = b"PART_2_BBBB" * 744 + b"22222222"  # 8192
-    chunk3 = b"PART_3_CCCC" * 372 + b"3333"  # 4096
-    chunk4 = b"PART_4_DDDD" * 372 + b"4444"  # 4096
-    full_frag_payload = chunk1 + chunk2 + chunk3 + chunk4  # 20480 bytes
-
-    b4.write_raw_data(100, chunk1)
-    b4.write_raw_data(120, chunk2)
-    b4.write_raw_data(150, chunk3)
-    b4.write_raw_data(310, chunk4)
-
-    runs = [
-        (0, 1, 100),
-        (4096, 2, 120),
-        (12288, 1, 150),
-        (16384, 1, 0x4000 + 10),
-    ]
-    rec4 = b4.build_dir_entry_record("fragmented.bin", 1, payload=full_frag_payload, is_resident=False, cluster_extents=runs)
-    crc4_root = b4.write_btree_leaf(34, [rec4])
-
-    rec4_obj600 = (b4.build_object_record_key(0x600), b4.build_object_record_value(34, crc4_root))
-    crc4_tree0 = b4.write_btree_leaf(33, [rec4_obj600])
-
-    c0 = b4.build_container_record(0, physical_start_cluster=0)
-    c1 = b4.build_container_record(1, physical_start_cluster=300)
-    crc4_tree7 = b4.write_btree_leaf(35, [c0, c1])
-
-    b4.write_superblock(31, 32, seq=1)
-    b4.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc4_tree0, tree7_block=35, tree7_crc=crc4_tree7)
-    b4.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc4_tree0, tree7_block=35, tree7_crc=crc4_tree7)
-
-    img4 = b4.finalize()
-    p4 = destination / "refs-v34-discontiguous.dd"
-    p4.write_bytes(img4)
-    manifest["cases"].append({
-        "name": "refs-v34-discontiguous",
-        "image": "refs-v34-discontiguous.dd",
-        "sha256": sha256_bytes(img4),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "fragmented.bin",
-        "payload_sha256": sha256_bytes(full_frag_payload),
-    })
-
-    # Case 5: refs-backup-vbr (Sector 0 zeroed; backup VBR at volume end)
-    print("Generating refs-backup-vbr...")
-    b5 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    # Write backup VBR at last sector: len(image) - 512
-    last_sector_off = len(b5.image) - 512
-    b5.write_vbr(last_sector_off, backup=True)
-    # Sector 0 remains zeroes!
-
-    p5_survivor = b"Recovered via Backup VBR at volume end!"
-    rec5 = b5.build_dir_entry_record("survivor.txt", 1, payload=p5_survivor, is_resident=True)
-    crc5_root = b5.write_btree_leaf(34, [rec5])
-
-    rec5_obj600 = (b5.build_object_record_key(0x600), b5.build_object_record_value(34, crc5_root))
-    crc5_tree0 = b5.write_btree_leaf(33, [rec5_obj600])
-
-    crc5_tree7 = b5.write_btree_leaf(35, [b5.build_container_record(0, 0)])
-
-    b5.write_superblock(31, 32, seq=1)
-    b5.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc5_tree0, tree7_block=35, tree7_crc=crc5_tree7)
-    b5.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc5_tree0, tree7_block=35, tree7_crc=crc5_tree7)
-
-    img5 = b5.finalize()
-    p5 = destination / "refs-backup-vbr.dd"
-    p5.write_bytes(img5)
-    manifest["cases"].append({
-        "name": "refs-backup-vbr",
-        "image": "refs-backup-vbr.dd",
-        "sha256": sha256_bytes(img5),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "survivor.txt",
-        "payload_sha256": sha256_bytes(p5_survivor),
-    })
-
-    # Case 6: refs-checkpoint-pingpong (Primary seq 42, Secondary seq 43 arbitrated)
-    print("Generating refs-checkpoint-pingpong...")
-    b6 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b6.write_vbr(0)
-
-    # Checkpoint 0 (block 31) has old file
-    p6_old = b"Old file from sequence 42."
-    rec6_old = b6.build_dir_entry_record("old_file.txt", 1, payload=p6_old, is_resident=True)
-    crc6_root_old = b6.write_btree_leaf(34, [rec6_old])
-    rec6_obj600_old = (b6.build_object_record_key(0x600), b6.build_object_record_value(34, crc6_root_old))
-    crc6_tree0_old = b6.write_btree_leaf(33, [rec6_obj600_old])
-
-    # Checkpoint 1 (block 32) has active file
-    p6_active = b"Arbitrated latest checkpoint clock sequence 43."
-    rec6_active = b6.build_dir_entry_record("active_version.txt", 1, payload=p6_active, is_resident=True)
-    crc6_root_new = b6.write_btree_leaf(37, [rec6_active])
-    rec6_obj600_new = (b6.build_object_record_key(0x600), b6.build_object_record_value(37, crc6_root_new))
-    crc6_tree0_new = b6.write_btree_leaf(36, [rec6_obj600_new])
-
-    crc6_tree7 = b6.write_btree_leaf(35, [b6.build_container_record(0, 0)])
-
-    b6.write_superblock(31, 32, seq=1)
-    b6.write_checkpoint(31, seq=42, tree0_block=33, tree0_crc=crc6_tree0_old, tree7_block=35, tree7_crc=crc6_tree7)
-    b6.write_checkpoint(32, seq=43, tree0_block=36, tree0_crc=crc6_tree0_new, tree7_block=35, tree7_crc=crc6_tree7)
-
-    img6 = b6.finalize()
-    p6 = destination / "refs-checkpoint-pingpong.dd"
-    p6.write_bytes(img6)
-    manifest["cases"].append({
-        "name": "refs-checkpoint-pingpong",
-        "image": "refs-checkpoint-pingpong.dd",
-        "sha256": sha256_bytes(img6),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "active_version.txt",
-        "payload_sha256": sha256_bytes(p6_active),
-    })
-
-    # Case 7: refs-corrupted-crc (Leaf node bit flipped -> rejected with metadata_checksum_mismatch)
-    print("Generating refs-corrupted-crc...")
-    b7 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b7.write_vbr(0)
-    p7 = b"Payload that should not be extracted due to corrupt CRC."
-    rec7 = b7.build_dir_entry_record("corrupted_node.txt", 1, payload=p7, is_resident=True)
-    # Write corrupted leaf
-    crc7_root = b7.write_btree_leaf(34, [rec7], corrupt=True)
-
-    # Point to it with the uncorrupted CRC in Tree 0
-    rec7_obj600 = (b7.build_object_record_key(0x600), b7.build_object_record_value(34, crc7_root))
-    crc7_tree0 = b7.write_btree_leaf(33, [rec7_obj600])
-
-    crc7_tree7 = b7.write_btree_leaf(35, [b7.build_container_record(0, 0)])
-
-    b7.write_superblock(31, 32, seq=1)
-    b7.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc7_tree0, tree7_block=35, tree7_crc=crc7_tree7)
-    b7.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc7_tree0, tree7_block=35, tree7_crc=crc7_tree7)
-
-    img7 = b7.finalize()
-    p7_path = destination / "refs-corrupted-crc.dd"
-    p7_path.write_bytes(img7)
-    manifest["cases"].append({
-        "name": "refs-corrupted-crc",
-        "image": "refs-corrupted-crc.dd",
-        "sha256": sha256_bytes(img7),
-        "outcome": "reject",
-        "target_name": "corrupted_node.txt",
-    })
-
-    # Case 8: refs-unsupported-compression (FILE_ATTRIBUTE_COMPRESSED 0x800)
-    print("Generating refs-unsupported-compression...")
-    b8 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b8.write_vbr(0)
-    p8 = b"Raw compressed cluster payload."
-    rec8 = b8.build_dir_entry_record("compressed_file.bin", 1, payload=p8, is_resident=True, compressed=True)
-    crc8_root = b8.write_btree_leaf(34, [rec8])
-
-    rec8_obj600 = (b8.build_object_record_key(0x600), b8.build_object_record_value(34, crc8_root))
-    crc8_tree0 = b8.write_btree_leaf(33, [rec8_obj600])
-
-    crc8_tree7 = b8.write_btree_leaf(35, [b8.build_container_record(0, 0)])
-
-    b8.write_superblock(31, 32, seq=1)
-    b8.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc8_tree0, tree7_block=35, tree7_crc=crc8_tree7)
-    b8.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc8_tree0, tree7_block=35, tree7_crc=crc8_tree7)
-
-    img8 = b8.finalize()
-    p8_path = destination / "refs-unsupported-compression.dd"
-    p8_path.write_bytes(img8)
-    manifest["cases"].append({
-        "name": "refs-unsupported-compression",
-        "image": "refs-unsupported-compression.dd",
-        "sha256": sha256_bytes(img8),
-        "outcome": "reject",
-        "target_name": "compressed_file.bin",
-    })
-
-    # Case 9: refs-unicode-surrogates (Cyrillic, Chinese, spaces, and emoji surrogate pair)
-    print("Generating refs-unicode-surrogates...")
-    b9 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b9.write_vbr(0)
-    p9_cyrillic = "Тестовый документ ReFS на русском языке.".encode("utf-8")
-    p9_chinese = "财务报告 ReFS 简体中文测试数据。".encode("utf-8")
-    p9_space = b"File with spaces in filename test."
-    p9_emoji = b"Emoji surrogate pair \xf0\x9f\x9a\x80 in ReFS filename."
-
-    rec9_1 = b9.build_dir_entry_record("Документ_2026.docx", 1, payload=p9_cyrillic, is_resident=True)
-    rec9_2 = b9.build_dir_entry_record("财务报告.xlsx", 1, payload=p9_chinese, is_resident=True)
-    rec9_3 = b9.build_dir_entry_record("My Special Document.txt", 1, payload=p9_space, is_resident=True)
-    rec9_4 = b9.build_dir_entry_record("Project🚀Plan.txt", 1, payload=p9_emoji, is_resident=True)
-    crc9_root = b9.write_btree_leaf(34, [rec9_1, rec9_2, rec9_3, rec9_4])
-
-    rec9_obj600 = (b9.build_object_record_key(0x600), b9.build_object_record_value(34, crc9_root))
-    crc9_tree0 = b9.write_btree_leaf(33, [rec9_obj600])
-
-    crc9_tree7 = b9.write_btree_leaf(35, [b9.build_container_record(0, 0)])
-
-    b9.write_superblock(31, 32, seq=1)
-    b9.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc9_tree0, tree7_block=35, tree7_crc=crc9_tree7)
-    b9.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc9_tree0, tree7_block=35, tree7_crc=crc9_tree7)
-
-    img9 = b9.finalize()
-    p9_path = destination / "refs-unicode-surrogates.dd"
-    p9_path.write_bytes(img9)
-    manifest["cases"].append({
-        "name": "refs-unicode-surrogates",
-        "image": "refs-unicode-surrogates.dd",
-        "sha256": sha256_bytes(img9),
-        "outcome": "recover",
-        "expected_version": "3.4",
-        "target_name": "Project🚀Plan.txt",
-        "payload_sha256": sha256_bytes(p9_emoji),
-    })
-
-    # Case 10: refs-deleted-salvage (Unreferenced B+ tree page in free space)
-    print("Generating refs-deleted-salvage...")
-    b10 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=1024)
-    b10.write_vbr(0)
-
-    # Active root directory has only 1 normal file
-    p10_live = b"Active mounted file in root directory."
-    rec10_live = b10.build_dir_entry_record("active.txt", 1, payload=p10_live, is_resident=True)
-    crc10_root = b10.write_btree_leaf(34, [rec10_live])
-
-    rec10_obj600 = (b10.build_object_record_key(0x600), b10.build_object_record_value(34, crc10_root))
-    crc10_tree0 = b10.write_btree_leaf(33, [rec10_obj600])
-
-    crc10_tree7 = b10.write_btree_leaf(35, [b10.build_container_record(0, 0)])
-
-    # Write deleted file in free space at metadata block 80
-    p10_deleted = b"Confidential financial statement 2026. Salvaged from free space ReFS page."
-    b10.write_raw_data(250, p10_deleted)
-    rec10_del = b10.build_dir_entry_record(
-        "deleted_secret.doc",
-        1,
-        payload=p10_deleted,
-        is_resident=False,
-        cluster_extents=[(0, 1, 250)],
-    )
-    b10.write_btree_leaf(80, [rec10_del])
-
-    b10.write_superblock(31, 32, seq=1)
-    b10.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc10_tree0, tree7_block=35, tree7_crc=crc10_tree7)
-    b10.write_checkpoint(32, seq=9, tree0_block=33, tree0_crc=crc10_tree0, tree7_block=35, tree7_crc=crc10_tree7)
-
-    img10 = b10.finalize()
-    p10_path = destination / "refs-deleted-salvage.dd"
-    p10_path.write_bytes(img10)
-    manifest["cases"].append({
-        "name": "refs-deleted-salvage",
-        "image": "refs-deleted-salvage.dd",
-        "sha256": sha256_bytes(img10),
-        "outcome": "salvage",
-        "expected_version": "3.4",
-        "target_name": "deleted_secret.doc",
-        "payload_sha256": sha256_bytes(p10_deleted),
-    })
-
-    (destination / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-    (destination / "PROVENANCE.txt").write_text(
-        "Synthetic test images and fixture manifest created for the USB-Recovery project from programmatically defined data. "
-        "No personal data or third-party program binaries are embedded.\n",
-        encoding="utf-8",
-    )
-    print(f"Generated 10 ReFS fixtures in {destination}")
+            ak=bytearray(40);struct.pack_into('<IHHI',ak,8,0x80000002,0x80,0x000e,0x1000)
+            runs=[]
+            for logical,count,physical in cluster_extents:
+                run=bytearray(24);struct.pack_into('<QHHIII',run,0,physical,0x50,24,logical//self.cluster_size,0,count);runs.append(run)
+            n=40+sum(map(len,runs))+4*len(runs);av=bytearray(136+n);struct.pack_into('<I',av,0,136)
+            struct.pack_into('<QQQ',av,48,len(payload),len(payload),len(payload))
+            nh=136;end=40+sum(map(len,runs));struct.pack_into('<III',av,nh,40,end,0)
+            struct.pack_into('<II',av,nh+16,end,len(runs));struct.pack_into('<I',av,nh+32,end+len(runs)*4)
+            at=nh+40
+            for i,run in enumerate(runs):
+                av[at:at+24]=run;struct.pack_into('<I',av,nh+end+i*4,(at-nh)|0xffff0000);at+=24
+        return key,bytes(node([(bytes(ak),bytes(av))],self.major,bytes(fh)))
+    def write_raw_data(self,cluster,data):self.image[cluster*self.cluster_size:cluster*self.cluster_size+len(data)]=data
+    def finalize(self):return bytes(self.image)
+
+def basic(major=3,checksum_type=2,cluster_size=4096,version=14):
+    b=ReFSVolumeBuilder(major,2 if major==1 else version,cluster_size=cluster_size,checksum_type=checksum_type)
+    b.write_vbr();return b
+
+def finish(b,records,seq0=10,seq1=9,corrupt_leaf=False):
+    dr=b.write_btree_leaf(34,records,corrupt=corrupt_leaf)
+    ob=b.write_btree_leaf(33,[(b.build_object_record_key(0x600),b.build_object_record_value(34,dr))])
+    ct=b.write_btree_leaf(35,[b.build_container_record(2,800)]) if b.major==3 else None
+    b.write_superblock();b.write_checkpoint(31,seq0,33,ob,35 if ct else 0,ct);b.write_checkpoint(32,seq1,33,ob,35 if ct else 0,ct)
+    return b
+
+def generate_fixtures(destination):
+    destination.mkdir(parents=True,exist_ok=True)
+    manifest={'version':2,'provenance':'Synthetic structural regressions only. Native evidence and independent content oracle are separate.','cases':[]}
+    def save(name,b,payload=None,target=None,outcome='recover',**extra):
+        data=b.finalize();(destination/(name+'.dd')).write_bytes(data)
+        case=dict(name=name,image=name+'.dd',sha256=sha256_bytes(data),outcome=outcome,expected_version=f'{b.major}.{b.minor}',**extra)
+        if target is not None:case.update(target_name=target,payload_sha256=sha256_bytes(payload))
+        manifest['cases'].append(case)
+    for major in (1,3):
+        b=basic(major);p=b'Legacy documented inline structure' if major==1 else b'Inline stream on ReFS 3.14'
+        finish(b,[b.build_dir_entry_record('hello.txt',1,payload=p)]);save('refs-v12-minimal' if major==1 else 'refs-v314-minimal',b,p,'hello.txt')
+    b=basic();p=bytes(range(256))*37;b.write_raw_data(100,p[:4096]);b.write_raw_data(200,p[4096:])
+    finish(b,[b.build_dir_entry_record('fragmented.bin',1,payload=p,is_resident=False,cluster_extents=[(0,1,100),(4096,2,200)])]);save('refs-v314-discontiguous',b,p,'fragmented.bin')
+    b=basic();b.page_blocks[34]=[136,900,902,904];p=b'Four page slots in a non-contiguous order'
+    finish(b,[b.build_dir_entry_record('scattered.txt',1,payload=p)]);save('refs-four-page-slots',b,p,'scattered.txt')
+    b=basic();p=b'Translated from container 2';b.write_raw_data(810,p)
+    finish(b,[b.build_dir_entry_record('container.bin',1,payload=p,is_resident=False,cluster_extents=[(0,1,0x10000+10)])]);save('refs-container',b,p,'container.bin')
+    b=basic();p=b'Nested directory'
+    child=b.write_btree_leaf(36,[b.build_dir_entry_record('report.txt',1,payload=p)])
+    root=b.write_btree_leaf(34,[b.build_dir_entry_record('Docs',2,child_object_id=0x701)])
+    ob=b.write_btree_leaf(33,[(b.build_object_record_key(0x600),b.build_object_record_value(34,root)),(b.build_object_record_key(0x701),b.build_object_record_value(36,child))])
+    b.write_superblock();b.write_checkpoint(31,10,33,ob);b.write_checkpoint(32,9,33,ob);save('refs-nested-dirs',b,p,'report.txt',expected_path='Docs/report.txt')
+    b=basic(checksum_type=4,cluster_size=65536);p=b'Independent checksum algorithm selection';finish(b,[b.build_dir_entry_record('sha256.txt',1,payload=p)]);save('refs-sha256-64k',b,p,'sha256.txt')
+    b=basic();p=b'Backup VBR';finish(b,[b.build_dir_entry_record('backup.txt',1,payload=p)]);b.write_vbr(len(b.image)-512);b.image[:512]=bytes(512);save('refs-backup-vbr',b,p,'backup.txt')
+    b=basic();p=b'Clock 43';finish(b,[b.build_dir_entry_record('active.txt',1,payload=p)],42,43);save('refs-checkpoint-pingpong',b,p,'active.txt')
+    b=basic();finish(b,[b.build_dir_entry_record('bad.txt',1,payload=b'bad')],corrupt_leaf=True);save('refs-corrupted-crc',b,outcome='reject')
+    b=basic();finish(b,[b.build_dir_entry_record('compressed.bin',1,payload=b'data',compressed=True)]);save('refs-unsupported-compression',b,outcome='reject')
+    b=basic();p='Unicode 🚀'.encode();finish(b,[b.build_dir_entry_record('Project🚀Plan.txt',1,payload=p)]);save('refs-unicode-surrogates',b,p,'Project🚀Plan.txt')
+    b=basic();finish(b,[b.build_dir_entry_record('live.txt',1,payload=b'live')]);p=b'Unreferenced structural candidate'
+    b.write_btree_leaf(80,[b.build_dir_entry_record('unreferenced.txt',1,payload=p)]);save('refs-unreferenced-salvage',b,p,'unreferenced.txt',outcome='salvage')
+    (destination/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+    (destination/'PROVENANCE.txt').write_text(manifest['provenance']+'\n',encoding='utf-8')
+    copy_native_metadata(Path(__file__).resolve().parent/'fixtures'/'refs',destination)
+    print(f"Generated {len(manifest['cases'])} structural ReFS fixtures")
     return manifest
 
-
 def package_fixtures(source: Path, destination: Path):
-    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8-sig"))
     destination.mkdir(parents=True, exist_ok=True)
     manifest["compressed_images"] = {}
     for case in manifest["cases"]:
         name = case["image"]
+        if Path(name).name != name: raise ValueError("Fixture image must be a basename")
         data = (source / name).read_bytes()
+        if sha256_bytes(data) != case['sha256']: raise ValueError("Fixture source hash mismatch")
         target = destination / (name + ".gz")
         with target.open("wb") as raw:
             with gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as comp:
@@ -760,19 +253,24 @@ def package_fixtures(source: Path, destination: Path):
         }
     (destination / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     (destination / "PROVENANCE.txt").write_text(
-        "Packaged synthetic ReFS fixtures for offline regression verification.\n",
+        "Synthetic structural regressions only; not independent native-volume evidence.\n",
         encoding="utf-8",
     )
+    copy_native_metadata(source,destination)
     print(f"Packaged {len(manifest['compressed_images'])} fixtures to {destination}")
 
 
 def extract_fixtures(source: Path, destination: Path):
-    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8-sig"))
     destination.mkdir(parents=True, exist_ok=True)
     images = manifest.get("compressed_images", {})
     if images:
         for name, details in images.items():
+            if Path(name).name != name or Path(details['archive']).name != details['archive']:
+                raise ValueError("Fixture paths must be basenames")
             archive = source / details["archive"]
+            if sha256_bytes(archive.read_bytes()) != details['archive_sha256']:
+                raise ValueError("Compressed fixture hash mismatch")
             target = destination / name
             if target.exists():
                 try:
@@ -780,7 +278,13 @@ def extract_fixtures(source: Path, destination: Path):
                 except Exception:
                     pass
             with gzip.open(archive, "rb") as comp:
-                target.write_bytes(comp.read())
+                expected = details['bytes']
+                if not 0 < expected <= 128 * 1024 * 1024: raise ValueError("Fixture size outside extraction bound")
+                data = comp.read(expected + 1)
+                case = next(c for c in manifest['cases'] if c['image'] == name)
+                if len(data) != expected or sha256_bytes(data) != case['sha256']:
+                    raise ValueError("Extracted fixture hash or size mismatch")
+                target.write_bytes(data)
     else:
         # If not compressed, copy .dd files
         for case in manifest["cases"]:
@@ -793,6 +297,7 @@ def extract_fixtures(source: Path, destination: Path):
                     pass
             shutil.copy2(source / name, target)
     (destination / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    copy_native_metadata(source,destination)
     print(f"Extracted {len(manifest['cases'])} fixtures to {destination}")
 
 

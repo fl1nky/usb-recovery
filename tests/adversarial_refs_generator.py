@@ -1,279 +1,118 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Adversarial ReFS fixture generator for challenger_m3_1.
-
-Generates corrupted, mutated, boundary, and edge-case ReFS v1.2 and v3.4 synthetic images
-to stress test RefsRecovery against structural corruption, invalid clocks, OOB pointers,
-container translation, and checksum rejection.
-"""
-from __future__ import annotations
-
-import struct
+"""Synthetic negative regressions. Does not prove native compatibility."""
 from pathlib import Path
+import argparse
+import json
+import struct
 import sys
-sys.path.insert(0, ".")
-from tests.refs_fixture_generator import ReFSVolumeBuilder, crc32c, crc64_ecma
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from tests.refs_fixture_generator import basic, finish, sha256_bytes, node, row
 
-
-def make_adv_fixtures(dest: Path) -> dict:
+def make_adv_fixtures(dest):
     dest.mkdir(parents=True, exist_ok=True)
-    manifest = {}
+    cases=[]
+    def base():
+        b=basic();finish(b,[b.build_dir_entry_record('control.txt',1,payload=b'controlled exact bytes')]);return b
+    def save(name,b,files=0,**expected):
+        data=b.finalize();filename=name+'.dd';(dest/filename).write_bytes(data)
+        cases.append(dict(name=name,image=filename,sha256=sha256_bytes(data),files=files,**expected))
+    b=base();b.image[0:512]=bytes(512);save('adv-vbr-both-corrupt',b,volumes=0)
+    b=base();struct.pack_into('<II',b.image,32,0,0);save('adv-vbr-invalid-geom',b,volumes=0,skip='invalid_vbr_geometry')
+    b=base();b.image[40]=2;save('adv-version-2',b,reason='unsupported_refs_major_version_2')
+    b=base();b.image[30*4096+260]^=1;save('adv-superblock-self-crc',b,reason='superblock_unreadable_or_corrupt')
+    b=base();b.image[31*4096+256+34]=0;b.image[32*4096+256+34]=0;save('adv-checkpoint-no-checksum',b,reason='all_checkpoints_corrupt')
+    b=base();b.image[32*4096+500]^=1;save('adv-checkpoint-fallback',b,files=1,warning='checkpoint_crc_corrupted_fallback_used')
+    b=basic(checksum_type=4,cluster_size=65536);finish(b,[b.build_dir_entry_record('sha256-bad.txt',1,payload=b'blocked')],corrupt_leaf=True);save('adv-sha256-bit-corrupt',b,warning='metadata_checksum_mismatch')
+    for name,kind,zero in [('adv-root-no-checksum',0,False),('adv-root-unknown-checksum',3,False),('adv-root-zero-checksum',2,True)]:
+        b=base()
+        for number in (31,32):
+            offset=number*4096;page=bytearray(b.image[offset:offset+4096]);page[512+34]=kind
+            if zero:page[512+40:512+48]=bytes(8)
+            b.seal_self(page,256,48,number);b.image[offset:offset+4096]=page
+        save(name,b,warning='metadata_checksum_mismatch')
+    b=basic();p=b'cannot read past source';finish(b,[b.build_dir_entry_record('oob.bin',1,payload=p,is_resident=False,cluster_extents=[(0,1,0xffffffffffffffff)])]);save('adv-extent-oob',b,skip='data_extent_layout_or_coverage_unsupported')
+    b=basic();finish(b,[b.build_dir_entry_record('gap.bin',1,payload=b'x'*8192,is_resident=False,cluster_extents=[(0,1,100),(8192,1,200)])]);save('adv-extent-gap',b,skip='data_extent_layout_or_coverage_unsupported')
+    b=base();pageAt=b.address(34)*4096;page=bytearray(b.image[pageAt:pageAt+b.page_size]);h=b.header_size+struct.unpack_from('<I',page,b.header_size)[0]
+    array=struct.unpack_from('<I',page,h+16)[0];rec=h+(struct.unpack_from('<I',page,h+array)[0]&65535)
+    struct.pack_into('<H',page,rec+10,0xfff0);crc=b.digest(page);b.image[pageAt:pageAt+len(page)]=page
+    ob=b.write_btree_leaf(33,[(b.build_object_record_key(0x600),b.build_object_record_value(34,crc))]);b.write_checkpoint(31,10,33,ob);b.write_checkpoint(32,9,33,ob)
+    save('adv-record-value-outside-row',b,skip='metadata_record_invalid')
 
-    # Case 1: Corrupted VBR: Both primary and backup VBR destroyed
-    b_vbr_both = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    # Don't write VBR, image remains zeroes
-    path = dest / "adv-vbr-both-corrupt.dd"
-    path.write_bytes(b_vbr_both.finalize())
-    manifest["adv-vbr-both-corrupt"] = {"file": path.name, "expect": "reject_volume"}
+    def attribute_record(b):
+        key,value=b.build_dir_entry_record('extent-proof.bin',1,payload=b'X',is_resident=False,cluster_extents=[(0,1,100)])
+        start=struct.unpack_from('<I',value,0)[0]
+        array=struct.unpack_from('<I',value,start+16)[0]
+        rec=start+(struct.unpack_from('<I',value,start+array)[0]&65535)
+        ko,kl=struct.unpack_from('<HH',value,rec+4);vo,vl=struct.unpack_from('<HH',value,rec+10)
+        return key,bytes(value[40:168]),bytes(value[rec+ko:rec+ko+kl]),bytearray(value[rec+vo:rec+vo+vl])
+    def finish_attribute(b,key,header,ak,av):
+        b.write_raw_data(100,b'X')
+        finish(b,[(key,bytes(node([(ak,bytes(av))],3,header)))])
+    # These images have valid parent checksums. The final 24-byte extent row is
+    # deliberately only partially inside the node's declared data area.
+    for data_end in range(40,65):
+        b=basic();key,header,ak,av=attribute_record(b)
+        struct.pack_into('<I',av,136+4,data_end)
+        finish_attribute(b,key,header,ak,av)
+        save('adv-extent-data-end-'+str(data_end),b,files=1 if data_end==64 else 0,
+             review_case=True,baseline_9a8_live=0 if data_end==40 else 1,
+             **({} if data_end==64 else {'skip':'data_extent_layout_or_coverage_unsupported'}))
+    b=basic();key,header,ak,av=attribute_record(b)
+    struct.pack_into('<I',av,132,40)
+    struct.pack_into('<II',av,136+16,0xfffffffc,1)
+    struct.pack_into('<I',av,136+32,0)
+    finish_attribute(b,key,header,ak,av)
+    save('adv-extent-array-addition-wrap',b,review_case=True,baseline_9a8_live=1,skip='data_extent_layout_or_coverage_unsupported')
 
-    # Case 2: VBR invalid geometry: BytesPerSector=0, SectorsPerCluster=0, ContainerSize=0
-    b_vbr_geom = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_vbr_geom.write_vbr(0)
-    # Zero out BytesPerSector (offset 32) and SectorsPerCluster (offset 36)
-    vbr_ba = bytearray(b_vbr_geom.image[0:512])
-    struct.pack_into("<I", vbr_ba, 32, 0)
-    struct.pack_into("<I", vbr_ba, 36, 0)
-    b_vbr_geom.image[0:512] = vbr_ba
-    path = dest / "adv-vbr-invalid-geom.dd"
-    path.write_bytes(b_vbr_geom.finalize())
-    manifest["adv-vbr-invalid-geom"] = {"file": path.name, "expect": "fallback_geom"}
+    # A valid extent child is held behind a branch whose value fits the entire
+    # node but runs outside the branch's own declared generic row.
+    for declared in (16,63,64,0xfffffff0):
+        b=basic();key,header,ak,av=attribute_record(b)
+        child=bytearray(b.page_size);b.meta_header(child,b.address(36),b'MSB+')
+        struct.pack_into('<I',child,b.header_size,40);nh=b.header_size+40
+        array=b.page_size-nh-4
+        struct.pack_into('<III',child,nh,40,64,array-64)
+        struct.pack_into('<II',child,nh+16,array,1);struct.pack_into('<I',child,nh+32,array+4)
+        struct.pack_into('<QHHIII',child,nh+40,100,0x50,24,0,0,1)
+        struct.pack_into('<I',child,nh+array,40|0xffff0000)
+        child_at=b.address(36)*b.meta_block_size;b.image[child_at:child_at+len(child)]=child
+        ref=bytearray(b.ref_size);b.write_block_ref(ref,0,36,b.digest(child))
+        branch=row(b'',bytes(ref));struct.pack_into('<I',branch,0,declared)
+        av=av[:136]+bytearray(40+len(branch)+4);nh=136;end=40+len(branch)
+        struct.pack_into('<III',av,nh,40,end,0);av[nh+12]=1;av[nh+13]=1
+        struct.pack_into('<II',av,nh+16,end,1);struct.pack_into('<I',av,nh+32,end+4)
+        av[nh+40:nh+40+len(branch)]=branch;struct.pack_into('<I',av,nh+end,40|0xffff0000)
+        finish_attribute(b,key,header,ak,av)
+        save('adv-extent-branch-own-row-'+str(declared),b,files=1 if declared==64 else 0,
+             review_case=True,baseline_9a8_live=1,
+             **({} if declared==64 else {'skip':'data_extent_layout_or_coverage_unsupported'}))
 
-    # Case 3: Unsupported Major Version: ReFS v2.0
-    b_v2 = ReFSVolumeBuilder(major=2, minor=0, cluster_size=4096, total_clusters=128)
-    b_v2.write_vbr(0)
-    path = dest / "adv-vbr-unsupported-v2.dd"
-    path.write_bytes(b_v2.finalize())
-    manifest["adv-vbr-unsupported-v2"] = {"file": path.name, "expect": "unsupported_version"}
+    for kind,length in ((1,0x00010004),(2,0x00010008),(2,0xffff0008),(4,0x00010020)):
+        b=basic(checksum_type=kind);finish(b,[b.build_dir_entry_record('length-proof.bin',1,payload=b'X')])
+        for number in (31,32):
+            offset=number*b.meta_block_size;page=bytearray(b.image[offset:offset+b.meta_block_size])
+            struct.pack_into('<I',page,512+36,length)
+            b.seal_self(page,256,48,number);b.image[offset:offset+len(page)]=page
+        save('adv-checksum-u32-'+str(kind)+'-'+str(length),b,review_case=True,baseline_9a8_live=1,warning='metadata_checksum_mismatch')
 
-    # Case 4: Superblock signature corrupted (not "SUPB")
-    b_sb_sig = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_sb_sig.write_vbr(0)
-    b_sb_sig.write_superblock(31, 32, seq=1)
-    sb_off = 30 * b_sb_sig.meta_block_size
-    b_sb_sig.image[sb_off : sb_off + 4] = b"XXXX"
-    path = dest / "adv-sb-invalid-sig.dd"
-    path.write_bytes(b_sb_sig.finalize())
-    manifest["adv-sb-invalid-sig"] = {"file": path.name, "expect": "sb_corrupt"}
+    # The first container is missing while a later one survives. Explicitly map
+    # metadata, so the only failed translation is the file's missing container 2.
+    b=basic();b.write_raw_data(33,b'X')
+    record=b.build_dir_entry_record('missing-container.bin',1,payload=b'X',is_resident=False,cluster_extents=[(0,1,33)])
+    dr=b.write_btree_leaf(34,[record]);obj=bytearray(b.build_object_record_value(34,dr))
+    struct.pack_into('<4Q',obj,32,160,161,162,163)
+    ob=b.write_btree_leaf(33,[(b.build_object_record_key(0x600),bytes(obj))])
+    ct=b.write_btree_leaf(35,[b.build_container_record(3,300,8),b.build_container_record(9,132,8),b.build_container_record(10,136,8)])
+    b.write_superblock()
+    for number in (31,32):
+        b.write_checkpoint(number,10 if number==31 else 9,33,ob,35,ct)
+        offset=number*b.meta_block_size;page=bytearray(b.image[offset:offset+b.meta_block_size])
+        struct.pack_into('<4Q',page,512,144,145,146,147)
+        b.seal_self(page,256,48,number);b.image[offset:offset+len(page)]=page
+    save('adv-missing-first-container',b,review_case=True,baseline_9a8_live=1,skip='data_extent_layout_or_coverage_unsupported')
+    (dest/'manifest.json').write_text(json.dumps({'version':2,'cases':cases},indent=2),encoding='utf-8')
+    return cases
 
-    # Case 5: Dual Checkpoint Ping-Pong with Checkpoint 0 sequence higher than Checkpoint 1
-    # Checkpoint 0 (block 31) seq=200, Checkpoint 1 (block 32) seq=100
-    b_pp0 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_pp0.write_vbr(0)
-    rec_res0 = b_pp0.build_dir_entry_record("file_from_chkp0.txt", 1, payload=b"chkp0_payload", is_resident=True)
-    rec_res1 = b_pp0.build_dir_entry_record("file_from_chkp1.txt", 1, payload=b"chkp1_payload", is_resident=True)
-    crc_root0 = b_pp0.write_btree_leaf(36, [rec_res0])
-    crc_root1 = b_pp0.write_btree_leaf(38, [rec_res1])
-    crc_t0_0 = b_pp0.write_btree_leaf(35, [(b_pp0.build_object_record_key(0x600), b_pp0.build_object_record_value(36, crc_root0))])
-    crc_t0_1 = b_pp0.write_btree_leaf(37, [(b_pp0.build_object_record_key(0x600), b_pp0.build_object_record_value(38, crc_root1))])
-    b_pp0.write_superblock(31, 32, seq=1)
-    b_pp0.write_checkpoint(31, seq=200, tree0_block=35, tree0_crc=crc_t0_0)
-    b_pp0.write_checkpoint(32, seq=100, tree0_block=37, tree0_crc=crc_t0_1)
-    path = dest / "adv-chkp-pingpong-chkp0-higher.dd"
-    path.write_bytes(b_pp0.finalize())
-    manifest["adv-chkp-pingpong-chkp0-higher"] = {"file": path.name, "expect": "chkp0_selected"}
-
-    # Case 6: Dual Checkpoint with Checkpoint 1 corrupted CRC (fallback to Checkpoint 0)
-    b_pp_c1 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_pp_c1.write_vbr(0)
-    crc_root_c = b_pp_c1.write_btree_leaf(36, [rec_res0])
-    crc_t0_c = b_pp_c1.write_btree_leaf(35, [(b_pp_c1.build_object_record_key(0x600), b_pp_c1.build_object_record_value(36, crc_root_c))])
-    b_pp_c1.write_superblock(31, 32, seq=1)
-    b_pp_c1.write_checkpoint(31, seq=50, tree0_block=35, tree0_crc=crc_t0_c)
-    b_pp_c1.write_checkpoint(32, seq=100, tree0_block=35, tree0_crc=crc_t0_c, corrupt=True)
-    path = dest / "adv-chkp-pingpong-chkp1-corrupt.dd"
-    path.write_bytes(b_pp_c1.finalize())
-    manifest["adv-chkp-pingpong-chkp1-corrupt"] = {"file": path.name, "expect": "chkp0_fallback"}
-
-    # Case 7: Both Checkpoints corrupted CRC (all_checkpoints_corrupt)
-    b_pp_both = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_pp_both.write_vbr(0)
-    b_pp_both.write_superblock(31, 32, seq=1)
-    b_pp_both.write_checkpoint(31, seq=50, tree0_block=35, corrupt=True)
-    b_pp_both.write_checkpoint(32, seq=100, tree0_block=35, corrupt=True)
-    path = dest / "adv-chkp-both-corrupt.dd"
-    path.write_bytes(b_pp_both.finalize())
-    manifest["adv-chkp-both-corrupt"] = {"file": path.name, "expect": "all_checkpoints_corrupt"}
-
-    # Case 8: Tree Node Cycle (Branch A -> Branch B -> Branch A)
-    b_cycle = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_cycle.write_vbr(0)
-    # Tree 0 at block 33 is branch pointing to 34. Block 34 is branch pointing to 33!
-    # Write branch 34 pointing to 33
-    def write_branch(block_num: int, child_block: int) -> int:
-        offset = block_num * b_cycle.meta_block_size
-        page = bytearray(b_cycle.meta_block_size)
-        page[0:4] = b"MSB+"
-        struct.pack_into("<II", page, 4, 1, 0)
-        struct.pack_into("<QQ", page, 16, 1, 1)
-        node_hdr_start = 80
-        # NodeLevel = 1 (Branch), NodeTypeFlags = 1 (Branch)
-        struct.pack_into("<IIIBBHIII", page, node_hdr_start, 0, 0, 0, 1, 1, 0, 32, 1, 0)
-        tail = b_cycle.meta_block_size - (14 + 8 + 48)
-        key = struct.pack("<Q", 0)
-        val = bytearray(48)
-        b_cycle.write_block_ref(val, 0, child_block)
-        struct.pack_into("<IHHHHH", page, tail, 14 + len(key) + len(val), 14, len(key), 0, 14 + len(key), len(val))
-        page[tail + 14 : tail + 14 + len(key)] = key
-        page[tail + 14 + len(key) : tail + 14 + len(key) + len(val)] = val
-        struct.pack_into("<I", page, node_hdr_start + 32, 0xFFFF0000 | ((tail - node_hdr_start) & 0xFFFF))
-        crc = crc32c(page)
-        b_cycle.image[offset : offset + b_cycle.meta_block_size] = page
-        return crc
-
-    crc34 = write_branch(34, 33)
-    crc33 = write_branch(33, 34)
-    # Re-write 34 with correct crc33 in pointer if needed, or with crc_type=0
-    b_cycle.write_superblock(31, 32, seq=1)
-    b_cycle.write_checkpoint(31, seq=10, tree0_block=33, crc_type=0)
-    path = dest / "adv-tree-cycle.dd"
-    path.write_bytes(b_cycle.finalize())
-    manifest["adv-tree-cycle"] = {"file": path.name, "expect": "cycle_detected"}
-
-    # Case 9: Circular Directories (Dir 0x600 contains Subdir 0x701, Subdir 0x701 contains 0x600)
-    b_circ_dir = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_circ_dir.write_vbr(0)
-    rec_d1 = b_circ_dir.build_dir_entry_record("sub", 2, child_object_id=0x701)
-    rec_d2 = b_circ_dir.build_dir_entry_record("loop_back", 2, child_object_id=0x600)
-    crc_d1 = b_circ_dir.write_btree_leaf(35, [rec_d1])
-    crc_d2 = b_circ_dir.write_btree_leaf(36, [rec_d2])
-    rec_obj600 = (b_circ_dir.build_object_record_key(0x600), b_circ_dir.build_object_record_value(35, crc_d1))
-    rec_obj701 = (b_circ_dir.build_object_record_key(0x701), b_circ_dir.build_object_record_value(36, crc_d2))
-    crc_t0_circ = b_circ_dir.write_btree_leaf(34, [rec_obj600, rec_obj701])
-    b_circ_dir.write_superblock(31, 32, seq=1)
-    b_circ_dir.write_checkpoint(31, seq=10, tree0_block=34, tree0_crc=crc_t0_circ)
-    path = dest / "adv-dir-circular.dd"
-    path.write_bytes(b_circ_dir.finalize())
-    manifest["adv-dir-circular"] = {"file": path.name, "expect": "circular_dir_detected"}
-
-    # Case 10: Unicode string decoding stress: emojis, lone surrogates, path separators
-    b_uni = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_uni.write_vbr(0)
-    # File with emoji: "test_\uD83D\uDE00.txt" and slashes "a/b\\c.txt"
-    rec_u1 = b_uni.build_dir_entry_record("test_\U0001F600.txt", 1, payload=b"emoji_content", is_resident=True)
-    rec_u2 = b_uni.build_dir_entry_record("bad/name\\test.txt", 1, payload=b"slash_content", is_resident=True)
-    crc_u_root = b_uni.write_btree_leaf(34, [rec_u1, rec_u2])
-    crc_u_t0 = b_uni.write_btree_leaf(33, [(b_uni.build_object_record_key(0x600), b_uni.build_object_record_value(34, crc_u_root))])
-    b_uni.write_superblock(31, 32, seq=1)
-    b_uni.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc_u_t0)
-    path = dest / "adv-unicode-stress.dd"
-    path.write_bytes(b_uni.finalize())
-    manifest["adv-unicode-stress"] = {"file": path.name, "expect": "unicode_sanitized"}
-
-    # Case 11: Container translation verification:
-    # Container 0 (cluster 100), Container 1 (virtual 0x4010 -> physical cluster 150)
-    b_cont = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=512, container_size=0x4000)
-    b_cont.write_vbr(0)
-    p_cont = b"PAYLOAD_CONTAINER_TRANSLATION_VERIFIED_7777777"
-    b_cont.write_raw_data(150, p_cont)
-    # Virtual cluster 0x4000 + 10 = 0x400A (16394)
-    # Container 1 mapped to physical start 140 -> 140 + 10 = 150
-    rec_cont_file = b_cont.build_dir_entry_record(
-        "container_file.dat",
-        1,
-        payload=p_cont,
-        is_resident=False,
-        cluster_extents=[(0, 1, 0x400A)],
-    )
-    crc_cont_root = b_cont.write_btree_leaf(36, [rec_cont_file])
-    rec_c0 = b_cont.build_container_record(0, 0)
-    rec_c1 = b_cont.build_container_record(1, 140)
-    crc_t7 = b_cont.write_btree_leaf(35, [rec_c0, rec_c1])
-    crc_t0_cont = b_cont.write_btree_leaf(34, [(b_cont.build_object_record_key(0x600), b_cont.build_object_record_value(36, crc_cont_root))])
-    b_cont.write_superblock(31, 32, seq=1)
-    b_cont.write_checkpoint(31, seq=10, tree0_block=34, tree0_crc=crc_t0_cont, tree7_block=35, tree7_crc=crc_t7)
-    path = dest / "adv-container-trans.dd"
-    path.write_bytes(b_cont.finalize())
-    manifest["adv-container-trans"] = {"file": path.name, "expect": "container_recovered"}
-
-    # Case 12: Extent pointing beyond image EOF (Out-of-bounds extent)
-    b_oob = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_oob.write_vbr(0)
-    # Declared size 100 bytes, but extent points to physical cluster 999999 (far beyond image EOF of 128 clusters)
-    rec_oob = b_oob.build_dir_entry_record(
-        "oob_file.bin",
-        1,
-        payload=b"A" * 100,
-        is_resident=False,
-        cluster_extents=[(0, 1, 999999)],
-    )
-    crc_oob_root = b_oob.write_btree_leaf(34, [rec_oob])
-    crc_oob_t0 = b_oob.write_btree_leaf(33, [(b_oob.build_object_record_key(0x600), b_oob.build_object_record_value(34, crc_oob_root))])
-    b_oob.write_superblock(31, 32, seq=1)
-    b_oob.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc_oob_t0)
-    path = dest / "adv-extent-oob.dd"
-    path.write_bytes(b_oob.finalize())
-    manifest["adv-extent-oob"] = {"file": path.name, "expect": "oob_extent_behavior"}
-
-    # Case 13: Extent with declaredSize = 0 but non-resident extents present
-    b_zero_size = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_zero_size.write_vbr(0)
-    # We craft record with declaredSize = 0 (offset 64 in value = 0)
-    rec_zs_key, rec_zs_val = b_zero_size.build_dir_entry_record(
-        "zerosize_file.bin",
-        1,
-        payload=b"",
-        is_resident=False,
-        cluster_extents=[(0, 2, 50)],
-    )
-    # Explicitly set declared size at 64 to 0
-    zs_val_ba = bytearray(rec_zs_val)
-    struct.pack_into("<QQ", zs_val_ba, 64, 0, 0)
-    b_zero_size.write_raw_data(50, b"DATA_IN_CLUSTER_50" * 100)
-    crc_zs_root = b_zero_size.write_btree_leaf(34, [(rec_zs_key, bytes(zs_val_ba))])
-    crc_zs_t0 = b_zero_size.write_btree_leaf(33, [(b_zero_size.build_object_record_key(0x600), b_zero_size.build_object_record_value(34, crc_zs_root))])
-    b_zero_size.write_superblock(31, 32, seq=1)
-    b_zero_size.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc_zs_t0)
-    path = dest / "adv-zero-declared-size.dd"
-    path.write_bytes(b_zero_size.finalize())
-    manifest["adv-zero-declared-size"] = {"file": path.name, "expect": "zero_size_extent_behavior"}
-
-    # Case 14: Extent with huge block count / negative wraparound (physBlk = 0xFFFFFFFFFFFFFFFF)
-    b_huge_blk = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_huge_blk.write_vbr(0)
-    rec_huge = b_huge_blk.build_dir_entry_record(
-        "huge_blk_file.bin",
-        1,
-        payload=b"A" * 100,
-        is_resident=False,
-        cluster_extents=[(0, 1, 0xFFFFFFFFFFFFFFFF)],
-    )
-    crc_huge_root = b_huge_blk.write_btree_leaf(34, [rec_huge])
-    crc_huge_t0 = b_huge_blk.write_btree_leaf(33, [(b_huge_blk.build_object_record_key(0x600), b_huge_blk.build_object_record_value(34, crc_huge_root))])
-    b_huge_blk.write_superblock(31, 32, seq=1)
-    b_huge_blk.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc_huge_t0)
-    path = dest / "adv-physblk-negative-wrap.dd"
-    path.write_bytes(b_huge_blk.finalize())
-    manifest["adv-physblk-negative-wrap"] = {"file": path.name, "expect": "negative_wrap_behavior"}
-
-    # Case 15: CRC64 Checkpoint and Tree Reference Single-Bit Corruption
-    b_crc64 = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_crc64.write_vbr(0)
-    rec_c64 = b_crc64.build_dir_entry_record("crc64_test.txt", 1, payload=b"valid_payload", is_resident=True)
-    crc32_root = b_crc64.write_btree_leaf(34, [rec_c64])
-    # Build Tree 0 record with CRC64 type 2
-    # First compute CRC64 of block 34
-    block34_data = b_crc64.image[34 * 4096 : 35 * 4096]
-    crc64_root = crc64_ecma(block34_data)
-    val_tree0 = bytearray(48)
-    b_crc64.write_block_ref(val_tree0, 0, 34, expected_crc=crc64_root, crc_type=2)
-    crc32_t0 = b_crc64.write_btree_leaf(33, [(b_crc64.build_object_record_key(0x600), bytes(val_tree0))])
-    b_crc64.write_superblock(31, 32, seq=1)
-    b_crc64.write_checkpoint(31, seq=10, tree0_block=33, tree0_crc=crc32_t0)
-    path = dest / "adv-crc64-valid.dd"
-    path.write_bytes(b_crc64.finalize())
-    manifest["adv-crc64-valid"] = {"file": path.name, "expect": "crc64_valid"}
-
-    # Corrupt 1 bit in block 34 for CRC64 rejection test
-    b_crc64_corrupt = ReFSVolumeBuilder(major=3, minor=4, cluster_size=4096, total_clusters=128)
-    b_crc64_corrupt.image[:] = b_crc64.image[:]
-    b_crc64_corrupt.image[34 * 4096 + 100] ^= 0x01  # Flip 1 bit
-    path = dest / "adv-crc64-corrupt-bit.dd"
-    path.write_bytes(b_crc64_corrupt.finalize())
-    manifest["adv-crc64-corrupt-bit"] = {"file": path.name, "expect": "crc64_rejected"}
-
-    return manifest
-
-
-if __name__ == "__main__":
-    dest = Path(".build/refs-adversarial-fixtures")
-    manifest = make_adv_fixtures(dest)
-    print(f"Generated {len(manifest)} adversarial fixtures in {dest}")
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--destination',type=Path,default=Path('.build/refs-adversarial-fixtures'))
+    args=parser.parse_args();print('Generated',len(make_adv_fixtures(args.destination)),'negative structural fixtures')

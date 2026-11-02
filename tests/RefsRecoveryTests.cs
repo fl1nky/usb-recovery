@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -69,7 +70,7 @@ public static class RefsRecoveryTests
             string name = (string)sample["name"];
             string image = Path.Combine(fixtures, (string)sample["image"]);
             string before = Hash(image);
-            Assert(before == (string)sample["sha256"], name + ": fixture input matches independent manifest");
+            Assert(before == (string)sample["sha256"], name + ": synthetic input matches recorded manifest");
             File.SetAttributes(image, File.GetAttributes(image) | FileAttributes.ReadOnly);
 
             RefsRecovery.Report report;
@@ -84,6 +85,7 @@ public static class RefsRecoveryTests
             if (outcome == "recover")
             {
                 Assert(report.RecoveredFiles >= 1, name + ": files successfully recovered");
+                Assert(report.Entries.Where(e => e.Output != null && e.Status == "recovered_live").All(e => e.MetadataChecksumVerified), name + ": live metadata chain verified");
                 if (sample.ContainsKey("expected_version"))
                 {
                     Assert(report.Capabilities.ReFSVersion == (string)sample["expected_version"], name + ": ReFS version matches expected");
@@ -132,6 +134,7 @@ public static class RefsRecoveryTests
             }
             else if (outcome == "reject")
             {
+                Assert(report.RecoveredFiles == 0, name + ": rejected metadata cannot reappear as unchecked salvage");
                 if (name == "refs-corrupted-crc")
                 {
                     Assert(report.Warnings.Any(w => w.Contains("metadata_checksum_mismatch")), name + ": corrupted CRC rejected");
@@ -145,9 +148,9 @@ public static class RefsRecoveryTests
             }
             else if (outcome == "salvage")
             {
-                Assert(report.Entries.Any(e => e.Status == "deleted_refs_candidate"), name + ": salvaged deleted candidate found");
-                var salvaged = report.Entries.First(e => e.Status == "deleted_refs_candidate");
-                Assert(salvaged.DeletionEvidence == "unreferenced_refs_leaf_node_in_free_space", name + ": deletion evidence set");
+                Assert(report.Entries.Any(e => e.Status == "unreferenced_refs_candidate"), name + ": unreferenced candidate found");
+                var salvaged = report.Entries.First(e => e.Status == "unreferenced_refs_candidate");
+                Assert(salvaged.DeletionEvidence == null && !salvaged.MetadataChecksumVerified, name + ": no invented deletion or checksum proof");
                 string outPath = Output(folder, salvaged);
                 Assert(File.Exists(outPath) && Hash(outPath) == (string)sample["payload_sha256"], name + ": salvaged payload hash matches");
             }
@@ -156,7 +159,7 @@ public static class RefsRecoveryTests
 
     static void Safety()
     {
-        string image = Path.Combine(fixtures, "refs-v34-minimal.dd");
+        string image = Path.Combine(fixtures, "refs-v314-minimal.dd");
         string before = Hash(image);
 
         // Pre-cancellation
@@ -166,7 +169,7 @@ public static class RefsRecoveryTests
         Assert(!Directory.Exists(Path.Combine(pre, "refs")), "Pre-cancelled does not create report");
 
         // Existing directory
-        string existing = Path.Combine(results, "refs-v34-minimal");
+        string existing = Path.Combine(results, "refs-v314-minimal");
         Throws<IOException>(() => RefsRecovery.Recover(image, existing, CancellationToken.None, null), "Existing result directory blocked");
 
         // Output budget limit
@@ -181,6 +184,41 @@ public static class RefsRecoveryTests
         Assert(Hash(image) == before, "Cancellation and safety preserve source");
     }
 
+    static void NativeMetadata()
+    {
+        var manifest=Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(fixtures,"native_metadata.json")));
+        Type geometry=typeof(RefsRecovery).GetNestedType("VolumeGeometry",BindingFlags.NonPublic);
+        MethodInfo self=typeof(RefsRecovery).GetMethod("VerifySelfChecksum",BindingFlags.NonPublic|BindingFlags.Static);
+        MethodInfo parse=typeof(RefsRecovery).GetMethod("ParseBlockReference",BindingFlags.NonPublic|BindingFlags.Static);
+        foreach(Dictionary<string,object> item in (IEnumerable)manifest["fixtures"])
+        {
+            string file=Path.Combine(fixtures,(string)item["file"]), kind=(string)item["kind"];
+            byte version=Convert.ToByte(item["version"]);
+            Assert(Hash(file)==(string)item["sha256"],"Independent primary metadata bytes pinned: "+kind+version);
+            byte[] data=File.ReadAllBytes(file);
+            if(kind=="block_reference")
+            {
+                object reference=parse.Invoke(null,new object[]{data,0,version});
+                Type t=reference.GetType();
+                Assert((bool)t.GetField("DescriptorValid").GetValue(reference),"Native descriptor accepted");
+                Assert((ulong)t.GetField("BlockNumber").GetValue(reference)==30,"Native reference block 30");
+                Assert((ulong)t.GetField("ExpectedChecksum").GetValue(reference)==(version==1?0xc4e1de0a46e65f5dUL:0x68befbe2UL),"Native checksum at descriptor-relative offset eight");
+            }
+            else
+            {
+                object g=Activator.CreateInstance(geometry,true);
+                geometry.GetField("MajorVersion").SetValue(g,version);
+                int h=version==1?48:80;
+                uint offset=BitConverter.ToUInt32(data,h+(kind=="superblock"?40:8));
+                uint size=BitConverter.ToUInt32(data,h+(kind=="superblock"?44:12));
+                ulong number=BitConverter.ToUInt64(data,version==1?0:32);
+                Assert((bool)self.Invoke(null,new object[]{data,g,offset,size,number}),"Unmodified native self-checksum matches: "+kind+version);
+                data[data.Length-1]^=1;
+                Assert(!(bool)self.Invoke(null,new object[]{data,g,offset,size,number}),"Native metadata bit corruption rejected: "+kind+version);
+            }
+        }
+    }
+
     public static int Main(string[] args)
     {
         try
@@ -192,8 +230,12 @@ public static class RefsRecoveryTests
 
             Cases();
             Safety();
+            NativeMetadata();
+            byte[] crcCheck = Encoding.ASCII.GetBytes("123456789");
+            Assert(RefsRecovery.ComputeCrc32c(crcCheck, 0, crcCheck.Length) == 0xe3069283U, "CRC32C catalogue check vector");
+            Assert(RefsRecovery.ComputeCrc64Nvme(crcCheck, 0, crcCheck.Length) == 0xae8b14860a799888UL, "CRC64/NVME catalogue check vector");
 
-            Console.WriteLine("PASS RefsRecovery: " + assertions + " assertions; v1.2/v3.4 synthetic fixtures, CRC32C, containers, nested dirs, resident/extents, backup VBR, capability matrix, bounds and cancellation. " + results);
+            Console.WriteLine("PASS RefsRecovery: " + assertions + " assertions on synthetic structures and pinned independent native metadata; full-volume evidence is separate. " + results);
             return 0;
         }
         catch (Exception error)

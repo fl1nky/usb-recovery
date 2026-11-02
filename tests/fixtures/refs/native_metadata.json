@@ -1,0 +1,69 @@
+{
+  "scope": "Unmodified metadata arrays from an independent primary implementation. Not a complete volume or file-content oracle.",
+  "source_repo": "https://github.com/libyal/libfsrefs",
+  "source_commit": "77e1b7ba68cf225ec888a61e9784fb9a93a0156f",
+  "copyright": "Copyright (C) 2012-2026, Joachim Metz <joachim.metz@gmail.com>",
+  "license": "LGPL-3.0-or-later",
+  "fixtures": [
+    {
+      "file": "libfsrefs-native-v1-superblock.bin",
+      "version": 1,
+      "kind": "superblock",
+      "bytes": 16384,
+      "sha256": "ef0f3022afd512e6549297dfbdfaae2ea9a71af5789d80f832eec606b7be0f85",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_superblock.c",
+      "source_sha256": "3ac8859346c5830798468f343797ae8b38d0b014c8f74521776d99205cb7a61c",
+      "source_array": "fsrefs_test_superblock_data1"
+    },
+    {
+      "file": "libfsrefs-native-v3-superblock.bin",
+      "version": 3,
+      "kind": "superblock",
+      "bytes": 4096,
+      "sha256": "baa99434bbfa13daaa8166893218fbcf2539ead4ec142d6c368c9766879f0e68",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_superblock.c",
+      "source_sha256": "3ac8859346c5830798468f343797ae8b38d0b014c8f74521776d99205cb7a61c",
+      "source_array": "fsrefs_test_superblock_data2"
+    },
+    {
+      "file": "libfsrefs-native-v1-checkpoint.bin",
+      "version": 1,
+      "kind": "checkpoint",
+      "bytes": 16384,
+      "sha256": "412c500714c7d00bb9bdeba558a7fadd6e1dcf27f3299227afe00f51b1f5068c",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_checkpoint.c",
+      "source_sha256": "b59fac2690c56b48eb48d89ba5af1d350f091644c4d1e2dec30430c8d983d710",
+      "source_array": "fsrefs_test_checkpoint_data1"
+    },
+    {
+      "file": "libfsrefs-native-v3-checkpoint.bin",
+      "version": 3,
+      "kind": "checkpoint",
+      "bytes": 4096,
+      "sha256": "845bd273ff2ba5214e2800bb5e4df2a9d15d59e399faffbc90d62709b46af269",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_checkpoint.c",
+      "source_sha256": "b59fac2690c56b48eb48d89ba5af1d350f091644c4d1e2dec30430c8d983d710",
+      "source_array": "fsrefs_test_checkpoint_data2"
+    },
+    {
+      "file": "libfsrefs-native-v1-block_reference.bin",
+      "version": 1,
+      "kind": "block_reference",
+      "bytes": 24,
+      "sha256": "2242c07ca354a7341279e32e47473a5d5635f08a345fa32f4aea15d6efd49994",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_block_reference.c",
+      "source_sha256": "6beca1dab8e0400821c107a6da84f351bf96814dee0801ad61ec25c84c735004",
+      "source_array": "fsrefs_test_block_reference_data1"
+    },
+    {
+      "file": "libfsrefs-native-v3-block_reference.bin",
+      "version": 3,
+      "kind": "block_reference",
+      "bytes": 44,
+      "sha256": "9031329a6e00f4e96960715611d86564945837918b9eb7e0a6f505d1349f5718",
+      "source_url": "https://raw.githubusercontent.com/libyal/libfsrefs/77e1b7ba68cf225ec888a61e9784fb9a93a0156f/tests/fsrefs_test_block_reference.c",
+      "source_sha256": "6beca1dab8e0400821c107a6da84f351bf96814dee0801ad61ec25c84c735004",
+      "source_array": "fsrefs_test_block_reference_data2"
+    }
+  ]
+}

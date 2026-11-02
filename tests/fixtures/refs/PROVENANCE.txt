@@ -1,1 +1,5 @@
-Packaged synthetic ReFS fixtures for offline regression verification.
+The 13 compressed images in manifest.json are project-authored structural regression fixtures. They are not Windows-formatted volumes, and a shared writer/parser PASS is not independent compatibility evidence. Earlier writer-defined v3.4/NTFS-like fake layouts were replaced.
+
+native_metadata.json separately identifies six UNMODIFIED byte arrays extracted from libyal/libfsrefs tests at commit 77e1b7ba68cf225ec888a61e9784fb9a93a0156f, with source URLs, source hashes, array names and byte hashes. Copyright (C) 2012-2026 Joachim Metz <joachim.metz@gmail.com>, LGPL-3.0-or-later. Upstream COPYING and COPYING.LESSER are retained as libfsrefs-COPYING.txt and libfsrefs-COPYING.LESSER.txt. Those anchors are native metadata evidence, not a complete native v1/v3 file-content corpus.
+
+The independently acquired Windows ReFS 3.14 / 64KiB / SHA256 raw image and the unmodified forefst oracle are external validation inputs, not bundled here. Their pinned source and evidence boundaries are documented in docs/development/refs.md. No user profiles or device data are included.

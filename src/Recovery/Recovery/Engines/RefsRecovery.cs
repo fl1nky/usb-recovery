@@ -12,12 +12,10 @@ namespace UsbRecovery
 {
     /// <summary>
     /// Read-only ReFS (Resilient File System) structural metadata salvage and file candidate recovery.
-    /// Supports ReFS v1.2 and v3.x, VBR / backup VBR detection, Superblock block 30 parsing,
-    /// Level 1 Checkpoint ping-pong sequence clock arbitration, Ministore B+ tree traversal with v3 0xFFFF offset masking,
-    /// Object ID Table (Tree 0) navigation, Directory Entries (0x30) with safe UTF-16 surrogate tolerance,
-    /// resident ($DATA inline) and non-resident extents, ReFS v3 Container Tree (Tree 7) band translation,
-    /// CRC32-C (Castagnoli) and CRC64-ECMA-182 integrity verification, unreferenced deleted leaf node salvage,
-    /// and transparent capability matrix reporting.
+    /// Reads version-dependent ReFS metadata, including self-checksummed volume anchors,
+    /// translated multi-cluster B+ trees, embedded attributes and supported data runs.
+    /// Native compatibility must be established on independent Windows-formatted images.
+    /// Unreferenced pages are structural candidates, never proof of deletion or allocation state.
     /// All access is strictly read-only; source SHA256 immutability is strictly asserted.
     /// </summary>
     public static class RefsRecovery
@@ -33,6 +31,7 @@ namespace UsbRecovery
             public int MaximumExtents = 100000;
             public int MaximumTreeDepth = 32;
             public int MaximumDirectoryDepth = 64;
+            public int MaximumSalvageBlocks = 4096;
             public long MaximumFileBytes = 64L * 1024 * 1024 * 1024;      // 64 GB
             public long MaximumOutputBytes = 32L * 1024 * 1024 * 1024;    // 32 GB
         }
@@ -144,6 +143,9 @@ namespace UsbRecovery
             public int DirectoryCount;
             public int EntryCount;
             public long OutputBytes;
+            public HashSet<long> VerifiedMetadataOffsets = new HashSet<long>();
+            public HashSet<long> ReferencedMetadataOffsets = new HashSet<long>();
+            public Dictionary<ulong, List<MinistoreNodeRecord>> DirectoryRecords = new Dictionary<ulong, List<MinistoreNodeRecord>>();
         }
 
         internal sealed class VolumeGeometry
@@ -160,15 +162,20 @@ namespace UsbRecovery
             public ulong ContainerSize;
             public bool PrimaryVbrValid;
             public bool BackupVbrUsed;
+            public Dictionary<ulong, ulong> ContainerMap;
+            public int ReferenceSize;
         }
 
         internal struct BlockReference
         {
             public ulong BlockNumber;
-            public byte ChecksumType;         // 0=None, 1=CRC32C, 2=CRC64
+            public byte ChecksumType;         // 1=CRC32C, 2=CRC64/NVME, 4=SHA256; missing/unknown is unverified
             public byte ChecksumDataOffset;
-            public ushort ChecksumDataSize;
+            public uint ChecksumDataSize;
             public ulong ExpectedChecksum;
+            public ulong[] BlockNumbers;
+            public byte[] Checksum;
+            public bool DescriptorValid;
         }
 
         internal sealed class SuperblockInfo
@@ -194,6 +201,11 @@ namespace UsbRecovery
 
         internal sealed class MinistoreNodeHeader
         {
+            public int HeaderOffset;
+            public int HeaderDataOffset;
+            public int HeaderDataSize;
+            public uint DataStart;
+            public uint DataEnd;
             public byte NodeLevel;            // 0 = leaf, >0 = branch
             public byte NodeTypeFlags;        // 0x01 = branch, 0x02 = root, 0x04 = stream
             public uint RecordOffsetsStart;
@@ -203,6 +215,7 @@ namespace UsbRecovery
 
         internal sealed class MinistoreNodeRecord
         {
+            public bool MetadataChecksumVerified;
             public uint RecordSize;
             public ushort KeyOffset;
             public ushort KeySize;
@@ -235,13 +248,13 @@ namespace UsbRecovery
 
         private static ulong[] InitializeCrc64Table()
         {
-            // ECMA-182 polynomial: 0x42F0E1EBA9EA3693 (reversed: 0xC96C5795D7870F42)
+            // ReFS type 2 is CRC64/NVME, reflected polynomial 0x9A6C9329AC4BC9B5.
             ulong[] table = new ulong[256];
             for (uint i = 0; i < 256; i++)
             {
                 ulong crc = i;
                 for (int bit = 0; bit < 8; bit++)
-                    crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xC96C5795D7870F42UL : crc >> 1;
+                    crc = (crc & 1) != 0 ? (crc >> 1) ^ 0x9A6C9329AC4BC9B5UL : crc >> 1;
                 table[i] = crc;
             }
             return table;
@@ -255,12 +268,13 @@ namespace UsbRecovery
             return ~crc;
         }
 
-        public static ulong ComputeCrc64Ecma(byte[] data, int offset, int length)
+        public static ulong ComputeCrc64Nvme(byte[] data, int offset, int length)
         {
             ulong crc = 0xFFFFFFFFFFFFFFFFUL;
             for (int i = 0; i < length; i++)
                 crc = Crc64Table[(crc ^ data[offset + i]) & 0xFF] ^ (crc >> 8);
-            return ~crc;
+            ulong result = ~crc;
+            return result == 0xABBAFFFFABBAFFFEUL ? 0xABBAFFFFABBAFFFFUL : result;
         }
 
         public static int Recover(
@@ -296,7 +310,8 @@ namespace UsbRecovery
 
             limits = limits ?? new Limits();
             if (limits.MaximumVolumes < 1 || limits.MaximumDirectories < 1 || limits.MaximumEntries < 1 ||
-                limits.MaximumExtents < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1)
+                limits.MaximumExtents < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
+                limits.MaximumTreeDepth < 1 || limits.MaximumDirectoryDepth < 1 || limits.MaximumSalvageBlocks < 0)
                 throw new ArgumentException("Неверные ограничения refs");
 
             Directory.CreateDirectory(Path.Combine(root, "files"));
@@ -415,72 +430,51 @@ namespace UsbRecovery
         internal static VolumeGeometry ReadVbr(Context c, long offset)
         {
             byte[] boot = Read(c, offset, 512);
-            bool isPrimary = boot != null && boot.Length >= 512 &&
-                             boot[3] == (byte)'R' && boot[4] == (byte)'e' && boot[5] == (byte)'F' && boot[6] == (byte)'S' &&
-                             boot[16] == (byte)'F' && boot[17] == (byte)'S' && boot[18] == (byte)'R' && boot[19] == (byte)'S';
-
-            bool isBackup = false;
-            if (!isPrimary)
+            bool primary = VbrSignature(boot);
+            bool backup = false;
+            if (!primary)
             {
-                // Fallback to backup VBR at last sector of volume / image
-                long tailOffset = c.Input.Length - 512;
-                if (tailOffset > offset + 512)
+                // A backup can establish the volume base only when its geometry ends at this image boundary.
+                foreach (int sector in new[] { 512, 4096 })
                 {
-                    byte[] tailBoot = Read(c, tailOffset, 512);
-                    if (tailBoot != null && tailBoot.Length >= 512 &&
-                        tailBoot[3] == (byte)'R' && tailBoot[4] == (byte)'e' && tailBoot[5] == (byte)'F' && tailBoot[6] == (byte)'S' &&
-                        tailBoot[16] == (byte)'F' && tailBoot[17] == (byte)'S' && tailBoot[18] == (byte)'R' && tailBoot[19] == (byte)'S')
-                    {
-                        boot = tailBoot;
-                        isBackup = true;
-                        c.Report.Warnings.Add("primary_vbr_corrupt_backup_used");
-                    }
+                    byte[] tail = Read(c, c.Input.Length - sector, 512);
+                    if (!VbrSignature(tail)) continue;
+                    ulong n = BitConverter.ToUInt64(tail, 24);
+                    uint bps = BitConverter.ToUInt32(tail, 32);
+                    if (bps != sector || n > (ulong)((c.Input.Length - offset) / sector) ||
+                        n * bps != (ulong)(c.Input.Length - offset)) continue;
+                    boot = tail; backup = true; break;
                 }
             }
-
-            if (!isPrimary && !isBackup) return null;
-
-            ulong numberOfSectors = BitConverter.ToUInt64(boot, 24);
+            if (!primary && !backup) return null;
+            ulong sectors = BitConverter.ToUInt64(boot, 24);
             uint bytesPerSector = BitConverter.ToUInt32(boot, 32);
-            if (bytesPerSector != 512 && bytesPerSector != 4096)
-            {
-                uint altSec = BitConverter.ToUInt32(boot, 24);
-                if (altSec == 512 || altSec == 4096) bytesPerSector = altSec;
-                else bytesPerSector = 512;
-            }
-
             uint sectorsPerCluster = BitConverter.ToUInt32(boot, 36);
-            if (sectorsPerCluster == 0 || (sectorsPerCluster & (sectorsPerCluster - 1)) != 0 || sectorsPerCluster > 128)
+            if ((bytesPerSector != 512 && bytesPerSector != 4096) || sectorsPerCluster == 0 ||
+                (sectorsPerCluster & (sectorsPerCluster - 1)) != 0 || sectorsPerCluster > 128 ||
+                sectors == 0 || sectors > (ulong)((c.Input.Length - offset) / bytesPerSector))
             {
-                uint altClus = BitConverter.ToUInt32(boot, 28);
-                if (altClus > 0 && (altClus & (altClus - 1)) == 0 && altClus <= 128) sectorsPerCluster = altClus;
-                else sectorsPerCluster = 8;
+                Skip(c, "invalid_vbr_geometry"); return null;
             }
-
-            byte major = boot[40];
-            byte minor = boot[41];
-            ulong serial = BitConverter.ToUInt64(boot, 56);
-            ulong containerSize = major >= 3 ? BitConverter.ToUInt64(boot, 64) : 0;
-            if (major >= 3 && containerSize == 0) containerSize = 0x4000;
-
-            uint clusterBytes = bytesPerSector * sectorsPerCluster;
-            uint metaBlockBytes = major == 1 ? 16384U : clusterBytes;
-
+            uint cluster = bytesPerSector * sectorsPerCluster;
+            if (cluster != 4096 && cluster != 65536) { Skip(c, "unsupported_cluster_size"); return null; }
+            if (backup) c.Report.Warnings.Add("primary_vbr_corrupt_backup_used");
             return new VolumeGeometry
             {
-                VolumeOffset = offset,
-                NumberOfSectors = numberOfSectors,
-                BytesPerSector = bytesPerSector,
-                SectorsPerCluster = sectorsPerCluster,
-                ClusterBlockSize = clusterBytes,
-                MetadataBlockSize = metaBlockBytes,
-                MajorVersion = major,
-                MinorVersion = minor,
-                VolumeSerialNumber = serial,
-                ContainerSize = containerSize,
-                PrimaryVbrValid = isPrimary,
-                BackupVbrUsed = isBackup
+                VolumeOffset = offset, NumberOfSectors = sectors, BytesPerSector = bytesPerSector,
+                SectorsPerCluster = sectorsPerCluster, ClusterBlockSize = cluster,
+                MetadataBlockSize = boot[40] == 1 ? 16384U : cluster,
+                MajorVersion = boot[40], MinorVersion = boot[41],
+                VolumeSerialNumber = BitConverter.ToUInt64(boot, 56),
+                ContainerSize = boot[40] == 3 ? 0x4000000UL / cluster : 0,
+                PrimaryVbrValid = primary, BackupVbrUsed = backup
             };
+        }
+
+        private static bool VbrSignature(byte[] b)
+        {
+            return b != null && b.Length >= 512 && Encoding.ASCII.GetString(b, 3, 8) == "ReFS\0\0\0\0" &&
+                   Encoding.ASCII.GetString(b, 16, 4) == "FSRS";
         }
 
         // -------------------------------------------------------------
@@ -488,148 +482,135 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         internal static SuperblockInfo ReadSuperblock(Context c, VolumeGeometry geom)
         {
-            long sbOffset = geom.VolumeOffset + 30L * geom.MetadataBlockSize;
-            byte[] block = Read(c, sbOffset, (int)geom.MetadataBlockSize);
-            if (block == null) return null;
-
-            int headerSize = geom.MajorVersion == 1 ? 48 : 80;
-            if (geom.MajorVersion >= 3)
+            SuperblockInfo selected = null;
+            ulong units = geom.NumberOfSectors * geom.BytesPerSector / geom.MetadataBlockSize;
+            ulong[] copies = units > 33 ? new[] { 30UL, units - 2, units - 3 } : new[] { 30UL };
+            foreach (ulong number in copies.Distinct())
             {
-                if (block[0] != (byte)'S' || block[1] != (byte)'U' || block[2] != (byte)'P' || block[3] != (byte)'B')
-                    return null;
+                byte[] block = ReadPhysicalBlock(c, geom, number);
+                if (block == null || !MetadataHeader(block, geom, number, "SUPB")) continue;
+                int h = geom.MajorVersion == 1 ? 48 : 80;
+                uint cp = BitConverter.ToUInt32(block, h + 32), count = BitConverter.ToUInt32(block, h + 36);
+                uint self = BitConverter.ToUInt32(block, h + 40), size = BitConverter.ToUInt32(block, h + 44);
+                if (count != 2 || cp < h + 48 || cp > block.Length - 16 ||
+                    !VerifySelfChecksum(block, geom, self, size, number)) continue;
+                var candidate = new SuperblockInfo
+                {
+                    VolumeGuid = new Guid(block.Skip(h).Take(16).ToArray()),
+                    SequenceNumber = BitConverter.ToUInt64(block, h + 24), ChecksumValid = true,
+                    PrimaryCheckpoint = new BlockReference { BlockNumber = BitConverter.ToUInt64(block, (int)cp) },
+                    SecondaryCheckpoint = new BlockReference { BlockNumber = BitConverter.ToUInt64(block, (int)cp + 8) }
+                };
+                if (candidate.PrimaryCheckpoint.BlockNumber == candidate.SecondaryCheckpoint.BlockNumber) continue;
+                if (selected == null || candidate.SequenceNumber > selected.SequenceNumber) selected = candidate;
             }
-            else
-            {
-                ulong blockNum = BitConverter.ToUInt64(block, 0);
-                if (blockNum != 30) return null;
-            }
-
-            int bodyOffset = headerSize;
-            byte[] guidBytes = new byte[16];
-            Array.Copy(block, bodyOffset, guidBytes, 0, 16);
-            Guid guid = new Guid(guidBytes);
-
-            ulong seq = BitConverter.ToUInt64(block, bodyOffset + 24);
-            uint chkpDataOffset = BitConverter.ToUInt32(block, bodyOffset + 32);
-            uint numCheckpoints = BitConverter.ToUInt32(block, bodyOffset + 36);
-
-            var sb = new SuperblockInfo
-            {
-                VolumeGuid = guid,
-                SequenceNumber = seq,
-                ChecksumValid = true
-            };
-
-            int refSize = geom.MajorVersion == 1 ? 24 : 48;
-            if (numCheckpoints >= 1 && chkpDataOffset + refSize <= block.Length)
-            {
-                sb.PrimaryCheckpoint = ParseBlockReference(block, (int)chkpDataOffset, geom.MajorVersion);
-            }
-            if (numCheckpoints >= 2 && chkpDataOffset + refSize * 2 <= block.Length)
-            {
-                sb.SecondaryCheckpoint = ParseBlockReference(block, (int)(chkpDataOffset + refSize), geom.MajorVersion);
-            }
-
-            return sb;
+            return selected;
         }
 
         internal static BlockReference ParseBlockReference(byte[] buffer, int offset, byte majorVersion)
         {
             var r = new BlockReference();
-            if (buffer == null || offset + (majorVersion == 1 ? 24 : 48) > buffer.Length) return r;
-
+            int descriptor = majorVersion == 1 ? 8 : 32;
+            if (buffer == null || offset < 0 || offset > buffer.Length - descriptor - 8) return r;
             r.BlockNumber = BitConverter.ToUInt64(buffer, offset);
-            if (majorVersion == 1)
-            {
-                r.ChecksumDataOffset = buffer[offset + 8];
-                r.ChecksumDataSize = buffer[offset + 9];
-                r.ChecksumType = buffer[offset + 10];
-                if (r.ChecksumType == 1)
-                    r.ExpectedChecksum = BitConverter.ToUInt32(buffer, offset + 12);
-                else if (r.ChecksumType == 2)
-                    r.ExpectedChecksum = BitConverter.ToUInt64(buffer, offset + 16);
-            }
-            else
-            {
-                r.ChecksumDataOffset = buffer[offset + 32];
-                r.ChecksumDataSize = buffer[offset + 33];
-                r.ChecksumType = buffer[offset + 34];
-                if (r.ChecksumType == 1)
-                    r.ExpectedChecksum = BitConverter.ToUInt32(buffer, offset + 40);
-                else if (r.ChecksumType == 2)
-                    r.ExpectedChecksum = BitConverter.ToUInt64(buffer, offset + 40);
-            }
+            r.BlockNumbers = new ulong[majorVersion == 1 ? 1 : 4];
+            for (int i = 0; i < r.BlockNumbers.Length; i++) r.BlockNumbers[i] = BitConverter.ToUInt64(buffer, offset + i * 8);
+            int d = offset + descriptor;
+            r.ChecksumType = buffer[d + 2]; r.ChecksumDataOffset = buffer[d + 3];
+            r.ChecksumDataSize = BitConverter.ToUInt32(buffer, d + 4);
+            int expectedSize = r.ChecksumType == 1 ? 4 : r.ChecksumType == 2 ? 8 : r.ChecksumType == 4 ? 32 : 0;
+            int digest = d + r.ChecksumDataOffset;
+            if (expectedSize == 0 || r.ChecksumDataSize != expectedSize || r.ChecksumDataOffset < 8 ||
+                digest < d || digest > buffer.Length - expectedSize) return r;
+            r.Checksum = buffer.Skip(digest).Take(expectedSize).ToArray();
+            r.ExpectedChecksum = expectedSize == 4 ? BitConverter.ToUInt32(r.Checksum, 0) :
+                                 expectedSize == 8 ? BitConverter.ToUInt64(r.Checksum, 0) : 0;
+            r.DescriptorValid = true;
             return r;
         }
 
         internal static CheckpointInfo ReadCheckpoint(Context c, VolumeGeometry geom, BlockReference chkpRef, int index)
         {
-            if (chkpRef.BlockNumber == 0) return null;
-            long offset = geom.VolumeOffset + (long)chkpRef.BlockNumber * geom.MetadataBlockSize;
-            byte[] block = Read(c, offset, (int)geom.MetadataBlockSize);
-            if (block == null) return null;
-
-            bool crcValid = VerifyBlockChecksum(block, chkpRef);
-
-            int headerSize = geom.MajorVersion == 1 ? 48 : 80;
-            if (geom.MajorVersion >= 3)
+            byte[] block = ReadPhysicalBlock(c, geom, chkpRef.BlockNumber);
+            if (block == null || !MetadataHeader(block, geom, chkpRef.BlockNumber, "CHKP")) return null;
+            int h = geom.MajorVersion == 1 ? 48 : 80;
+            uint self = BitConverter.ToUInt32(block, h + 8), size = BitConverter.ToUInt32(block, h + 12);
+            if (!VerifySelfChecksum(block, geom, self, size, chkpRef.BlockNumber)) return null;
+            ushort major = BitConverter.ToUInt16(block, h + 4), minor = BitConverter.ToUInt16(block, h + 6);
+            if (major != geom.MajorVersion) return null;
+            int trailer = h + 16, countPos = trailer + (major == 1 ? 24 : 48), array = countPos + 4;
+            uint count = BitConverter.ToUInt32(block, countPos);
+            if (major == 3 && (BitConverter.ToUInt32(block, trailer + 24) & 0x200) != 0)
+                array = (int)BitConverter.ToUInt32(block, array);
+            if (count == 0 || count > 32 || array < countPos + 4 || (long)array + count * 4 > block.Length) return null;
+            var info = new CheckpointInfo { Index = index, BlockNumber = chkpRef.BlockNumber,
+                SequenceClock = BitConverter.ToUInt64(block, trailer), MajorVersion = major, MinorVersion = minor, ChecksumValid = true };
+            uint t0 = BitConverter.ToUInt32(block, array);
+            info.Tree0Root = ParseBlockReference(block, t0 <= int.MaxValue ? (int)t0 : -1, geom.MajorVersion);
+            if (major == 3 && count >= 8)
             {
-                if (block[0] != (byte)'C' || block[1] != (byte)'H' || block[2] != (byte)'K' || block[3] != (byte)'P')
-                    return null;
+                uint t7 = BitConverter.ToUInt32(block, array + 28);
+                info.Tree7Root = ParseBlockReference(block, t7 <= int.MaxValue ? (int)t7 : -1, geom.MajorVersion);
             }
-
-            ushort major = BitConverter.ToUInt16(block, headerSize + 4);
-            ushort minor = BitConverter.ToUInt16(block, headerSize + 6);
-            ulong seqClock = geom.MajorVersion >= 3 ? BitConverter.ToUInt64(block, 96) : BitConverter.ToUInt64(block, 64);
-
-            var info = new CheckpointInfo
-            {
-                Index = index,
-                BlockNumber = chkpRef.BlockNumber,
-                SequenceClock = seqClock,
-                MajorVersion = major,
-                MinorVersion = minor,
-                ChecksumValid = crcValid
-            };
-
-            int trailerOffset = geom.MajorVersion >= 3 ? 96 : 64;
-            int numOffsetsPos = geom.MajorVersion >= 3 ? 144 : 88;
-            int arrayPos = geom.MajorVersion >= 3 ? 148 : 92;
-
-            if (numOffsetsPos + 4 <= block.Length)
-            {
-                uint numOffsets = BitConverter.ToUInt32(block, numOffsetsPos);
-                if (numOffsets >= 1 && arrayPos + 4 <= block.Length)
-                {
-                    uint t0Off = BitConverter.ToUInt32(block, arrayPos);
-                    if (t0Off > 0 && t0Off + (geom.MajorVersion == 1 ? 24 : 48) <= block.Length)
-                        info.Tree0Root = ParseBlockReference(block, (int)t0Off, geom.MajorVersion);
-                }
-                if (numOffsets >= 8 && arrayPos + 32 <= block.Length && geom.MajorVersion >= 3)
-                {
-                    uint t7Off = BitConverter.ToUInt32(block, arrayPos + 7 * 4);
-                    if (t7Off > 0 && t7Off + 48 <= block.Length)
-                        info.Tree7Root = ParseBlockReference(block, (int)t7Off, geom.MajorVersion);
-                }
-            }
-
+            geom.ReferenceSize = (int)size;
             return info;
         }
 
         internal static bool VerifyBlockChecksum(byte[] block, BlockReference reference)
         {
-            if (reference.ChecksumType == 0 || reference.ExpectedChecksum == 0) return true;
-            if (reference.ChecksumType == 1)
+            if (block == null || !reference.DescriptorValid || reference.Checksum == null) return false;
+            if (reference.ChecksumType == 1) return ComputeCrc32c(block, 0, block.Length) == (uint)reference.ExpectedChecksum;
+            if (reference.ChecksumType == 2) return ComputeCrc64Nvme(block, 0, block.Length) == reference.ExpectedChecksum;
+            if (reference.ChecksumType == 4)
+                using (var sha = SHA256.Create()) return sha.ComputeHash(block).SequenceEqual(reference.Checksum);
+            return false;
+        }
+
+        private static bool VerifySelfChecksum(byte[] block, VolumeGeometry geom, uint offset, uint size, ulong number)
+        {
+            int min = geom.MajorVersion == 1 ? 24 : 48;
+            if (size < min || offset < (geom.MajorVersion == 1 ? 96U : 128U) ||
+                offset > block.Length || size > block.Length - offset) return false;
+            BlockReference reference = ParseBlockReference(block, (int)offset, geom.MajorVersion);
+            if (reference.BlockNumber != number || !reference.DescriptorValid) return false;
+            byte[] data = (byte[])block.Clone();
+            Array.Clear(data, (int)offset, (int)size);
+            return VerifyBlockChecksum(data, reference);
+        }
+
+        private static bool MetadataHeader(byte[] block, VolumeGeometry geom, ulong number, string signature)
+        {
+            if (block == null || block.Length < 128) return false;
+            if (geom.MajorVersion == 1) return BitConverter.ToUInt64(block, 0) == number;
+            return Encoding.ASCII.GetString(block, 0, 4) == signature && BitConverter.ToUInt64(block, 32) == number;
+        }
+
+        private static byte[] ReadPhysicalBlock(Context c, VolumeGeometry geom, ulong number)
+        {
+            ulong bytes = geom.NumberOfSectors * geom.BytesPerSector;
+            if (number == 0 || number > bytes / geom.MetadataBlockSize ||
+                number * geom.MetadataBlockSize > bytes - geom.MetadataBlockSize) return null;
+            return Read(c, geom.VolumeOffset + (long)(number * geom.MetadataBlockSize), (int)geom.MetadataBlockSize);
+        }
+
+        private static byte[] ReadReferencedPage(Context c, VolumeGeometry geom, BlockReference reference, bool physical)
+        {
+            int slots = geom.MajorVersion == 3 && geom.MetadataBlockSize == 4096 ? 4 : 1;
+            if (reference.BlockNumbers == null || reference.BlockNumbers.Length < slots) return null;
+            byte[] result = new byte[slots * geom.MetadataBlockSize];
+            for (int i = 0; i < slots; i++)
             {
-                uint actual = ComputeCrc32c(block, 0, block.Length);
-                return actual == (uint)reference.ExpectedChecksum;
+                ulong number = reference.BlockNumbers[i];
+                if (number == 0 || number == ulong.MaxValue) return null;
+                if (!physical) number = TranslateContainerBlock(number, geom.ContainerSize, geom.ContainerMap);
+                if (number == ulong.MaxValue) { Skip(c, "unmapped_container"); return null; }
+                if (number <= (ulong)(long.MaxValue / geom.MetadataBlockSize))
+                    c.ReferencedMetadataOffsets.Add(geom.VolumeOffset + (long)(number * geom.MetadataBlockSize));
+                byte[] part = ReadPhysicalBlock(c, geom, number);
+                if (part == null) return null;
+                Array.Copy(part, 0, result, i * (int)geom.MetadataBlockSize, part.Length);
             }
-            if (reference.ChecksumType == 2)
-            {
-                ulong actual = ComputeCrc64Ecma(block, 0, block.Length);
-                return actual == reference.ExpectedChecksum;
-            }
-            return true;
+            return result;
         }
 
         // -------------------------------------------------------------
@@ -637,138 +618,97 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         internal static MinistoreNodeHeader ParseNodeHeader(byte[] block, VolumeGeometry geom)
         {
-            if (block == null || block.Length < (geom.MajorVersion == 1 ? 48 + 32 : 80 + 32)) return null;
-            int nodeHdrStart = geom.MajorVersion == 1 ? 48 : 80;
+            int body = geom.MajorVersion == 1 ? 48 : 80;
+            if (block == null || block.Length < body + 4) return null;
+            if (geom.MajorVersion == 3 && Encoding.ASCII.GetString(block, 0, 4) != "MSB+") return null;
+            return ParseEmbeddedNode(block, body, geom);
+        }
 
-            if (geom.MajorVersion >= 3)
+        private static MinistoreNodeHeader ParseEmbeddedNode(byte[] data, int start, VolumeGeometry geom)
+        {
+            int minimum = geom.MajorVersion == 1 ? 32 : 40;
+            if (data == null || start < 0 || start > data.Length - 4) return null;
+            uint relative = BitConverter.ToUInt32(data, start);
+            if (relative < 4 || relative > data.Length - start - minimum) return null;
+            int h = start + (int)relative;
+            uint first = BitConverter.ToUInt32(data, h), end = BitConverter.ToUInt32(data, h + 4);
+            uint array = BitConverter.ToUInt32(data, h + 16), count = BitConverter.ToUInt32(data, h + 20);
+            if (first < minimum || first > end || end > data.Length - h || array < minimum ||
+                count > 8192 || (long)h + array + count * 4 > data.Length) return null;
+            if (geom.MajorVersion == 3)
             {
-                if (block[0] != (byte)'M' || block[1] != (byte)'S' || block[2] != (byte)'B' || block[3] != (byte)'+')
-                    return null;
+                uint arrayEnd = BitConverter.ToUInt32(data, h + 32);
+                if (arrayEnd != array + count * 4 || arrayEnd > data.Length - h) return null;
             }
-
-            byte nodeLevel = block[nodeHdrStart + 12];
-            byte nodeTypeFlags = block[nodeHdrStart + 13];
-            uint recOffStart = BitConverter.ToUInt32(block, nodeHdrStart + 16);
-            uint numRecOffs = BitConverter.ToUInt32(block, nodeHdrStart + 20);
-
-            if (numRecOffs > 4096 || nodeHdrStart + recOffStart + numRecOffs * (geom.MajorVersion >= 3 ? 4U : 2U) > block.Length)
-                return null;
-
-            int[] offsets = new int[numRecOffs];
-            int pos = (int)(nodeHdrStart + recOffStart);
-            for (int i = 0; i < numRecOffs; i++)
+            int[] offsets = new int[count];
+            for (int i = 0; i < offsets.Length; i++)
             {
-                if (geom.MajorVersion >= 3)
-                {
-                    // MANDATORY ReFS v3 RULE: Mask high word 0xFFFF
-                    offsets[i] = (int)(BitConverter.ToUInt32(block, pos) & 0xFFFF);
-                    pos += 4;
-                }
-                else
-                {
-                    offsets[i] = BitConverter.ToUInt16(block, pos);
-                    pos += 2;
-                }
+                uint value = BitConverter.ToUInt32(data, h + (int)array + i * 4);
+                if (geom.MajorVersion == 3) value &= 0xffff;
+                if (value < first || value >= end) return null;
+                offsets[i] = (int)value;
             }
-
-            return new MinistoreNodeHeader
-            {
-                NodeLevel = nodeLevel,
-                NodeTypeFlags = nodeTypeFlags,
-                RecordOffsetsStart = recOffStart,
-                NumberOfRecordOffsets = numRecOffs,
-                RecordOffsets = offsets
-            };
+            return new MinistoreNodeHeader { HeaderOffset = h, HeaderDataOffset = start + 40,
+                HeaderDataSize = relative >= 40 ? (int)relative - 40 : 0,
+                NodeLevel = data[h + 12], NodeTypeFlags = data[h + 13], DataStart = first, DataEnd = end,
+                RecordOffsetsStart = array, NumberOfRecordOffsets = count, RecordOffsets = offsets };
         }
 
         internal static List<MinistoreNodeRecord> ReadNodeRecords(byte[] block, MinistoreNodeHeader header, VolumeGeometry geom)
         {
-            var list = new List<MinistoreNodeRecord>();
-            if (block == null || header == null || header.RecordOffsets == null) return list;
-            int nodeHdrStart = geom.MajorVersion == 1 ? 48 : 80;
-
-            foreach (int relOff in header.RecordOffsets)
+            var result = new List<MinistoreNodeRecord>();
+            if (block == null || header == null) return result;
+            foreach (int relative in header.RecordOffsets)
             {
-                int absOff = nodeHdrStart + relOff;
-                if (absOff < 0 || absOff + 14 > block.Length) continue;
-
-                uint recSize = BitConverter.ToUInt32(block, absOff);
-                ushort keyOff = BitConverter.ToUInt16(block, absOff + 4);
-                ushort keySize = BitConverter.ToUInt16(block, absOff + 6);
-                ushort flags = BitConverter.ToUInt16(block, absOff + 8);
-                ushort valOff = BitConverter.ToUInt16(block, absOff + 10);
-                ushort valSize = BitConverter.ToUInt16(block, absOff + 12);
-
-                if (absOff + recSize > block.Length || absOff + keyOff + keySize > block.Length || absOff + valOff + valSize > block.Length)
-                    continue;
-
-                byte[] key = new byte[keySize];
-                Array.Copy(block, absOff + keyOff, key, 0, keySize);
-
-                byte[] val = new byte[valSize];
-                Array.Copy(block, absOff + valOff, val, 0, valSize);
-
-                list.Add(new MinistoreNodeRecord
-                {
-                    RecordSize = recSize,
-                    KeyOffset = keyOff,
-                    KeySize = keySize,
-                    Flags = flags,
-                    ValueOffset = valOff,
-                    ValueSize = valSize,
-                    KeyData = key,
-                    ValueData = val
-                });
+                int at = header.HeaderOffset + relative;
+                if (at < 0 || at > block.Length - 16) continue;
+                uint size = BitConverter.ToUInt32(block, at);
+                ushort ko = BitConverter.ToUInt16(block, at + 4), kl = BitConverter.ToUInt16(block, at + 6);
+                ushort flags = BitConverter.ToUInt16(block, at + 8), vo = BitConverter.ToUInt16(block, at + 10), vl = BitConverter.ToUInt16(block, at + 12);
+                if (size < 16 || size > block.Length - at || size > header.DataEnd - relative ||
+                    (kl > 0 && (ko < 16 || (uint)ko + kl > size)) || (vl > 0 && (vo < 16 || (uint)vo + vl > size))) continue;
+                result.Add(new MinistoreNodeRecord { RecordSize = size, KeyOffset = ko, KeySize = kl, Flags = flags,
+                    ValueOffset = vo, ValueSize = vl, KeyData = block.Skip(at + ko).Take(kl).ToArray(),
+                    ValueData = block.Skip(at + vo).Take(vl).ToArray() });
             }
-            return list;
+            return result;
         }
 
-        internal static void TraverseBTree(
-            Context c,
-            VolumeGeometry geom,
-            BlockReference rootRef,
-            HashSet<ulong> visitedBlocks,
-            int depth,
-            Action<List<MinistoreNodeRecord>> leafHandler)
+        internal static void TraverseBTree(Context c, VolumeGeometry geom, BlockReference rootRef,
+            HashSet<ulong> visitedBlocks, int depth, Action<List<MinistoreNodeRecord>> leafHandler)
         {
-            if (rootRef.BlockNumber == 0 || depth > c.Limits.MaximumTreeDepth) return;
-            if (!visitedBlocks.Add(rootRef.BlockNumber))
-            {
-                c.Report.Warnings.Add("tree_node_cycle_detected");
-                return;
-            }
+            TraverseBTree(c, geom, rootRef, visitedBlocks, depth, leafHandler, false);
+        }
 
-            long offset = geom.VolumeOffset + (long)rootRef.BlockNumber * geom.MetadataBlockSize;
-            byte[] block = Read(c, offset, (int)geom.MetadataBlockSize);
-            if (block == null) return;
-
+        private static void TraverseBTree(Context c, VolumeGeometry geom, BlockReference rootRef,
+            HashSet<ulong> visitedBlocks, int depth, Action<List<MinistoreNodeRecord>> leafHandler, bool physical)
+        {
+            c.Cancel.ThrowIfCancellationRequested();
+            if (rootRef.BlockNumber == 0 || depth > c.Limits.MaximumTreeDepth) { Skip(c, "tree_depth_or_pointer"); return; }
+            if (!visitedBlocks.Add(rootRef.BlockNumber)) { c.Report.Warnings.Add("tree_node_cycle_detected"); return; }
+            byte[] block = ReadReferencedPage(c, geom, rootRef, physical);
+            if (block == null) { Skip(c, "metadata_page_unreadable"); c.Report.Limited = true; return; }
             if (!VerifyBlockChecksum(block, rootRef))
             {
-                c.Report.Warnings.Add("metadata_checksum_mismatch");
-                return;
+                c.Report.Warnings.Add("metadata_checksum_mismatch"); c.Report.Limited = true; return;
             }
-
+            foreach (ulong number in rootRef.BlockNumbers.Where(x => x != 0 && x != ulong.MaxValue))
+            {
+                ulong physicalNumber = physical ? number : TranslateContainerBlock(number, geom.ContainerSize, geom.ContainerMap);
+                if (physicalNumber != ulong.MaxValue)
+                    c.VerifiedMetadataOffsets.Add(geom.VolumeOffset + (long)(physicalNumber * geom.MetadataBlockSize));
+            }
             var header = ParseNodeHeader(block, geom);
-            if (header == null) return;
-
+            if (header == null) { Skip(c, "metadata_node_invalid"); c.Report.Limited = true; return; }
             var records = ReadNodeRecords(block, header, geom);
-
-            if (header.NodeLevel == 0)
+            if (records.Count != header.NumberOfRecordOffsets)
             {
-                // Leaf Node
-                if (leafHandler != null) leafHandler(records);
+                Skip(c, "metadata_record_invalid"); c.Report.Limited = true;
             }
-            else
-            {
-                // Branch Node: Each record value contains a BlockReference
-                foreach (var rec in records)
-                {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    var childRef = ParseBlockReference(rec.ValueData, 0, geom.MajorVersion);
-                    if (childRef.BlockNumber > 0)
-                        TraverseBTree(c, geom, childRef, visitedBlocks, depth + 1, leafHandler);
-                }
-            }
+            foreach (var record in records) record.MetadataChecksumVerified = true;
+            if (header.NodeLevel == 0) { if (leafHandler != null) leafHandler(records); }
+            else foreach (var record in records)
+                TraverseBTree(c, geom, ParseBlockReference(record.ValueData, 0, geom.MajorVersion), visitedBlocks, depth + 1, leafHandler, physical);
         }
 
         // -------------------------------------------------------------
@@ -776,6 +716,7 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         private static void ScanVolume(Context c, VolumeGeometry geom, VolumeReport vr, Action<string> progress)
         {
+            c.DirectoryRecords.Clear();
             var sb = ReadSuperblock(c, geom);
             if (sb == null)
             {
@@ -783,6 +724,7 @@ namespace UsbRecovery
                 return;
             }
             vr.Capabilities.SuperblockChecksumVerified = sb.ChecksumValid;
+            c.Report.Capabilities.SuperblockChecksumVerified = sb.ChecksumValid;
             vr.Capabilities.SupportedFeatures.Add("superblock_parsed");
 
             // Ping-pong arbitration
@@ -824,7 +766,7 @@ namespace UsbRecovery
 
             // Load Container Map from Tree 7 (v3)
             var containerMap = new Dictionary<ulong, ulong>();
-            containerMap[0] = 0; // Container 0 direct physical mapping
+            geom.ContainerMap = null; // Container table child references are physical bootstrap addresses.
             if (geom.MajorVersion >= 3 && selectedChkp.Tree7Root.BlockNumber > 0)
             {
                 TraverseBTree(c, geom, selectedChkp.Tree7Root, visitedBlocks, 0, records =>
@@ -834,15 +776,18 @@ namespace UsbRecovery
                         if (rec.KeyData.Length >= 8 && rec.ValueData.Length >= 160)
                         {
                             ulong containerId = BitConverter.ToUInt64(rec.KeyData, 0);
-                            ulong physicalStart = BitConverter.ToUInt64(rec.ValueData, 144);
+                            ulong physicalStart = BitConverter.ToUInt64(rec.ValueData, rec.ValueData.Length - 16);
+                            ulong cpc = BitConverter.ToUInt32(rec.ValueData, 24);
+                            if (cpc != 0 && (cpc & (cpc - 1)) == 0) geom.ContainerSize = cpc;
                             containerMap[containerId] = physicalStart;
                         }
                     }
-                });
+                }, true);
                 vr.Capabilities.ContainerTranslationSupported = true;
                 c.Report.Capabilities.ContainerTranslationSupported = true;
                 vr.Capabilities.SupportedFeatures.Add("container_translation");
             }
+            geom.ContainerMap = containerMap;
 
             // Load Object ID Table (Tree 0)
             var objectTreeRoots = new Dictionary<ulong, BlockReference>();
@@ -855,7 +800,7 @@ namespace UsbRecovery
                         if (rec.KeyData.Length >= 16)
                         {
                             ulong objectId = BitConverter.ToUInt64(rec.KeyData, 8);
-                            var objRef = ParseBlockReference(rec.ValueData, 0, geom.MajorVersion);
+                            var objRef = ParseBlockReference(rec.ValueData, geom.MajorVersion == 1 ? 0 : 32, geom.MajorVersion);
                             objectTreeRoots[objectId] = objRef;
                         }
                     }
@@ -876,7 +821,12 @@ namespace UsbRecovery
             // Salvage unreferenced B+ tree leaf nodes in free space
             SalvageFreeSpace(c, geom, containerMap, visitedBlocks, vr);
 
-            vr.Status = "complete";
+            if (!objectTreeRoots.ContainsKey(0x600))
+            {
+                vr.Reason = "root_directory_unavailable";
+                c.Report.Limited = true;
+            }
+            vr.Status = c.Report.Limited ? "limited" : "complete";
         }
 
         // -------------------------------------------------------------
@@ -910,7 +860,14 @@ namespace UsbRecovery
             if (!objectTreeRoots.TryGetValue(dirObjectId, out dirRef) || dirRef.BlockNumber == 0)
                 return;
 
-            TraverseBTree(c, geom, dirRef, visitedBlocks, 0, records =>
+            List<MinistoreNodeRecord> directoryRecords;
+            if (!c.DirectoryRecords.TryGetValue(dirObjectId, out directoryRecords))
+            {
+                directoryRecords = new List<MinistoreNodeRecord>();
+                TraverseBTree(c, geom, dirRef, new HashSet<ulong>(), 0, rows => directoryRecords.AddRange(rows));
+                c.DirectoryRecords[dirObjectId] = directoryRecords;
+            }
+            foreach (var records in new[] { directoryRecords })
             {
                 foreach (var rec in records)
                 {
@@ -928,11 +885,33 @@ namespace UsbRecovery
                     if (entryType == 2)
                     {
                         // Subdirectory entry
-                        if (rec.ValueData.Length >= 72)
+                        if (rec.ValueData.Length >= 72 &&
+                            (geom.MajorVersion == 1 || (BitConverter.ToUInt32(rec.ValueData, 64) & 0x10000010) != 0))
                         {
-                            ulong childObjId = BitConverter.ToUInt64(rec.ValueData, 0);
+                            ulong childObjId = BitConverter.ToUInt64(rec.ValueData, geom.MajorVersion == 1 ? 0 : 8);
                             EnumerateDirectory(c, geom, containerMap, objectTreeRoots, childObjId, fullPath, visitedDirs, visitedBlocks, depth + 1, vr);
                         }
+                        else if (geom.MajorVersion == 3 && rec.ValueData.Length >= 72)
+                        {
+                            ulong fileId = BitConverter.ToUInt64(rec.ValueData, 0), home = BitConverter.ToUInt64(rec.ValueData, 8);
+                            List<MinistoreNodeRecord> homeRecords;
+                            BlockReference homeRef;
+                            if (!c.DirectoryRecords.TryGetValue(home, out homeRecords) && objectTreeRoots.TryGetValue(home, out homeRef))
+                            {
+                                homeRecords = new List<MinistoreNodeRecord>();
+                                TraverseBTree(c, geom, homeRef, new HashSet<ulong>(), 0, rows => homeRecords.AddRange(rows));
+                                c.DirectoryRecords[home] = homeRecords;
+                            }
+                            var candidates = homeRecords == null ? new List<MinistoreNodeRecord>() : homeRecords.Where(x =>
+                                x.KeyData.Length >= 16 && BitConverter.ToUInt16(x.KeyData, 0) == 0x40 &&
+                                BitConverter.ToUInt64(x.KeyData, 8) == fileId).ToList();
+                            if (candidates.Count == 1)
+                            {
+                                ProcessFileRecord(c, geom, containerMap, candidates[0], name, fullPath, dirObjectId, vr, true);
+                            }
+                            else UnsupportedFile(c, geom, vr, name, fullPath, dirObjectId, "split_file_backing_unresolved", rec.MetadataChecksumVerified);
+                        }
+                        else UnsupportedFile(c, geom, vr, name, fullPath, dirObjectId, "split_file_record", rec.MetadataChecksumVerified);
                     }
                     else if (entryType == 1)
                     {
@@ -940,233 +919,243 @@ namespace UsbRecovery
                         ProcessFileRecord(c, geom, containerMap, rec, name, fullPath, dirObjectId, vr, isLive: true);
                     }
                 }
-            });
+            }
         }
 
-        private static void ProcessFileRecord(
-            Context c,
-            VolumeGeometry geom,
-            Dictionary<ulong, ulong> containerMap,
-            MinistoreNodeRecord rec,
-            string name,
-            string relativePath,
-            ulong parentObjectId,
-            VolumeReport vr,
-            bool isLive)
+        private static void UnsupportedFile(Context c, VolumeGeometry geom, VolumeReport vr,
+            string name, string path, ulong parent, string reason, bool verified)
         {
-            byte[] val = rec.ValueData;
-            if (val == null || val.Length < 32) return;
-            if (++c.EntryCount > c.Limits.MaximumEntries)
+            c.Report.Limited = true;
+            Skip(c, reason);
+            if (!vr.Capabilities.UnsupportedFeatures.Contains(reason)) vr.Capabilities.UnsupportedFeatures.Add(reason);
+            if (!c.Report.Capabilities.UnsupportedFeatures.Contains(reason)) c.Report.Capabilities.UnsupportedFeatures.Add(reason);
+            c.Report.Entries.Add(new Entry { VolumeOffset = geom.VolumeOffset, Name = name,
+                RelativePath = path, ParentObjectId = parent, Status = "unsupported_feature", Reason = reason,
+                MetadataChecksumVerified = verified, ContentAuthenticityVerified = false });
+        }
+
+        private static List<MinistoreNodeRecord> EmbeddedRecords(Context c, VolumeGeometry geom, byte[] data,
+            MinistoreNodeHeader header, bool verified)
+        {
+            var records = new List<MinistoreNodeRecord>();
+            if (header == null) return records;
+            var rows = ReadNodeRecords(data, header, geom);
+            if (header.NodeLevel == 0)
             {
-                c.Report.Limited = true;
-                Skip(c, "entry_limit");
-                return;
+                foreach (var row in rows) row.MetadataChecksumVerified = verified;
+                return rows;
             }
+            var seen = new HashSet<ulong>();
+            foreach (var row in rows)
+                TraverseBTree(c, geom, ParseBlockReference(row.ValueData, 0, geom.MajorVersion), seen, 0,
+                    childRows => { foreach (var child in childRows) child.MetadataChecksumVerified &= verified; records.AddRange(childRows); });
+            return records;
+        }
 
-            DateTime? created = SafeFileTimeUtc(BitConverter.ToUInt64(val, 0));
-            DateTime? modified = SafeFileTimeUtc(BitConverter.ToUInt64(val, 8));
-            DateTime? changed = SafeFileTimeUtc(BitConverter.ToUInt64(val, 16));
-            DateTime? accessed = SafeFileTimeUtc(BitConverter.ToUInt64(val, 24));
-            uint attrs = val.Length >= 36 ? BitConverter.ToUInt32(val, 32) : 0x20;
-            long declaredSize = val.Length >= 72 ? (long)BitConverter.ToUInt64(val, 64) : 0;
-
-            ulong objectId = (ulong)c.Report.Entries.Count + 1000;
-
-            // Intercept compressed files
-            if ((attrs & 0x800) != 0)
+        private static bool AddRun(Context c, VolumeGeometry geom, Dictionary<ulong, ulong> map,
+            List<Extent> extents, ulong logicalCluster, ulong count, ulong virtualCluster, bool hole)
+        {
+            ulong unit = geom.MajorVersion == 1 ? geom.MetadataBlockSize : geom.ClusterBlockSize;
+            ulong volumeBytes = geom.NumberOfSectors * geom.BytesPerSector;
+            if (count == 0 || count > (ulong)c.Limits.MaximumFileBytes / unit ||
+                logicalCluster > (ulong)c.Limits.MaximumFileBytes / unit ||
+                count > (ulong)c.Limits.MaximumFileBytes / unit - logicalCluster) return false;
+            for (ulong i = 0; i < count; i++)
             {
-                vr.Capabilities.CompressionDetected = true;
-                c.Report.Capabilities.CompressionDetected = true;
-                if (!vr.Capabilities.UnsupportedFeatures.Contains("cluster_compression"))
-                    vr.Capabilities.UnsupportedFeatures.Add("cluster_compression");
-                if (!c.Report.Capabilities.UnsupportedFeatures.Contains("cluster_compression"))
-                    c.Report.Capabilities.UnsupportedFeatures.Add("cluster_compression");
-
-                c.Report.Entries.Add(new Entry
-                {
-                    VolumeOffset = geom.VolumeOffset,
-                    ObjectId = objectId,
-                    ParentObjectId = parentObjectId,
-                    Name = name,
-                    RelativePath = relativePath,
-                    DeclaredSize = declaredSize,
-                    RecoveredBytes = 0,
-                    CreationTimeUtc = created,
-                    LastWriteTimeUtc = modified,
-                    EntryChangeTimeUtc = changed,
-                    LastAccessTimeUtc = accessed,
-                    FileAttributes = attrs,
-                    Status = "unsupported_feature",
-                    Reason = "unsupported_compression",
-                    MetadataChecksumVerified = true,
-                    ContentAuthenticityVerified = false
-                });
-                return;
+                if (extents.Count >= c.Limits.MaximumExtents) { c.Report.Limited = true; Skip(c, "extent_limit"); return false; }
+                ulong physical = hole ? 0 : TranslateContainerBlock(virtualCluster + i, geom.ContainerSize, map);
+                if (!hole && (physical == ulong.MaxValue || physical > volumeBytes / unit || physical * unit > volumeBytes - unit)) return false;
+                extents.Add(new Extent { ImageOffset = hole ? -1 : geom.VolumeOffset + (long)(physical * unit),
+                    LogicalOffset = (long)((logicalCluster + i) * unit), Length = (long)unit });
             }
+            return true;
+        }
 
-            // Parse Attribute 0x80 ($DATA)
-            bool isResident = false;
-            byte[] residentData = null;
-            var extents = new List<Extent>();
-
-            int attrStart = 128;
-            if (val.Length >= attrStart + 16)
+        private static bool ReadExtentNode(Context c, VolumeGeometry geom, Dictionary<ulong, ulong> map,
+            byte[] data, int node, List<Extent> extents, HashSet<ulong> seen, int depth)
+        {
+            if (depth > c.Limits.MaximumTreeDepth || node < 0 || node > data.Length - 40) return false;
+            uint first = BitConverter.ToUInt32(data, node), end = BitConverter.ToUInt32(data, node + 4);
+            uint array = BitConverter.ToUInt32(data, node + 16), count = BitConverter.ToUInt32(data, node + 20);
+            uint arrayEnd = BitConverter.ToUInt32(data, node + 32);
+            uint available = (uint)(data.Length - node);
+            if (first != 40 || end < first || end > available || count > 8192 ||
+                array < 40 || array > available || count > (available - array) / 4 ||
+                arrayEnd != array + count * 4) return false;
+            foreach (uint index in Enumerable.Range(0, (int)count).Select(x => (uint)x))
             {
-                uint attrType = BitConverter.ToUInt32(val, attrStart);
-                uint attrFlags = BitConverter.ToUInt32(val, attrStart + 4);
-                uint dataOff = BitConverter.ToUInt32(val, attrStart + 8);
-                uint dataLen = BitConverter.ToUInt32(val, attrStart + 12);
-
-                if (attrType == 0x80)
+                int relative = (int)(BitConverter.ToUInt32(data, node + (int)array + (int)index * 4) & 0xffff);
+                int at = node + relative;
+                if (relative < first || relative >= end || at > data.Length - 16) return false;
+                if (data[node + 12] != 0)
                 {
-                    if ((attrFlags & 0x08) == 0)
-                    {
-                        // Resident inline data
-                        isResident = true;
-                        int absData = attrStart + (int)dataOff;
-                        if (absData + dataLen <= val.Length)
-                        {
-                            residentData = new byte[dataLen];
-                            Array.Copy(val, absData, residentData, 0, (int)dataLen);
-                            extents.Add(new Extent
-                            {
-                                ImageOffset = -1,
-                                LogicalOffset = 0,
-                                Length = dataLen
-                            });
-                            declaredSize = dataLen;
-                        }
-                    }
-                    else
-                    {
-                        // Non-resident data runs
-                        isResident = false;
-                        int runsOff = attrStart + (int)dataOff;
-                        int runsLen = (int)dataLen;
-                        if (runsOff + runsLen <= val.Length)
-                        {
-                            int count = runsLen / 24;
-                            long currentLogical = 0;
-                            for (int r = 0; r < count; r++)
-                            {
-                                int rPos = runsOff + r * 24;
-                                ulong logOff = BitConverter.ToUInt64(val, rPos);
-                                ulong blkCnt = BitConverter.ToUInt64(val, rPos + 8);
-                                ulong physBlk = BitConverter.ToUInt64(val, rPos + 16);
-
-                                ulong physClus = TranslateContainerBlock(physBlk, geom.ContainerSize, containerMap);
-                                long imgOffset = geom.VolumeOffset + (long)physClus * geom.ClusterBlockSize;
-                                long extLen = (long)(blkCnt * geom.ClusterBlockSize);
-
-                                if (declaredSize > 0 && currentLogical + extLen > declaredSize)
-                                {
-                                    extLen = Math.Max(0, declaredSize - currentLogical);
-                                }
-
-                                if (extLen > 0)
-                                {
-                                    extents.Add(new Extent
-                                    {
-                                        ImageOffset = imgOffset,
-                                        LogicalOffset = (long)logOff,
-                                        Length = extLen
-                                    });
-                                    currentLogical += extLen;
-                                }
-                            }
-                        }
-                    }
+                    uint recordSize = BitConverter.ToUInt32(data, at);
+                    ushort ko = BitConverter.ToUInt16(data, at + 4), kl = BitConverter.ToUInt16(data, at + 6);
+                    ushort vo = BitConverter.ToUInt16(data, at + 10), vl = BitConverter.ToUInt16(data, at + 12);
+                    if (recordSize < 16 || recordSize > end - relative || recordSize > data.Length - at ||
+                        (kl > 0 && (ko < 16 || (uint)ko + kl > recordSize)) ||
+                        vo < 16 || (uint)vo + vl > recordSize) return false;
+                    var reference = ParseBlockReference(data.Skip(at + vo).Take(vl).ToArray(), 0, geom.MajorVersion);
+                    if (!seen.Add(reference.BlockNumber)) return false;
+                    byte[] child = ReadReferencedPage(c, geom, reference, false);
+                    if (!VerifyBlockChecksum(child, reference)) return false;
+                    var h = ParseNodeHeader(child, geom);
+                    if (h == null || !ReadExtentNode(c, geom, map, child, h.HeaderOffset, extents, seen, depth + 1)) return false;
+                }
+                else
+                {
+                    if (end - relative < 24 || at > data.Length - 24) return false;
+                    uint flags = BitConverter.ToUInt32(data, at + 8);
+                    // Known unwritten/sparse flags explicitly describe logical zero ranges.
+                    // Integrity layouts still require a separate decoder; no guessed stride is used.
+                    ushort rowSize = BitConverter.ToUInt16(data, at + 10);
+                    uint clusters = BitConverter.ToUInt32(data, at + 20);
+                    bool logicalZeros = (flags & 0x20) != 0 || (flags & 0x10) == 0;
+                    if (rowSize != 24 || rowSize > end - relative || rowSize > data.Length - at ||
+                        (flags & 0xffff) == 0 || (flags & 0xffff & ~0xf0U) != 0 ||
+                        !AddRun(c, geom, map, extents, BitConverter.ToUInt32(data, at + 12), clusters,
+                            BitConverter.ToUInt64(data, at), logicalZeros)) return false;
                 }
             }
+            return true;
+        }
 
-            if (extents.Count == 0 && declaredSize > 0) return;
-
-            // Output candidate file
-            string safeName = SanitizeFileName(name);
-            string outName = string.Format("volume_{0}_object_{1}_{2}", geom.VolumeOffset, objectId, safeName);
-            string relativeOutput = "files/" + outName;
-            string dest = Path.Combine(c.Root, "files", outName);
-            string temp = dest + ".partial";
-
-            if (c.OutputBytes + declaredSize > c.Limits.MaximumOutputBytes)
+        private static void ProcessFileRecord(Context c, VolumeGeometry geom, Dictionary<ulong, ulong> containerMap,
+            MinistoreNodeRecord rec, string name, string relativePath, ulong parentObjectId, VolumeReport vr, bool isLive)
+        {
+            if (++c.EntryCount > c.Limits.MaximumEntries) { c.Report.Limited = true; Skip(c, "entry_limit"); return; }
+            byte[] val = rec.ValueData;
+            var fileNode = ParseEmbeddedNode(val, 0, geom);
+            if (fileNode == null || fileNode.HeaderDataSize != 128)
             {
-                c.Report.Limited = true;
-                Skip(c, "output_limit");
-                return;
+                UnsupportedFile(c, geom, vr, name, relativePath, parentObjectId, "file_embedded_node_invalid", rec.MetadataChecksumVerified); return;
             }
-
+            int fh = fileNode.HeaderDataOffset;
+            uint attrs = BitConverter.ToUInt32(val, fh + 32);
+            ulong rawSize = BitConverter.ToUInt64(val, fh + 64);
+            ulong objectId = geom.MajorVersion == 1 ? BitConverter.ToUInt64(val, fh + 40) : 0;
+            if ((attrs & 0x800) != 0)
+            {
+                vr.Capabilities.CompressionDetected = true; c.Report.Capabilities.CompressionDetected = true;
+                vr.Capabilities.UnsupportedFeatures.Add("cluster_compression"); c.Report.Capabilities.UnsupportedFeatures.Add("cluster_compression");
+                UnsupportedFile(c, geom, vr, name, relativePath, parentObjectId, "unsupported_compression", rec.MetadataChecksumVerified); return;
+            }
+            var attributes = EmbeddedRecords(c, geom, val, fileNode, rec.MetadataChecksumVerified);
+            byte[] resident = null;
+            var extents = new List<Extent>();
+            bool found = false, verified = rec.MetadataChecksumVerified;
+            string unsupported = "data_attribute_unresolved";
+            foreach (var attribute in attributes)
+            {
+                byte[] key = attribute.KeyData, av = attribute.ValueData;
+                if (key.Length < 12) continue;
+                uint marker = BitConverter.ToUInt32(key, 8);
+                bool modern = marker == 0x80000001 || marker == 0x80000002;
+                ushort type = modern && key.Length >= 16 ? BitConverter.ToUInt16(key, 12) : (ushort)marker;
+                if (type != 0x80) continue;
+                if (found) { unsupported = "ambiguous_default_data_stream"; found = false; break; }
+                if (modern && marker == 0x80000001 && av.Length >= 60 && BitConverter.ToUInt32(av, 8) == 12)
+                {
+                    ulong size = BitConverter.ToUInt64(av, 32);
+                    if (size > (ulong)(av.Length - 60)) continue;
+                    resident = av.Skip(60).Take((int)size).ToArray(); rawSize = size; found = true;
+                }
+                else if (av.Length >= 136 && BitConverter.ToUInt32(av, 0) == 136 &&
+                         (!modern || (key.Length >= 20 && BitConverter.ToUInt32(key, 16) == 0x1000)))
+                {
+                    rawSize = BitConverter.ToUInt64(av, geom.MinorVersion <= 4 ? 60 : 56);
+                    found = ReadExtentNode(c, geom, containerMap, av, 136, extents, new HashSet<ulong>(), 0);
+                    unsupported = "data_extent_layout_or_coverage_unsupported";
+                }
+                else if (!modern && av.Length >= 12 && BitConverter.ToUInt32(av, 0) == 0)
+                {
+                    uint dataOffset = BitConverter.ToUInt32(av, 4), length = BitConverter.ToUInt32(av, 8);
+                    if (dataOffset < 12 || dataOffset > av.Length || length > av.Length - dataOffset) continue;
+                    resident = av.Skip((int)dataOffset).Take((int)length).ToArray(); rawSize = length; found = true;
+                }
+                else if (!modern)
+                {
+                    var runNode = ParseEmbeddedNode(av, 0, geom);
+                    if (runNode == null || runNode.HeaderDataSize != 96) continue;
+                    int rh = runNode.HeaderDataOffset;
+                    rawSize = BitConverter.ToUInt64(av, rh + 20);
+                    found = true;
+                    foreach (var run in EmbeddedRecords(c, geom, av, runNode, attribute.MetadataChecksumVerified))
+                    {
+                        if (run.ValueData.Length < 24 || !AddRun(c, geom, containerMap, extents,
+                            BitConverter.ToUInt64(run.ValueData, 0), BitConverter.ToUInt64(run.ValueData, 8),
+                            BitConverter.ToUInt64(run.ValueData, 16), false)) { found = false; break; }
+                    }
+                }
+                verified &= attribute.MetadataChecksumVerified;
+            }
+            if (rawSize > (ulong)c.Limits.MaximumFileBytes)
+            {
+                c.Report.Limited = true; Skip(c, "file_size_limit"); return;
+            }
+            long declaredSize = (long)rawSize;
+            if (resident == null && found)
+            {
+                extents = extents.OrderBy(x => x.LogicalOffset).ToList();
+                long covered = 0;
+                foreach (var extent in extents)
+                {
+                    if (extent.LogicalOffset != covered) { found = false; break; }
+                    extent.Length = Math.Min(extent.Length, Math.Max(0, declaredSize - covered));
+                    covered += extent.Length;
+                }
+                extents.RemoveAll(x => x.Length == 0);
+                if (covered != declaredSize) found = false;
+            }
+            if (!found)
+            {
+                UnsupportedFile(c, geom, vr, name, relativePath, parentObjectId, unsupported, verified); return;
+            }
+            if (declaredSize > c.Limits.MaximumOutputBytes - c.OutputBytes)
+            {
+                c.Report.Limited = true; Skip(c, "output_limit"); return;
+            }
+            string outName = string.Format("volume_{0}_entry_{1}_{2}", geom.VolumeOffset, c.Report.Entries.Count, SanitizeFileName(name));
+            string dest = Path.Combine(c.Root, "files", outName), temp = dest + ".partial";
             byte[] buffer = new byte[1024 * 1024];
-            string hashHex;
+            string hash;
             try
             {
                 using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                using (var sha = SHA256.Create())
                 {
-                    if (isResident && residentData != null)
+                    if (resident != null) output.Write(resident, 0, resident.Length);
+                    else foreach (var extent in extents)
                     {
-                        output.Write(residentData, 0, residentData.Length);
-                        sha.TransformBlock(residentData, 0, residentData.Length, residentData, 0);
-                    }
-                    else
-                    {
-                        foreach (var ext in extents)
+                        if (extent.ImageOffset >= 0) c.Input.Position = extent.ImageOffset;
+                        long remaining = extent.Length;
+                        if (extent.ImageOffset < 0) Array.Clear(buffer, 0, buffer.Length);
+                        while (remaining > 0)
                         {
-                            c.Input.Position = ext.ImageOffset;
-                            long remaining = ext.Length;
-                            while (remaining > 0)
-                            {
-                                c.Cancel.ThrowIfCancellationRequested();
-                                int readCount = c.Input.Read(buffer, 0, (int)Math.Min(remaining, buffer.Length));
-                                if (readCount == 0) throw new EndOfStreamException("Неполное чтение refs");
-                                output.Write(buffer, 0, readCount);
-                                sha.TransformBlock(buffer, 0, readCount, buffer, 0);
-                                remaining -= readCount;
-                            }
+                            c.Cancel.ThrowIfCancellationRequested();
+                            int n = extent.ImageOffset < 0 ? (int)Math.Min(remaining, buffer.Length) : c.Input.Read(buffer, 0, (int)Math.Min(remaining, buffer.Length));
+                            if (n == 0) throw new EndOfStreamException("Неполное чтение refs");
+                            output.Write(buffer, 0, n); remaining -= n;
                         }
                     }
-                    sha.TransformFinalBlock(new byte[0], 0, 0);
                     output.Flush(true);
-                    hashHex = Hex(sha.Hash);
                 }
-                c.Cancel.ThrowIfCancellationRequested();
-                File.Move(temp, dest);
+                using (var source = File.OpenRead(temp)) using (var sha = SHA256.Create()) hash = Hex(sha.ComputeHash(source));
+                c.Cancel.ThrowIfCancellationRequested(); File.Move(temp, dest);
             }
-            finally
-            {
-                if (File.Exists(temp)) File.Delete(temp);
-            }
-
-            string status = isLive ? "recovered_live" : "deleted_refs_candidate";
-            var entry = new Entry
-            {
-                VolumeOffset = geom.VolumeOffset,
-                ObjectId = objectId,
-                ParentObjectId = parentObjectId,
-                Name = name,
-                RelativePath = relativePath,
-                DeclaredSize = declaredSize,
-                RecoveredBytes = declaredSize,
-                CreationTimeUtc = created,
-                LastWriteTimeUtc = modified,
-                EntryChangeTimeUtc = changed,
-                LastAccessTimeUtc = accessed,
-                FileAttributes = attrs,
-                Status = status,
-                Output = relativeOutput,
-                Sha256 = hashHex,
-                IsResident = isResident,
-                MetadataChecksumVerified = true,
-                ContentAuthenticityVerified = false,
-                DeletionEvidence = isLive ? null : "unreferenced_refs_leaf_node_in_free_space",
-                Note = isLive ? "Кандидат ReFS; метаданные подтверждены CRC." : "Сохранившаяся запись ReFS (удалённый файл). Исходные кластеры свободны в текущем дереве, но могли быть перезаписаны; факт удаления и подлинность содержимого не подтверждены.",
-                Extents = extents
-            };
-
-            c.Report.Entries.Add(entry);
-            c.Report.RecoveredFiles++;
-            c.Report.OutputBytes += declaredSize;
-            c.OutputBytes += declaredSize;
-            vr.RecoveredFiles++;
+            finally { if (File.Exists(temp)) File.Delete(temp); }
+            var entry = new Entry { VolumeOffset = geom.VolumeOffset, ObjectId = objectId,
+                ParentObjectId = parentObjectId, Name = name, RelativePath = relativePath, DeclaredSize = declaredSize,
+                RecoveredBytes = declaredSize, CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
+                LastWriteTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 8)),
+                EntryChangeTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 16)),
+                LastAccessTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 24)), FileAttributes = attrs,
+                Status = isLive ? "recovered_live" : "unreferenced_refs_candidate", Output = "files/" + outName,
+                Sha256 = hash, IsResident = resident != null, MetadataChecksumVerified = verified,
+                ContentAuthenticityVerified = false, DeletionEvidence = null,
+                Note = isLive ? "Контрольные суммы метаданных проверены; целостность файловых данных отдельно не подтверждена." :
+                    "Структурный кандидат вне посещённых деревьев; удаление, свободное состояние и checksum не подтверждены.", Extents = extents };
+            c.Report.Entries.Add(entry); c.Report.Candidates++; c.Report.RecoveredFiles++; c.Report.OutputBytes += declaredSize;
+            c.OutputBytes += declaredSize; vr.RecoveredFiles++;
         }
 
         // -------------------------------------------------------------
@@ -1179,8 +1168,13 @@ namespace UsbRecovery
             HashSet<ulong> visitedBlocks,
             VolumeReport vr)
         {
-            ulong totalBlocks = (ulong)(c.Input.Length - geom.VolumeOffset) / geom.MetadataBlockSize;
-            ulong maxScanBlocks = Math.Min(totalBlocks, 4096UL);
+            ulong totalBlocks = geom.NumberOfSectors * geom.BytesPerSector / geom.MetadataBlockSize;
+            ulong maxScanBlocks = Math.Min(totalBlocks, (ulong)c.Limits.MaximumSalvageBlocks);
+            if (maxScanBlocks < totalBlocks)
+            {
+                c.Report.Limited = true;
+                Skip(c, "unreferenced_scan_limit");
+            }
 
             for (ulong b = 0; b < maxScanBlocks; b++)
             {
@@ -1188,7 +1182,9 @@ namespace UsbRecovery
                 c.Cancel.ThrowIfCancellationRequested();
 
                 long offset = geom.VolumeOffset + (long)b * geom.MetadataBlockSize;
-                byte[] block = Read(c, offset, (int)geom.MetadataBlockSize);
+                if (c.ReferencedMetadataOffsets.Contains(offset)) continue;
+                int pageBytes = geom.MajorVersion == 3 && geom.MetadataBlockSize == 4096 ? 16384 : (int)geom.MetadataBlockSize;
+                byte[] block = Read(c, offset, pageBytes);
                 if (block == null) continue;
 
                 var header = ParseNodeHeader(block, geom);
@@ -1211,7 +1207,6 @@ namespace UsbRecovery
                     if (c.Report.Entries.Any(e => e.Name == name)) continue;
 
                     ProcessFileRecord(c, geom, containerMap, rec, name, name, 0, vr, isLive: false);
-                    vr.DeletedCandidates++;
                 }
             }
         }
@@ -1221,20 +1216,21 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         internal static ulong TranslateContainerBlock(ulong blockNumber, ulong containerSize, Dictionary<ulong, ulong> containerMap)
         {
-            if (containerSize == 0 || blockNumber < containerSize) return blockNumber;
-            ulong containerId = blockNumber / containerSize;
-            ulong blockOffset = blockNumber % containerSize;
-
-            ulong startCluster;
-            if (containerMap != null && containerMap.TryGetValue(containerId, out startCluster))
-                return startCluster + blockOffset;
-
-            return blockNumber;
+            if (blockNumber == ulong.MaxValue) return ulong.MaxValue;
+            if (containerSize == 0) return blockNumber;
+            int shift = 0; ulong width = containerSize;
+            while (width > 0) { shift++; width >>= 1; }
+            ulong id = blockNumber >> shift, within = blockNumber & (containerSize - 1);
+            if ((blockNumber & containerSize) != 0) return ulong.MaxValue;
+            ulong start;
+            if (containerMap != null && containerMap.TryGetValue(id, out start))
+                return start > ulong.MaxValue - within ? ulong.MaxValue : start + within;
+            if (containerMap != null && containerMap.Count > 0)
+                return id < 2 ? blockNumber : ulong.MaxValue;
+            // Without a container table only the direct region (container ids 0 and 1) is addressable.
+            return id < 2 ? blockNumber : ulong.MaxValue;
         }
 
-        // -------------------------------------------------------------
-        // String & Time Decoding
-        // -------------------------------------------------------------
         public static string DecodeReFsString(byte[] buffer, int offset, int count)
         {
             if (buffer == null || count <= 0 || offset + count > buffer.Length) return string.Empty;
