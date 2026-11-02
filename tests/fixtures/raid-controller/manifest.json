@@ -1,6 +1,6 @@
 {
-  "schema": 1,
-  "format": "raid_controller_fixtures",
+  "schema": 2,
+  "format": "raid_controller_native_and_rejected_prototypes",
   "cases": [
     {
       "name": "imsm-raid0-1.dd.gz",
@@ -9,7 +9,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "9b10260d5304357ba08011873bdada5055429251314e7f4368e74b5e302f84a4",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid0-2.dd.gz",
@@ -18,7 +19,8 @@
       "disks": 2,
       "role": 1,
       "sha256": "465c4fdfeb64445b7a1a6733d6c390d4c0259057f8dcb8192f59ec8ba896704d",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid1-1.dd.gz",
@@ -27,7 +29,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "21ebf5cb108c604d48d93c22544b88854fb70c49a05fda7ed6eedd3d086b7774",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid1-2.dd.gz",
@@ -36,7 +39,8 @@
       "disks": 2,
       "role": 1,
       "sha256": "62e996786026a0470467ede93b67c0a687cfb9ded3e2728ee6d3f1769f7652e5",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid5-1.dd.gz",
@@ -45,7 +49,8 @@
       "disks": 3,
       "role": 0,
       "sha256": "4ee15517a346c6f5ac48e5bec73c45c2a0debdebfbec48331fd15fc3a7144eb5",
-      "bytes": 196608
+      "bytes": 196608,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid5-2.dd.gz",
@@ -54,7 +59,8 @@
       "disks": 3,
       "role": 1,
       "sha256": "e2bbf17a2c87af77e7e24edd172c6c8307b98777e713d5ff2fab83b427dbc86d",
-      "bytes": 196608
+      "bytes": 196608,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "imsm-raid5-3.dd.gz",
@@ -63,7 +69,8 @@
       "disks": 3,
       "role": 2,
       "sha256": "abb39413d972e9f2278e58374f01032af92ec0a99359ae300e878a1f40f3dd95",
-      "bytes": 196608
+      "bytes": 196608,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "ddf-raid0-1.dd.gz",
@@ -72,7 +79,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "821527c6a9f71e10144d6c75721efcabf3e4317f2e1ace0dc1b656193e7f827b",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "ddf-raid0-2.dd.gz",
@@ -81,7 +89,8 @@
       "disks": 2,
       "role": 1,
       "sha256": "28fab8ae3b4becdf4e9de07281289db1f892261caaf741ed88f97535c284ae2e",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "ddf-raid1-1.dd.gz",
@@ -90,7 +99,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "f56143df3b61464e83e14b39e3f63baef78251bd948dfec82b1c2306721f06dc",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "ddf-raid1-2.dd.gz",
@@ -99,7 +109,8 @@
       "disks": 2,
       "role": 1,
       "sha256": "8177fe64cddbd9ca89f00b314e04dd6eab5c872568a64df9dffc69ea0a0ad80b",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "spaces-simple-1.dd.gz",
@@ -108,7 +119,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "ae65563b663b64d0e2204d71c4e370d4b70d4a2ea363549f54953366a08767da",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "spaces-simple-2.dd.gz",
@@ -117,7 +129,8 @@
       "disks": 2,
       "role": 1,
       "sha256": "2c519b71f250f0f379213a6aac1c47f62c69bda71937d9a529bbac26ce96c375",
-      "bytes": 131072
+      "bytes": 131072,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "spaces-mirror-1.dd.gz",
@@ -126,7 +139,8 @@
       "disks": 2,
       "role": 0,
       "sha256": "976e5a77a58774b2d76b2e28d44c6f96305e429551841a5e13cbfdf732b51cd6",
-      "bytes": 65536
+      "bytes": 65536,
+      "kind": "invalid_legacy_prototype"
     },
     {
       "name": "spaces-mirror-2.dd.gz",
@@ -135,7 +149,128 @@
       "disks": 2,
       "role": 1,
       "sha256": "194f5bd78e13193a43a726b81b7c1af4c4a769cb67806916d8cfa99ceefccedc",
-      "bytes": 65536
+      "bytes": 65536,
+      "kind": "invalid_legacy_prototype"
+    },
+    {
+      "name": "native-ddf-raid0-1.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 0,
+      "disks": 3,
+      "role": 1,
+      "bytes": 39845888,
+      "sha256": "ff2e0f599b3b90a470b54aba2632ec8b0882ae62b7b7d8ebe821673bd51d2207",
+      "gzip_sha256": "9983ad4884a119f9e5b60531b50dd939d28f9c4178e041bfdd5ba6d883a754a7",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid0-1.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid0-2.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 0,
+      "disks": 3,
+      "role": 0,
+      "bytes": 39845888,
+      "sha256": "8a6d928e955a1ae05a4cd4e2f8e5034ef4408e2d23398314916cb390df441357",
+      "gzip_sha256": "622206280cdbe87e8299b7056e030738ee8b30db1fd0e43ae0f089221442f554",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid0-2.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid0-3.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 0,
+      "disks": 3,
+      "role": 2,
+      "bytes": 37748736,
+      "sha256": "5d1d97a6418f785a3a9669cf94a032f3ebcaf91f5f1864f9044252e729c19657",
+      "gzip_sha256": "60a3ee15cfccbb4baab1b2ddde31340d6703e37ba05c528b93fa499180d7e247",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid0-3.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid1-1.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 1,
+      "disks": 2,
+      "role": 1,
+      "bytes": 37748736,
+      "sha256": "c579e0574f75975d1ea9289cfcb064f7d3d79ef093216034a6122d867d80a009",
+      "gzip_sha256": "ad3e97b0545d509611d90b762c89fde436294e368e1d1e5b45439c48d3c618a8",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid1-1.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid1-2.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 1,
+      "disks": 2,
+      "role": 0,
+      "bytes": 37748736,
+      "sha256": "39fda05eb5141470b9397b1e09884c986d15363ac49bf9f1c6b58dbc236052e0",
+      "gzip_sha256": "bdf3ebe527c3be9e5e4f80fd70f4378a03d5d771087e1afb217c4ceda63518d4",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid1-2.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid5-1.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 5,
+      "disks": 3,
+      "role": 1,
+      "bytes": 37748736,
+      "sha256": "fa703a25c0aa988a5d90f2bc825d6fe9cce965045286e20119df5eeb39b94428",
+      "gzip_sha256": "b5322c3c0541f188e23075477fb105b40dc3e860d3444edeee771a0903a38a28",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid5-1.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid5-2.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 5,
+      "disks": 3,
+      "role": 0,
+      "bytes": 37748736,
+      "sha256": "659400245f05e3b61132afad6eae16a03503b4f2d0a30e94ed8ba1317398a5cd",
+      "gzip_sha256": "0174d47251ff329b0fb1f605d64e400e5c5173cc067b02b7bb3acc3940bf84f6",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid5-2.bin.gz"
+    },
+    {
+      "name": "native-ddf-raid5-3.dd.gz",
+      "kind": "native_upstream",
+      "format": "ddf",
+      "level": 5,
+      "disks": 3,
+      "role": 2,
+      "bytes": 37748736,
+      "sha256": "54c32b66bafa75321fb1e13d2334d65e9458dceae1101e8bf808d0193255a6be",
+      "gzip_sha256": "b81d732a7c409e1889b216f2827d8fe0d4446c0e10b616437b0370c6bf8d4b9d",
+      "source": "https://github.com/fox-it/dissect.volume/blob/d2da189112cae3a627f96d9de78341193eb6dc52/tests/_data/ddf/ddf-raid5-3.bin.gz"
+    }
+  ],
+  "boundary": "Legacy synthetic IMSM/DDF/MSFT prototypes are negative controls only. Native DDF fixtures are upstream bytes, not regenerated.",
+  "arrays": [
+    {
+      "level": 0,
+      "logical_bytes": 12582912,
+      "logical_sha256": "1d9eb968060ce343b0c1f15f59b485a82df2072529d8a0edb0e12e42c14145ee",
+      "oracle": "dissect.volume.DDFVirtualDisk.open, stripe-sized reads (avoids installed RAID456Stream multi-stripe read bug)",
+      "layout": "striped"
+    },
+    {
+      "level": 1,
+      "logical_bytes": 4194304,
+      "logical_sha256": "748cc990c523e324606fe74cd5b780539369a7f93a42d6a9ea57a4b61ad613c2",
+      "oracle": "dissect.volume.DDFVirtualDisk.open, stripe-sized reads (avoids installed RAID456Stream multi-stripe read bug)",
+      "layout": "mirror"
+    },
+    {
+      "level": 5,
+      "logical_bytes": 8388608,
+      "logical_sha256": "72616b7c180bd4cf1db794f5a949fad131f6af62cea50e4cc6e77c6e647bda82",
+      "oracle": "dissect.volume.DDFVirtualDisk.open, stripe-sized reads (avoids installed RAID456Stream multi-stripe read bug)",
+      "layout": "left-symmetric"
     }
   ]
 }

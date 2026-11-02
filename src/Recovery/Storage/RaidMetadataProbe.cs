@@ -20,7 +20,7 @@ namespace UsbRecovery
 
 {
 
-    // Independent read-only Linux MD format reader. Format facts:
+    // Independent read-only Linux MD / bounded DDF reader and IMSM detector.
 
     // https://github.com/torvalds/linux/blob/v6.17/include/uapi/linux/raid/md_p.h
 
@@ -34,7 +34,7 @@ namespace UsbRecovery
 
     {
 
-        public const int MaximumImages=128,MaximumSuperblockBytes=4096;
+        public const int MaximumImages=128,MaximumSuperblockBytes=4096,MaximumControllerMetadataBytes=2*1024*1024;
 
         public sealed class Member
 
@@ -94,7 +94,7 @@ namespace UsbRecovery
 
             public List<Group> Groups=new List<Group>();
 
-            public string Scope="Linux MD (0.90/1.0/1.1/1.2), Intel Matrix / RST (IMSM), SNIA DDF v1.2, and Windows Storage Spaces at documented offsets in supplied complete RAW component images. Configuration remains a reviewable metadata candidate; assembly still verifies payload redundancy where available.";
+            public string Scope="Linux MD and bounded SNIA DDF 1.2 metadata candidates in complete RAW component images. Intel IMSM detection cannot bind an image to a physical member; Storage Spaces reconstruction is unsupported. Metadata never establishes payload integrity.";
 
         }
 
@@ -121,8 +121,6 @@ namespace UsbRecovery
         static void Invalid(Member m,string code){m.Supported=false;m.Status="invalid";m.Code=code;if(!m.Reasons.Contains(code))m.Reasons.Add(code);}
 
         static bool Pow2(long n){return n>=512&&n<=RaidImageBuilder.MaximumChunkSize&&(n&(n-1))==0;}
-
-        static uint Crc32(byte[] b,int offset,int length){uint crc=0xffffffff;for(int i=offset;i<offset+length;i++){crc^=b[i];for(int k=0;k<8;k++)crc=(crc>>1)^(0xedb88320U*(crc&1));}return ~crc;}
 
         static string SafePath(string value)
 
@@ -282,122 +280,84 @@ namespace UsbRecovery
 
         }
 
-        static Member VersionImsm(byte[] b,string path,long length,long offset)
-
+        static ushort Be16(byte[] b,int at){return (ushort)((b[at]<<8)|b[at+1]);}
+        static ulong Be64(byte[] b,int at){return ((ulong)U32(b,at,true)<<32)|U32(b,at+4,true);}
+        static string Hex(byte[] b,int at,int count){return BitConverter.ToString(b,at,count).Replace("-","").ToLowerInvariant();}
+        static bool Same(byte[] a,int at,byte[] b,int bt,int count){for(int n=0;n<count;n++)if(a[at+n]!=b[bt+n])return false;return true;}
+        static bool Filled(byte[] b,int at,int count,byte value){for(int n=0;n<count;n++)if(b[at+n]!=value)return false;return true;}
+        static string DdfGuid(byte[] b,int at){if(b[at]==0||b[at]==0x20||b[at]==0xff)throw new Failure("MD_DDF_GUID_INVALID");return Hex(b,at,24);}
+        // DDF uses the raw reflected register (initial zero, no complement),
+        // with the CRC field filled with ff. This matches mdadm calc_crc/crc32.
+        static void DdfCrc(byte[] b,uint magic){if(b.Length<512||U32(b,0,true)!=magic)throw new Failure("MD_DDF_SECTION_INVALID");uint crc=0;for(int i=0;i<b.Length;i++){crc^=i>=4&&i<8?(byte)255:b[i];for(int bit=0;bit<8;bit++)crc=(crc>>1)^(0xedb88320U*(crc&1));}if(crc!=U32(b,4,true))throw new Failure("MD_CHECKSUM_INVALID");}
+        static byte[] ObservedRead(FileStream file,long at,int bytes,Report report,List<KeyValuePair<long,byte[]>> observed,CancellationToken cancel)
         {
-
-            var m=new Member{Path=path,FileBytes=length,MetadataOffset=offset,Format="imsm",Supported=true,Status="candidate",Code="MD_METADATA_CANDIDATE"};
-
-            if(b.Length<1024){Invalid(m,"MD_SUPERBLOCK_TRUNCATED");return m;}m.MetadataSha256=Hash(b.Take(1024).ToArray());
-
-            uint mpbSize=U32(b,36);if(mpbSize<128||mpbSize>1024||(int)mpbSize>b.Length){Invalid(m,"MD_SUPERBLOCK_TRUNCATED");return m;}
-
-            uint expectedCsum=U32(b,32);ulong sum=0;for(int i=0;i+4<=(int)mpbSize;i+=4)if(i!=32)sum+=U32(b,i);
-
-            if((uint)(sum&0xffffffffUL)!=expectedCsum){Invalid(m,"MD_CHECKSUM_INVALID");return m;}m.ChecksumValid=true;
-
-            m.Events=U32(b,40);m.RaidDisks=b[52];int numVols=b[53];m.DeviceNumber=U16(b,54);
-
-            if(m.RaidDisks<1||m.RaidDisks>RaidImageBuilder.MaximumMembers||numVols<1){Invalid(m,"MD_ROLE_TABLE_BOUNDS");return m;}
-
-            if(m.DeviceNumber<0||m.DeviceNumber>=m.RaidDisks){Invalid(m,"MD_DEVICE_NUMBER_INVALID");return m;}
-
-            int volAt=56+m.RaidDisks*40;if(volAt+44+m.RaidDisks>(int)mpbSize){Invalid(m,"MD_ROLE_TABLE_BOUNDS");return m;}
-
-            m.Name=Encoding.ASCII.GetString(b,volAt,16).Split('\0')[0].Trim();
-
-            m.Clean=U32(b,volAt+16)==0;
-
-            ulong volSectors=(ulong)U32(b,volAt+24)|((ulong)U32(b,volAt+28)<<32);
-
-            m.Level=b[volAt+32];m.LayoutCode=0;int chunkSec=U16(b,volAt+34);m.ChunkBytes=(long)chunkSec*512;
-
-            uint dataOffsetSec=U32(b,volAt+36);m.DataOffset=(long)dataOffsetSec*512;
-
-            int role=-1;for(int r=0;r<m.RaidDisks;r++)if(b[volAt+44+r]==m.DeviceNumber){role=r;break;}
-
-            m.Role=role>=0?role:m.DeviceNumber;m.Active=m.Role>=0&&m.Role<m.RaidDisks;
-
-            int dataDisks=m.Level==0?m.RaidDisks:m.Level==5?m.RaidDisks-1:1;
-
-            m.ComponentBytes=(long)(volSectors/(ulong)dataDisks)*512L;m.DataBytes=m.ComponentBytes;
-
-            byte[] devUuid=new byte[16];int serialAt=56+m.DeviceNumber*40+8;
-
-            Buffer.BlockCopy(b,serialAt,devUuid,0,Math.Min(16,(int)mpbSize-serialAt));
-
-            using(var md5=MD5.Create()){m.DeviceUuid=new Guid(md5.ComputeHash(devUuid)).ToString();byte[] volBytes=b.Skip(volAt).Take(44+m.RaidDisks).ToArray();m.Uuid=new Guid(md5.ComputeHash(volBytes)).ToString();}
-
-            m.RoleMapSha256=Hash(b.Skip(volAt+44).Take(m.RaidDisks).ToArray());
-
-            Layout(m);return m;
-
+            if(observed.Sum(p=>(long)p.Value.Length)+bytes>MaximumControllerMetadataBytes/2)throw new Failure("MD_CONTROLLER_METADATA_LIMIT");
+            byte[] b=Read(file,at,bytes,report,cancel);observed.Add(new KeyValuePair<long,byte[]>(at,b));return b;
         }
-
-        static Member VersionDdf(byte[] b,string path,long length,long offset)
-
+        static Member VersionImsm(byte[] anchor,string path,long length,long offset,FileStream file,Report report,List<KeyValuePair<long,byte[]>> observed,CancellationToken cancel)
         {
-
+            var m=new Member{Path=path,FileBytes=length,MetadataOffset=offset,DeviceNumber=-1,Format="imsm",Status="unsupported",Code="MD_IMSM_MEMBER_BINDING_REQUIRED"};
+            uint declared=U32(anchor,36);if(declared<216||declared>65536||declared%4!=0)throw new Failure("MD_IMSM_MPB_SIZE_INVALID");
+            byte[] b=new byte[declared];Buffer.BlockCopy(anchor,0,b,0,Math.Min(512,b.Length));
+            if(declared>512){int sectors=((int)declared+511)/512-1;byte[] rest=ObservedRead(file,offset-(long)sectors*512,sectors*512,report,observed,cancel);Buffer.BlockCopy(rest,0,b,512,b.Length-512);}
+            m.MetadataSha256=Hash(b);uint sum=0;for(int i=0;i<b.Length;i+=4)if(i!=32)sum=unchecked(sum+U32(b,i));if(sum!=U32(b,32))throw new Failure("MD_CHECKSUM_INVALID");m.ChecksumValid=true;
+            m.Events=U32(b,44);m.CreationTime=U64(b,80);m.Features=U32(b,52);int disks=b[56],volumes=b[57];m.RaidDisks=disks;
+            if(disks<1||disks>MaximumImages||216+disks*48>b.Length)throw new Failure("MD_ROLE_TABLE_BOUNDS");
+            var serials=new HashSet<string>();for(int i=0;i<disks;i++){int at=216+i*48;string serial=Hex(b,at,16);if(Zero(b,at,16)||!serials.Add(serial))throw new Failure("MD_IMSM_DISK_TABLE_INVALID");}
+            if(volumes!=1){Reject(m,"MD_IMSM_VOLUME_COUNT_UNSUPPORTED");return m;}
+            int dev=216+disks*48,map=dev+112;if(map+48>b.Length)throw new Failure("MD_ROLE_TABLE_BOUNDS");int members=b[map+16];if(members<1||members>RaidImageBuilder.MaximumMembers||map+48+members*4>b.Length)throw new Failure("MD_ROLE_TABLE_BOUNDS");
+            m.Name=Encoding.ASCII.GetString(b,dev,16).Split('\0')[0];m.Level=b[map+15];m.RaidDisks=members;m.LayoutCode=0;
+            m.ChunkBytes=(long)U16(b,map+12)*512;m.DataOffset=Bytes((ulong)U32(b,map)|((ulong)U32(b,map+20)<<32));m.ComponentBytes=Bytes((ulong)U32(b,map+4)|((ulong)U32(b,map+24)<<32));m.DataBytes=m.ComponentBytes;
+            m.Uuid="imsm:"+Hex(b,64,4)+":"+Hex(b,40,4)+":"+Hex(b,dev,16);m.RoleMapSha256=Hash(b.Skip(map+48).Take(members*4).ToArray());
+            var ordinals=new HashSet<uint>();for(int i=0;i<members;i++){uint ordinal=U32(b,map+48+i*4);if(ordinal>=disks||!ordinals.Add(ordinal))Reject(m,"MD_ROLE_TABLE_INCONSISTENT");}
+            m.Clean=b[dev+88]==0&&b[dev+90]==0&&b[map+14]==0&&(U32(b,dev+24)&0x110)==0;if(!m.Clean)Reject(m,"MD_ARRAY_NOT_FULLY_SYNCED");
+            if(U32(b,48)!=0||U32(b,72)!=0||b[dev+50]!=0)Reject(m,"MD_IMSM_FEATURES_UNSUPPORTED");
+            long metadataStart=offset-((b.Length+511L)/512-1)*512;if(m.DataOffset>metadataStart||m.ComponentBytes>metadataStart-m.DataOffset)Reject(m,"MD_DATA_OR_SUPER_OFFSET_INVALID");
+            // No current-disk ordinal exists in the MPB. mdadm binds ATA/NVMe
+            // serials obtained outside it. An arbitrary RAW path supplies no proof.
+            Reject(m,"MD_IMSM_MEMBER_BINDING_REQUIRED");return m;
+        }
+        static byte[] DdfSection(FileStream file,byte[] h,long baseAt,int field,Report report,List<KeyValuePair<long,byte[]>> observed,CancellationToken cancel)
+        {
+            uint relative=U32(h,field,true),sectors=U32(h,field+4,true);if(relative==0||relative==UInt32.MaxValue||sectors<1||sectors>1024)throw new Failure("MD_DDF_SECTION_BOUNDS");
+            long at=checked(baseAt+(long)relative*512),bytes=(long)sectors*512;if(at<baseAt+512||at>file.Length-512-bytes)throw new Failure("MD_DDF_SECTION_BOUNDS");
+            if(observed.Any(p=>at<p.Key+p.Value.Length&&p.Key<at+bytes))throw new Failure("MD_DDF_SECTION_OVERLAP");return ObservedRead(file,at,(int)bytes,report,observed,cancel);
+        }
+        static void DdfHeader(byte[] h,byte[] anchor,int type)
+        {
+            DdfCrc(h,0xde11de11);if(!Same(h,8,anchor,8,32)||!Same(h,96,anchor,96,16)||!Same(h,116,anchor,116,396)||h[112]!=type)throw new Failure("MD_DDF_HEADER_MISMATCH");
+            if(h[48]!=0||h[49]!=0||h[50]!=0)throw new Failure("MD_DDF_OPEN_OR_FOREIGN");
+        }
+        static Member VersionDdf(byte[] anchor,string path,long length,long offset,FileStream file,Report report,List<KeyValuePair<long,byte[]>> observed,CancellationToken cancel)
+        {
             var m=new Member{Path=path,FileBytes=length,MetadataOffset=offset,Format="ddf",Supported=true,Status="candidate",Code="MD_METADATA_CANDIDATE"};
-
-            if(b.Length<512){Invalid(m,"MD_SUPERBLOCK_TRUNCATED");return m;}m.MetadataSha256=Hash(b.Take(512).ToArray());
-
-            uint expectedCrc=U32(b,4);byte[] verify=b.Take(512).ToArray();verify[4]=0xff;verify[5]=0xff;verify[6]=0xff;verify[7]=0xff;
-
-            if(Crc32(verify,0,512)!=expectedCrc){Invalid(m,"MD_CHECKSUM_INVALID");return m;}m.ChecksumValid=true;
-
-            byte[] diskGuid=b.Skip(8).Take(16).ToArray();m.DeviceUuid=new Guid(diskGuid).ToString();m.RaidDisks=(int)U32(b,56);
-
-            int vdAt=128;if(U32(b,vdAt)!=0xDD01DD01){Reject(m,"MD_SUPERBLOCK_TRUNCATED");return m;}
-
-            byte[] arrayGuid=b.Skip(vdAt+8).Take(16).ToArray();m.Uuid=new Guid(arrayGuid).ToString();
-
-            m.Name=Encoding.ASCII.GetString(b,vdAt+24,16).Split('\0')[0].Trim();
-
-            int ddfLevel=b[vdAt+40];m.Level=ddfLevel==0?0:ddfLevel==1?1:ddfLevel==5?5:ddfLevel;
-
-            m.LayoutCode=0;int shift=b[vdAt+41];m.ChunkBytes=shift>0?(512L<<shift):(m.Level==1?0:65536L);
-
-            int vdDisks=U16(b,vdAt+42);if(vdDisks>0)m.RaidDisks=vdDisks;
-
-            ulong vdSectors=U64(b,vdAt+48);m.Role=b[vdAt+64];m.DeviceNumber=m.Role;m.Active=m.Role>=0&&m.Role<m.RaidDisks;
-
-            m.Events=1;m.Clean=true;m.DataOffset=0;
-
-            int dataDisks=m.Level==0?m.RaidDisks:m.Level==5?m.RaidDisks-1:1;
-
-            m.ComponentBytes=(long)(vdSectors/(ulong)dataDisks)*512L;m.DataBytes=m.ComponentBytes;m.RoleMapSha256=Hash(arrayGuid);
-
-            Layout(m);return m;
-
-        }
-
-        static Member VersionStorageSpaces(byte[] b,string path,long length,long offset)
-
-        {
-
-            var m=new Member{Path=path,FileBytes=length,MetadataOffset=offset,Format="storage-spaces",Supported=true,Status="candidate",Code="MD_METADATA_CANDIDATE"};
-
-            if(b.Length<512){Invalid(m,"MD_SUPERBLOCK_TRUNCATED");return m;}m.MetadataSha256=Hash(b.Take(512).ToArray());
-
-            uint expectedCrc=U32(b,8);byte[] verify=b.Take(512).ToArray();verify[8]=0;verify[9]=0;verify[10]=0;verify[11]=0;
-
-            if(Crc32(verify,0,512)!=expectedCrc){Invalid(m,"MD_CHECKSUM_INVALID");return m;}m.ChecksumValid=true;
-
-            byte[] poolGuid=b.Skip(16).Take(16).ToArray();m.Uuid=new Guid(poolGuid).ToString();m.DeviceUuid=null;
-
-            uint resiliency=U32(b,48);m.Level=resiliency==0?0:resiliency==1?1:resiliency==2?5:-1;
-
-            m.LayoutCode=0;m.RaidDisks=(int)U32(b,52);m.ChunkBytes=(long)U64(b,56);m.Role=(int)U32(b,64);
-
-            m.DeviceNumber=m.Role;m.Active=m.Role>=0&&m.Role<m.RaidDisks;
-
-            m.Events=U64(b,68);m.DataOffset=(long)U64(b,76);m.ComponentBytes=(long)U64(b,84);m.DataBytes=m.ComponentBytes;m.Clean=true;
-
-            m.Name="StorageSpace"+(resiliency==0?"Simple":resiliency==1?"Mirror":"Parity");m.RoleMapSha256=Hash(poolGuid);
-
-            Layout(m);return m;
-
+            DdfCrc(anchor,0xde11de11);DdfGuid(anchor,8);if(Encoding.ASCII.GetString(anchor,32,8)!="01.02.00"||anchor[112]!=0||anchor[48]!=255||anchor[49]!=0||anchor[50]!=0)throw new Failure("MD_DDF_HEADER_UNSUPPORTED");
+            long primary=Bytes(Be64(anchor,96));if(primary>=offset)throw new Failure("MD_DDF_SECTION_BOUNDS");byte[] h=ObservedRead(file,primary,512,report,observed,cancel);DdfHeader(h,anchor,1);
+            long secondary=-1;byte[] sh=null;ulong secondaryLba=Be64(anchor,104);if(secondaryLba!=UInt64.MaxValue){secondary=Bytes(secondaryLba);if(secondary==primary||secondary>=offset)throw new Failure("MD_DDF_SECTION_BOUNDS");sh=ObservedRead(file,secondary,512,report,observed,cancel);DdfHeader(sh,anchor,2);if(!Same(h,40,sh,40,16))throw new Failure("MD_DDF_GENERATION_MISMATCH");}
+            // Reject active remapping and vendor mapping extensions, rather than
+            // guessing that the ordinary component LBA still identifies payload.
+            if(U32(h,236,true)!=0||U32(h,244,true)!=0||U32(h,252,true)!=0)Reject(m,"MD_DDF_MAPPING_EXTENSIONS_UNSUPPORTED");
+            var sections=new List<byte[]>();for(int field=192;field<=224;field+=8){byte[] section=DdfSection(file,h,primary,field,report,observed,cancel);if(sh!=null&&!section.SequenceEqual(DdfSection(file,sh,secondary,field,report,observed,cancel)))throw new Failure("MD_DDF_COPY_MISMATCH");sections.Add(section);}
+            byte[] controller=sections[0],pd=sections[1],vd=sections[2],configs=sections[3],self=sections[4];DdfCrc(controller,0xad111111);DdfCrc(pd,0x22222222);DdfCrc(vd,0xdddddddd);DdfCrc(self,0x33333333);
+            m.DeviceUuid=DdfGuid(self,8);uint ownRef=U32(self,32,true);int pdCount=Be16(pd,10),vdCount=Be16(vd,10);if(pdCount<1||pdCount>(pd.Length-64)/64||pdCount!=Be16(h,128)||vdCount<1||vdCount>(vd.Length-64)/64||vdCount!=Be16(h,130))throw new Failure("MD_ROLE_TABLE_BOUNDS");
+            var physical=new Dictionary<uint,int>();var diskGuids=new HashSet<string>();int own=-1,populated=0;for(int i=0;i<pdCount;i++){int at=64+i*64;if(pd[at]==255)continue;populated++;string guid=DdfGuid(pd,at);uint reference=U32(pd,at+24,true);if(reference==UInt32.MaxValue||physical.ContainsKey(reference)||!diskGuids.Add(guid))throw new Failure("MD_ROLE_TABLE_INCONSISTENT");physical.Add(reference,at);if(reference==ownRef&&guid==m.DeviceUuid)own=at;}
+            if(populated!=Be16(pd,8)||own<0)throw new Failure("MD_DDF_MEMBER_BINDING_INVALID");m.DeviceNumber=own/64-1;
+            long workspace=Bytes(Be64(h,120)),workspaceBytes=Bytes(U32(h,116,true));if(workspaceBytes<32768L*512||workspace>offset||workspaceBytes>offset-workspace)throw new Failure("MD_DDF_SECTION_BOUNDS");
+            m.DataBytes=Bytes(Be64(pd,own+32));long metadataStart=Math.Min(workspace,secondary<0?primary:Math.Min(primary,secondary));if(m.DataBytes<=0||m.DataBytes>metadataStart)throw new Failure("MD_DATA_OR_SUPER_OFFSET_INVALID");
+            int recBytes=Be16(h,134)*512,maxEntries=Be16(h,136);if(recBytes<512||recBytes>configs.Length||configs.Length%recBytes!=0||maxEntries<1||maxEntries>4096||512L+maxEntries*12L>recBytes)throw new Failure("MD_ROLE_TABLE_BOUNDS");
+            byte[] config=null;int records=0;for(int at=0;at<configs.Length;at+=recBytes){if(Filled(configs,at,recBytes,255))continue;uint magic=U32(configs,at,true);if(magic!=0xeeeeeeee)throw new Failure("MD_DDF_CONFIGURATION_UNSUPPORTED");byte[] record=configs.Skip(at).Take(recBytes).ToArray();DdfCrc(record,magic);records++;config=record;}
+            if(records!=1){Reject(m,"MD_DDF_VOLUME_COUNT_UNSUPPORTED");return m;}string uuid=DdfGuid(config,8);int ventry=-1,virtualPopulated=0;for(int i=0;i<vdCount;i++){int at=64+i*64;if(vd[at]==255)continue;virtualPopulated++;if(DdfGuid(vd,at)==uuid){if(ventry>=0)throw new Failure("MD_ROLE_TABLE_INCONSISTENT");ventry=at;}}
+            if(virtualPopulated!=Be16(vd,8)||ventry<0)throw new Failure("MD_DDF_VIRTUAL_DISK_BINDING_INVALID");if(virtualPopulated!=1)Reject(m,"MD_DDF_VOLUME_COUNT_UNSUPPORTED");
+            m.Uuid="ddf:"+uuid;m.Name=Encoding.ASCII.GetString(vd,ventry+48,16).TrimEnd('\0',' ');m.Events=U32(config,36,true);m.CreationTime=U32(h,40,true);m.RaidDisks=Be16(config,64);m.Level=config[67];m.LayoutCode=0;
+            if(m.RaidDisks<1||m.RaidDisks>RaidImageBuilder.MaximumMembers||m.RaidDisks>maxEntries)throw new Failure("MD_ROLE_TABLE_BOUNDS");
+            if(config[69]!=1||config[70]!=0||config[71]!=255)Reject(m,"MD_DDF_SECONDARY_LAYOUT_UNSUPPORTED");
+            int qualifier=config[68];if(m.Level==5){if(qualifier==2)m.LayoutCode=0;else if(qualifier==0)m.LayoutCode=1;else if(qualifier==3)m.LayoutCode=2;else Reject(m,"MD_PARITY_LAYOUT_UNSUPPORTED");}else if(m.Level==0||m.Level==1){if(qualifier!=0)Reject(m,"MD_DDF_LAYOUT_UNSUPPORTED");}else{Reject(m,"MD_DDF_LAYOUT_UNSUPPORTED");m.ChecksumValid=true;return m;}
+            int shift=config[66];if(m.Level==1&&shift==255)m.ChunkBytes=0;else if(shift>13)Reject(m,"MD_CHUNK_UNSUPPORTED");else m.ChunkBytes=512L<<shift;m.ComponentBytes=Bytes(Be64(config,72));
+            int data=m.Level==0?m.RaidDisks:m.Level==5?m.RaidDisks-1:1;if(data<1||m.ComponentBytes<=0||Be64(config,80)!=(ulong)(m.ComponentBytes/512)*(ulong)data)throw new Failure("MD_DDF_ARRAY_SIZE_INVALID");
+            m.Clean=vd[ventry+32]==0&&(vd[ventry+33]&0x3f)==2;if(!m.Clean)Reject(m,"MD_ARRAY_NOT_FULLY_SYNCED");if((Be16(vd,ventry+30)&4)!=0)Reject(m,"MD_DDF_UNICODE_NAME_UNSUPPORTED");
+            var references=new HashSet<uint>();for(int role=0;role<m.RaidDisks;role++){uint reference=U32(config,512+role*4,true);int entry;if(!references.Add(reference)||!physical.TryGetValue(reference,out entry))throw new Failure("MD_ROLE_TABLE_INCONSISTENT");ushort state=Be16(pd,entry+30),type=Be16(pd,entry+28);if((type&2)==0||(type&~0x0f03)!=0||state!=1)Reject(m,"MD_DDF_MEMBER_STATE_UNSUPPORTED");long start=Bytes(Be64(config,512+maxEntries*4+role*8));long available=Bytes(Be64(pd,entry+32));if(start>available||m.ComponentBytes>available-start)throw new Failure("MD_DATA_OR_SUPER_OFFSET_INVALID");if(reference==ownRef){m.Role=role;m.DataOffset=start;}}
+            if(m.Role<0)Reject(m,"MD_NOT_ACTIVE_MEMBER");m.Active=m.Role>=0;for(int role=m.RaidDisks;role<maxEntries;role++)if(U32(config,512+role*4,true)!=UInt32.MaxValue)Reject(m,"MD_ROLE_TABLE_INCONSISTENT");
+            m.RoleMapSha256=Hash(anchor.Skip(8).Take(24).Concat(config.Skip(512).Take(maxEntries*12)).Concat(pd).ToArray());m.MetadataSha256=Hash(anchor.Concat(h).Concat(sections.SelectMany(b=>b)).ToArray());m.ChecksumValid=true;Layout(m);return m;
         }
 
         static void ProbeFile(string value,Report report,Dictionary<string,string> identities,CancellationToken cancel)
@@ -427,11 +387,16 @@ namespace UsbRecovery
                             report.Members.Add(member);continue;
                         }
                         if(pair.Key==length-1024&&length>=1024&&Encoding.ASCII.GetString(head,0,24)=="Intel Raid ISM Cfg Sig. "){
-                            byte[] b=new byte[1024];Buffer.BlockCopy(head,0,b,0,head.Length);byte[] rest=Read(file,pair.Key+head.Length,1024-head.Length,report,cancel);Buffer.BlockCopy(rest,0,b,head.Length,rest.Length);
-                            observed.Add(new KeyValuePair<long,byte[]>(pair.Key,b));report.Members.Add(VersionImsm(b,full,length,pair.Key));continue;
+                            observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));report.Members.Add(VersionImsm(head,full,length,pair.Key,file,report,observed,cancel));continue;
                         }
-                        if(pair.Key==length-512&&magic==0xDE11DE11){observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));report.Members.Add(VersionDdf(head,full,length,pair.Key));continue;}
-                        if(pair.Key==4096&&head[0]==0x4d&&head[1]==0x53&&head[2]==0x46&&head[3]==0x54&&head[4]==0&&head[5]==0&&head[6]==0&&head[7]==0){observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));report.Members.Add(VersionStorageSpaces(head,full,length,pair.Key));continue;}
+                        if(pair.Key==length-512&&(magic==0x11DE11DE||magic==0xDE11DE11)){
+                            observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));
+                            if(magic==0x11DE11DE)report.Members.Add(VersionDdf(head,full,length,pair.Key,file,report,observed,cancel));
+                            else report.Members.Add(new Member{Path=full,FileBytes=length,MetadataOffset=pair.Key,Format="ddf",Status="invalid",Code="MD_DDF_BYTE_ORDER_INVALID",Reasons=new List<string>{"MD_DDF_BYTE_ORDER_INVALID"}});continue;
+                        }
+                        if(pair.Key==4096&&Encoding.ASCII.GetString(head,0,4)=="MSFT"){
+                            observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));report.Members.Add(new Member{Path=full,FileBytes=length,MetadataOffset=pair.Key,Status="unsupported",Code="MD_UNVERIFIED_STORAGE_METADATA",Reasons=new List<string>{"MD_UNVERIFIED_STORAGE_METADATA"}});continue;
+                        }
                         observed.Add(new KeyValuePair<long,byte[]>(pair.Key,head));
                     }
                     foreach(var pair in observed)if(!pair.Value.SequenceEqual(Read(file,pair.Key,pair.Value.Length,report,cancel)))throw new Failure("MD_SOURCE_CHANGED");Identity after;if(!GetFileInformationByHandle(file.SafeFileHandle,out after)||before.Volume!=after.Volume||before.IndexHigh!=after.IndexHigh||before.IndexLow!=after.IndexLow||before.WrittenHigh!=after.WrittenHigh||before.WrittenLow!=after.WrittenLow||before.SizeHigh!=after.SizeHigh||before.SizeLow!=after.SizeLow)throw new Failure("MD_SOURCE_CHANGED");
@@ -464,7 +429,7 @@ namespace UsbRecovery
 
             if(list.Any(m=>m.Events!=first.Events)){group.Status="inconsistent";Reason(group,"MD_EVENT_COUNTER_MISMATCH");return group;}
 
-            if(list.GroupBy(m=>m.DeviceNumber).Any(g=>g.Count()>1)||list.Where(m=>m.Active).GroupBy(m=>m.Role).Any(g=>g.Count()>1)||list.Where(m=>!String.IsNullOrEmpty(m.DeviceUuid)&&m.DeviceUuid!=Guid.Empty.ToString()).GroupBy(m=>m.DeviceUuid).Any(g=>g.Count()>1)){
+            if(list.Where(m=>m.DeviceNumber>=0).GroupBy(m=>m.DeviceNumber).Any(g=>g.Count()>1)||list.Where(m=>m.Active).GroupBy(m=>m.Role).Any(g=>g.Count()>1)||list.Where(m=>!String.IsNullOrEmpty(m.DeviceUuid)&&m.DeviceUuid!=Guid.Empty.ToString()).GroupBy(m=>m.DeviceUuid).Any(g=>g.Count()>1)){
 
                 group.Status="ambiguous";Reason(group,"MD_DUPLICATE_DEVICE_OR_ROLE");return group;
 

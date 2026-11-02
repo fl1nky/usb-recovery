@@ -24,7 +24,7 @@ namespace UsbRecovery
             var root=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=5,Padding=new Padding(18)};
             root.RowStyles.Add(new RowStyle(SizeType.Absolute,44));root.RowStyles.Add(new RowStyle(SizeType.Absolute,38));
             root.RowStyles.Add(new RowStyle(SizeType.Percent,100));root.RowStyles.Add(new RowStyle(SizeType.Absolute,56));root.RowStyles.Add(new RowStyle(SizeType.Absolute,42));Controls.Add(root);
-            root.Controls.Add(new Label{Text="Найдена разметка массива (Linux MD / Intel IMSM / DDF / Storage Spaces). Выбери массив и проверь его состав перед сборкой.",Dock=DockStyle.Fill},0,0);
+            root.Controls.Add(new Label{Text="Разметка массива Linux MD / SNIA DDF. Выбери поддерживаемый массив и проверь его состав перед сборкой.",Dock=DockStyle.Fill},0,0);
             arrays.DropDownStyle=ComboBoxStyle.DropDownList;arrays.Dock=DockStyle.Fill;arrays.Name="raid-detected-groups";
             foreach(var group in groups)arrays.Items.Add("RAID "+group.Level+" · "+group.RaidDisks+" дисков · "+(group.Name??group.Uuid)+" · "+group.Format);
             root.Controls.Add(arrays,0,1);
@@ -51,6 +51,13 @@ namespace UsbRecovery
                 case "MD_DUPLICATE_DEVICE_OR_ROLE":case "MD_DUPLICATE_IMAGE":return "Повторяется образ, устройство или место в массиве";
                 case "MD_MULTIPLE_SUPERBLOCKS":return "В одном образе несколько вариантов разметки";
                 case "MD_ARRAY_NOT_FULLY_SYNCED":return "Синхронизация массива не завершена";
+                case "MD_IMSM_MEMBER_BINDING_REQUIRED":return "Intel IMSM: образ не привязан к серийному номеру физического участника; порядок дисков нужно подтвердить отдельно";
+                case "MD_UNVERIFIED_STORAGE_METADATA":return "Неподтверждённый заголовок хранилища; сборка Storage Spaces не поддерживается";
+                case "MD_DDF_OPEN_OR_FOREIGN":return "DDF: незавершённое обновление или чужая конфигурация";
+                case "MD_DDF_COPY_MISMATCH":case "MD_DDF_GENERATION_MISMATCH":return "DDF: резервные копии разметки не согласованы";
+                case "MD_DDF_MEMBER_BINDING_INVALID":case "MD_DDF_VIRTUAL_DISK_BINDING_INVALID":return "DDF: не подтверждена связь диска с составом массива";
+                case "MD_DDF_VOLUME_COUNT_UNSUPPORTED":case "MD_IMSM_VOLUME_COUNT_UNSUPPORTED":return "Эта многотомная конфигурация пока не поддерживается";
+                case "MD_CONTROLLER_METADATA_LIMIT":return "Разметка превышает поддерживаемый предел чтения";
                 case "MD_DATA_OR_SUPER_OFFSET_INVALID":case "MD_METADATA_DATA_OVERLAP":case "MD_LEGACY_GEOMETRY_INVALID":case "MD_SECTOR_OVERFLOW":return "Границы данных в разметке не согласованы с образом";
                 case "MD_ROLE_TABLE_INCONSISTENT":case "MD_DEVICE_NUMBER_INVALID":case "MD_ROLE_TABLE_BOUNDS":return "Не согласованы номера или роли участников";
                 case "MD_NOT_ACTIVE_MEMBER":return "Образ не отмечен как действующий участник";
