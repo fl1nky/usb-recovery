@@ -2,6 +2,7 @@
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'OfflineEvidence.ps1')
 $taskApp = [IO.Path]::GetFullPath($ApplicationDirectory)
+$taskProject = Split-Path -Parent $PSScriptRoot
 $taskGroup = 'TelegramRecoverySynthetic-' + [Guid]::NewGuid().ToString('N')
 $taskWorker = Join-Path $taskApp 'tools\recovery-helper\recovery-helper.exe'
 $taskHarness = Join-Path $taskApp 'TelegramOfflineHarness.exe'
