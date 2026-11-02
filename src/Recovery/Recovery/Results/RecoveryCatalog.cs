@@ -174,9 +174,9 @@ namespace UsbRecovery
         }
         static string UniqueExportPath(string output,string relative,RecoveredItem item,Dictionary<string,string> allocated,Dictionary<string,string> directories)
         {
-            // Keep the entire target within the classic Windows path limit,
+            // Keep space below the extended Windows path limit.
             // Temporary files use a separate short name in the output root.
-            int limit=208-output.Length;if(limit<52)throw new IOException("Выбери более короткий путь для экспорта.");
+            int limit=32000-output.Length;if(limit<52)throw new IOException("Выбери более короткий путь для экспорта.");
             if(relative.Length>limit)relative="Длинные пути/"+ShortHash(relative)+"_"+ExportComponent(item.Name,Math.Min(100,limit-27));
             var parts=relative.Split('/');string originalPrefix="",actualPrefix="";for(int i=0;i<parts.Length-1;i++){
                 originalPrefix+=(i==0?"":"/")+parts[i];string actual;if(!directories.TryGetValue(originalPrefix,out actual)){
@@ -188,7 +188,7 @@ namespace UsbRecovery
                 string extension=System.IO.Path.GetExtension(relative),baseName=relative.Substring(0,relative.Length-extension.Length);int suffix=1;string candidate;
                 do{candidate=baseName+"~"+item.Sha256.Substring(0,12).ToLowerInvariant()+(suffix==1?"":"-"+suffix.ToString(System.Globalization.CultureInfo.InvariantCulture))+extension;suffix++;}while(allocated.ContainsKey(candidate)||directories.Values.Contains(candidate,StringComparer.OrdinalIgnoreCase));relative=candidate;
             }
-            if(relative.Length+output.Length>240)relative="Длинные пути/"+ShortHash(relative)+"_"+ShortHash(item.Sha256)+".bin";
+            if(relative.Length+output.Length>32700)relative="Длинные пути/"+ShortHash(relative)+"_"+ShortHash(item.Sha256)+".bin";
             if(allocated.ContainsKey(relative))throw new IOException("Конфликт имён экспорта. Выбери более короткий путь.");
             allocated.Add(relative,item.Sha256);return relative;
         }
@@ -216,8 +216,7 @@ namespace UsbRecovery
             try {
                 foreach(var item in selected) {
                     selectedCount++;
-                    cancel.ThrowIfCancellationRequested();string source=SafeFile(root,item.Path),name=String.Concat(item.Name.Where(c=>Array.IndexOf(System.IO.Path.GetInvalidFileNameChars(),c)<0));
-                    if(name.Length>120)name=name.Substring(0,100)+System.IO.Path.GetExtension(name);if(name.Length==0)name="file";
+                    cancel.ThrowIfCancellationRequested();string source=SafeFile(root,item.Path),name=ExportComponent(item.Name,120);
                     var locations=preserveFolders?ExportLocations(item):new[]{new ExportLocation{Relative=(records.Count+1).ToString("D6")+"_"+name,Status="flat_export"}};
                     foreach(var location in locations){
                     cancel.ThrowIfCancellationRequested();string relative=UniqueExportPath(output,location.Relative,item,allocated,directories),target=SafeFile(output,relative),partial=SafeFile(output,".export-"+Guid.NewGuid().ToString("N")+".partial");Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target));SafeFile(output,relative);

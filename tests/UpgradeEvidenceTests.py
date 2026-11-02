@@ -33,6 +33,7 @@ class EvidenceBinding(unittest.TestCase):
             "dependencies": [{"path": name, "sha256_before": sha(self.ready / name), "sha256_after": sha(self.ready / name)} for name in sorted(DEPENDENCIES)],
             "tests": [{"name": "Suite", "status": "passed", "assertions": 8, "summary": "PASS example: 8 checks; synthetic only.",
                        "log": self.log.name, "log_sha256": sha(self.log), "harness_sha256": "a" * 64,
+                       "harness_config_sha256": sha(self.ready / "USB-Recovery.exe.config"),
                        "sources": [{"path": "Suite.cs", "sha256": sha(self.tests / "Suite.cs")}],
                        "started_utc": "2026-10-30T01:00:01Z", "completed_utc": "2026-10-30T01:00:03Z"}]
         }
@@ -47,6 +48,14 @@ class EvidenceBinding(unittest.TestCase):
     def rejected(self, report=None):
         with self.assertRaises(ValidationError):
             self.verify(report)
+
+    def test_unbound_harness_runtime_configuration_is_rejected(self):
+        self.report["tests"][0]["harness_config_sha256"] = "b" * 64
+        self.rejected()
+
+    def test_modified_runtime_configuration_is_rejected(self):
+        (self.ready / "USB-Recovery.exe.config").write_bytes(b"changed runtime behavior")
+        self.rejected()
 
     def test_exact_binary_source_log_binding(self):
         self.assertEqual(self.verify()["tests"][0]["assertions"], 8)

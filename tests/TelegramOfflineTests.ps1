@@ -25,17 +25,18 @@ try {
     $taskProfiles = @(Get-NetFirewallProfile)
     if ($taskProfiles.Where({ -not $_.Enabled }).Count) { throw 'Firewall profiles must be enabled for enforced offline check.' }
     $taskSourceProofs.TelegramPortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramPortableTests.cs")
-    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskHarness" "$PSScriptRoot\TelegramPortableTests.cs"
+    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskHarness" "$PSScriptRoot\TelegramPortableTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if ($LASTEXITCODE -ne 0) { throw 'Offline harness build failed.' }
     $taskSourceProofs.TelegramNativePortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramNativePortableTests.cs")
-    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskNativeHarness" "$PSScriptRoot\TelegramNativePortableTests.cs"
+    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskNativeHarness" "$PSScriptRoot\TelegramNativePortableTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if ($LASTEXITCODE -ne 0) { throw 'Native Telegram offline harness build failed.' }
     $taskSourceProofs.TelegramMediaPortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramMediaPortableTests.cs")
-    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskMediaHarness" "$PSScriptRoot\TelegramMediaPortableTests.cs"
+    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskMediaHarness" "$PSScriptRoot\TelegramMediaPortableTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if ($LASTEXITCODE -ne 0) { throw 'Media Telegram offline harness build failed.' }
     $taskSourceProofs.TelegramDeletedPortable=New-RecoveryTestSources @("$PSScriptRoot\TelegramDeletedPortableTests.cs","$PSScriptRoot\build_telegram_deleted_fixtures.py","$PSScriptRoot\TelegramDeletedTests.py","$PSScriptRoot\TelegramResidualProvenanceTests.py","$PSScriptRoot\build_telegram_native_fixtures.py")
-    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskDeletedHarness" "$PSScriptRoot\TelegramDeletedPortableTests.cs"
+    & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskDeletedHarness" "$PSScriptRoot\TelegramDeletedPortableTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if($LASTEXITCODE-ne0){throw 'Deleted Telegram portable harness build failed.'}
+    foreach($taskFile in $taskHarnesses){Initialize-RecoveryHarnessRuntime $taskFile $taskApp}
     foreach ($taskProgram in @($taskWorker) + $taskHarnesses) {
         New-NetFirewallRule -DisplayName 'Telegram recovery temporary synthetic offline check' -Name ($taskGroup + '-' + $taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True | Out-Null
         $taskResult.outbound_rules++
@@ -73,7 +74,7 @@ try {
     Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue | Remove-NetFirewallRule
     $taskResult.rules_removed = @(Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue).Count -eq 0
     Complete-RecoveryOfflineEvidence $taskResult
-    foreach ($taskFile in $taskHarnesses) { if (Test-Path -LiteralPath $taskFile) { Remove-Item -LiteralPath $taskFile } }
+    foreach ($taskHarnessFile in $taskHarnesses) { foreach($taskFile in @($taskHarnessFile,($taskHarnessFile+".config"))){if (Test-Path -LiteralPath $taskFile) { Remove-Item -LiteralPath $taskFile }} }
     $taskResult | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'TelegramOffline-validation.json') -Encoding UTF8
 }
 if($taskResult.status-ne'passed'){throw 'Packaged evidence did not bind unchanged tested binaries.'}

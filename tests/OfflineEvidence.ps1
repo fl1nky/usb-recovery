@@ -3,12 +3,15 @@ $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 function Get-RecoveryEvidenceHash([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
+function Initialize-RecoveryHarnessRuntime([string]$Harness,[string]$ApplicationDirectory) {
+    Copy-Item -LiteralPath (Join-Path $ApplicationDirectory 'USB-Recovery.exe.config') -Destination ($Harness+'.config')
+}
 function New-RecoveryOfflineEvidence([string]$ApplicationDirectory,[string]$Scope,[string]$Runner) {
     $taskEvidenceDependencies=@()
     # Bind the executable entry points AND their transitive dependency sets.
     # Final verification hashes every file listed by these two inventories;
     # replacing a DLL/PYD and regenerating an inventory invalidates this run.
-    foreach($taskRelative in 'USB-Recovery.exe','tools\recovery-helper\recovery-helper.exe','tools\testdisk-7.2\photorec_win.exe','tools\testdisk-7.2\testdisk_win.exe','package-sha256.json','tools\recovery-helper\runtime-SHA256.json') {
+    foreach($taskRelative in 'USB-Recovery.exe','USB-Recovery.exe.config','tools\recovery-helper\recovery-helper.exe','tools\testdisk-7.2\photorec_win.exe','tools\testdisk-7.2\testdisk_win.exe','package-sha256.json','tools\recovery-helper\runtime-SHA256.json') {
         $taskCandidate=Join-Path $ApplicationDirectory $taskRelative
         if(Test-Path -LiteralPath $taskCandidate -PathType Leaf) {
             $taskEvidenceDependencies+= [ordered]@{path=$taskRelative.Replace('\','/');sha256_before=(Get-RecoveryEvidenceHash $taskCandidate);sha256_after=$null}
@@ -25,9 +28,13 @@ function New-RecoveryOfflineEvidence([string]$ApplicationDirectory,[string]$Scop
     }
 }
 function New-RecoveryTestSources([string[]]$Paths) {
-    return @($Paths | ForEach-Object { [ordered]@{path=[IO.Path]::GetFileName($_);sha256=(Get-RecoveryEvidenceHash $_)} })
+    $taskPaths=@($Paths);$taskTarget=Join-Path $PSScriptRoot 'FrameworkTarget.cs'
+    if($taskPaths-notcontains$taskTarget){$taskPaths+=$taskTarget}
+    return @($taskPaths | ForEach-Object { [ordered]@{path=[IO.Path]::GetFileName($_);sha256=(Get-RecoveryEvidenceHash $_)} })
 }
 function Add-RecoveryTestEvidence($Report,[string]$Name,[string]$Log,[string]$Harness,$Sources,[string]$StartedUtc) {
+    $taskConfigHash=Get-RecoveryEvidenceHash ($Harness+'.config')
+    if($taskConfigHash-ne(Get-RecoveryEvidenceHash (Join-Path $Report.application 'USB-Recovery.exe.config'))){throw ('Harness runtime configuration changed: '+$Name)}
     $taskSummary=[string](Get-Content -LiteralPath $Log -Tail 1)
     $taskMatch=[regex]::Match($taskSummary,'(?i)\b(\d+)\s+(?:[A-Za-z-]+\s+){0,4}(?:assertions|checks)\b')
     if(-not $taskMatch.Success -or [int]$taskMatch.Groups[1].Value -le 0){throw ('Missing actual assertion count: '+$Name)}
@@ -37,7 +44,7 @@ function Add-RecoveryTestEvidence($Report,[string]$Name,[string]$Log,[string]$Ha
     $Report.tests+= [ordered]@{
         name=$Name;status='passed';assertions=[int]$taskMatch.Groups[1].Value;summary=$taskSummary
         log=[IO.Path]::GetFileName($Log);log_sha256=(Get-RecoveryEvidenceHash $Log)
-        harness_sha256=(Get-RecoveryEvidenceHash $Harness);sources=@($Sources)
+        harness_sha256=(Get-RecoveryEvidenceHash $Harness);harness_config_sha256=$taskConfigHash;sources=@($Sources)
         started_utc=$StartedUtc;completed_utc=[DateTime]::UtcNow.ToString('o')
     }
 }

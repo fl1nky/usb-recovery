@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 READY_NAME = "dist/USB-Recovery"
 COUNT = re.compile(r"\b(\d+)\s+(?:[A-Za-z-]+\s+){0,4}(?:assertions|checks)\b", re.I)
 DIGEST = re.compile(r"[a-f0-9]{64}\Z")
-DEPENDENCIES = {"USB-Recovery.exe", "tools/recovery-helper/recovery-helper.exe",
+DEPENDENCIES = {"USB-Recovery.exe", "USB-Recovery.exe.config", "tools/recovery-helper/recovery-helper.exe",
                 "tools/testdisk-7.2/photorec_win.exe", "tools/testdisk-7.2/testdisk_win.exe",
                 "package-sha256.json", "tools/recovery-helper/runtime-SHA256.json"}
 SOURCE_TREES = ("src", "scripts", "helpers/recovery_engine", "vendor/iphone-backup-decrypt", "docs")
@@ -54,8 +54,8 @@ def safe(base, relative):
 
 def repository_runtime(root, relative):
     """Map package names to their actual build/source counterpart."""
-    if relative == "USB-Recovery.exe":
-        return safe(root, ".build/app/USB-Recovery.exe")
+    if relative in ("USB-Recovery.exe", "USB-Recovery.exe.config"):
+        return safe(root, ".build/app/" + relative)
     if relative.startswith("source/"):
         return safe(root, relative[len("source/"):])
     return safe(root, relative)
@@ -184,6 +184,8 @@ def verify_offline(report_name, root, ready):
         lines = log.read_text(encoding="utf-8-sig").splitlines()
         require(bool(lines) and lines[-1] == suite.get("summary"), "summary does not match actual log: " + name)
         require(type(suite.get("assertions")) is int and suite["assertions"] == actual_count(lines[-1]), "stored count does not match log: " + name)
+        require(suite.get("harness_config_sha256") == sha(safe(ready, "USB-Recovery.exe.config")),
+                "harness runtime configuration was not bound: " + name)
         require(isinstance(suite.get("harness_sha256"), str) and DIGEST.fullmatch(suite["harness_sha256"]) is not None,
                 "missing tested harness digest")
         sources = suite.get("sources", [])
@@ -211,7 +213,7 @@ def verify(root=ROOT):
         require(path.stat().st_size == entry.get("bytes") and sha(path) == entry.get("sha256"), "package checksum: " + relative)
         require(sha(repository_runtime(root, relative)) == entry.get("sha256"), "build/runtime differs: " + relative)
     actual = {path.relative_to(ready).as_posix() for path in ready.rglob("*")
-              if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd")}
+              if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd", ".config")}
     require(actual == names, "unlisted runtime binary or missing packaged binary")
     application = sha(ready / "USB-Recovery.exe")
     require(application == sha(root / ".build/app/USB-Recovery.exe"), "built executable differs from delivery")
@@ -229,7 +231,7 @@ def verify(root=ROOT):
     actual_helper = {path.relative_to(helper).as_posix() for path in helper.rglob("*") if path.is_file()}
     require(actual_helper == helper_names | {"runtime-SHA256.json"}, "unlisted helper files")
     reports = {name: verify_offline(name + "Offline-validation.json", root, ready) for name in ("Quality", "Telegram", "Usb")}
-    required = {"ContentQualityTests", "ArchiveSalvageTests", "MetadataRescueTests", "NewEngineIntegrationTests",
+    required = {"LongPathRecoveryTests", "ContentQualityTests", "ArchiveSalvageTests", "MetadataRescueTests", "NewEngineIntegrationTests",
                 "ResumableCaptureTests", "RecoverySessionTests", "FolderProvenanceTests", "FolderExportTests",
                 "FragmentedZipRecoveryTests", "UserSignatureRecoveryTests", "SignatureUiIntegrationTests",
                 "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests",

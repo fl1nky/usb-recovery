@@ -60,7 +60,7 @@ def audit():
                 "runtime mismatch: " + row["path"])
         require(sha(repository_runtime(ROOT, row["path"])) == row["sha256"], "build/runtime differs: " + row["path"])
     actual = {path.relative_to(READY).as_posix() for path in READY.rglob("*")
-              if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd")}
+              if path.is_file() and path.suffix.lower() in (".exe", ".dll", ".pyd", ".config")}
     require(actual == names, "unexpected runtime binary or temporary harness remains: " + str(sorted(actual ^ names)))
 
     sources = verify_sources(ROOT, READY)

@@ -5,10 +5,12 @@
     <AssemblyName>USB-Recovery</AssemblyName>
     <RootNamespace>UsbRecovery</RootNamespace>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <PlatformTarget>x64</PlatformTarget>
     <Optimize>true</Optimize>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AppConfig>app.config</AppConfig>
     <OutputPath>..\..\.build\app\</OutputPath>
     <IntermediateOutputPath>..\..\.build\obj\</IntermediateOutputPath>
   </PropertyGroup>

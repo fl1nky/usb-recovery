@@ -107,11 +107,12 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskScaleFixtures 'manifest.json'))){
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {
- & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+(Join-Path $taskLayout.App 'USB-Recovery.exe')) ("/out:"+$taskBaseline) (Join-Path $taskLayout.Tests 'CommercialComparisonBaseline.cs')
+ & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ ("/win32manifest:"+(Join-Path $taskLayout.Source 'app.manifest')) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+(Join-Path $taskLayout.App 'USB-Recovery.exe')) ("/out:"+$taskBaseline) (Join-Path $taskLayout.Tests 'CommercialComparisonBaseline.cs') (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
  if($LASTEXITCODE-ne0){throw 'Comparison regression build failed.'}
+ Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe.config') -Destination ($taskBaseline+'.config')
  & $taskBaseline $taskLayout.Root 'CommercialComparison-after.json'
  if($LASTEXITCODE-ne0){throw 'Comparison regression failed.'}
-} finally {if(Test-Path -LiteralPath $taskBaseline){Remove-Item -LiteralPath $taskBaseline}}
+} finally {foreach($taskFile in @($taskBaseline,($taskBaseline+'.config'))){if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile}}}
 foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflineTests.ps1'){
  & (Join-Path $taskLayout.Tests $name) -ApplicationDirectory $ApplicationDirectory
 }

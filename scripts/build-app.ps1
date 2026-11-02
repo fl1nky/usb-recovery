@@ -9,4 +9,5 @@ if(-not $taskSources.Count){throw 'No application sources found.'}
 $taskArguments=@('/nologo','/target:winexe','/platform:x64','/optimize+','/warnaserror+','/codepage:65001',('/win32manifest:'+ (Join-Path $taskLayout.Source 'app.manifest')),'/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:System.Web.Extensions.dll',('/out:'+(Join-Path $taskLayout.App 'USB-Recovery.exe')))
 & $taskCompiler @taskArguments @taskSources
 if($LASTEXITCODE-ne 0){throw 'Application build failed.'}
+Copy-Item -LiteralPath (Join-Path $taskLayout.Source 'app.config') -Destination (Join-Path $taskLayout.App 'USB-Recovery.exe.config')
 Write-Output ('Built: '+(Join-Path $taskLayout.App 'USB-Recovery.exe'))

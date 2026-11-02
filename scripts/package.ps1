@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
 $taskRoot=$taskLayout.Root
@@ -18,12 +18,13 @@ function Copy-RecoveryTree([string]$Source,[string]$Target){
  & (Join-Path $env:WINDIR 'System32\robocopy.exe') $Source $Target /E /XJ /R:1 /W:1 /MT:16 /NFL /NDL /NJH /NJS /NP /XD .git __pycache__ .pytest_cache bin obj|Out-Null
  if($LASTEXITCODE-ge8){throw 'Package copying failed.'}
 }
-foreach($relative in '.build\app\USB-Recovery.exe','tools\recovery-helper\recovery-helper.exe','tools\platform-tools\adb.exe','tools\testdisk-7.2\photorec_win.exe'){
+foreach($relative in '.build\app\USB-Recovery.exe','.build\app\USB-Recovery.exe.config','tools\recovery-helper\recovery-helper.exe','tools\platform-tools\adb.exe','tools\testdisk-7.2\photorec_win.exe'){
  if(-not(Test-Path -LiteralPath (Join-Path $taskRoot $relative) -PathType Leaf)){throw ('Missing dependency: '+$relative)}
 }
 $null=Assert-RecoveryPath $taskStage
 New-Item -ItemType Directory -Path $taskStage -Force|Out-Null
 Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe') -Destination (Join-Path $taskStage 'USB-Recovery.exe')
+Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe.config') -Destination (Join-Path $taskStage 'USB-Recovery.exe.config')
 Copy-Item -LiteralPath (Join-Path $taskRoot 'README.md') -Destination (Join-Path $taskStage 'README.md')
 Copy-RecoveryTree (Join-Path $taskRoot 'docs') (Join-Path $taskStage 'docs')
 $taskSource=Join-Path $taskStage 'source'
@@ -44,7 +45,7 @@ foreach($relative in 'fixtures\media-units','fixtures\hevc-recovery','fixtures\h
 foreach($name in 'recovery-helper','testdisk-7.2'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}
 $taskAdb=Join-Path $taskStage 'tools\platform-tools';New-Item -ItemType Directory -Path $taskAdb -Force|Out-Null
 foreach($name in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','NOTICE.txt','source.properties'){Copy-Item -LiteralPath (Join-Path $taskLayout.Tools ('platform-tools\'+$name)) -Destination (Join-Path $taskAdb $name)}
-$taskHashes=Get-ChildItem -LiteralPath $taskStage -Recurse -File|Where-Object {$_.Extension-in'.exe','.dll','.pyd'}|ForEach-Object{[pscustomobject]@{path=$_.FullName.Substring($taskStage.Length+1).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant();bytes=$_.Length}}
+$taskHashes=Get-ChildItem -LiteralPath $taskStage -Recurse -File|Where-Object {$_.Extension-in'.exe','.dll','.pyd','.config'}|ForEach-Object{[pscustomobject]@{path=$_.FullName.Substring($taskStage.Length+1).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant();bytes=$_.Length}}
 $taskHashes|ConvertTo-Json -Depth 3|Set-Content -LiteralPath (Join-Path $taskStage 'package-sha256.json') -Encoding UTF8
 $null=Assert-RecoveryPath $taskReady
 New-Item -ItemType Directory -Path (Split-Path -Parent $taskReady) -Force|Out-Null

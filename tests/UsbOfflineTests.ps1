@@ -16,8 +16,9 @@ try {
         New-NetFirewallRule -DisplayName 'USB deep recovery temporary offline test' -Name ($taskGroup+'-'+$taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True | Out-Null
         $taskResult.outbound_rules++
     }
-    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskHarness" "$PSScriptRoot\UsbPackagedTests.cs"
+    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskHarness" "$PSScriptRoot\UsbPackagedTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if($LASTEXITCODE -ne 0){throw 'Packaged test build failed.'}
+    Initialize-RecoveryHarnessRuntime $taskHarness $taskApp
     $env:PATH=Join-Path $env:WINDIR 'System32'
     $taskResult.python_on_path=[bool](Get-Command python.exe -ErrorAction SilentlyContinue)
     if($taskResult.python_on_path){throw 'Python unexpectedly on restricted PATH.'}
@@ -32,7 +33,7 @@ try {
     Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue | Remove-NetFirewallRule
     $taskResult.rules_removed=@(Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue).Count -eq 0
     Complete-RecoveryOfflineEvidence $taskResult
-    if(Test-Path -LiteralPath $taskHarness){Remove-Item -LiteralPath $taskHarness}
+    foreach($taskFile in @($taskHarness,($taskHarness+".config"))){if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile}}
     $taskResult|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'UsbOffline-validation.json') -Encoding UTF8
 }
 if($taskResult.status-ne'passed'){throw 'Packaged evidence did not bind unchanged tested binaries.'}
