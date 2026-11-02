@@ -69,7 +69,7 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskExt4Fixtures 'manifest.json'))){
 $taskRefsFixtures=Join-Path $taskLayout.Root '.build\refs-fixtures-current'
 if(-not(Test-Path -LiteralPath (Join-Path $taskRefsFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'refs_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\refs') --destination $taskRefsFixtures
- if($LASTEXITCODE-ne0){throw 'Offline ReFS fixture extraction failed.'}
+ if($LASTEXITCODE-ne0){throw 'Offline ReFS fixture extraction failed.'} } $taskRaidCtrlFixtures=Join-Path $taskLayout.Root '.build\raid-controller-fixtures-current'; if(-not(Test-Path -LiteralPath (Join-Path $taskRaidCtrlFixtures 'manifest.json'))){ & $Python312 (Join-Path $taskLayout.Tests 'raid_controller_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\raid-controller') $taskRaidCtrlFixtures; if($LASTEXITCODE-ne0){throw 'Offline RAID controller fixture extraction failed.'}
 }
 $taskHeapFixtures=Join-Path $taskLayout.Root '.build\telegram-heap-portable-fixtures'
 if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){

@@ -24,7 +24,7 @@ namespace UsbRecovery
             var root=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=5,Padding=new Padding(18)};
             root.RowStyles.Add(new RowStyle(SizeType.Absolute,44));root.RowStyles.Add(new RowStyle(SizeType.Absolute,38));
             root.RowStyles.Add(new RowStyle(SizeType.Percent,100));root.RowStyles.Add(new RowStyle(SizeType.Absolute,56));root.RowStyles.Add(new RowStyle(SizeType.Absolute,42));Controls.Add(root);
-            root.Controls.Add(new Label{Text="Найдена разметка Linux MD. Выбери массив и проверь его состав перед сборкой.",Dock=DockStyle.Fill},0,0);
+            root.Controls.Add(new Label{Text="Найдена разметка массива (Linux MD / Intel IMSM / DDF / Storage Spaces). Выбери массив и проверь его состав перед сборкой.",Dock=DockStyle.Fill},0,0);
             arrays.DropDownStyle=ComboBoxStyle.DropDownList;arrays.Dock=DockStyle.Fill;arrays.Name="raid-detected-groups";
             foreach(var group in groups)arrays.Items.Add("RAID "+group.Level+" · "+group.RaidDisks+" дисков · "+(group.Name??group.Uuid)+" · "+group.Format);
             root.Controls.Add(arrays,0,1);
@@ -55,7 +55,7 @@ namespace UsbRecovery
                 case "MD_ROLE_TABLE_INCONSISTENT":case "MD_DEVICE_NUMBER_INVALID":case "MD_ROLE_TABLE_BOUNDS":return "Не согласованы номера или роли участников";
                 case "MD_NOT_ACTIVE_MEMBER":return "Образ не отмечен как действующий участник";
                 case "RAID_TOO_MANY_MISSING":case "RAID_MIRROR_PAIR_MISSING":return "Недостаточно участников для сборки";
-                case "MD_NOT_FOUND":return "Разметка Linux MD не найдена";
+                case "MD_NOT_FOUND":return "Поддерживаемая разметка массива не найдена";
                 case "MD_SOURCE_ACCESS_DENIED":return "Нет доступа к образу";
                 case "MD_SOURCE_IO_FAILED":case "MD_SOURCE_TRUNCATED":return "Не удалось полностью прочитать разметку";
                 case "MD_SOURCE_CHANGED":return "Образ изменился во время чтения";

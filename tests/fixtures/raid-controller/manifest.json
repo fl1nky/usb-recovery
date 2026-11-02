@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "format": "raid_controller_fixtures",
+  "cases": [
+    {
+      "name": "imsm-raid0-1.dd.gz",
+      "format": "imsm",
+      "level": 0,
+      "disks": 2,
+      "role": 0,
+      "sha256": "9b10260d5304357ba08011873bdada5055429251314e7f4368e74b5e302f84a4",
+      "bytes": 131072
+    },
+    {
+      "name": "imsm-raid0-2.dd.gz",
+      "format": "imsm",
+      "level": 0,
+      "disks": 2,
+      "role": 1,
+      "sha256": "465c4fdfeb64445b7a1a6733d6c390d4c0259057f8dcb8192f59ec8ba896704d",
+      "bytes": 131072
+    },
+    {
+      "name": "imsm-raid1-1.dd.gz",
+      "format": "imsm",
+      "level": 1,
+      "disks": 2,
+      "role": 0,
+      "sha256": "21ebf5cb108c604d48d93c22544b88854fb70c49a05fda7ed6eedd3d086b7774",
+      "bytes": 131072
+    },
+    {
+      "name": "imsm-raid1-2.dd.gz",
+      "format": "imsm",
+      "level": 1,
+      "disks": 2,
+      "role": 1,
+      "sha256": "62e996786026a0470467ede93b67c0a687cfb9ded3e2728ee6d3f1769f7652e5",
+      "bytes": 131072
+    },
+    {
+      "name": "imsm-raid5-1.dd.gz",
+      "format": "imsm",
+      "level": 5,
+      "disks": 3,
+      "role": 0,
+      "sha256": "4ee15517a346c6f5ac48e5bec73c45c2a0debdebfbec48331fd15fc3a7144eb5",
+      "bytes": 196608
+    },
+    {
+      "name": "imsm-raid5-2.dd.gz",
+      "format": "imsm",
+      "level": 5,
+      "disks": 3,
+      "role": 1,
+      "sha256": "e2bbf17a2c87af77e7e24edd172c6c8307b98777e713d5ff2fab83b427dbc86d",
+      "bytes": 196608
+    },
+    {
+      "name": "imsm-raid5-3.dd.gz",
+      "format": "imsm",
+      "level": 5,
+      "disks": 3,
+      "role": 2,
+      "sha256": "abb39413d972e9f2278e58374f01032af92ec0a99359ae300e878a1f40f3dd95",
+      "bytes": 196608
+    },
+    {
+      "name": "ddf-raid0-1.dd.gz",
+      "format": "ddf",
+      "level": 0,
+      "disks": 2,
+      "role": 0,
+      "sha256": "821527c6a9f71e10144d6c75721efcabf3e4317f2e1ace0dc1b656193e7f827b",
+      "bytes": 131072
+    },
+    {
+      "name": "ddf-raid0-2.dd.gz",
+      "format": "ddf",
+      "level": 0,
+      "disks": 2,
+      "role": 1,
+      "sha256": "28fab8ae3b4becdf4e9de07281289db1f892261caaf741ed88f97535c284ae2e",
+      "bytes": 131072
+    },
+    {
+      "name": "ddf-raid1-1.dd.gz",
+      "format": "ddf",
+      "level": 1,
+      "disks": 2,
+      "role": 0,
+      "sha256": "f56143df3b61464e83e14b39e3f63baef78251bd948dfec82b1c2306721f06dc",
+      "bytes": 131072
+    },
+    {
+      "name": "ddf-raid1-2.dd.gz",
+      "format": "ddf",
+      "level": 1,
+      "disks": 2,
+      "role": 1,
+      "sha256": "8177fe64cddbd9ca89f00b314e04dd6eab5c872568a64df9dffc69ea0a0ad80b",
+      "bytes": 131072
+    },
+    {
+      "name": "spaces-simple-1.dd.gz",
+      "format": "storage-spaces",
+      "level": 0,
+      "disks": 2,
+      "role": 0,
+      "sha256": "ae65563b663b64d0e2204d71c4e370d4b70d4a2ea363549f54953366a08767da",
+      "bytes": 131072
+    },
+    {
+      "name": "spaces-simple-2.dd.gz",
+      "format": "storage-spaces",
+      "level": 0,
+      "disks": 2,
+      "role": 1,
+      "sha256": "2c519b71f250f0f379213a6aac1c47f62c69bda71937d9a529bbac26ce96c375",
+      "bytes": 131072
+    },
+    {
+      "name": "spaces-mirror-1.dd.gz",
+      "format": "storage-spaces",
+      "level": 1,
+      "disks": 2,
+      "role": 0,
+      "sha256": "976e5a77a58774b2d76b2e28d44c6f96305e429551841a5e13cbfdf732b51cd6",
+      "bytes": 65536
+    },
+    {
+      "name": "spaces-mirror-2.dd.gz",
+      "format": "storage-spaces",
+      "level": 1,
+      "disks": 2,
+      "role": 1,
+      "sha256": "194f5bd78e13193a43a726b81b7c1af4c4a769cb67806916d8cfa99ceefccedc",
+      "bytes": 65536
+    }
+  ]
+}

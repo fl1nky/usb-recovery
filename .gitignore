@@ -75,6 +75,7 @@
 !/tests/fixtures/raid-md/
 !/tests/fixtures/ext4/
 !/tests/fixtures/refs/
+!/tests/fixtures/raid-controller/
 
 !/tests/fixtures/aac-lc/
 
