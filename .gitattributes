@@ -16,3 +16,16 @@
 /tests/benchmarks/evidence-v8-scale/** -text whitespace=cr-at-eol
 
 /tests/benchmarks/evidence-v8-comparison/** -text whitespace=cr-at-eol
+
+# Keep pinned dependency metadata byte-identical to the portable rebuild bundle.
+/helpers/recovery_engine/requirements-lock.txt text eol=crlf
+/helpers/recovery_engine/requirements-wheel-lock.txt text eol=crlf
+/helpers/recovery_engine/storage-dependencies.json text eol=crlf
+/helpers/recovery_engine/vendor-pins.json text eol=crlf
+/tests/TelegramTlTests.py text eol=crlf
+/tests/ApfsRecoveryTests.py text eol=crlf
+/tests/BitLockerRecoveryTests.py text eol=crlf
+/tests/TelegramDeletedTests.py text eol=crlf
+/tests/TelegramResidualProvenanceTests.py text eol=crlf
+/tests/DeletedArchiveSearchTests.py text eol=crlf
+/tests/PngContextAuditTests.py text eol=crlf
