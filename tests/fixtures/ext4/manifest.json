@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "scope": "Synthetic regular image files only; real e2fsprogs metadata; no mounted filesystem or personal data.",
-  "generator_sha256": "8d76629ab3cb5436793b345474efcf27e9ae9bbf37046e0569cb68a1a71d588e",
+  "generator_sha256": "df1f15aa58dd4fd53faaebc4dae6428fe692702c731d1c932084f370cf9cf85f",
   "fake_time": "1700000000",
   "tool_versions": {
     "debugfs": "debugfs 1.47.3 (8-Jul-2025)",
@@ -372,9 +372,601 @@
       "reason": "currently_allocated_block_conflict",
       "expected_historical_inodes": 1,
       "sha256": "a335fa6b613782c37b5894ce9c78a603071e7db88b456d26ef582690099dc36d"
+    },
+    {
+      "name": "native-journal-v2-replay",
+      "image": "native-journal-v2-replay.dd",
+      "target_inode": 13,
+      "sha256": "5764f17bd394a8fff62484acd67f049056b8d08755da85891035d980b895cfe2",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 2,
+        "native_image_sha256_before_inode_clear": "e3780518dd86343b0af1213515eb3c45eabb861fe7b014a1d0470ce9c16598b0",
+        "commands": [
+          "journal_open -c -v 2",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "a33b8d540eff773bc3fd8db309f13fcea401de0305fab8885ea50fdf0781e8b6",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      }
+    },
+    {
+      "name": "native-journal-v3-replay",
+      "image": "native-journal-v3-replay.dd",
+      "target_inode": 13,
+      "sha256": "1aad9b0a7590d7a229933d457998fff479e3d955174e7e3ee4ce7f3168fb33e6",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      }
+    },
+    {
+      "name": "native-journal-v3-history",
+      "image": "native-journal-v3-history.dd",
+      "target_inode": 13,
+      "sha256": "b82f91420519aca1a3407bd6df86773171dac869049cd7c09155efb6d1a6667a",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_deletion_evidence": "journal_transaction_pre_deletion_record",
+      "expected_historical_inodes_exact": 1,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "clean log head and ext4 recover flag"
+    },
+    {
+      "name": "native-journal-v3-uncommitted",
+      "image": "native-journal-v3-uncommitted.dd",
+      "target_inode": 13,
+      "sha256": "f7c16cddd2fe1aa062327f7ccfc5440145dcd54254b18fbe62ce53f53ba8b2ba",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "9358038ccb4717768d764319144601df59f807a3e654268fe927f87448a19bcf",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -c -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S -O"
+        ],
+        "logdump_sha256": "d920a8291635fcb27e6e9bbfd67d0740b4d6e87bb75da4279208d1ca6bde94de",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "expected_journal_replay_applied": false
+    },
+    {
+      "name": "native-journal-v3-revoked",
+      "image": "native-journal-v3-revoked.dd",
+      "target_inode": 13,
+      "sha256": "e76de346a63ba440b6f3bdff8c6dc582d4bf7ee3955b24c0d6d451a18746eba1",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "f0b142437010767f3376b9ebccbe971c3c4b457248039bc423f4950e6ff604b3",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_write -r 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "7c51a29a94cd10a596c2c8ae0608f5a77c50845f389d591018b874aa819d191f",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "expected_journal_replay_applied": true
+    },
+    {
+      "name": "native-journal-v3-sequence-wrap-revoked",
+      "image": "native-journal-v3-sequence-wrap-revoked.dd",
+      "target_inode": 13,
+      "sha256": "3478c4aaef28e2395675fdf88bd31e0dedb2b3992d73ba80a30e4803f34a8d31",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "ff9a7bcdffb35037dc397dea8a4c487fbcc3535939d4a5630a42a1bae1976446",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_write -r 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "00b70c82df0be474837b4ee80ea5b69fac13d1819cd48f1ea46826adc302ea0f",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "expected_journal_replay_applied": true
+    },
+    {
+      "name": "native-journal-v3-uncommitted-revoke",
+      "image": "native-journal-v3-uncommitted-revoke.dd",
+      "target_inode": 13,
+      "sha256": "d4819cef120e4ee51e01b8c270462eddffa9748f3859b0b1fe528d242a9d9d46",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "4a28426221badc4aa8d53e335ebac4ed9c01a5700a6712a276385634d3f2a98a",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_write -c -r 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "0ecb07067710661fda90950c28a4a79f9664641738b65d2ef1b065604b656330",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      }
+    },
+    {
+      "name": "native-journal-v3-escape",
+      "image": "native-journal-v3-escape.dd",
+      "target_inode": 13,
+      "sha256": "cafb97cd80d8b576bf359edcf42b2744fd5af78991130e2c55e9860a524793eb",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "bfaa19a40123f5d6e6b00af4ebb9f20a37286ea089f4607f896025505d201997",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269,1000 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/native-journal-v3-escape-journal-payload.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "48d015a591c0eaa32693076cbbe1af999ebb4087def9e3e7063c336c9dba0727",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      }
+    },
+    {
+      "name": "native-journal-v3-multiple-descriptors",
+      "image": "native-journal-v3-multiple-descriptors.dd",
+      "target_inode": 13,
+      "sha256": "f4d7e3f1cc43b3749f7cccc996884f7470f54cd27cddc9a6d010cd479c5ba91e",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "b9bafa39c746e98c926de3021baa5a5220485f73c252f79b1e5aba317de90ef4",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269,1000,1001,1002,1003,1004,1005,1006,1007,1008,1009,1010,1011,1012,1013,1014,1015,1016,1017,1018,1019,1020,1021,1022,1023,1024,1025,1026,1027,1028,1029,1030,1031,1032,1033,1034,1035,1036,1037,1038,1039,1040,1041,1042,1043,1044,1045,1046,1047,1048,1049,1050,1051,1052,1053,1054,1055,1056,1057,1058,1059,1060,1061,1062,1063,1064,1065,1066,1067,1068,1069,1070 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/native-journal-v3-multiple-descriptors-journal-payload.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "84861d7abcba5cb586cf2ead47407cf121177679ffe7301ecb64e92568b7fd7e",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      }
+    },
+    {
+      "name": "native-journal-bad-revoke-crc",
+      "image": "native-journal-bad-revoke-crc.dd",
+      "target_inode": 13,
+      "sha256": "c43a755147e2d703ac1b094aaa8198f53a2253e0c4d8c4e36ed0f3fcfc6faf3c",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_revoke_checksum_invalid",
+      "expected_journal_replay_applied": false,
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "f0b142437010767f3376b9ebccbe971c3c4b457248039bc423f4950e6ff604b3",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_write -r 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "7c51a29a94cd10a596c2c8ae0608f5a77c50845f389d591018b874aa819d191f",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "single bit flip in revoke block"
+    },
+    {
+      "name": "native-journal-v3-ring-wrap",
+      "image": "native-journal-v3-ring-wrap.dd",
+      "target_inode": 13,
+      "sha256": "366872afca8811830e4621bc3bb5dfba0e611bc481eaa28dd75d481fbf775004",
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_journal_replay_applied": true,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "relocate unchanged native transaction around ring end"
+    },
+    {
+      "name": "native-journal-bad-descriptor-crc",
+      "image": "native-journal-bad-descriptor-crc.dd",
+      "target_inode": 13,
+      "sha256": "a26faea05ac427c3ae61cd9f04652503c048a1301e374f34042cd76846d10364",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_descriptor_checksum_invalid",
+      "expected_historical_inodes_exact": 0,
+      "expected_journal_replay_applied": false,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "single bit flip"
+    },
+    {
+      "name": "native-journal-bad-data-crc",
+      "image": "native-journal-bad-data-crc.dd",
+      "target_inode": 13,
+      "sha256": "8bec201ae09553bcd18618f6bae7202fe9f2608304c48f65846729ea5e866690",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_data_checksum_invalid",
+      "expected_historical_inodes_exact": 0,
+      "expected_journal_replay_applied": false,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "single bit flip"
+    },
+    {
+      "name": "native-journal-bad-commit-crc",
+      "image": "native-journal-bad-commit-crc.dd",
+      "target_inode": 13,
+      "sha256": "30b20a4ae526c838a431f7ccce754c69b48a2db606176f8dac0eefd865b23fa7",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_commit_checksum_invalid",
+      "expected_historical_inodes_exact": 0,
+      "expected_journal_replay_applied": false,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "single bit flip"
+    },
+    {
+      "name": "native-journal-unknown-feature",
+      "image": "native-journal-unknown-feature.dd",
+      "target_inode": 13,
+      "sha256": "96da3f3000efc077abb69572b9218a1c074f94422e896012a1e58daf2eb7db4f",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_unknown_features",
+      "expected_journal_replay_applied": false,
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "feature flag plus valid superblock checksum"
+    },
+    {
+      "name": "native-journal-fast-commit",
+      "image": "native-journal-fast-commit.dd",
+      "target_inode": 13,
+      "sha256": "9e4642faaa6d09a6010649419a8e5d293e63835026cadb7e42fbeeee187c6efe",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_fast_commit_unsupported",
+      "expected_journal_replay_applied": false,
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "feature flag plus valid superblock checksum"
+    },
+    {
+      "name": "native-journal-mutual-checksum-flags",
+      "image": "native-journal-mutual-checksum-flags.dd",
+      "target_inode": 13,
+      "sha256": "0286c585a730e222693fa91e8faa6ce64019c642aee006599b34e32be767fe28",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_feature_combination_invalid",
+      "expected_journal_replay_applied": false,
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "feature flag plus valid superblock checksum"
+    },
+    {
+      "name": "native-journal-bad-tag-array",
+      "image": "native-journal-bad-tag-array.dd",
+      "target_inode": 13,
+      "sha256": "22a414e1d9a2503bc6fbd0ae66b779aa207ef80b0c14e19e84db82c13967e36f",
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "volume_reason": "journal_descriptor_tags_invalid",
+      "expected_journal_replay_applied": false,
+      "expected_historical_inodes_exact": 0,
+      "journal_provenance": {
+        "writer": "e2fsprogs debugfs journal_open/journal_write",
+        "checksum_version": 3,
+        "native_image_sha256_before_inode_clear": "789139554fdb6c76188e1dd8a6b7c2e65fb25ec86115080279b1cbe17e34e083",
+        "commands": [
+          "journal_open -c -v 3",
+          "journal_write -b 269 /mnt/host/c/Users/danil/Desktop/projects/usb-recovery/.build/r05-independent-audit-20261102/native-fixtures-journal-final/journal-inode-table.bin",
+          "journal_close",
+          "logdump -a -S"
+        ],
+        "logdump_sha256": "77559f85d8b4c38ddb1295f4dd93e2dad65ec4077b1b8ecbf1711f5d0194033d",
+        "target_block": 269,
+        "journal_blocks": [
+          16385,
+          16386,
+          16387,
+          16388,
+          16389,
+          16390
+        ],
+        "postprocess": "clear target on-disk inode only"
+      },
+      "mutation": "missing LAST_TAG with valid descriptor checksum"
     }
   ],
-  "limits": "debugfs deletion preserves inode maps; normal kernel deletion may clear them. Retained directory link case intentionally uses kill_file without unlink. No journal history recovery claim.",
+  "limits": "Regular synthetic images only. Existing journal-* cases contain manually injected transactions; native-journal-* cases use debugfs journal_write with explicit corruption/layout controls. No mounted-kernel crash, physical device, fast commit or external journal claim.",
   "compressed_images": {
     "allocated-data-conflict.dd": {
       "archive": "allocated-data-conflict.dd.gz",
@@ -585,7 +1177,98 @@
       "archive": "journal-historical-conflict.dd.gz",
       "archive_sha256": "6749bfc22337789ea05eb2a3d0bebe733ec5a83e5eb47dd06ffbfd9667a35c20",
       "bytes": 33554432
+    },
+    "native-journal-v2-replay.dd": {
+      "archive": "native-journal-v2-replay.dd.gz",
+      "archive_sha256": "25b73e0db53f95b815331563e5a47456560fe342924c62532d450dce6b184daf",
+      "bytes": 33554432
+    },
+    "native-journal-v3-replay.dd": {
+      "archive": "native-journal-v3-replay.dd.gz",
+      "archive_sha256": "68606fbe317b545c03dadb49de6a03b4be8f8fe874448db5adcd178db7b52062",
+      "bytes": 33554432
+    },
+    "native-journal-v3-history.dd": {
+      "archive": "native-journal-v3-history.dd.gz",
+      "archive_sha256": "5aeb88bbf76798757733a563bff085f51e7dba2dcca95d02d0f138dbd308d43b",
+      "bytes": 33554432
+    },
+    "native-journal-v3-uncommitted.dd": {
+      "archive": "native-journal-v3-uncommitted.dd.gz",
+      "archive_sha256": "6391224f4f412afe815cd7b75a2e41752a85016783b37bbb64a4f07c838c8e64",
+      "bytes": 33554432
+    },
+    "native-journal-v3-revoked.dd": {
+      "archive": "native-journal-v3-revoked.dd.gz",
+      "archive_sha256": "5353a478d481935d99aee849d1b8a7ddcbce9034d7b651aa2fe519e237d14010",
+      "bytes": 33554432
+    },
+    "native-journal-v3-sequence-wrap-revoked.dd": {
+      "archive": "native-journal-v3-sequence-wrap-revoked.dd.gz",
+      "archive_sha256": "5edc4cbf7db0a9e239b4839d8310ff1eb21cdd7b35f1fc66d012a5f3ac13eef6",
+      "bytes": 33554432
+    },
+    "native-journal-v3-uncommitted-revoke.dd": {
+      "archive": "native-journal-v3-uncommitted-revoke.dd.gz",
+      "archive_sha256": "5e079212a164f3be17853937d8f504036e9e8281da336a62b0ecf64ae35c5415",
+      "bytes": 33554432
+    },
+    "native-journal-v3-escape.dd": {
+      "archive": "native-journal-v3-escape.dd.gz",
+      "archive_sha256": "75db6fbb0068dc8801ab664d38818d6eed8a17e41c40a4375411a0580e1b9d6e",
+      "bytes": 33554432
+    },
+    "native-journal-v3-multiple-descriptors.dd": {
+      "archive": "native-journal-v3-multiple-descriptors.dd.gz",
+      "archive_sha256": "2231cd40e9a9d0d549dada40230efda34609b91422e0864d442f4f58aa6a48ce",
+      "bytes": 33554432
+    },
+    "native-journal-bad-revoke-crc.dd": {
+      "archive": "native-journal-bad-revoke-crc.dd.gz",
+      "archive_sha256": "65613f59bac024b2d0a268bb2bd2e58be0b043587aaecfbe94898cc525533dda",
+      "bytes": 33554432
+    },
+    "native-journal-v3-ring-wrap.dd": {
+      "archive": "native-journal-v3-ring-wrap.dd.gz",
+      "archive_sha256": "1351c2103afce7a0663a61cfb4c667f6c725f07414f59cd60663dbc0f1a83dd7",
+      "bytes": 33554432
+    },
+    "native-journal-bad-descriptor-crc.dd": {
+      "archive": "native-journal-bad-descriptor-crc.dd.gz",
+      "archive_sha256": "6a586a8520225b1b030c27d53d39fc33abb06c75091aec15335fce2096bfb071",
+      "bytes": 33554432
+    },
+    "native-journal-bad-data-crc.dd": {
+      "archive": "native-journal-bad-data-crc.dd.gz",
+      "archive_sha256": "f12ccd26cf336c0aa104f003f4814ee48ec931ab78f4db6d9e80c5e65163af59",
+      "bytes": 33554432
+    },
+    "native-journal-bad-commit-crc.dd": {
+      "archive": "native-journal-bad-commit-crc.dd.gz",
+      "archive_sha256": "29ecef1580336f608cc2fac2770ec118ac3e8e1be9d0469d48573afac0075991",
+      "bytes": 33554432
+    },
+    "native-journal-unknown-feature.dd": {
+      "archive": "native-journal-unknown-feature.dd.gz",
+      "archive_sha256": "b0c83a2d6e83dd63d9f0f8cbc0b9a3ea773b64e0bc318fc2401a3c03b8e54eb1",
+      "bytes": 33554432
+    },
+    "native-journal-fast-commit.dd": {
+      "archive": "native-journal-fast-commit.dd.gz",
+      "archive_sha256": "a88c824453b861d3f3c5e8b36add81ef2e03902ea6c6a88576d55790ba1cbaed",
+      "bytes": 33554432
+    },
+    "native-journal-mutual-checksum-flags.dd": {
+      "archive": "native-journal-mutual-checksum-flags.dd.gz",
+      "archive_sha256": "bfe848d6fee66846e5acadfd333682f2d87efc26b0edaada08f06d031deca9ef",
+      "bytes": 33554432
+    },
+    "native-journal-bad-tag-array.dd": {
+      "archive": "native-journal-bad-tag-array.dd.gz",
+      "archive_sha256": "4408e7402b3699118233293cd1ae6c68f6373acdb949024feef889e57782b3fb",
+      "bytes": 33554432
     }
   },
-  "provenance": "Images generated from synthetic regular files by e2fsprogs 1.47.3; no mounted/personal device. Header hints deliberately include damaged synthetic content and are not decoded-image controls."
+  "provenance": "Images generated from synthetic regular files by e2fsprogs 1.47.3; no mounted/personal device. Header hints deliberately include damaged synthetic content and are not decoded-image controls.",
+  "journal_provenance": "native-journal-* transactions were written by debugfs 1.47.3 journal_write, with per-case commands/hash provenance. Original journal-* fixtures are manual transaction layouts. Corruption/ring-layout mutations are explicit synthetic controls, not native crash specimens."
 }

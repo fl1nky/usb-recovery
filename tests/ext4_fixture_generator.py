@@ -206,6 +206,124 @@ class Generator:
         shutil.copyfile(source, destination)
         return destination
 
+    def journal_cases(self, base, inode):
+        """JBD2 bytes come from e2fsprogs journal_write, not this parser.
+
+        Subsequent mutations are explicit corruption/ring-layout controls. No
+        mount is used; every write targets a newly created regular image.
+        """
+        g = geometry(base, inode)
+        target = g["inode_offset"] // g["block"]
+        payload = self.root / "journal-inode-table.bin"
+        payload.write_bytes(g["data"][target * g["block"]:(target + 1) * g["block"]])
+        blocks = [int(x) for x in self.run(["/usr/sbin/debugfs", "-R", "blocks <8>", self.linux(base)]).split()]
+        block = g["block"]
+        def jsb_checksum(data):
+            at = blocks[0] * block
+            data[at + 0xfc:at + 0x100] = bytes(4)
+            struct.pack_into(">I", data, at + 0xfc, crc32c(0xffffffff, data[at:at + 1024]))
+        def native(name, version=3, uncommitted=False, revoke=False, wrap_sequence=False, uncommitted_revoke=False, escape=False, multiple_descriptors=False):
+            image = self.clone(base, name)
+            if wrap_sequence:
+                data = bytearray(image.read_bytes())
+                struct.pack_into(">I", data, blocks[0] * block + 0x18, 0xffffffff)
+                image.write_bytes(data)
+            journal_payload = payload
+            targets = [target]
+            if escape or multiple_descriptors:
+                journal_payload = self.root / (name + "-journal-payload.bin")
+                content = bytearray(payload.read_bytes())
+                if escape:
+                    targets += [1000]
+                    content += bytes.fromhex("c03b3998") + bytes(block - 4)
+                if multiple_descriptors:
+                    targets += list(range(1000, 1071)); content += bytes(71 * block)
+                journal_payload.write_bytes(content)
+            commands = ["journal_open -c -v " + str(version),
+                        "journal_write " + ("-c " if uncommitted else "") + "-b " + ",".join(str(x) for x in targets) + " " + self.linux(journal_payload)]
+            if revoke or uncommitted_revoke:
+                commands.append("journal_write " + ("-c " if uncommitted_revoke else "") + "-r " + str(target) + " " + self.linux(payload))
+            commands += ["journal_close", "logdump -a -S" + (" -O" if uncommitted else "")]
+            log = self.debug(image, commands)
+            if "descriptor block" not in log or (not uncommitted and "commit block" not in log):
+                raise RuntimeError("Native journal writer did not produce a complete expected log")
+            native_hash = sha(image.read_bytes())
+            data = bytearray(image.read_bytes())
+            data[g["inode_offset"]:g["inode_offset"] + g["inode_size"]] = bytes(g["inode_size"])
+            image.write_bytes(data)
+            provenance = {"writer": "e2fsprogs debugfs journal_open/journal_write", "checksum_version": version,
+                          "native_image_sha256_before_inode_clear": native_hash, "commands": commands,
+                          "logdump_sha256": sha(log.encode("utf-8")), "target_block": target,
+                          "journal_blocks": blocks[:6], "postprocess": "clear target on-disk inode only"}
+            return image, provenance
+        for version in (2, 3):
+            name = "native-journal-v%d-replay" % version
+            image, proof = native(name, version)
+            self.add(name, image, inode, "recover", expected_journal_replay_applied=True, journal_provenance=proof)
+            if version == 3:
+                valid, valid_proof = image, proof
+        image = self.clone(valid, "native-journal-v3-history")
+        data = bytearray(image.read_bytes()); at = blocks[0] * block
+        struct.pack_into(">I", data, at + 0x1c, 0)
+        struct.pack_into("<I", data, 1024 + 0x60, u32(data, 1024 + 0x60) & ~4)
+        jsb_checksum(data); repair_super(data); image.write_bytes(data)
+        self.add(image.stem, image, inode, "recover", expected_deletion_evidence="journal_transaction_pre_deletion_record",
+                 expected_historical_inodes_exact=1, journal_provenance=valid_proof, mutation="clean log head and ext4 recover flag")
+        for name, kwargs in (("native-journal-v3-uncommitted", {"uncommitted": True}),
+                             ("native-journal-v3-revoked", {"revoke": True}),
+                             ("native-journal-v3-sequence-wrap-revoked", {"revoke": True, "wrap_sequence": True})):
+            image, proof = native(name, **kwargs)
+            self.add(name, image, inode, "reject", expected_historical_inodes_exact=0, journal_provenance=proof,
+                     expected_journal_replay_applied=not kwargs.get("uncommitted", False))
+            if name == "native-journal-v3-revoked": revoked, revoked_proof = image, proof
+        for name, kwargs in (("native-journal-v3-uncommitted-revoke", {"uncommitted_revoke": True}),
+                             ("native-journal-v3-escape", {"escape": True}),
+                             ("native-journal-v3-multiple-descriptors", {"multiple_descriptors": True})):
+            image, proof = native(name, **kwargs)
+            self.add(name, image, inode, "recover", expected_journal_replay_applied=True, journal_provenance=proof)
+        image = self.clone(revoked, "native-journal-bad-revoke-crc")
+        data = bytearray(image.read_bytes()); data[blocks[4] * block + 100] ^= 1; image.write_bytes(data)
+        self.add(image.stem, image, inode, "reject", volume_reason="journal_revoke_checksum_invalid", expected_journal_replay_applied=False,
+                 expected_historical_inodes_exact=0, journal_provenance=revoked_proof, mutation="single bit flip in revoke block")
+        # The same native descriptor/data/commit bytes also work when the ring
+        # straddles its end; the checksums do not include a journal block index.
+        image = self.clone(valid, "native-journal-v3-ring-wrap")
+        data = bytearray(image.read_bytes()); at = blocks[0] * block
+        maxlen = struct.unpack_from(">I", data, at + 0x10)[0]
+        transaction = [bytes(data[blocks[n] * block:(blocks[n] + 1) * block]) for n in (1, 2, 3)]
+        for n in (1, 2, 3): data[blocks[n] * block:(blocks[n] + 1) * block] = bytes(block)
+        for n, content in zip((maxlen - 2, maxlen - 1, 1), transaction):
+            data[blocks[n] * block:(blocks[n] + 1) * block] = content
+        struct.pack_into(">I", data, at + 0x1c, maxlen - 2); jsb_checksum(data); image.write_bytes(data)
+        self.add(image.stem, image, inode, "recover", expected_journal_replay_applied=True,
+                 journal_provenance=valid_proof, mutation="relocate unchanged native transaction around ring end")
+        for name, log_block, byte_offset, reason in (
+            ("native-journal-bad-descriptor-crc", 1, 100, "journal_descriptor_checksum_invalid"),
+            ("native-journal-bad-data-crc", 2, 0, "journal_data_checksum_invalid"),
+            ("native-journal-bad-commit-crc", 3, 100, "journal_commit_checksum_invalid")):
+            image = self.clone(valid, name); data = bytearray(image.read_bytes())
+            data[blocks[log_block] * block + byte_offset] ^= 1; image.write_bytes(data)
+            self.add(name, image, inode, "reject", volume_reason=reason, expected_historical_inodes_exact=0,
+                     expected_journal_replay_applied=False, journal_provenance=valid_proof, mutation="single bit flip")
+        for name, incompat, reason in (
+            ("native-journal-unknown-feature", 0x80000000, "journal_unknown_features"),
+            ("native-journal-fast-commit", 0x20, "journal_fast_commit_unsupported"),
+            ("native-journal-mutual-checksum-flags", 0x8, "journal_feature_combination_invalid")):
+            image = self.clone(valid, name); data = bytearray(image.read_bytes()); at = blocks[0] * block
+            struct.pack_into(">I", data, at + 0x28, struct.unpack_from(">I", data, at + 0x28)[0] | incompat)
+            jsb_checksum(data); image.write_bytes(data)
+            self.add(name, image, inode, "reject", volume_reason=reason, expected_journal_replay_applied=False,
+                     expected_historical_inodes_exact=0, journal_provenance=valid_proof, mutation="feature flag plus valid superblock checksum")
+        image = self.clone(valid, "native-journal-bad-tag-array")
+        data = bytearray(image.read_bytes()); at = blocks[1] * block
+        struct.pack_into(">I", data, at + 16, 0)  # Remove the only LAST_TAG flag.
+        data[at + block - 4:at + block] = bytes(4)
+        seed = crc32c(0xffffffff, data[blocks[0] * block + 0x30:blocks[0] * block + 0x40])
+        struct.pack_into(">I", data, at + block - 4, crc32c(seed, data[at:at + block]))
+        image.write_bytes(data)
+        self.add(image.stem, image, inode, "reject", volume_reason="journal_descriptor_tags_invalid", expected_journal_replay_applied=False,
+                 expected_historical_inodes_exact=0, journal_provenance=valid_proof, mutation="missing LAST_TAG with valid descriptor checksum")
+
     def build(self):
         base = self.filesystem("extent-deleted")
         inode = self.write(base)
@@ -424,6 +542,7 @@ class Generator:
         struct.pack_into("<H", data, g["descriptor"] + 56, bb_csum >> 16)
         repair_group(data, g, 0); image.write_bytes(data)
         self.add("journal-historical-conflict", image, inode, "reject", reason="currently_allocated_block_conflict", expected_historical_inodes=1)
+        self.journal_cases(base, inode)
         self.run(["/usr/sbin/debugfs", "-V"])
         debugfs_version = re.search(r"debugfs [0-9.]+[^\r\n]*", self.last_stderr).group(0)
         self.run(["/sbin/mke2fs", "-V"])
@@ -431,7 +550,7 @@ class Generator:
         manifest = {"schema": 1, "scope": "Synthetic regular image files only; real e2fsprogs metadata; no mounted filesystem or personal data.",
                     "generator_sha256": sha(Path(__file__).read_bytes()), "distribution": self.distribution, "fake_time": TIME,
                     "tool_versions": {"debugfs": debugfs_version, "mke2fs": mke2fs_version}, "cases": self.cases, "commands": self.calls,
-                    "limits": "debugfs deletion preserves inode maps; normal kernel deletion may clear them. Retained directory link case intentionally uses kill_file without unlink. No journal history recovery claim."}
+                    "limits": "Regular synthetic images only. Existing journal-* cases contain manually injected transactions; native-journal-* cases use debugfs journal_write with explicit corruption/layout controls. No mounted-kernel crash, physical device, fast commit or external journal claim."}
         (self.root / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
         print(json.dumps({"destination": str(self.root), "cases": len(self.cases)}))
 

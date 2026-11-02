@@ -12,7 +12,7 @@ namespace UsbRecovery
     // Read-only ext filesystem metadata salvage. Checksums authenticate metadata
     // consistency, never the historical contents of a deleted file's blocks.
     // On-disk definitions: kernel.org/doc/html/latest/filesystems/ext4/ and
-    // e2fsprogs lib/ext2fs/csum.c. No journal replay or filesystem repair.
+    // e2fsprogs lib/ext2fs/csum.c. Journal replay is an in-memory overlay only.
     public static class Ext4Recovery
     {
         public sealed class Limits
@@ -20,6 +20,8 @@ namespace UsbRecovery
             public int MaximumVolumes = 32, MaximumGroups = 65536, MaximumInodes = 1000000;
             public int MaximumCandidates = 10000, MaximumExtents = 100000, MaximumTreeBlocks = 4096;
             public int MaximumDirectories = 20000, MaximumNames = 100000;
+            public int MaximumJournalBlocks = 262144;
+            public long MaximumJournalBytes = 256L * 1024 * 1024;
             public long MaximumDirectoryBytes = 256L * 1024 * 1024;
             public long MaximumFileBytes = 2L * 1024 * 1024 * 1024, MaximumOutputBytes = 32L * 1024 * 1024 * 1024;
         }
@@ -53,6 +55,7 @@ namespace UsbRecovery
             public List<string> HandledFeatures = new List<string>();
             public bool JournalReplayAttempted, JournalReplayApplied;
             public int JournalHistoricalInodesFound;
+            public string JournalStatus;
         }
         public sealed class Report
         {
@@ -87,25 +90,29 @@ namespace UsbRecovery
             public Dictionary<ulong, byte[]> Overlay = new Dictionary<ulong, byte[]>();
             public bool JournalReplayAttempted, JournalReplayApplied;
             public byte[] Superblock;
+            public JournalContext Journal;
+            public bool JournalLoaded;
         }
         struct JournalTag
         {
             public ulong DestinationBlock;
             public uint Flags;
+            public uint Checksum;
         }
         sealed class JournalTransaction
         {
             public uint Sequence;
-            public List<Tuple<ulong, uint, ulong>> DataBlocks = new List<Tuple<ulong, uint, ulong>>();
+            public List<Tuple<JournalTag, ulong>> DataBlocks = new List<Tuple<JournalTag, ulong>>();
             public List<ulong> RevokedBlocks = new List<ulong>();
+            public HashSet<uint> HeaderBlocks = new HashSet<uint>();
             public bool Committed;
         }
         sealed class JournalContext
         {
             public Volume Volume;
             public List<ulong> Blocks = new List<ulong>();
-            public uint BlockBytes, MaxLen, First, Sequence, Start, Incompat;
-            public bool HasCsumV2, HasCsumV3, Is64Bit;
+            public uint BlockBytes, MaxLen, First, Sequence, Start, Incompat, Seed;
+            public bool HasCsumV1, HasCsumV2, HasCsumV3, Is64Bit;
             public byte[] Uuid;
         }
         sealed class HistoricalCandidate
@@ -166,11 +173,12 @@ namespace UsbRecovery
             limits = limits ?? new Limits();
             if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
                 limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
-                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1)
+                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
+                limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
                 throw new ArgumentException("Неверные ограничения ext4");
             Directory.CreateDirectory(Path.Combine(root, "files"));
             var report = new Report { Status = "running" };
-            report.Warnings.Add("Восстанавливаются только сохранившиеся удалённые inode с полной инициализированной картой. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и требующий replay журнал не подменяются исходными байтами.");
+            report.Warnings.Add("Восстанавливаются удалённые inode с полной инициализированной картой, включая зафиксированные транзакции JBD2. Replay выполняется только в памяти. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и fast commit не подменяются исходными байтами.");
             report.Warnings.Add("Проверенные CRC метаданных и свободный bitmap не доказывают сохранность старого содержимого. Имена — ссылки текущего проверенного каталога; ext4 dirent не содержит generation inode.");
             try {
                 using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024)) {
@@ -240,9 +248,67 @@ namespace UsbRecovery
                 v.Reserved.Add(new Range { Start = v.FirstData + (ulong)g * v.BlocksPerGroup, Length = fixedLength });
             if (v.Reserved.Any(x => x.Start >= v.Blocks || x.Length > v.Blocks - x.Start)) { vr.Reason = "reserved_metadata_bounds"; return v; }
             var fixedReserved = v.Reserved.ToList();
+            ReadGroups(c, v, groups, gdStart, fixedReserved);
+            if ((v.Incompat & 0x4) != 0)
+            {
+                JournalContext jc = LoadJournal(c, v, sb);
+                if (jc != null)
+                {
+                    ReplayJournal(c, jc);
+                    if (!v.JournalReplayApplied && jc.Start != 0 && v.Report.JournalStatus != "journal_transaction_uncommitted") {
+                        vr.Reason = v.Report.JournalStatus ?? "journal_replay_failed"; return v;
+                    }
+                    if (v.Overlay.Count > 0)
+                    {
+                        if (!ReplaySuperblockGeometry(c, v, sb)) { vr.Reason = vr.JournalStatus; return v; }
+                        v.Groups.Clear(); v.Reserved = fixedReserved.ToList();
+                        ReadGroups(c, v, groups, gdStart, fixedReserved);
+                    }
+                }
+                else { vr.Reason = vr.JournalStatus ?? "journal_unavailable_for_dirty_volume"; return v; }
+            }
+            v.Superblock = sb;
+            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
+            vr.Status = "ready"; return v;
+        }
+
+        static byte[] GroupDescriptor(Context c, Volume v, ulong gdStart, uint group)
+        {
+            ulong relative = (ulong)group * (uint)v.DescriptorBytes;
+            byte[] block = Block(c, v, gdStart + relative / (uint)v.BlockBytes);
+            if (block == null) return null;
+            byte[] descriptor = new byte[v.DescriptorBytes];
+            Buffer.BlockCopy(block, (int)(relative % (uint)v.BlockBytes), descriptor, 0, descriptor.Length);
+            return descriptor;
+        }
+
+        static bool ReplaySuperblockGeometry(Context c, Volume v, byte[] original)
+        {
+            byte[] containing;
+            if (!v.Overlay.TryGetValue((ulong)(1024 / v.BlockBytes), out containing)) return true;
+            byte[] updated = new byte[1024];
+            Buffer.BlockCopy(containing, 1024 % v.BlockBytes, updated, 0, 1024);
+            if (v.Csum && (updated[0x175] != 1 || Crc(0xffffffff, updated, 0, 0x3fc) != U32(updated, 0x3fc))) {
+                JournalFailure(c, v, "journal_replayed_superblock_checksum_invalid"); return false;
+            }
+            int[,] fields = { { 0, 8 }, { 0x14, 24 }, { 0x38, 2 }, { 0x4c, 4 }, { 0x54, 12 },
+                { 0x68, 16 }, { 0xfe, 2 }, { 0x150, 4 }, { 0x270, 4 } };
+            for (int item = 0; item < fields.GetLength(0); item++) for (int i = 0; i < fields[item, 1]; i++) {
+                int at = fields[item, 0] + i;
+                if (updated[at] != original[at]) { JournalFailure(c, v, "journal_replay_geometry_changed_unsupported"); return false; }
+            }
+            if (((U32(updated, 0x60) ^ U32(original, 0x60)) & ~4U) != 0 ||
+                ((U32(updated, 0x64) ^ U32(original, 0x64)) & ~0x10000U) != 0) {
+                JournalFailure(c, v, "journal_replay_features_changed_unsupported"); return false;
+            }
+            return true;
+        }
+
+        static void ReadGroups(Context c, Volume v, ulong groups, ulong gdStart, List<Range> fixedReserved)
+        {
             for (uint g = 0; g < groups; g++) {
                 c.Cancel.ThrowIfCancellationRequested();
-                byte[] desc = Read(c, offset + (long)gdStart * v.BlockBytes + (long)g * v.DescriptorBytes, v.DescriptorBytes);
+                byte[] desc = GroupDescriptor(c, v, gdStart, g);
                 var group = new Group { Number = g, Descriptor = desc }; v.Groups.Add(group);
                 if (desc == null || !GroupChecksum(v, g, desc)) { Skip(c, "group_descriptor_checksum_invalid"); continue; }
                 group.BlockBitmap = Wide(desc, 0, 0x20); group.InodeBitmap = Wide(desc, 4, 0x24); group.InodeTable = Wide(desc, 8, 0x28); group.Flags = U16(desc, 0x12);
@@ -251,7 +317,7 @@ namespace UsbRecovery
                 if (group.BlockBitmap == 0 || group.InodeBitmap == 0 || group.InodeTable == 0 || !BlockRange(v, group.BlockBitmap, 1) || !BlockRange(v, group.InodeBitmap, 1) || !BlockRange(v, group.InodeTable, tableBlocks) ||
                     group.BlockBitmap == group.InodeBitmap || (group.BlockBitmap >= group.InodeTable && group.BlockBitmap - group.InodeTable < tableBlocks) || (group.InodeBitmap >= group.InodeTable && group.InodeBitmap - group.InodeTable < tableBlocks)) { Skip(c, "group_metadata_bounds_or_overlap"); continue; }
                 if (fixedReserved.Any(x => Overlap(x, group.BlockBitmap, 1) || Overlap(x, group.InodeBitmap, 1) || Overlap(x, group.InodeTable, tableBlocks))) { Skip(c, "group_metadata_overlaps_super_or_gdt"); continue; }
-                group.Valid = true; vr.CheckedGroups++;
+                group.Valid = true; v.Report.CheckedGroups++;
                 v.Reserved.Add(new Range { Start = group.BlockBitmap, Length = 1 }); v.Reserved.Add(new Range { Start = group.InodeBitmap, Length = 1 });
                 v.Reserved.Add(new Range { Start = group.InodeTable, Length = tableBlocks });
                 if ((group.Flags & 1) == 0) { group.Inodes = Block(c, v, group.InodeBitmap); group.InodeMapValid = BitmapChecksum(v, group, group.Inodes, true); }
@@ -272,56 +338,11 @@ namespace UsbRecovery
                 }
                 if (previous == null || area.Start + area.Length > previous.Start + previous.Length) previous = area;
             }
-            if ((v.Incompat & 0x4) != 0)
-            {
-                JournalContext jc = LoadJournal(c, v, sb);
-                if (jc != null)
-                {
-                    ReplayJournal(c, jc);
-                    if (v.Overlay.Count > 0)
-                    {
-                        for (int g = 0; g < v.Groups.Count; g++)
-                        {
-                            Group group = v.Groups[g];
-                            ulong gdBlock = gdStart + (ulong)g * (ulong)v.DescriptorBytes / (ulong)v.BlockBytes;
-                            if (v.Overlay.ContainsKey(gdBlock))
-                            {
-                                byte[] gdBk = Block(c, v, gdBlock);
-                                int gdOff = (int)((ulong)g * (ulong)v.DescriptorBytes % (ulong)v.BlockBytes);
-                                byte[] desc = new byte[v.DescriptorBytes];
-                                Buffer.BlockCopy(gdBk, gdOff, desc, 0, v.DescriptorBytes);
-                                if (GroupChecksum(v, (uint)g, desc))
-                                {
-                                    group.Descriptor = desc;
-                                    group.BlockBitmap = Wide(desc, 0, 0x20);
-                                    group.InodeBitmap = Wide(desc, 4, 0x24);
-                                    group.InodeTable = Wide(desc, 8, 0x28);
-                                    group.Flags = U16(desc, 0x12);
-                                }
-                            }
-                            if (v.Overlay.ContainsKey(group.InodeBitmap) && (group.Flags & 1) == 0)
-                            {
-                                group.Inodes = Block(c, v, group.InodeBitmap);
-                                group.InodeMapValid = BitmapChecksum(v, group, group.Inodes, true);
-                            }
-                            if (v.Overlay.ContainsKey(group.BlockBitmap) && (group.Flags & 2) == 0)
-                            {
-                                group.Blocks = Block(c, v, group.BlockBitmap);
-                                group.BlockMapValid = BitmapChecksum(v, group, group.Blocks, false);
-                            }
-                        }
-                    }
-                }
-            }
-            v.Superblock = sb;
-            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
-            vr.Status = "ready"; return v;
         }
 
         static void ScanVolume(Context c, Volume v, Action<string> progress)
         {
             var deleted = new List<Inode>(); var directories = new Dictionary<uint, Inode>();
-            var onDiskRecoveredInodes = new HashSet<uint>();
             foreach (Group group in v.Groups) {
                 if (!group.Valid || !group.InodeMapValid) continue;
                 uint count = Math.Min(v.InodesPerGroup, v.Inodes - group.Number * v.InodesPerGroup);
@@ -353,7 +374,6 @@ namespace UsbRecovery
                     if ((mode & 0xf000) != 0x8000 || inode.Allocated || inode.Links != 0 || inode.Dtime == 0 || number < Math.Max(11, v.FirstInode)) continue;
                     if (c.Report.Entries.Count + deleted.Count >= c.Limits.MaximumCandidates) { c.Report.Limited = true; Skip(c, "candidate_limit"); continue; }
                     deleted.Add(inode);
-                    onDiskRecoveredInodes.Add(inode.Number);
                 }
                 if (progress != null) progress("ext4: inode " + Math.Min(c.InodesRead, c.Limits.MaximumInodes) + ", удалённых кандидатов " + deleted.Count);
                 if (c.InodesRead > c.Limits.MaximumInodes) break;
@@ -400,7 +420,7 @@ namespace UsbRecovery
                 foreach (HistoricalCandidate cand in historicalInodes.Values)
                 {
                     c.Cancel.ThrowIfCancellationRequested();
-                    if (onDiskRecoveredInodes.Contains(cand.Number)) continue;
+                    if (c.Report.Entries.Any(x => x.VolumeOffset == v.Offset && x.Inode == cand.Number && x.Output != null)) continue;
                     if (!IsCandidateDeletedInLiveFs(c, v, cand)) continue;
 
                     if (c.Report.Entries.Count >= c.Limits.MaximumCandidates)
@@ -885,13 +905,16 @@ namespace UsbRecovery
 
         static JournalContext LoadJournal(Context c, Volume v, byte[] sb)
         {
-            if (sb == null) return null;
+            if (v.JournalLoaded) return v.Journal;
+            v.JournalLoaded = true;
+            if (sb == null) return JournalFailure(c, v, "journal_superblock_unavailable");
             uint journalIno = U32(sb, 0xE0);
-            if (journalIno == 0) return null;
-            if (v.Groups.Count == 0 || !v.Groups[0].Valid) return null;
+            if (journalIno == 0) return JournalFailure(c, v, "external_or_missing_journal");
+            if (journalIno > v.Inodes) return JournalFailure(c, v, "journal_inode_bounds");
 
-            uint at = journalIno - 1;
-            ulong tableBlock = v.Groups[0].InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
+            uint groupIndex = (journalIno - 1) / v.InodesPerGroup, at = (journalIno - 1) % v.InodesPerGroup;
+            if (groupIndex >= v.Groups.Count || !v.Groups[(int)groupIndex].Valid) return JournalFailure(c, v, "journal_inode_group_invalid");
+            ulong tableBlock = v.Groups[(int)groupIndex].InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
             int offsetInBlock = (int)(((long)at * v.InodeBytes) % v.BlockBytes);
             byte[] blockData = Block(c, v, tableBlock);
             if (blockData == null || blockData.Length < offsetInBlock + v.InodeBytes) return null;
@@ -912,7 +935,11 @@ namespace UsbRecovery
             };
 
             Mapping map = Map(c, v, journalInode);
-            if (map.Failure != null || map.Runs.Count == 0) return null;
+            if (map.Failure != null || map.Runs.Count == 0) return JournalFailure(c, v, "journal_mapping_invalid");
+            ulong journalBlocks = map.Runs.Aggregate(0UL, (total, run) => total + run.Count);
+            if (journalBlocks > (ulong)c.Limits.MaximumJournalBlocks || journalInode.Size > (ulong)c.Limits.MaximumJournalBytes) {
+                c.Report.Limited = true; return JournalFailure(c, v, "journal_size_limit");
+            }
 
             var jc = new JournalContext { Volume = v, BlockBytes = (uint)v.BlockBytes };
             foreach (var run in map.Runs)
@@ -932,79 +959,205 @@ namespace UsbRecovery
             jc.First = Be32(jsb, 0x14);
             jc.Sequence = Be32(jsb, 0x18);
             jc.Start = Be32(jsb, 0x1C);
-            jc.Incompat = Be32(jsb, 0x28);
-            if (jc.First >= jc.MaxLen || jc.MaxLen > (ulong)jc.Blocks.Count) return null;
+            jc.Incompat = blockType == 4 ? Be32(jsb, 0x28) : 0;
+            if (jc.First < 1 || jc.First >= jc.MaxLen || jc.MaxLen > (ulong)jc.Blocks.Count ||
+                (jc.Start != 0 && (jc.Start < jc.First || jc.Start >= jc.MaxLen))) return JournalFailure(c, v, "journal_geometry_invalid");
+            uint compat = blockType == 4 ? Be32(jsb, 0x24) : 0;
+            uint roCompat = blockType == 4 ? Be32(jsb, 0x2c) : 0;
+            if ((jc.Incompat & 0x20) != 0) return JournalFailure(c, v, "journal_fast_commit_unsupported");
+            if ((jc.Incompat & ~0x1fU) != 0 || (compat & ~1U) != 0 || roCompat != 0)
+                return JournalFailure(c, v, "journal_unknown_features");
 
             jc.Is64Bit = (jc.Incompat & 0x2) != 0;
+            jc.HasCsumV1 = (compat & 1) != 0;
             jc.HasCsumV2 = (jc.Incompat & 0x8) != 0;
             jc.HasCsumV3 = (jc.Incompat & 0x10) != 0;
+            if ((jc.HasCsumV2 && jc.HasCsumV3) || (jc.HasCsumV1 && (jc.HasCsumV2 || jc.HasCsumV3)) ||
+                ((jc.Incompat & 4) != 0 && !jc.HasCsumV2 && !jc.HasCsumV3)) return JournalFailure(c, v, "journal_feature_combination_invalid");
 
             jc.Uuid = new byte[16];
             Buffer.BlockCopy(jsb, 0x30, jc.Uuid, 0, 16);
+            if (!jc.Uuid.SequenceEqual(v.Uuid)) return JournalFailure(c, v, "journal_uuid_mismatch");
+            jc.Seed = Crc(0xffffffff, jc.Uuid, 0, 16);
 
             if (jc.HasCsumV2 || jc.HasCsumV3)
             {
+                if (jsb[0x50] != 4) return JournalFailure(c, v, "journal_checksum_type_unsupported");
                 byte[] copy = new byte[1024];
                 Buffer.BlockCopy(jsb, 0, copy, 0, 1024);
                 copy[0xFC] = copy[0xFD] = copy[0xFE] = copy[0xFF] = 0;
                 uint calcCsum = Crc(0xFFFFFFFF, copy, 0, 1024);
-                if (calcCsum != Be32(jsb, 0xFC)) return null;
+                if (calcCsum != Be32(jsb, 0xFC)) return JournalFailure(c, v, "journal_superblock_checksum_invalid");
             }
 
-            return jc;
+            v.Report.JournalStatus = "validated_superblock";
+            v.Journal = jc;
+            return v.Journal;
         }
 
-        static List<JournalTag> ParseDescriptorTags(byte[] descBlock, int blockBytes, uint jIncompat)
+        static JournalContext JournalFailure(Context c, Volume v, string reason)
+        {
+            v.Report.JournalStatus = reason;
+            if (reason.EndsWith("_unsupported", StringComparison.Ordinal) || reason == "journal_unknown_features")
+                v.Report.UnsupportedFeatures.Add(reason);
+            Skip(c, reason);
+            return null;
+        }
+
+        static byte[] JournalBlock(Context c, JournalContext jc, uint logical)
+        {
+            if (logical >= jc.MaxLen) return null;
+            return Read(c, jc.Volume.Offset + (long)jc.Blocks[(int)logical] * jc.BlockBytes, (int)jc.BlockBytes);
+        }
+
+        static bool JournalMetadataChecksum(JournalContext jc, byte[] block, int checksumOffset)
+        {
+            if (!jc.HasCsumV2 && !jc.HasCsumV3) return true;
+            uint provided = Be32(block, checksumOffset);
+            byte[] copy = (byte[])block.Clone();
+            Array.Clear(copy, checksumOffset, 4);
+            return Crc(jc.Seed, copy, 0, copy.Length) == provided;
+        }
+
+        static List<JournalTag> ParseDescriptorTags(byte[] descBlock, JournalContext jc)
         {
             var tags = new List<JournalTag>();
-            bool hasCsumV3 = (jIncompat & 0x10) != 0;
-            bool hasCsumV2 = (jIncompat & 0x8) != 0;
-            bool is64Bit = (jIncompat & 0x2) != 0;
             int offset = 12;
-            int limit = (hasCsumV3 || hasCsumV2) ? blockBytes - 4 : blockBytes;
+            int limit = (int)jc.BlockBytes - (jc.HasCsumV3 || jc.HasCsumV2 ? 4 : 0);
             while (offset < limit)
             {
                 ulong destBlock;
-                uint flags;
+                uint flags, checksum = 0;
                 int tagSize;
-                if (hasCsumV3)
+                if (jc.HasCsumV3)
                 {
                     if (offset + 16 > limit) break;
                     uint blockLow = Be32(descBlock, offset);
-                    flags = Be32(descBlock, offset + 4);
+                    // Linux recovery reads the shared be16 t_flags at +6,
+                    // including for tag3. Its upper 16 bits are reserved; the
+                    // native e2fsprogs writer can leave nonzero bytes there.
+                    flags = (uint)(descBlock[offset + 6] << 8 | descBlock[offset + 7]);
                     uint blockHigh = Be32(descBlock, offset + 8);
+                    if (!jc.Is64Bit && blockHigh != 0) return null;
                     destBlock = ((ulong)blockHigh << 32) | (ulong)blockLow;
+                    checksum = Be32(descBlock, offset + 12);
                     tagSize = 16;
                     if ((flags & 2) == 0) tagSize += 16;
                 }
-                else if (hasCsumV2)
+                else if (jc.HasCsumV2)
                 {
-                    int baseSize = is64Bit ? 12 : 8;
+                    int baseSize = jc.Is64Bit ? 12 : 8;
                     if (offset + baseSize > limit) break;
                     uint blockLow = Be32(descBlock, offset);
                     flags = (uint)(descBlock[offset + 6] << 8 | descBlock[offset + 7]);
-                    uint blockHigh = is64Bit ? Be32(descBlock, offset + 8) : 0;
-                    destBlock = is64Bit ? (((ulong)blockHigh << 32) | (ulong)blockLow) : (ulong)blockLow;
+                    checksum = (uint)(descBlock[offset + 4] << 8 | descBlock[offset + 5]);
+                    uint blockHigh = jc.Is64Bit ? Be32(descBlock, offset + 8) : 0;
+                    destBlock = jc.Is64Bit ? (((ulong)blockHigh << 32) | (ulong)blockLow) : (ulong)blockLow;
                     tagSize = baseSize;
                     if ((flags & 2) == 0) tagSize += 16;
                 }
                 else
                 {
-                    int baseSize = is64Bit ? 12 : 8;
+                    int baseSize = jc.Is64Bit ? 12 : 8;
                     if (offset + baseSize > limit) break;
                     uint blockLow = Be32(descBlock, offset);
                     flags = Be32(descBlock, offset + 4);
-                    uint blockHigh = is64Bit ? Be32(descBlock, offset + 8) : 0;
-                    destBlock = is64Bit ? (((ulong)blockHigh << 32) | (ulong)blockLow) : (ulong)blockLow;
+                    uint blockHigh = jc.Is64Bit ? Be32(descBlock, offset + 8) : 0;
+                    destBlock = jc.Is64Bit ? (((ulong)blockHigh << 32) | (ulong)blockLow) : (ulong)blockLow;
                     tagSize = baseSize;
                     if ((flags & 2) == 0) tagSize += 16;
                 }
-                if (offset + tagSize > limit) break;
-                tags.Add(new JournalTag { DestinationBlock = destBlock, Flags = flags });
+                if (offset + tagSize > limit || (flags & ~11U) != 0 || !BlockRange(jc.Volume, destBlock, 1)) return null;
+                // Linux recovery skips the optional per-tag UUID. The journal
+                // superblock UUID and checksum seed bind this internal journal.
+                tags.Add(new JournalTag { DestinationBlock = destBlock, Flags = flags, Checksum = checksum });
                 offset += tagSize;
-                if ((flags & 8) != 0) break;
+                if ((flags & 8) != 0) return tags;
             }
-            return tags;
+            // A completely filled descriptor needs no LAST_TAG: JBD2 continues
+            // in another descriptor after these data blocks (Linux count_tags).
+            int minimumTag = jc.HasCsumV3 ? 16 : jc.Is64Bit ? 12 : 8;
+            return tags.Count > 0 && limit - offset < minimumTag ? tags : null;
+        }
+
+        static uint Crc32BigEndian(uint crc, byte[] bytes)
+        {
+            foreach (byte value in bytes) {
+                crc ^= (uint)value << 24;
+                for (int bit = 0; bit < 8; bit++) crc = (crc << 1) ^ ((crc & 0x80000000) != 0 ? 0x04c11db7U : 0);
+            }
+            return crc;
+        }
+
+        static bool TryJournalTransaction(Context c, JournalContext jc, uint start, out JournalTransaction trans,
+            out uint next, out string failure, ref long budget)
+        {
+            trans = new JournalTransaction(); next = start; failure = "journal_transaction_uncommitted";
+            var visited = new HashSet<uint>(); uint oldChecksum = 0xffffffff;
+            byte[] first = JournalBlock(c, jc, start);
+            if (first == null) return false;
+            trans.Sequence = Be32(first, 8);
+            while (true) {
+                c.Cancel.ThrowIfCancellationRequested();
+                if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
+                if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
+                byte[] block = JournalBlock(c, jc, next);
+                if (block == null || Be32(block, 0) != 0xc03b3998 || Be32(block, 8) != trans.Sequence) return false;
+                uint current = next, type = Be32(block, 4); next = NextJournalBlock(next, jc.First, jc.MaxLen);
+                if (type == 2) {
+                    if (!JournalMetadataChecksum(jc, block, 16) || (jc.HasCsumV1 &&
+                        !(block[12] == 1 && block[13] == 4 && Be32(block, 16) == oldChecksum))) {
+                        failure = "journal_commit_checksum_invalid"; return false;
+                    }
+                    trans.Committed = true; return true;
+                }
+                if (type == 5) {
+                    trans.HeaderBlocks.Add(current);
+                    if ((jc.Incompat & 1) == 0) { failure = "journal_revoke_feature_missing"; return false; }
+                    if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_revoke_checksum_invalid"; return false; }
+                    uint count = Be32(block, 12); int width = jc.Is64Bit ? 8 : 4;
+                    int limit = block.Length - (jc.HasCsumV2 || jc.HasCsumV3 ? 4 : 0);
+                    if (count < 16 || count > limit || (count - 16) % width != 0) { failure = "journal_revoke_bounds"; return false; }
+                    for (int at = 16; at < count; at += width) {
+                        ulong revoked = jc.Is64Bit ? Be64(block, at) : Be32(block, at);
+                        if (!BlockRange(jc.Volume, revoked, 1)) { failure = "journal_revoke_bounds"; return false; }
+                        trans.RevokedBlocks.Add(revoked);
+                    }
+                    continue;
+                }
+                if (type != 1) return false;
+                trans.HeaderBlocks.Add(current);
+                if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_descriptor_checksum_invalid"; return false; }
+                var tags = ParseDescriptorTags(block, jc);
+                if (tags == null || tags.Count == 0) { failure = "journal_descriptor_tags_invalid"; return false; }
+                if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, block);
+                foreach (JournalTag tag in tags) {
+                    if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
+                    if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
+                    byte[] data = JournalBlock(c, jc, next);
+                    if (data == null) return false;
+                    if (jc.HasCsumV2 || jc.HasCsumV3) {
+                        byte[] sequence = { (byte)(trans.Sequence >> 24), (byte)(trans.Sequence >> 16), (byte)(trans.Sequence >> 8), (byte)trans.Sequence };
+                        uint checksum = Crc(Crc(jc.Seed, sequence, 0, 4), data, 0, data.Length);
+                        if ((jc.HasCsumV3 ? checksum : checksum & 65535) != tag.Checksum) { failure = "journal_data_checksum_invalid"; return false; }
+                    }
+                    if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, data);
+                    trans.DataBlocks.Add(Tuple.Create(tag, jc.Blocks[(int)next]));
+                    next = NextJournalBlock(next, jc.First, jc.MaxLen);
+                }
+            }
+        }
+
+        static bool SequenceAtOrAfter(uint sequence, uint other) { return unchecked((int)(sequence - other)) >= 0; }
+
+        static Dictionary<ulong, uint> JournalRevokes(IEnumerable<JournalTransaction> transactions)
+        {
+            var revokes = new Dictionary<ulong, uint>();
+            foreach (var transaction in transactions) foreach (ulong block in transaction.RevokedBlocks) {
+                uint previous;
+                if (!revokes.TryGetValue(block, out previous) || SequenceAtOrAfter(transaction.Sequence, previous)) revokes[block] = transaction.Sequence;
+            }
+            return revokes;
         }
 
         static void ReplayJournal(Context c, JournalContext jc)
@@ -1018,91 +1171,47 @@ namespace UsbRecovery
             uint expectedSeq = jc.Sequence;
             var committed = new List<JournalTransaction>();
             int maxScan = (int)(jc.MaxLen - jc.First);
+            long budget = (long)maxScan * 2;
 
             for (int step = 0; step < maxScan && cur < (uint)jc.Blocks.Count; step++)
             {
                 c.Cancel.ThrowIfCancellationRequested();
-                byte[] blk = Block(c, v, jc.Blocks[(int)cur]);
+                byte[] blk = JournalBlock(c, jc, cur);
                 if (blk == null || Be32(blk, 0) != 0xC03B3998U) break;
                 uint seq = Be32(blk, 8);
                 if (seq != expectedSeq) break;
 
-                var trans = new JournalTransaction { Sequence = seq };
-                bool ok = true;
-
-                while (true)
-                {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    byte[] hblk = Block(c, v, jc.Blocks[(int)cur]);
-                    if (hblk == null || Be32(hblk, 0) != 0xC03B3998U || Be32(hblk, 8) != seq) { ok = false; break; }
-                    uint bType = Be32(hblk, 4);
-
-                    if (bType == 1)
-                    {
-                        var tags = ParseDescriptorTags(hblk, v.BlockBytes, jc.Incompat);
-                        cur = NextJournalBlock(cur, jc.First, jc.MaxLen);
-                        foreach (var tag in tags)
-                        {
-                            if ((tag.Flags & 4) == 0)
-                            {
-                                if (cur < (uint)jc.Blocks.Count)
-                                    trans.DataBlocks.Add(Tuple.Create(tag.DestinationBlock, tag.Flags, jc.Blocks[(int)cur]));
-                                cur = NextJournalBlock(cur, jc.First, jc.MaxLen);
-                            }
-                        }
-                    }
-                    else if (bType == 5)
-                    {
-                        uint rCount = Be32(hblk, 12);
-                        int rOffset = 16, rStep = jc.Is64Bit ? 8 : 4;
-                        int rLimit = Math.Min((int)rCount, (jc.HasCsumV3 || jc.HasCsumV2) ? v.BlockBytes - 4 : v.BlockBytes);
-                        while (rOffset + rStep <= rLimit)
-                        {
-                            ulong revoked = jc.Is64Bit ? Be64(hblk, rOffset) : (ulong)Be32(hblk, rOffset);
-                            trans.RevokedBlocks.Add(revoked);
-                            rOffset += rStep;
-                        }
-                        cur = NextJournalBlock(cur, jc.First, jc.MaxLen);
-                    }
-                    else if (bType == 2)
-                    {
-                        trans.Committed = true;
-                        cur = NextJournalBlock(cur, jc.First, jc.MaxLen);
-                        break;
-                    }
-                    else { ok = false; break; }
+                JournalTransaction trans; string failure; uint next;
+                if (!TryJournalTransaction(c, jc, cur, out trans, out next, out failure, ref budget)) {
+                    Skip(c, failure); v.Report.JournalStatus = failure;
+                    // An unfinished tail is normal; a damaged committed log cannot
+                    // establish authoritative current allocation state.
+                    if (failure != "journal_transaction_uncommitted") { v.Overlay.Clear(); return; }
+                    break;
                 }
-
-                if (!ok || !trans.Committed) break;
+                cur = next;
                 committed.Add(trans);
                 expectedSeq++;
             }
 
             if (committed.Count == 0) return;
 
-            var revokeTable = new Dictionary<ulong, uint>();
-            foreach (var trans in committed)
-                foreach (var blk in trans.RevokedBlocks)
-                {
-                    uint ex;
-                    if (!revokeTable.TryGetValue(blk, out ex) || trans.Sequence > ex)
-                        revokeTable[blk] = trans.Sequence;
-                }
+            var revokeTable = JournalRevokes(committed);
 
             foreach (var trans in committed)
             {
                 foreach (var item in trans.DataBlocks)
                 {
-                    ulong dest = item.Item1;
-                    uint flags = item.Item2;
-                    ulong phys = item.Item3;
+                    ulong dest = item.Item1.DestinationBlock;
+                    uint flags = item.Item1.Flags;
+                    ulong phys = item.Item2;
 
                     uint revSeq;
-                    if (revokeTable.TryGetValue(dest, out revSeq) && trans.Sequence <= revSeq)
+                    if (revokeTable.TryGetValue(dest, out revSeq) && SequenceAtOrAfter(revSeq, trans.Sequence))
                         continue;
 
                     if (!BlockRange(v, dest, 1)) continue;
-                    byte[] data = Block(c, v, phys);
+                    byte[] data = Read(c, v.Offset + (long)phys * v.BlockBytes, v.BlockBytes);
                     if (data == null) continue;
 
                     byte[] replayed = (byte[])data.Clone();
@@ -1115,6 +1224,7 @@ namespace UsbRecovery
             }
             v.JournalReplayApplied = true;
             v.Report.JournalReplayApplied = true;
+            v.Report.JournalStatus = "committed_transactions_replayed_in_memory";
         }
 
         static Group FindInodeTableGroup(Volume v, ulong block)
@@ -1136,33 +1246,47 @@ namespace UsbRecovery
             journalDirBlocks = new List<Tuple<ulong, byte[]>>();
             if (jc == null || jc.Blocks.Count < 2) return;
 
-            for (ulong logBlk = jc.First; logBlk < jc.MaxLen && logBlk < (ulong)jc.Blocks.Count; logBlk++)
+            var starts = new Dictionary<uint, List<uint>>();
+            for (uint logBlk = jc.First; logBlk < jc.MaxLen; logBlk++)
             {
                 c.Cancel.ThrowIfCancellationRequested();
-                ulong phys = jc.Blocks[(int)logBlk];
-                byte[] hblk = Block(c, v, phys);
-                if (hblk == null || Be32(hblk, 0) != 0xC03B3998U || Be32(hblk, 4) != 1) continue;
+                byte[] hblk = JournalBlock(c, jc, logBlk);
+                if (hblk == null || Be32(hblk, 0) != 0xc03b3998 || (Be32(hblk, 4) != 1 && Be32(hblk, 4) != 5)) continue;
+                uint sequence = Be32(hblk, 8); List<uint> positions;
+                if (!starts.TryGetValue(sequence, out positions)) starts[sequence] = positions = new List<uint>();
+                positions.Add(logBlk);
+            }
+            var transactions = new List<JournalTransaction>();
+            long budget = (long)(jc.MaxLen - jc.First) * 4;
+            foreach (var candidate in starts) {
+                foreach (uint start in candidate.Value) {
+                    JournalTransaction transaction; uint next; string failure;
+                    if (TryJournalTransaction(c, jc, start, out transaction, out next, out failure, ref budget) &&
+                        transaction.HeaderBlocks.SetEquals(candidate.Value)) {
+                        transactions.Add(transaction); break;
+                    }
+                    if (budget < 0) { Skip(c, "journal_work_limit"); return; }
+                    Skip(c, failure);
+                }
+            }
+            var revokes = JournalRevokes(transactions);
+            foreach (JournalTransaction transaction in transactions) {
+                uint seq = transaction.Sequence;
 
-                uint seq = Be32(hblk, 8);
-                var tags = ParseDescriptorTags(hblk, v.BlockBytes, jc.Incompat);
-                ulong dataLog = NextJournalBlock((uint)logBlk, jc.First, jc.MaxLen);
-
-                foreach (var tag in tags)
+                foreach (var item in transaction.DataBlocks)
                 {
                     c.Cancel.ThrowIfCancellationRequested();
-                    if ((tag.Flags & 4) != 0) continue;
-                    if (dataLog >= (ulong)jc.Blocks.Count) break;
-
-                    ulong dataPhys = jc.Blocks[(int)dataLog];
-                    dataLog = NextJournalBlock((uint)dataLog, jc.First, jc.MaxLen);
-
+                    JournalTag tag = item.Item1;
+                    ulong dataPhys = item.Item2;
                     ulong targetDiskBlk = tag.DestinationBlock;
+                    uint revokedAt;
+                    if (revokes.TryGetValue(targetDiskBlk, out revokedAt) && SequenceAtOrAfter(revokedAt, seq)) continue;
                     bool isEscaped = (tag.Flags & 1) != 0;
 
                     Group ownerGroup = FindInodeTableGroup(v, targetDiskBlk);
                     if (ownerGroup != null)
                     {
-                        byte[] data = Block(c, v, dataPhys);
+                        byte[] data = Read(c, v.Offset + (long)dataPhys * v.BlockBytes, v.BlockBytes);
                         if (data == null) continue;
                         if (isEscaped)
                         {
@@ -1205,7 +1329,7 @@ namespace UsbRecovery
                             }
 
                             HistoricalCandidate existing;
-                            if (!historicalInodes.TryGetValue(inoNumber, out existing) || seq > existing.TransactionSeq)
+                            if (!historicalInodes.TryGetValue(inoNumber, out existing) || SequenceAtOrAfter(seq, existing.TransactionSeq))
                             {
                                 historicalInodes[inoNumber] = new HistoricalCandidate
                                 {
@@ -1227,7 +1351,7 @@ namespace UsbRecovery
                     }
                     else
                     {
-                        byte[] data = Block(c, v, dataPhys);
+                        byte[] data = Read(c, v.Offset + (long)dataPhys * v.BlockBytes, v.BlockBytes);
                         if (data == null) continue;
                         if (isEscaped)
                         {
@@ -1258,9 +1382,9 @@ namespace UsbRecovery
             uint idxInGrp = (candidate.Number - 1) % v.InodesPerGroup;
             if (grpIdx >= (uint)v.Groups.Count) return false;
             Group group = v.Groups[(int)grpIdx];
-            if (!group.Valid) return false;
+            if (!group.Valid || !group.InodeMapValid) return false;
 
-            if (group.InodeMapValid && !Bit(group.Inodes, idxInGrp)) return true;
+            if (!Bit(group.Inodes, idxInGrp)) return true;
 
             ulong tableBlock = group.InodeTable + (ulong)(((long)idxInGrp * v.InodeBytes) / v.BlockBytes);
             int offsetInBlock = (int)(((long)idxInGrp * v.InodeBytes) % v.BlockBytes);
@@ -1269,17 +1393,12 @@ namespace UsbRecovery
             {
                 byte[] liveBytes = new byte[v.InodeBytes];
                 Buffer.BlockCopy(blockData, offsetInBlock, liveBytes, 0, v.InodeBytes);
-                ushort liveMode = U16(liveBytes, 0);
-                ushort liveLinks = U16(liveBytes, 0x1A);
-                uint liveDtime = U32(liveBytes, 0x14);
-                ulong liveSize = U32(liveBytes, 4) | ((ulong)U32(liveBytes, 0x6C) << 32);
+                if (!InodeChecksum(v, candidate.Number, liveBytes)) return false;
                 uint liveGen = U32(liveBytes, 0x64);
-
-                if (liveLinks == 0 || liveDtime != 0) return true;
-                if (liveGen != candidate.Generation) return true;
-                if ((liveMode & 0xF000) != 0x8000) return true;
-                if (liveSize == 0 && candidate.Size > 0) return true;
-                if (U16(liveBytes, 0x28 + 2) == 0 && candidate.Size > 0) return true;
+                // Truncation/zero links in an allocated inode do not prove that
+                // a historical incarnation was deleted. Reuse needs a valid
+                // current inode checksum and a different generation.
+                return liveGen != candidate.Generation;
             }
             return false;
         }

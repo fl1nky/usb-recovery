@@ -39,6 +39,8 @@ public static class Ext4RecoveryTests
             Assert(!Directory.GetFiles(folder, "*.partial", SearchOption.AllDirectories).Any(), name + ": no partial output published");
             Assert(report.Entries.All(x => !x.ContentAuthenticityVerified), name + ": metadata checksum is never called a content checksum");
             string outcome = (string)sample["outcome"];
+            if (sample.ContainsKey("expected_journal_replay_applied")) Assert(report.Volumes[0].JournalReplayApplied == (bool)sample["expected_journal_replay_applied"], name + ": journal replay acceptance matches commit/checksum/revoke proof");
+            if (sample.ContainsKey("expected_historical_inodes_exact")) Assert(report.Volumes[0].JournalHistoricalInodesFound == Convert.ToInt32(sample["expected_historical_inodes_exact"]), name + ": exact committed/unrevoked history count");
             if (outcome == "recover" || outcome == "candidate_current_bytes") {
                 Assert(entries.Count == 1 && entries[0].Output != null, name + ": retained deleted inode extracted");
                 Ext4Recovery.Entry entry = entries[0]; string output = Output(folder, entry);
@@ -103,6 +105,8 @@ public static class Ext4RecoveryTests
         Assert(report.Limited && report.RecoveredFiles == 0 && report.Skipped.ContainsKey("file_size_limit"), "Per-file budget marks incomplete coverage");
         Run(image, "bounded-directories", out report, null, new Ext4Recovery.Limits { MaximumDirectories = 1 });
         Assert(report.Limited && report.Skipped.ContainsKey("directory_count_limit"), "Directory count truncation cannot look complete");
+        Run(image, "bounded-journal", out report, null, new Ext4Recovery.Limits { MaximumJournalBytes = 1024 });
+        Assert(report.Limited && report.Skipped.ContainsKey("journal_size_limit"), "Journal coverage limit is explicit and does not fabricate complete history");
         Throws<ArgumentException>(() => Ext4Recovery.Recover(image, Path.Combine(results, "invalid-directory-limit"), CancellationToken.None, null, null, new Ext4Recovery.Limits { MaximumDirectoryBytes = -1 }), "Negative directory work budget rejected");
         Run(image, "invalid-offset", out report, new long[] { -512, 1, long.MaxValue });
         Assert(report.RecoveredFiles == 0 && report.Skipped["invalid_partition_offset"] == 3, "Invalid offsets do not wrap arithmetic or touch a device");
