@@ -10,7 +10,7 @@ $envPython = Join-Path $taskRoot '.build\engine-env\Scripts\python.exe'
 $wheelRoot = Join-Path $taskRoot 'helpers\recovery_engine\wheels'
 if (-not (Test-Path -LiteralPath $envPython)) {
     if (-not $Python312) { throw 'Provide -Python312 with a Windows x64 Python 3.12 interpreter for developer rebuilding.' }
-    $version = & $Python312 -c 'import sys; print("%d.%d" % sys.version_info[:2])'
+    $version = & $Python312 -c 'import sys; print(str(sys.version_info.major)+chr(46)+str(sys.version_info.minor))'
     if ($version -ne '3.12') { throw 'Python 3.12 is required for rebuilding.' }
     & $Python312 -m venv (Join-Path $taskRoot '.build\engine-env')
     if ($LASTEXITCODE -ne 0) { throw 'Could not create the build environment.' }
@@ -37,7 +37,7 @@ foreach ($vendorName in @('iphone-backup-decrypt')) {
 Push-Location $taskRoot
 try {
     if (-not $SkipTests) {
-        foreach ($taskTest in 'TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','ArchiveTextTests.py','ArchiveTextAuditTests.py','TelegramLegacyTests.py','TelegramTlTests.py','SqliteHistoryTests.py','SQLiteRollbackTests.py','SQLiteRollbackAuditTests.py','TelegramRollbackTests.py','TelegramRollbackContextTests.py','TelegramRollbackContextAuditTests.py','TelegramMediaTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','JpegFragmentRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py') {
+        foreach ($taskTest in 'TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','ArchiveTextTests.py','ArchiveTextAuditTests.py','TelegramLegacyTests.py','TelegramTlTests.py','SqliteHistoryTests.py','SQLiteRollbackTests.py','SQLiteRollbackAuditTests.py','TelegramRollbackTests.py','TelegramRollbackContextTests.py','TelegramRollbackContextAuditTests.py','TelegramMediaTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py') {
             & $envPython (Join-Path 'tests' $taskTest)
             if ($LASTEXITCODE -ne 0) { throw 'Telegram regression tests failed.' }
         }

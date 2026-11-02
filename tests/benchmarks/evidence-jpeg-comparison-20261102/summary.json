@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "checked_utc": "2026-11-02T17:13:56.338548+00:00",
+  "experiment_status": "passed",
+  "scope": "Actual current RecoveryPipeline on five unchanged synthetic 8MiB images versus saved historical R-Studio Demo / DMDE Free exports. No new competitor scan.",
+  "source": {
+    "base_commit": "0dc116b347b2f66439e9675d6ce61b4df00a1acf",
+    "final_commit": null,
+    "freeze": "frozen-04",
+    "freeze_manifest_sha256": "6e38f45a936c2ab2057e7a05d959cfe9f6dcc5a22c787957a4e26db3255e3734",
+    "frozen_files": 18
+  },
+  "runtime": {
+    "application_sha256": "f95f95e3561f36a6e1e94705d16e701583d5e6e26f9c9d70b21b1992efb03b18",
+    "helper_sha256": "cf7574fab2786a315aaf0d1736db1705e3d5d932933fd320fc2217d3211f1331",
+    "package_manifest_sha256": "a9616e688fe2e6e74dd22058a03e1ddedd6a3a24ac422d4a85f564da3e29b48c",
+    "helper_manifest_sha256": "9411aacaad24a013cd64e400f5a45238147006adf1c39536c8bc6ea6ca9df953"
+  },
+  "acceptance": {
+    "quality_suites": 56,
+    "quality_assertions": 27454,
+    "telegram_suites": 4,
+    "telegram_assertions": 137,
+    "usb_suites": 1,
+    "usb_assertions": 16,
+    "actual_real_devices": false
+  },
+  "ours": {
+    "cases": 5,
+    "targets": 5,
+    "exact_targets": 5,
+    "decoded_equivalent_only_targets": 0,
+    "exported_unique_candidates": 32
+  },
+  "historical_v8": {
+    "cases": 5,
+    "exact_targets": 5
+  },
+  "historical_rstudio": {
+    "edition": "Technician Demo 9.5.191861",
+    "cases": 5,
+    "targets": 5,
+    "exact_targets": 1,
+    "decoded_equivalent_only_targets": 0,
+    "exported_unique_candidates": 18
+  },
+  "historical_dmde": {
+    "edition": "Console Free 4.4.4.842",
+    "cases": 2,
+    "targets": 2,
+    "exact_targets": 0,
+    "decoded_equivalent_only_targets": 1,
+    "exported_unique_candidates": 2
+  },
+  "paid_tools_rerun": false,
+  "paid_edition_activated": false,
+  "bindings_unchanged": true,
+  "all_five_direct_payload_byte_comparisons_exact": true,
+  "improvement_over_v8_on_these_cases": false,
+  "completion": {
+    "overall_statuses": [
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings",
+      "finished_with_warnings"
+    ],
+    "selected_stages_per_case": 10,
+    "all_selected_stages_complete": true,
+    "warning_interpretation": "Warnings are retained, including external-image completeness unknown; complete selected stages do not erase warnings."
+  },
+  "limits": [
+    "Experiment passed describes collection/integrity; exact recovery is scored separately.",
+    "Five small synthetic regular images only. DMDE covers two of those cases.",
+    "V8 already recovered all five exactly; these runs show no gain over V8 on this set.",
+    "This is not the fragmented raw-scattered-baseline / two-gap target comparison.",
+    "Separate gray exact / unknown RGB two-gap controls do not establish the original target bytes.",
+    "Saved trial/free exports and prior settings are not exhaustive current paid-edition testing.",
+    "No speed ranking, false-positive rate, real-device recovery rate or universal-superiority claim.",
+    "DMDE equivalent-only JPEG contains the exact original prefix with trailing bytes; exact remains false."
+  ]
+}

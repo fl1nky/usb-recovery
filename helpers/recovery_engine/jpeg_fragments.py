@@ -9,16 +9,20 @@ This is structural evidence, not a checksum or proof of original ownership.
 Only minimum-jump paths between maximal physically contiguous valid islands are
 considered. A new island may begin at a surviving restart boundary or on a
 512-byte source boundary. Different minimum-jump payloads are ambiguous.
+Nonrestart baseline also has a bounded one/two-gap sector hypothesis; different
+valid results remain unknown-original witnesses, never a selected original.
 """
 from __future__ import annotations
 
 import bisect
 from array import array
+from collections import OrderedDict
 import hashlib
 import heapq
 import math
 import re
 import struct
+import time
 
 MAX_HEADER = 128 * 1024
 MAX_INTERVAL = 64 * 1024
@@ -27,6 +31,9 @@ MAX_STARTS = 20_000
 MAX_ISLANDS = 64
 MAX_FILE = 64 * 1024 * 1024
 MAX_SINGLE_GAP_FILE = 128 * 1024
+MAX_GAP_PIECE = 8 * 1024
+MAX_GAP_MEMORY = 32 * 1024 * 1024
+MAX_GAP_CACHE_MEMORY = 96 * 1024 * 1024
 MAX_PIXELS = 16_000_000
 MARKERS = re.compile(rb"\xff[\xd0-\xd7\xd9]")
 ALL_MARKERS = re.compile(rb"\xff+[\xc0-\xfe]")
@@ -230,10 +237,13 @@ def entropy(raw, blocks, mcus, checkpoint=None):
         raise InvalidJpeg("jpeg_entropy_padding_or_count")
 
 
-def prefix_checkpoint(raw, blocks, mcus):
+def prefix_checkpoint(raw, blocks, mcus, checkpoint=None):
     """Cache a full-block boundary before the physical cut, not guessed bits."""
     bits = Bits(raw)
-    for ordinal in range(mcus * len(blocks)):
+    ordinal = 0
+    if checkpoint is not None:
+        bits.at, bits.value, bits.remaining, ordinal = checkpoint
+    for ordinal in range(ordinal, mcus * len(blocks)):
         saved = bits.at, bits.value, bits.remaining, ordinal
         try:
             block(bits, *blocks[ordinal % len(blocks)])
@@ -379,60 +389,239 @@ def restart_paths(assembler, frame, markers):
     return list(solutions.values())
 
 
-def single_gap_paths(assembler, frame, markers):
-    """One missing physical adjacency, never missing/synthesized bytes.
+def baseline_gap_paths(assembler, frame, markers):
+    """Minimum one/two-gap paths within an explicit bounded sector hypothesis.
 
-    The first piece must end at one of the first sixteen 512-byte source
-    boundaries. The tail starts at a 512-byte boundary and ends at an intact
-    EOI. This deliberately bounded fallback is not a general JPEG fragmenter.
+    The header/first cut are in the first 8 KiB. A middle run, if needed, is
+    512..8192 bytes. Every jump/cut is sector aligned, an intact EOI terminates
+    the last run, and the complete file is at most 128 KiB. Byte-identical
+    source windows share parsing work, never assumed original ownership.
     """
-    ends = [end for _, end, marker in markers if marker == 0xd9]
+    ends = sorted({end for _, end, marker in markers if marker == 0xd9})
     start, prefix = frame["prefix"]
-    # A physically contiguous, strictly valid JPEG belongs to normal carving.
+    total, blocks = frame["mcus"] * len(frame["blocks"]), frame["blocks"]
     for end in ends:
         if frame["scan"] < end <= start + MAX_SINGLE_GAP_FILE:
             raw = assembler.read(start, end - start)
             try:
-                entropy(raw[len(prefix):-2], frame["blocks"], frame["mcus"])
+                entropy(raw[len(prefix):-2], blocks, frame["mcus"])
                 if assembler.decode(raw, "JPEG"):
-                    return []
+                    return []  # Normal contiguous carving owns this case.
             except InvalidJpeg:
                 pass
-    cuts = [at for at in range((start // 512 + 1) * 512, min(start + 8193, assembler.size + 1), 512) if at >= frame["scan"]]
-    prefixes = {}
+    prefixes = []
+    cuts = range((start // 512 + 1) * 512,
+                 min(start + MAX_GAP_PIECE + 1, assembler.size + 1), 512)
     for cut in cuts:
+        if cut < frame["scan"]:
+            continue
         first = assembler.read(start, cut - start)
         try:
-            saved = prefix_checkpoint(first[len(prefix):], frame["blocks"], frame["mcus"])
+            saved = prefix_checkpoint(first[len(prefix):], blocks, frame["mcus"])
         except InvalidJpeg:
             continue
-        prefixes[cut] = first, saved
-    states, solutions = 0, {}
+        prefixes.append((first, saved))
+    if not prefixes or not ends:
+        return []
+
+    # A tail is deterministic at a full block boundary. Cache the remaining
+    # block count with its component/table phase. DC values/predictors do not
+    # affect Huffman syntax. No cache key relies on guessed image similarity.
+    tails, tail_bytes = [], 0
     for end in ends:
-        # Tail starts farther away than 128 KiB cannot fit this fallback.
-        low = max(0, end - MAX_SINGLE_GAP_FILE)
-        tails = range((low + 511) // 512 * 512, end - 1, 512)
-        for at in tails:
-            tail = None
-            for cut, (first, saved) in prefixes.items():
-                if at == cut or at < cut and start < end or cut - start + end - at > MAX_SINGLE_GAP_FILE:
+        low = (max(0, end - MAX_SINGLE_GAP_FILE) + 511) // 512 * 512
+        if end - low < 3:
+            continue
+        raw = assembler.read(low, end - low)
+        tail_bytes += len(raw)
+        if tail_bytes > MAX_GAP_MEMORY:
+            raise InvalidJpeg("jpeg_gap_tail_search_incomplete")
+        tails.append((low, memoryview(raw)[:-2], raw, OrderedDict()))
+    attempts, suffix_work = 0, 0
+    cache_limit = max(16, min(assembler.max_states * 64, MAX_GAP_CACHE_MEMORY // 384) // max(1, len(tails)))
+    last_progress = time.monotonic()
+    transitions = OrderedDict()
+    transition_limit = min(assembler.max_states * 8, MAX_GAP_MEMORY // 1024)
+
+    def consume(bits, phase):
+        # A baseline block uses at most 27 + 63*26 = 1665 bits, or
+        # 418 source bytes even with FF/00 stuffing. Thus this bounded key
+        # contains every byte the transition can inspect, including EOF.
+        at = bits.at
+        key = (bits.raw[at:at + 512], bits.value if bits.remaining else 0,
+               bits.remaining, phase)
+        if key in transitions:
+            result = transitions[key]
+            if result is None:
+                raise InvalidJpeg("jpeg_entropy_cached_invalid")
+            amount, bits.value, bits.remaining = result
+            bits.at += amount
+            return
+        try:
+            block(bits, *blocks[phase])
+            result = bits.at - at, bits.value, bits.remaining
+        except InvalidJpeg:
+            result = None
+        if len(transitions) >= transition_limit:
+            transitions.popitem(last=False)
+        transitions[key] = result
+        if result is None:
+            raise InvalidJpeg("jpeg_entropy_cached_invalid")
+
+    def boundary():
+        nonlocal last_progress
+        assembler.read(0, 0)
+        now = time.monotonic()
+        if now - last_progress >= 0.25:
+            assembler.progress(assembler.size, assembler.size)
+            last_progress = now
+
+    def suffix(raw, cache, at, value, remaining, phase, required):
+        nonlocal suffix_work
+        bits = Bits(raw)
+        bits.at, bits.value, bits.remaining = at, value, remaining
+        pending, result = [], None
+        while True:
+            key = bits.at, bits.value if bits.remaining else 0, bits.remaining, phase
+            if key in cache:
+                cached = cache[key]
+                if cached is None or cached[1] or cached[0] > required - len(pending):
+                    result = cached
+                    break
+            if bits.finish():
+                result = (0, True)
+                break
+            pending.append(key)
+            if len(pending) > MAX_GAP_CACHE_MEMORY // 384:
+                raise InvalidJpeg("jpeg_gap_suffix_search_incomplete")
+            suffix_work += 1
+            if suffix_work > assembler.max_states * 16384:
+                raise InvalidJpeg("jpeg_gap_entropy_search_incomplete")
+            if len(pending) % 128 == 0:
+                boundary()
+            try:
+                consume(bits, phase)
+            except InvalidJpeg:
+                break
+            phase = (phase + 1) % len(blocks)
+            if len(pending) > required:
+                # Only a lower bound is known. Never poison later suffix
+                # states as invalid merely because this prefix needs fewer
+                # blocks; a different prefix can need exactly those blocks.
+                result = (0, False)
+                break
+        for key in reversed(pending):
+            result = None if result is None else (result[0] + 1, result[1])
+            if len(cache) >= cache_limit:
+                cache.popitem(last=False)
+            cache[key] = result
+        return result[0] if result is not None and result[1] else None
+
+    def completes(joined, saved, tail, tail_offset, window, cache):
+        nonlocal attempts
+        attempts += 1
+        if attempts > assembler.max_states * 256:
+            raise InvalidJpeg("jpeg_gap_search_incomplete")
+        if attempts % 128 == 0:
+            boundary()
+        at, value, remaining, ordinal = saved
+        carry = joined[at:]
+        bits = Bits(carry + tail)
+        bits.value, bits.remaining = value, remaining
+        try:
+            consume(bits, ordinal % len(blocks))
+        except InvalidJpeg:
+            return False
+        if bits.at < len(carry):
+            raise InvalidJpeg("jpeg_gap_checkpoint_invalid")
+        count = suffix(window, cache, tail_offset + bits.at - len(carry),
+                       bits.value, bits.remaining, (ordinal + 1) % len(blocks), total - ordinal - 1)
+        return count is not None and ordinal + 1 + count == total
+
+    def collect(parts, solutions, aliases=False):
+        payload = b"".join(raw for _, raw in parts)
+        if not assembler.decode(payload, "JPEG"):
+            return
+        digest, recipe = hashlib.sha256(payload).digest(), merge(parts)
+        if aliases or digest in solutions and solutions[digest] != recipe:
+            assembler.skipped["jpeg_gap_source_mapping_ambiguous"] = 1
+        solutions.setdefault(digest, recipe)
+        if len(solutions) > 1:
+            error = InvalidJpeg("jpeg_gap_ambiguous")
+            error.recipes = list(solutions.values())
+            raise error
+
+    # Minimum-gap scope agrees with the existing restart/progressive policy.
+    # Exhaust one-gap alternatives before considering a second discontinuity.
+    solutions = {}
+    for first, saved in prefixes:
+        joined = first[len(prefix):]
+        for low, window, raw, cache in tails:
+            for offset in range(0, len(window), 512):
+                at, tail = low + offset, raw[offset:]
+                if at == start + len(first) or overlap([(start, first)], at, len(tail)):
                     continue
-                states += 1
-                if states > assembler.max_states:
-                    assembler.skipped["jpeg_gap_search_incomplete"] += 1
-                    return []
-                if tail is None:
-                    tail = assembler.read(at, end - at)
-                payload = first + tail
+                if len(first) + len(tail) > MAX_SINGLE_GAP_FILE:
+                    continue
+                if completes(joined, saved, tail[:-2], offset, window, cache):
+                    collect([(start, first), (at, tail)], solutions)
+    if solutions:
+        return list(solutions.values())
+
+    # Enumerate actual source bytes without an oracle map or filler heuristic.
+    # Preserve every physical occurrence for exact disjoint-range checks.
+    windows, window_bytes, starts = {}, 0, 0
+    for base in range(0, assembler.size, 1024 * 1024):
+        raw = assembler.read(base, min(1024 * 1024 + MAX_GAP_PIECE, assembler.size - base))
+        for offset in range(0, min(1024 * 1024, assembler.size - base), 512):
+            available = min(MAX_GAP_PIECE, (len(raw) - offset) // 512 * 512)
+            if not available:
+                continue
+            starts += 1
+            if starts > MAX_STARTS:
+                raise InvalidJpeg("jpeg_gap_start_search_incomplete")
+            piece = raw[offset:offset + available]
+            if piece not in windows:
+                window_bytes += len(piece)
+                if len(windows) >= assembler.max_states or window_bytes > MAX_GAP_MEMORY:
+                    raise InvalidJpeg("jpeg_gap_window_search_incomplete")
+                windows[piece] = []
+            windows[piece].append(base + offset)
+        assembler.progress(min(base + 1024 * 1024, assembler.size), assembler.size)
+
+    states = 0
+    for first, saved in prefixes:
+        initial = first[len(prefix):]
+        for middle_window, positions in windows.items():
+            continued = saved
+            for length in range(512, len(middle_window) + 1, 512):
+                boundary()
+                joined = initial + middle_window[:length]
                 try:
-                    entropy(payload[len(prefix):-2], frame["blocks"], frame["mcus"], saved)
+                    continued = prefix_checkpoint(joined, blocks, frame["mcus"], continued)
                 except InvalidJpeg:
-                    continue
-                if assembler.decode(payload, "JPEG"):
-                    solutions[hashlib.sha256(payload).hexdigest()] = [(start, first), (at, tail)]
-                    if len(solutions) > 1:
-                        assembler.skipped["jpeg_gap_ambiguous"] += 1
-                        return []
+                    break
+                states += 1
+                if states > assembler.max_states * 8:
+                    raise InvalidJpeg("jpeg_gap_middle_search_incomplete")
+                middle = middle_window[:length]
+                for low, window, raw, cache in tails:
+                    for offset in range(0, len(window), 512):
+                        at, tail = low + offset, raw[offset:]
+                        if len(first) + length + len(tail) > MAX_SINGLE_GAP_FILE:
+                            continue
+                        fixed = [(start, first), (at, tail)]
+                        if overlap(fixed[:1], at, len(tail)):
+                            continue
+                        possible = (p for p in positions
+                            if p != start + len(first) and p + length != at
+                            and not overlap(fixed, p, length))
+                        physical = next(possible, None)
+                        if physical is None:
+                            continue
+                        if completes(joined, continued, tail[:-2], offset, window, cache):
+                            collect([(start, first), (physical, middle), (at, tail)],
+                                    solutions, next(possible, None) is not None)
     return list(solutions.values())
 
 
@@ -933,9 +1122,9 @@ def recover_jpegs(assembler):
                 continue
             baseline_markers = [marker for marker in markers if marker[2] == 0xd9 or 0xd0 <= marker[2] <= 0xd7]
             if not frame["interval"]:
-                for recipe in single_gap_paths(assembler, frame, baseline_markers):
+                for recipe in baseline_gap_paths(assembler, frame, baseline_markers):
                     yield (recipe, "jpeg_gap_structural_candidate",
-                           "One physical gap, exact baseline Huffman MCU count, one-bit padding and JPEG decoding agree. Prefix cut and tail start are 512-byte source boundaries; bounded to a 128 KiB file and a cut in the first 8 KiB. Structural candidate only: original ownership, payload integrity and deletion are not authenticated.")
+                           "Exact baseline Huffman MCU count, one-bit padding, EOI and JPEG decoding agree for a unique minimum-gap byte result within a bounded one/two-gap search. Source jumps and cuts are 512-byte aligned; the first and optional middle run are at most 8 KiB, and the file at most 128 KiB. Reported extents are one replayable mapping; jpeg_gap_source_mapping_ambiguous means original physical placement is unknown. Structural candidate only: original ownership, payload integrity and deletion are not authenticated.")
                 continue
             recipes = restart_paths(assembler, frame, baseline_markers)
             for recipe in recipes:
@@ -945,3 +1134,7 @@ def recover_jpegs(assembler):
                        "Baseline Huffman MCU counts, RST sequence, padding and JPEG decoding agree for a unique minimum-jump island path. This is structural evidence only; payload ownership, original integrity and deletion are not authenticated. New islands start at known restart or 512-byte boundaries.")
         except InvalidJpeg as error:
             assembler.skipped[str(error)] += 1
+            if str(error) == "jpeg_gap_ambiguous":
+                for recipe in error.recipes:
+                    yield (recipe, "jpeg_gap_ambiguous_candidate",
+                           "Ambiguous baseline JPEG: two distinct complete Huffman/MCU/padding/EOI and decoder-valid byte results survive the bounded minimum-gap hypothesis. At most two content witnesses are retained; search stopped after proving ambiguity, so alternative content and physical aliases are not exhaustively enumerated. Original bytes, order and physical placement are unknown. Listed extents are one replayable source mapping, not proof of original placement or ownership.")

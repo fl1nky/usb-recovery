@@ -13,9 +13,9 @@ using UsbRecovery;
 
 public static class PhotoCatalogTests
 {
-    static int passed, failed;
+    static int passed, failed, assertions;
     static string root;
-    static void Assert(bool condition, string message) { if (!condition) throw new Exception(message); }
+    static void Assert(bool condition, string message) { assertions++; if (!condition) throw new Exception(message); }
     static void Test(string name, Action body)
     {
         try { body(); passed++; Console.WriteLine("PASS " + name); }
@@ -59,9 +59,10 @@ public static class PhotoCatalogTests
             return output.ToArray();
         }
     }
-    public static int Main()
+    public static int Main(string[] args)
     {
-        root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PhotoCatalog-data-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff"));
+        string workspace=args.Length>0?Path.Combine(Path.GetFullPath(args[0]),".build"):Path.GetTempPath();
+        root = Path.Combine(workspace, "PhotoCatalog-data-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         Console.WriteLine("Synthetic output only: " + root);
         byte[] jpeg = Photo(ImageFormat.Jpeg), png = Photo(ImageFormat.Png);
@@ -173,6 +174,7 @@ public static class PhotoCatalogTests
             Assert(csv.Contains("Порядок фрагментов восстановлен предположительно"), "Filesystem guess hidden");
         });
         Console.WriteLine("RESULT: " + passed + " passed, " + failed + " failed");
+        if(failed==0)Console.WriteLine("PASS PhotoCatalog: "+assertions+" checks; actual image decoding, deep paths, gallery, duplicate provenance, safe output roots and uncertainty preservation on synthetic files only.");
         return failed == 0 ? 0 : 1;
     }
 }

@@ -504,7 +504,7 @@ def _restore(assembler, journal):
 def _validate_outputs(stream, destination, records):
     from recovery_checkpoint import CheckpointError, plain
     hashes, total = set(), 0
-    statuses = {'png_crc_zlib_reassembled_candidate','jpeg_gap_structural_candidate','jpeg_restart_structural_candidate',
+    statuses = {'png_crc_zlib_reassembled_candidate','jpeg_gap_structural_candidate','jpeg_gap_ambiguous_candidate','jpeg_restart_structural_candidate',
                 'jpeg_progressive_structural_candidate','progressive_partial_precision_candidate'}
     known = set()
     size = os.fstat(stream.fileno()).st_size

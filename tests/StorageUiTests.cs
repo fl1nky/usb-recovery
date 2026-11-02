@@ -37,6 +37,11 @@ public static class StorageUiTests
     }
     static void Shot(Form form,string name){using(var bitmap=new Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,new Rectangle(Point.Empty,bitmap.Size));bitmap.Save(Path.Combine(work,name+".png"),ImageFormat.Png);}}
     static async Task Pause(){await Task.Delay(70);}
+    static async Task WaitForLayout(Func<bool> ready)
+    {
+        var elapsed=System.Diagnostics.Stopwatch.StartNew();
+        while(!ready()&&elapsed.ElapsedMilliseconds<2000)await Task.Delay(20);
+    }
     static string Catalog()
     {
         string folder=Path.Combine(work,"synthetic-catalog");Directory.CreateDirectory(Path.Combine(folder,"files.1"));string file=Path.Combine(folder,"files.1","recipe.txt");File.WriteAllText(file,"Only a generated UI fixture",new UTF8Encoding(false));
@@ -103,7 +108,8 @@ public static class StorageUiTests
                 for(int mode=0;mode<3;mode++){
                     modes.SelectedIndex=mode;await Pause();Fits(modes,host,"mode tabs "+mode+"/"+compact);Fits(Field<RecoveryActivityView>(panel,"activity"),host,"storage activity "+mode+"/"+compact);
                     foreach(string field in new[]{"start","stop","found","searchImage","open"})Fits(Field<Button>(panel,field),host,field+" "+mode+"/"+compact);
-                    Check(source.Visible==(mode!=1)&&(layout.GetRowHeights()[1]==0)==(mode==1),"source row collapses exactly for RAID "+compact);Check(Field<CheckBox>(panel,"searchAfter").Enabled==(mode!=0),"APFS own extraction workflow mode="+mode+" selected="+modes.SelectedIndex+" enabled="+Field<CheckBox>(panel,"searchAfter").Enabled+" compact="+compact);
+                    await WaitForLayout(()=>modes.SelectedIndex==mode&&source.Visible==(mode!=1)&&(layout.GetRowHeights()[1]==0)==(mode==1));
+                    Check(modes.SelectedIndex==mode&&source.Visible==(mode!=1)&&(layout.GetRowHeights()[1]==0)==(mode==1),"source row collapses exactly for RAID compact="+compact+" requested="+mode+" selected="+modes.SelectedIndex+" visible="+source.Visible+" row="+layout.GetRowHeights()[1]+" style="+layout.RowStyles[1].SizeType+"/"+layout.RowStyles[1].Height+" host="+host.Visible+" panel="+panel.Visible);Check(Field<CheckBox>(panel,"searchAfter").Enabled==(mode!=0),"APFS own extraction workflow mode="+mode+" selected="+modes.SelectedIndex+" enabled="+Field<CheckBox>(panel,"searchAfter").Enabled+" compact="+compact);
                     if(mode!=1){Fits(source,host,"source row "+compact);Fits(Field<TextBox>(panel,"image"),host,"source image field "+compact);Fits(Field<Button>(panel,"probe"),host,"probe action "+compact);Keys(panel,host,mode);}
                     else await Raid(panel,host);
                 }

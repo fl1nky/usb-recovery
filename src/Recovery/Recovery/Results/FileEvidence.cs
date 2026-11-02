@@ -100,7 +100,7 @@ namespace UsbRecovery
             foreach(var row in Rows(Read(root,"extra-photo-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"size"),"embedded_photo");
             foreach(string manifest in new[]{"fragmented-photo-search.json","fragmented-media.json"})foreach(var row in Rows(Read(root,manifest),"Files")){
                 string path=Value(row,"Path"),status=Value(row,"Status");long size=Number(row,"Bytes",-1);
-                if(String.IsNullOrEmpty(path)||size<=0||!(status=="png_crc_zlib_reassembled_candidate"||status=="jpeg_restart_structural_candidate"||status=="jpeg_gap_structural_candidate"||status=="jpeg_progressive_structural_candidate"||status=="progressive_partial_precision_candidate"||status=="jpeg_restart_huffman_reassembled_candidate"||status=="jpeg_single_gap_huffman_reassembled_candidate"||status=="iso_bmff_structural_candidate"))continue;
+                if(String.IsNullOrEmpty(path)||size<=0||!(status=="png_crc_zlib_reassembled_candidate"||status=="jpeg_restart_structural_candidate"||status=="jpeg_gap_structural_candidate"||status=="jpeg_gap_ambiguous_candidate"||status=="jpeg_progressive_structural_candidate"||status=="progressive_partial_precision_candidate"||status=="jpeg_restart_huffman_reassembled_candidate"||status=="jpeg_single_gap_huffman_reassembled_candidate"||status=="iso_bmff_structural_candidate"))continue;
                 if(!(path.StartsWith("fragmented-photos/",StringComparison.Ordinal)||path.StartsWith("fragmented-media/",StringComparison.Ordinal)))continue;
                 var proof=new EvidenceEntry{Path=path,Kind="reassembled_media_candidate",VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note"),MappingComplete=true};long logical=0;
                 foreach(var extent in Rows(row,"Extents")){
@@ -251,6 +251,8 @@ namespace UsbRecovery
             var preferred=item.OriginalLocations.FirstOrDefault(x=>x.Status=="verified_parent_chain")??item.OriginalLocations.FirstOrDefault(x=>x.Status=="apfs_referenced_path")??item.OriginalLocations.FirstOrDefault();
             if(preferred!=null){item.OriginalPath=preferred.Path;item.OriginalPathStatus=preferred.Status;item.OriginalPathEvidence=preferred.Evidence;item.SourceVolumeOffset=preferred.VolumeOffset;}
             var record=For(preferred==null?item.Path:preferred.CandidatePath);
+            var ambiguous=new[]{item.Path}.Concat(item.Copies).Select(For).FirstOrDefault(x=>x!=null&&x.VerificationStatus=="jpeg_gap_ambiguous_candidate"&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
+            if(ambiguous!=null)record=ambiguous;
             if(record==null&&preferred==null)record=item.Copies.Select(For).FirstOrDefault(x=>x!=null&&(x.Kind=="ext4_inode_candidate"||x.Kind=="ext4_journal_candidate")&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
             if(record!=null&&record.VerifiedSha256!=null&&(!String.Equals(record.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||record.VerifiedBytes!=item.Bytes)){
                 item.Quality="changed";item.QualityLabel="Изменён после извлечения";item.IntegrityDetail+=" Прежняя карта источника не применяется: текущий файл не совпадает с манифестом извлечения.";record=null;
@@ -267,6 +269,11 @@ namespace UsbRecovery
                 item.Note="Сборка из сохранившихся фрагментов. Принадлежность к исходному файлу и факт удаления не подтверждены. Проверь фотографию или весь ролик.";
                 item.IntegrityDetail+=" "+record.Note+" SHA256 фиксирует полученную сборку, а не исходное содержимое.";
                 if(record.VerificationStatus=="progressive_partial_precision_candidate"){if(!PreserveProblem(item))item.QualityLabel="JPEG с частичной точностью";item.Note+=" Сохранились не все уровни точности progressive JPEG; сравни детали изображения.";}
+                if(record.VerificationStatus=="jpeg_gap_ambiguous_candidate"){
+                    item.Status="Неоднозначная сборка";
+                    if(!PreserveProblem(item)){item.Quality="ambiguous_candidate";item.QualityLabel="Исходный вариант неизвестен";}
+                    item.Note="Сохранились как минимум две разные допустимые сборки JPEG. Сохранены не более двух примеров; остальные варианты и совпадающие участки источника не перечислены полностью. Исходные байты, порядок и размещение неизвестны; карта показывает один воспроизводимый вариант, а не исходное размещение.";
+                }
             }
             if(record!=null&&(record.Kind=="ext4_inode_candidate"||record.Kind=="ext4_journal_candidate")){
                 item.Method=record.Kind=="ext4_journal_candidate"?"ext4 · журнал JBD2":"ext4 · запись inode";

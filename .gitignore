@@ -69,6 +69,13 @@
 !/tests/benchmarks/evidence/*.json
 !/tests/benchmarks/evidence/*.md
 
+# Small measured comparison summaries; no recovered files or runtime binaries.
+!/tests/benchmarks/evidence-jpeg-comparison-20261102/
+/tests/benchmarks/evidence-jpeg-comparison-20261102/*
+!/tests/benchmarks/evidence-jpeg-comparison-20261102/summary.json
+!/tests/benchmarks/evidence-jpeg-comparison-20261102/scores.json
+!/tests/benchmarks/evidence-jpeg-comparison-20261102/bindings.json
+
 # Small pinned Linux MD images with upstream license and hashes
 !/tests/fixtures/
 /tests/fixtures/*

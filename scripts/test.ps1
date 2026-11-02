@@ -10,6 +10,8 @@ if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source
 & (Join-Path $taskLayout.Tests 'FixtureCacheTests.ps1') -Python312 $Python312
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'build_jpeg_two_gap_portable_fixtures.py') (Join-Path $taskLayout.Root '.build\jpeg-two-gap-portable-fixtures')
+if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')

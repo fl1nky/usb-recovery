@@ -46,7 +46,7 @@ namespace UsbRecovery
             long outputBytes=0;var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach(var candidate in report.Files){
                 if(candidate==null||candidate.Sha256==null||candidate.Sha256.Length!=64||!candidate.Sha256.All(Uri.IsHexDigit)||candidate.Bytes<=0||candidate.Bytes>64L*1024*1024||candidate.Extents==null||candidate.Extents.Count<2||candidate.Extents.Count>100000)throw new IOException("Неверные размеры или контрольная сумма кандидата фотографии.");
-                if(!new[]{"png_crc_zlib_reassembled_candidate","jpeg_gap_structural_candidate","jpeg_restart_structural_candidate","jpeg_progressive_structural_candidate","progressive_partial_precision_candidate"}.Contains(candidate.Status))throw new IOException("Неизвестное состояние кандидата фотографии.");
+                if(!new[]{"png_crc_zlib_reassembled_candidate","jpeg_gap_structural_candidate","jpeg_gap_ambiguous_candidate","jpeg_restart_structural_candidate","jpeg_progressive_structural_candidate","progressive_partial_precision_candidate"}.Contains(candidate.Status))throw new IOException("Неизвестное состояние кандидата фотографии.");
                 bool png=candidate.Status.StartsWith("png_",StringComparison.Ordinal);string name=(png?"png-":"jpeg-")+candidate.Sha256+(png?".png":".jpg");
                 if(!String.Equals(candidate.Path,name,StringComparison.OrdinalIgnoreCase)||!names.Add(candidate.Path))throw new IOException("Неверное или повторное имя кандидата фотографии.");
                 if(candidate.Path==null||candidate.Path.IndexOfAny(new[]{'/','\\',':'})>=0)throw new IOException("Неверный путь кандидата фотографии.");

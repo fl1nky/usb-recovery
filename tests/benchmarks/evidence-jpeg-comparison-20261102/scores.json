@@ -1,0 +1,491 @@
+{
+  "schema": 1,
+  "corpus_manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+  "configuration": {
+    "FatMetadata": true,
+    "NtfsMetadata": true,
+    "LostPartitions": true,
+    "AlternateFat": true,
+    "Ext4Metadata": false,
+    "RefsMetadata": false,
+    "Signatures": true,
+    "SmallBlocks": true,
+    "JpegFragments": true,
+    "KeepCorrupted": true,
+    "EmbeddedPhotos": true,
+    "Containers": true,
+    "TolerateReadErrors": false,
+    "OrphanDirectories": true,
+    "TextFragments": false,
+    "FragmentedPhotos": true,
+    "FragmentedVideo": true,
+    "MetadataRescue": true,
+    "ArchiveMembers": true,
+    "FragmentedArchives": false,
+    "CustomSignatures": false,
+    "CustomRules": [],
+    "TextQuery": "",
+    "Photos": true,
+    "Video": true,
+    "Audio": true,
+    "Documents": true,
+    "Archives": true,
+    "Other": true
+  },
+  "cases": [
+    {
+      "name": "raw-contiguous-baseline",
+      "input": {
+        "image": "images/raw-contiguous-baseline.dd",
+        "bytes": 8388608,
+        "sha256": "f38c06005d2d3d051ceecf6e1ffdc333528c0ee05beb95d177ca7745f46035cf"
+      },
+      "ours": {
+        "name": "raw-contiguous-baseline",
+        "status": "completed",
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null
+      },
+      "direct_exact_payloads": [
+        {
+          "asset": "baseline.jpg",
+          "bytes": 45234,
+          "sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+          "output": "ours/raw-contiguous-baseline/raw-contiguous-baseline/files.1/f0000256.jpg",
+          "method": "PhotoRec"
+        }
+      ],
+      "overall_status": "finished_with_warnings",
+      "selected_stages_complete": 10,
+      "stage_warnings": {
+        "partitions": true,
+        "fat": true,
+        "ntfs": true,
+        "ntfs-records": true,
+        "photorec": true,
+        "photos": true,
+        "containers": true,
+        "archive-members": true,
+        "fragmented-photos": true,
+        "fragmented-media": true
+      },
+      "raw_run_sha256": "beaf8112efdc6feb50faee600a084c78c892bbb3ba1fbd4898cbc1133580b92b",
+      "raw_score_sha256": "077f654025ad6e2bf37b3c32a3299c295c7e467c0d87afbc64d2e3bfe9e8a9f3"
+    },
+    {
+      "name": "raw-scattered-restart",
+      "input": {
+        "image": "images/raw-scattered-restart.dd",
+        "bytes": 8388608,
+        "sha256": "12d4a32f3db2693164e2eb41e75c49baf7c9e21c4c49a361eb41abe4aa2f4bc6"
+      },
+      "ours": {
+        "name": "raw-scattered-restart",
+        "status": "completed",
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null
+      },
+      "direct_exact_payloads": [
+        {
+          "asset": "restart.jpg",
+          "bytes": 45393,
+          "sha256": "76bb6e3e72ca51c31078fecbb6bfbb7e9cd26126e695a95477f7e7c3fa3e5e48",
+          "output": "ours/raw-scattered-restart/raw-scattered-restart/fragmented-photos/jpeg-76bb6e3e72ca51c31078fecbb6bfbb7e9cd26126e695a95477f7e7c3fa3e5e48.jpg",
+          "method": "Сборка разрозненных медиа"
+        }
+      ],
+      "overall_status": "finished_with_warnings",
+      "selected_stages_complete": 10,
+      "stage_warnings": {
+        "partitions": true,
+        "fat": true,
+        "ntfs": true,
+        "ntfs-records": true,
+        "photorec": true,
+        "photos": true,
+        "containers": true,
+        "archive-members": true,
+        "fragmented-photos": true,
+        "fragmented-media": true
+      },
+      "raw_run_sha256": "9d39d529d41e8b800f56ef36f07fd064b6396c14534290c8c7bfcb1372ac1506",
+      "raw_score_sha256": "2846fb58bb6231bc527c8328f4b34b21478c21e2d324be8b9876c3d6452d92b5"
+    },
+    {
+      "name": "raw-scattered-avc-dual",
+      "input": {
+        "image": "images/raw-scattered-avc-dual.dd",
+        "bytes": 8388608,
+        "sha256": "c3c8a3435d3812da10fb7b4d7c387f0eb3512891e1aa2c44fb4832c540b4155f"
+      },
+      "ours": {
+        "name": "raw-scattered-avc-dual",
+        "status": "completed",
+        "expected": [
+          {
+            "asset": "avc-dual.mp4",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 2,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null
+      },
+      "direct_exact_payloads": [
+        {
+          "asset": "avc-dual.mp4",
+          "bytes": 23813,
+          "sha256": "d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f",
+          "output": "ours/raw-scattered-avc-dual/raw-scattered-avc-dual/fragmented-media/candidate-d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f.mp4",
+          "method": "Сборка разрозненных медиа"
+        }
+      ],
+      "overall_status": "finished_with_warnings",
+      "selected_stages_complete": 10,
+      "stage_warnings": {
+        "partitions": true,
+        "fat": true,
+        "ntfs": true,
+        "ntfs-records": true,
+        "photorec": true,
+        "photos": true,
+        "containers": true,
+        "archive-members": true,
+        "fragmented-photos": true,
+        "fragmented-media": true
+      },
+      "raw_run_sha256": "487eed6e4b93cf212bec9fb7c432ca0e14033385553bb2150a8b24d42debf67b",
+      "raw_score_sha256": "3b4369c0380ea93285cc2eea42bcc7fd3fad0dc0e0c96a5d9190ff1760af2144"
+    },
+    {
+      "name": "raw-scattered-mjpeg-dual",
+      "input": {
+        "image": "images/raw-scattered-mjpeg-dual.dd",
+        "bytes": 8388608,
+        "sha256": "07db5cfa378be3edd0d97158ced60959681bbc49d58c9c3c8fdd974dd590f771"
+      },
+      "ours": {
+        "name": "raw-scattered-mjpeg-dual",
+        "status": "completed",
+        "expected": [
+          {
+            "asset": "mjpeg-dual.mov",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 26,
+        "decodable_nonmatching": 24,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null
+      },
+      "direct_exact_payloads": [
+        {
+          "asset": "mjpeg-dual.mov",
+          "bytes": 85295,
+          "sha256": "add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7",
+          "output": "ours/raw-scattered-mjpeg-dual/raw-scattered-mjpeg-dual/fragmented-media/candidate-add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7.mp4",
+          "method": "Сборка разрозненных медиа"
+        }
+      ],
+      "overall_status": "finished_with_warnings",
+      "selected_stages_complete": 10,
+      "stage_warnings": {
+        "partitions": true,
+        "fat": true,
+        "ntfs": true,
+        "ntfs-records": true,
+        "photorec": true,
+        "photos": true,
+        "containers": true,
+        "archive-members": true,
+        "fragmented-photos": true,
+        "fragmented-media": true
+      },
+      "raw_run_sha256": "59e3d67810304d6fbbe3affccf529c913ef976a00dc0071d7b590ece32249738",
+      "raw_score_sha256": "730e7efe3754f596fdce29af4c9a581cf77f7dca9ebea8fac5c993dc7c152520"
+    },
+    {
+      "name": "raw-scattered-png-chunks",
+      "input": {
+        "image": "images/raw-scattered-png-chunks.dd",
+        "bytes": 8388608,
+        "sha256": "1b76458667461091ec86b8a2a1f797a5d61e106f1f7aff82dee02d1fca1b3e11"
+      },
+      "ours": {
+        "name": "raw-scattered-png-chunks",
+        "status": "completed",
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null
+      },
+      "direct_exact_payloads": [
+        {
+          "asset": "chunked.png",
+          "bytes": 127244,
+          "sha256": "a8a6a292ad06a56169c73182e52e4caadb90f140a78d36b339178b1dbf04584a",
+          "output": "ours/raw-scattered-png-chunks/raw-scattered-png-chunks/fragmented-photos/png-a8a6a292ad06a56169c73182e52e4caadb90f140a78d36b339178b1dbf04584a.png",
+          "method": "Сборка разрозненных медиа"
+        }
+      ],
+      "overall_status": "finished_with_warnings",
+      "selected_stages_complete": 10,
+      "stage_warnings": {
+        "partitions": true,
+        "fat": true,
+        "ntfs": true,
+        "ntfs-records": true,
+        "photorec": true,
+        "photos": true,
+        "containers": true,
+        "archive-members": true,
+        "fragmented-photos": true,
+        "fragmented-media": true
+      },
+      "raw_run_sha256": "375b4437f4439db194bff88240b8a7bbea6360c2008e317e846bc279b7afa265",
+      "raw_score_sha256": "d710bddde1211149e3b071c4abb1a0b51069a4e3b64f67798b3b7fe01ead0462"
+    }
+  ],
+  "saved_exports": {
+    "rstudio": {
+      "metrics": {
+        "cases": 5,
+        "targets": 5,
+        "exact_targets": 1,
+        "decoded_equivalent_only_targets": 0,
+        "exported_unique_candidates": 18
+      },
+      "cases": [
+        {
+          "name": "raw-contiguous-baseline",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "baseline.jpg",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 0,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        },
+        {
+          "name": "raw-scattered-restart",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "restart.jpg",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": false,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        },
+        {
+          "name": "raw-scattered-avc-dual",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "avc-dual.mp4",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": false,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        },
+        {
+          "name": "raw-scattered-mjpeg-dual",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "mjpeg-dual.mov",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": false,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 15,
+          "decodable_nonmatching": 14,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        },
+        {
+          "name": "raw-scattered-png-chunks",
+          "status": "no_findings",
+          "expected": [
+            {
+              "asset": "chunked.png",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": false,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 0,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 0,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        }
+      ],
+      "original_score_sha256": "dc6783c1597dafb4bb6e7346364fa7e9cd5e1e5cfbda0990e189050d03b964a6",
+      "rescored_sha256": "417903048515ff9ac6b031a3546413e7ef83df18d15cee36d2436c85e06d3c33"
+    },
+    "dmde": {
+      "metrics": {
+        "cases": 2,
+        "targets": 2,
+        "exact_targets": 0,
+        "decoded_equivalent_only_targets": 1,
+        "exported_unique_candidates": 2
+      },
+      "cases": [
+        {
+          "name": "raw-contiguous-baseline",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "baseline.jpg",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 0,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        },
+        {
+          "name": "raw-scattered-restart",
+          "status": "completed",
+          "expected": [
+            {
+              "asset": "restart.jpg",
+              "all_original_bytes_present": true,
+              "exact": false,
+              "decoded_equivalent": false,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null
+        }
+      ],
+      "original_score_sha256": "efc2cd609caeba04418366cb7e640eb0a3684e11d235c3d55f2b2c3c88c32075",
+      "rescored_sha256": "21fc2647a735a8ac6c139223a7f25b8d3c405225b10953fda1ddb33dacfa74c9"
+    }
+  },
+  "historical_seven_rescores": [
+    {
+      "name": "raw-contiguous-baseline",
+      "equivalent": true,
+      "original_score_sha256": "b193d014ebe042aed8ccb8ff163619efc48b699275153199d8d1b8389ac464e9",
+      "relocated_score_sha256": "9fc44063bbee9a1ff8e7fd916f0dbd2e165ccbd48e474eafb52bed254ba03aaa"
+    },
+    {
+      "name": "raw-scattered-restart",
+      "equivalent": true,
+      "original_score_sha256": "c6bbc45ca9e98ab0c8fa931765eb9bdb8a84eabdb91c2f0daf29b58db3a2c2d4",
+      "relocated_score_sha256": "758c1fd7ff208887b9e70bd223b3eaa80b765ae187b44ed931f5c26700341b36"
+    },
+    {
+      "name": "raw-scattered-avc-dual",
+      "equivalent": true,
+      "original_score_sha256": "1cf16689ffeb1b06fe4e23e3e9c119811acf2f52bcb2462f5bc0990d7149e6af",
+      "relocated_score_sha256": "d9b422d0158526a9c18f277ca2ec324aacc5c6b45e9607b090ac4bc65b12ded3"
+    },
+    {
+      "name": "raw-scattered-mjpeg-dual",
+      "equivalent": true,
+      "original_score_sha256": "3553517f65d8688dd31e1332fd81284a33fd01163f677042f56ebccc9e110d3c",
+      "relocated_score_sha256": "116a6aed30ba006869c4c0f2595a98db1b803ffaee2a11b7e1e077784814bb1e"
+    },
+    {
+      "name": "raw-scattered-png-chunks",
+      "equivalent": true,
+      "original_score_sha256": "64419e704b3a14d71052af47a0c63bf912105dcae4e2de917e0335c8ec3cf554",
+      "relocated_score_sha256": "c43a5e5430ffc0d93bf4663cb0fbbd6391af33867cf4bf96bb1a354d8794746d"
+    },
+    {
+      "name": "rstudio",
+      "equivalent": true,
+      "original_score_sha256": "dc6783c1597dafb4bb6e7346364fa7e9cd5e1e5cfbda0990e189050d03b964a6",
+      "relocated_score_sha256": "417903048515ff9ac6b031a3546413e7ef83df18d15cee36d2436c85e06d3c33"
+    },
+    {
+      "name": "dmde",
+      "equivalent": true,
+      "original_score_sha256": "efc2cd609caeba04418366cb7e640eb0a3684e11d235c3d55f2b2c3c88c32075",
+      "relocated_score_sha256": "21fc2647a735a8ac6c139223a7f25b8d3c405225b10953fda1ddb33dacfa74c9"
+    }
+  ],
+  "decode_note": "Existing pinned scorer results verified without rerunning any decoder in this audit. Exact targets additionally compared as payload bytes."
+}

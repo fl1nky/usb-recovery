@@ -29,3 +29,5 @@
 /tests/TelegramResidualProvenanceTests.py text eol=crlf
 /tests/DeletedArchiveSearchTests.py text eol=crlf
 /tests/PngContextAuditTests.py text eol=crlf
+# Preserve the trusted scorer bytes referenced by immutable comparison reports.
+/tests/benchmarks/score_media_results.py text eol=crlf

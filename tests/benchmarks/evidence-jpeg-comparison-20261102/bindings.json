@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "labels": {
+    "comparison_run": "Local raw collection; raw paths are represented relative to its root.",
+    "historical_public_evidence": "../evidence-v8-comparison",
+    "source_freeze": "frozen-04 before final source commit"
+  },
+  "collector_sha256": "7c31780b933cfb7008e8a18908fcc9ee358e9219c5679b01a9f239b39d41f405",
+  "source_manifest_sha256": "6e38f45a936c2ab2057e7a05d959cfe9f6dcc5a22c787957a4e26db3255e3734",
+  "source_files": [
+    {
+      "path": "docs/development/jpeg-baseline-gaps.md",
+      "bytes": 2943,
+      "sha256": "47327cab36fb5483787c0587a0be614662c20c4f1a544c87531963913bc41cd9"
+    },
+    {
+      "path": "helpers/recovery_engine/fragmented_photos.py",
+      "bytes": 40474,
+      "sha256": "1d4e8e99f205a1a787047006f0525cce497b1af78a7b2cc4a337d5470fd20e43"
+    },
+    {
+      "path": "helpers/recovery_engine/jpeg_fragments.py",
+      "bytes": 53458,
+      "sha256": "99c8de8e5ecb5fb576814414decb34f35523c71dfe52d3891eae81937202d5e3"
+    },
+    {
+      "path": "helpers/recovery_engine/package_runtime.py",
+      "bytes": 5903,
+      "sha256": "4d820ee3652861f83c4ef06ae18efe75602cc991fe41f0b90367a2ddebb6fda4"
+    },
+    {
+      "path": "scripts/build-helper.ps1",
+      "bytes": 4881,
+      "sha256": "a936627a19fccc94daf578cabc16c3397ee97ec97bee1bf9c918ef48e9162aa6"
+    },
+    {
+      "path": "scripts/test.ps1",
+      "bytes": 11947,
+      "sha256": "ed8cac703aa36ab8dbc16cc1989feda1fb0fafbba887e217f493e0eb00988cdf"
+    },
+    {
+      "path": "src/Recovery/Recovery/Engines/FragmentedPhotoRecovery.cs",
+      "bytes": 11529,
+      "sha256": "f73eae00ce9ba67659bfd10bfa560364eb927d00f3b6351bf5adcfa0c713143a"
+    },
+    {
+      "path": "src/Recovery/Recovery/Results/FileEvidence.cs",
+      "bytes": 36893,
+      "sha256": "d84969019cdf1f7bfad6916818ac9c5b0567f33fa9713809c8b838ce42057019"
+    },
+    {
+      "path": "src/Recovery/Recovery/Results/PhotoCatalog.cs",
+      "bytes": 42800,
+      "sha256": "e66a4bbde9942dc008014c83441b5a82445bbac7e526975798c447ce401c2f67"
+    },
+    {
+      "path": "tests/JpegAmbiguityProvenanceTests.cs",
+      "bytes": 5165,
+      "sha256": "834db46e763e2537c11d5632bc21155242215ac895b9c4cd7def1dab7f7baa65"
+    },
+    {
+      "path": "tests/JpegTwoGapPortableTests.cs",
+      "bytes": 14874,
+      "sha256": "1201e16d80a05d3efe36480b7156a4283f517b51d4bdad7d1680d31b6a5d446e"
+    },
+    {
+      "path": "tests/JpegTwoGapRecoveryTests.py",
+      "bytes": 8741,
+      "sha256": "2a05b823432f6696ce093ab9cdcecd06be1d65a4ec737c0f63954f087e043757"
+    },
+    {
+      "path": "tests/PhotoCatalogTests.cs",
+      "bytes": 14186,
+      "sha256": "ca6aa73c820cf343a5e2fb3f8e06b1984bda8678d5f67e732eafac271ab25959"
+    },
+    {
+      "path": "tests/QualityOfflineTests.ps1",
+      "bytes": 6606,
+      "sha256": "aa53cf2947f5ce4c2e9f37f8ba04628e6f8f3c8aa4b195fcf7066aadb2c160ef"
+    },
+    {
+      "path": "tests/StorageUiTests.cs",
+      "bytes": 15969,
+      "sha256": "5e21f1e97ea89e918dd4377f40c1759ca5161e7bdedb8e5effbf314a61d67ce7"
+    },
+    {
+      "path": "tests/audit_oct30_package.py",
+      "bytes": 10308,
+      "sha256": "f8b7dfd2f54c2fd6157c11ab1e24198ca1dbd97696be38d8d7f116ee9b769962"
+    },
+    {
+      "path": "tests/build_jpeg_two_gap_portable_fixtures.py",
+      "bytes": 4725,
+      "sha256": "d077145e51684b7815d434e02c02dee207ee443675040cd557a71c89331b407b"
+    },
+    {
+      "path": "tests/verify_upgrade_package.py",
+      "bytes": 17382,
+      "sha256": "8b6c7204b135f305555697cd9cc3e7b771e08831d6a40609c14820e400b2c575"
+    }
+  ],
+  "corpus_manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+  "trusted_scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+  "active_checkout_eol_equivalent_scorer_sha256": "845c7cbfe97578bcdd5dca9d91265b21b34bc98d9199e1def030e6535c3a4fda",
+  "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "pillow_version": "12.3.0",
+  "developer_python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "python_executable_sha256": "dcdc8a4ef3c108d7d11f7a8afea50502c8f41763d118f1a94dafc90c74f1614c",
+  "raw_artifact_sha256": {
+    "ours/raw-contiguous-baseline/run.json": "beaf8112efdc6feb50faee600a084c78c892bbb3ba1fbd4898cbc1133580b92b",
+    "scores/raw-contiguous-baseline.json": "077f654025ad6e2bf37b3c32a3299c295c7e467c0d87afbc64d2e3bfe9e8a9f3",
+    "ours/raw-scattered-restart/run.json": "9d39d529d41e8b800f56ef36f07fd064b6396c14534290c8c7bfcb1372ac1506",
+    "scores/raw-scattered-restart.json": "2846fb58bb6231bc527c8328f4b34b21478c21e2d324be8b9876c3d6452d92b5",
+    "ours/raw-scattered-avc-dual/run.json": "487eed6e4b93cf212bec9fb7c432ca0e14033385553bb2150a8b24d42debf67b",
+    "scores/raw-scattered-avc-dual.json": "3b4369c0380ea93285cc2eea42bcc7fd3fad0dc0e0c96a5d9190ff1760af2144",
+    "ours/raw-scattered-mjpeg-dual/run.json": "59e3d67810304d6fbbe3affccf529c913ef976a00dc0071d7b590ece32249738",
+    "scores/raw-scattered-mjpeg-dual.json": "730e7efe3754f596fdce29af4c9a581cf77f7dca9ebea8fac5c993dc7c152520",
+    "ours/raw-scattered-png-chunks/run.json": "375b4437f4439db194bff88240b8a7bbea6360c2008e317e846bc279b7afa265",
+    "scores/raw-scattered-png-chunks.json": "d710bddde1211149e3b071c4abb1a0b51069a4e3b64f67798b3b7fe01ead0462",
+    "collection.json": "89dee0a62e823bd1146dba3ec3cfce008c2d581c0ba62d57e2a27273b6be1ffb",
+    "binding-before.json": "fc2d17091b9c008af183ed39e6240fd2fefb76471e323910ab2fb8b8c7b7ed85",
+    "binding-after.json": "fc2d17091b9c008af183ed39e6240fd2fefb76471e323910ab2fb8b8c7b7ed85",
+    "accepted-package-binding.json": "0a7e803361d87f51c03293c4d712ac657259dcc405f41378c99a4e6e58306de0",
+    "restoration.json": "3d462f5cc74b51804e5d996dbe0fb8b3226a414e97ef4fa48836e792e6c381c7",
+    "historical-rescore/rescore-equivalence.json": "22050533944412ab7d583ed67509363d232d747018212836007c7d4b31adc03c",
+    "output-inventory.json": "db76c0df8e7c3f11937d197d62b1110c796908115de42a6db516bd563717f12b"
+  },
+  "before_after_structurally_equal": true,
+  "historical_public_inventory_sha256": "3bbc2a4144ff3071e00776ead915f6130b4b42429a7c4fda91584fbf240c0aef",
+  "historical_public_envelopes_sha256": {
+    "complete-proof.json": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+    "verification-02/guarded-verification.json": "66f536a0c28cf965a7cf5ea94fbbb6e7b4583b75fd301a63f23843c4da9171bd"
+  },
+  "public_files": {
+    "scores.json": {
+      "bytes": 16652,
+      "sha256": "5026d03b6e7c97b8b3216aaad33c154e789e71bd27bd3170ba50599b95380665"
+    },
+    "summary.json": {
+      "bytes": 3213,
+      "sha256": "aa7ef4b506f381598c1f7eb9c3823e8dae7713671d8a23e790639eace09207c5"
+    }
+  }
+}
