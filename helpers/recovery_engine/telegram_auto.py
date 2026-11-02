@@ -491,6 +491,75 @@ class Analyzer:
             fields.update(wal_commit_frame=self.current_wal.get("latest_commit_frame"),
                 wal_proof="validated_wal_commit", wal_sha256=self.current_wal.get("wal_sha256"),
                 wal_db_sha256=self.current_wal.get("db_sha256"))
+        if _native_row_verified and fields.get("record_kind") in (
+                "tl_message", "sqlite_deleted_record", "telegram_media_cache"):
+            # Only internally checked SQL/TL rows enter this index. Published
+            # JSON's self-declared IDs/body hashes cannot qualify as a primary.
+            key = (fields.get("identity_scope"), fields.get("chat_id"),
+                   fields.get("message_id"), fields.get("native_tl_body_sha256"))
+            index = getattr(self, "_verified_native_bodies", None)
+            if index is None:
+                self._verified_native_bodies = index = {}
+            matched = index.setdefault(key, [])
+            cache = fields["record_kind"] == "telegram_media_cache"
+            origin = {name: fields[name] for name in (
+                "source_record", "record_kind", "recovery_status",
+                "deletion_interpretation", "native_tl_body_sha256",
+                "wal_commit_frame", "wal_proof", "wal_sha256",
+                "wal_db_sha256", "wal_snapshot_sha256", "media_kind",
+                "media_id", "media_status", "thumbnail_count")
+                if fields.get(name) is not None}
+            origin.update(snapshot_id=self.worker.snapshot,
+                source_file=self.worker.source_label,
+                source_sha256=self.worker.current_origin.get("Sha256"))
+            primary = next((row for row in matched
+                            if row.get("record_kind") != "telegram_media_cache"), None)
+            if cache and matched:
+                # Body identity has already been checked independently. Keep
+                # one cache record across snapshots too, with bounded origins.
+                sources = (primary or matched[0]).setdefault("additional_sources", [])
+                if origin not in sources:
+                    if len(sources) < 10:
+                        sources.append(origin)
+                    else:
+                        self.remark("TELEGRAM_MEDIA_CACHE_PROVENANCE_LIMIT")
+                return
+            weaker = [row for row in matched
+                      if row.get("record_kind") == "telegram_media_cache"] if not cache else []
+            for row in weaker:
+                prior = {
+                    name: row[name] for name in (
+                        "snapshot_id", "source_file", "source_record", "source_sha256",
+                        "record_kind", "recovery_status", "deletion_interpretation",
+                        "wal_commit_frame", "wal_proof", "wal_sha256",
+                        "wal_db_sha256", "wal_snapshot_sha256", "media_kind",
+                        "media_id", "media_status", "thumbnail_count")
+                    if row.get(name) is not None}
+                sources = fields.setdefault("additional_sources", [])
+                for saved_origin in (prior, *row.get("additional_sources", [])):
+                    if saved_origin not in sources:
+                        if len(sources) < 10:
+                            sources.append(saved_origin)
+                        else:
+                            self.remark("TELEGRAM_MEDIA_CACHE_PROVENANCE_LIMIT")
+            self.worker.message("Telegram", text, evidence, **fields)
+            identity = ("Telegram", fields.get("identity_scope"), fields["record_kind"],
+                        fields.get("chat_id"), fields.get("message_id"))
+            target = next((row for row in self.worker.identities.get(identity, [])
+                           if row.get("native_tl_body_sha256") == key[-1]), None)
+            if target is not None:
+                if target not in matched:
+                    matched.append(target)
+                for row in weaker:
+                    if row in self.worker.messages:
+                        self.worker.messages.remove(row)
+                    cache_identity = ("Telegram", row.get("identity_scope"),
+                        "telegram_media_cache", row.get("chat_id"), row.get("message_id"))
+                    saved = self.worker.identities.get(cache_identity, [])
+                    if row in saved:
+                        saved.remove(row)
+                    matched.remove(row)
+            return
         if fields.get("record_kind") != "notification":
             result = self.worker.message("Telegram", text, evidence, **fields)
             if archive_fragment:
@@ -590,6 +659,12 @@ class Analyzer:
                 self.native_messages(connection, native_tables, original)
                 if not self.history_snapshot and not getattr(self, "rollback_snapshot", None) and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
                     self.deleted_records(copied, connection, original)
+            # Media-only DBs qualify only through complete checked rows. Their
+            # schema name never activates generic TL/freeblock inference.
+            cache_records = 0
+            if "media_v4" in tables and not getattr(self, "rollback_snapshot", None):
+                cache_records = self.native_media_cache(connection, original)
+            if native_tables or cache_records:
                 return True
             if {"dialogs", "unread_push_messages"} & tables:
                 return True
@@ -597,6 +672,57 @@ class Analyzer:
             return False
         finally:
             connection.close()
+
+    def native_media_cache(self, connection, original):
+        """Read photo captions, retaining cache provenance and unknown deletion."""
+        from telegram_media_cache import MediaCacheError, photo_captions
+        source_label = self.worker.source_label or str(original)
+        identity = "telegram-db:" + hashlib.sha256(
+            os.path.normcase(os.path.abspath(source_label)).encode("utf-8")).hexdigest()
+        report = {}
+        try:
+            for row in photo_captions(connection, max_rows=MAX_MESSAGES,
+                                      cancel=lambda: self.stop, report=report):
+                value = row["value"]
+                # The adapter concerns captions only. A photo reference does
+                # not authorize an attachment read or prove image recovery.
+                if not value["text"]:
+                    continue
+                media, sender = value["media"], value["from_peer"]
+                photo = media.get("photo", {})
+                historical = bool(self.history_snapshot)
+                uncertain = bool(getattr(self, "ignore_unverified_wal", False))
+                record = ("media_v4(uid=" + str(row["uid"]) + ",mid=" +
+                          str(row["mid"]) + ",type=" + str(row["type"]) + ")")
+                self.message(value["text"], "backup", _native_row_verified=True,
+                    chat_id=row["uid"], message_id=value["id"],
+                    sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
+                    sender_name=None,
+                    timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
+                    source_record=record, identity_scope=identity,
+                    record_kind="telegram_media_cache", application_confirmed=True,
+                    completeness=value["validation"], native_constructor=value["constructor"],
+                    native_layer=value["layer"],
+                    native_tl_body_sha256=hashlib.sha256(
+                        row["data"][:value["tl_bytes"]]).hexdigest(),
+                    recovery_status="historical_cache_record" if historical else
+                        "cache_base_snapshot_record" if uncertain else "current_cache_record",
+                    deletion_interpretation="unknown", deleted=None,
+                    media_kind="photo", media_id=str(photo["id"]) if "id" in photo else None,
+                    media_status="photo_reference_only", thumbnail_count=0, attachments=[])
+                self.confirmed_tl_bodies.add(hashlib.sha256(
+                    row["data"][:value["tl_bytes"]]).hexdigest())
+                if len(self.worker.messages) >= MAX_MESSAGES:
+                    self.stop = True
+                    report["limited"] = True
+                    break
+        except MediaCacheError as error:
+            self.remark("TELEGRAM_MEDIA_CACHE_UNSUPPORTED", original, reason=str(error))
+        if report.get("accepted"):
+            self.worker.remark("TELEGRAM_MEDIA_CACHE_CHECKED", original, **report)
+        if report.get("rejected") or report.get("limited"):
+            self.remark("TELEGRAM_MEDIA_CACHE_PARTIAL", original, **report)
+        return report.get("accepted", 0)
 
     def native_messages(self, connection, tables, original):
         """Read typed records only when their DB keys agree with TL fields.
@@ -747,7 +873,8 @@ class Analyzer:
                 continue
             media_fields, attachments = self.native_photo(media, record, original)
             evidence = "previous" if item["recovery_status"] == "previous_version_residual" else "backup"
-            self.message(text, evidence, chat_id=row["uid"], message_id=row["mid"],
+            self.message(text, evidence, _native_row_verified=True,
+                chat_id=row["uid"], message_id=row["mid"],
                 sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                 sender_name=None, timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
                 source_record=record, identity_scope=identity, record_kind="sqlite_deleted_record",
@@ -1008,7 +1135,7 @@ class Analyzer:
                 self.history_snapshot = history
                 self.worker.snapshot = history["snapshot_id"]
                 try:
-                    self.sqlite(Path(history["path"]), original)
+                    result = self.sqlite(Path(history["path"]), original) or result
                 except (sqlite3.DatabaseError, AutoError):
                     self.remark("TELEGRAM_WAL_HISTORY_PARSE_FAILED", original, commit_frame=history["commit_frame"])
             self.worker.snapshot = original_snapshot
@@ -1361,7 +1488,7 @@ class Analyzer:
             self.warnings = list(dict.fromkeys([*self.warnings, *notes]))
             summary = {"status": "partial" if self.warnings else "complete", "code": "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
                        "messages": len(self.worker.messages), "history_messages": len(history), "notification_records": self.notifications, "fragment_records": self.fragments,
-                       "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record") for m in self.worker.messages),
+                       "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record", "telegram_media_cache") for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
                        "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "sqlite_rollback_fragment", "typed_tl_fragment", "android_heap_message") for m in self.worker.messages),
