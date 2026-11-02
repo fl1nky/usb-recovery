@@ -30,6 +30,26 @@ MAX_RECORD = 4 * 1024 * 1024
 MAX_MESSAGES = 300_000
 MAX_NATIVE_THUMBNAILS = 10_000
 MAX_NATIVE_THUMBNAIL_BYTES = 512 * 1024 * 1024
+CACHE_RECORD_KINDS = frozenset(("telegram_media_cache", "telegram_media_cache_caption"))
+NATIVE_RECORD_KINDS = CACHE_RECORD_KINDS | frozenset((
+    "tl_message", "tl_message_caption", "sqlite_deleted_record", "sqlite_deleted_caption"))
+
+
+def _native_text_parts(value, *, keep_empty_photo=False):
+    """Preserve distinct original slots without manufacturing joined text."""
+    outer = value["text"]
+    media = value.get("media", {})
+    caption = media.get("legacy_caption", "")
+    if outer:
+        yield outer, "message", False
+        if caption and caption != outer:
+            yield caption, "media.legacy_caption", True
+    elif caption:
+        yield caption, "media.legacy_caption", False
+    elif keep_empty_photo and media.get("type") == "photo":
+        yield "", "message", False
+
+
 # These native Desktop files may contain account secrets. Never open or copy.
 NATIVE_PRIVATE = {"key_data", "key_datas", "key_data0", "key_data1", "settings",
                   "settingss", "settings0", "settings1", "map", "maps", "map0", "map1"}
@@ -502,19 +522,19 @@ class Analyzer:
             fields.update(wal_commit_frame=self.current_wal.get("latest_commit_frame"),
                 wal_proof="validated_wal_commit", wal_sha256=self.current_wal.get("wal_sha256"),
                 wal_db_sha256=self.current_wal.get("db_sha256"))
-        if _native_row_verified is True and fields.get("record_kind") in (
-                "tl_message", "sqlite_deleted_record", "telegram_media_cache"):
+        if _native_row_verified is True and fields.get("record_kind") in NATIVE_RECORD_KINDS:
             # Only internally checked SQL/TL rows enter this index. Published
             # JSON's self-declared IDs/body hashes cannot qualify as a primary.
             key = (fields.get("identity_scope"), fields.get("chat_id"),
-                   fields.get("message_id"), fields.get("native_tl_body_sha256"))
+                   fields.get("message_id"), fields.get("native_tl_body_sha256"),
+                   fields.get("text_field") or "message")
             index = getattr(self, "_verified_native_bodies", None)
             if index is None:
                 self._verified_native_bodies = index = {}
             matched = index.setdefault(key, [])
-            cache = fields["record_kind"] == "telegram_media_cache"
+            cache = fields["record_kind"] in CACHE_RECORD_KINDS
             origin = {name: fields[name] for name in (
-                "source_record", "record_kind", "recovery_status",
+                "source_record", "record_kind", "text_field", "recovery_status",
                 "deletion_interpretation", "native_tl_body_sha256",
                 "wal_commit_frame", "wal_proof", "wal_sha256",
                 "wal_db_sha256", "wal_snapshot_sha256", "media_kind",
@@ -524,7 +544,7 @@ class Analyzer:
                 source_file=self.worker.source_label,
                 source_sha256=self.worker.current_origin.get("Sha256"))
             primary = next((row for row in matched
-                            if row.get("record_kind") != "telegram_media_cache"), None)
+                            if row.get("record_kind") not in CACHE_RECORD_KINDS), None)
             if cache and matched:
                 # Body identity has already been checked independently. Keep
                 # one cache record across snapshots too, with bounded origins.
@@ -536,12 +556,12 @@ class Analyzer:
                         self.remark("TELEGRAM_MEDIA_CACHE_PROVENANCE_LIMIT")
                 return
             weaker = [row for row in matched
-                      if row.get("record_kind") == "telegram_media_cache"] if not cache else []
+                      if row.get("record_kind") in CACHE_RECORD_KINDS] if not cache else []
             for row in weaker:
                 prior = {
                     name: row[name] for name in (
                         "snapshot_id", "source_file", "source_record", "source_sha256",
-                        "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
+                        "record_kind", "text_field", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
                         "wal_commit_frame", "wal_proof", "wal_sha256",
                         "wal_db_sha256", "wal_snapshot_sha256", "media_kind",
                         "media_id", "media_status", "thumbnail_count")
@@ -563,7 +583,7 @@ class Analyzer:
                     if row in self.worker.messages:
                         self.worker.messages.remove(row)
                     cache_identity = ("Telegram", row.get("identity_scope"),
-                        "telegram_media_cache", row.get("chat_id"), row.get("message_id"))
+                        row["record_kind"], row.get("chat_id"), row.get("message_id"))
                     saved = self.worker.identities.get(cache_identity, [])
                     if row in saved:
                         saved.remove(row)
@@ -683,6 +703,22 @@ class Analyzer:
         finally:
             connection.close()
 
+    def native_text_messages(self, value, evidence, record_kind, *, keep_empty_photo=False, **fields):
+        """Publish independently labelled text slots from an already checked row."""
+        secondary_kind = {"tl_message": "tl_message_caption",
+                          "sqlite_deleted_record": "sqlite_deleted_caption",
+                          "telegram_media_cache": "telegram_media_cache_caption"}[record_kind]
+        published = 0
+        for text, role, secondary in _native_text_parts(value, keep_empty_photo=keep_empty_photo):
+            if self.stop or len(self.worker.messages) >= MAX_MESSAGES:
+                self.stop = True
+                self.remark("TELEGRAM_MESSAGE_LIMIT", self.worker.source_label)
+                break
+            self.message(text, evidence, _native_row_verified=True, text_field=role,
+                         record_kind=secondary_kind if secondary else record_kind, **fields)
+            published += 1
+        return published
+
     def native_media_cache(self, connection, original):
         """Read photo captions, retaining cache provenance and unknown deletion."""
         from telegram_media_cache import MediaCacheError, photo_captions
@@ -696,21 +732,19 @@ class Analyzer:
                 value = row["value"]
                 # The adapter concerns captions only. A photo reference does
                 # not authorize an attachment read or prove image recovery.
-                if not value["text"]:
-                    continue
                 media, sender = value["media"], value["from_peer"]
                 photo = media.get("photo", {})
                 historical = bool(self.history_snapshot)
                 uncertain = bool(getattr(self, "ignore_unverified_wal", False))
                 record = ("media_v4(uid=" + str(row["uid"]) + ",mid=" +
                           str(row["mid"]) + ",type=" + str(row["type"]) + ")")
-                self.message(value["text"], "backup", _native_row_verified=True,
+                published = self.native_text_messages(value, "backup", "telegram_media_cache",
                     chat_id=row["uid"], message_id=value["id"],
                     sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                     sender_name=None,
                     timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
                     source_record=record, identity_scope=identity,
-                    record_kind="telegram_media_cache", application_confirmed=True,
+                    application_confirmed=True,
                     completeness=value["validation"], native_constructor=value["constructor"],
                     native_layer=value["layer"],
                     native_tl_body_sha256=hashlib.sha256(
@@ -720,8 +754,9 @@ class Analyzer:
                     deletion_interpretation="unknown", deleted=None,
                     media_kind="photo", media_id=str(photo["id"]) if "id" in photo else None,
                     media_status="photo_reference_only", thumbnail_count=0, attachments=[])
-                self.confirmed_tl_bodies.add(hashlib.sha256(
-                    row["data"][:value["tl_bytes"]]).hexdigest())
+                if published:
+                    self.confirmed_tl_bodies.add(hashlib.sha256(
+                        row["data"][:value["tl_bytes"]]).hexdigest())
                 if len(self.worker.messages) >= MAX_MESSAGES:
                     self.stop = True
                     report["limited"] = True
@@ -785,17 +820,16 @@ class Analyzer:
                     if not related:
                         raise TelegramTlError("TL_DB_DIALOG_MISMATCH")
                     media = value.get("media", {})
-                    text = value["text"] or media.get("legacy_caption", "")
-                    if not text and media.get("type") != "photo":
+                    if not list(_native_text_parts(value, keep_empty_photo=True)):
                         continue
                     timestamp = dt.datetime.fromtimestamp(date, dt.timezone.utc).isoformat() if date else None
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
                     media_fields, attachments = self.native_photo(media, record, original)
-                    self.message(text, "backup", chat_id=uid, message_id=value["id"],
-                        _native_row_verified=True,
+                    self.native_text_messages(value, "backup", "tl_message", keep_empty_photo=True,
+                        chat_id=uid, message_id=value["id"],
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                         sender_name=None, timestamp=timestamp, source_record=record,
-                        identity_scope=identity, record_kind="tl_message", completeness=value["validation"],
+                        identity_scope=identity, completeness=value["validation"],
                         native_constructor=value["constructor"], native_layer=value["layer"], application_confirmed=True,
                         native_tl_body_sha256=hashlib.sha256(data[:value["tl_bytes"]]).hexdigest(),
                         attachments=attachments, **media_fields, **({"sqlite_stored_mid": mid} if table == "messages" else {}))
@@ -861,37 +895,45 @@ class Analyzer:
             row, value = item.pop("row"), item.pop("value")
             sender = value["from_peer"]
             media = value.get("media", {})
-            text = value["text"] or media.get("legacy_caption", "")
-            if not text and media.get("type") != "photo":
+            parts = list(_native_text_parts(value, keep_empty_photo=True))
+            if not parts:
                 continue
             record = f"{item['table']}(uid={row['uid']},mid={row['mid']})@sqlite-page:{item['sqlite_page']}:byte:{item['sqlite_record_page_offset']}"
             body_hash = hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest()
-            key = ("Telegram", identity, "tl_message", row["uid"], row["mid"])
-            matched = next((previous for previous in self.worker.identities.get(key, [])
-                            if previous.get("native_tl_body_sha256") == body_hash), None)
-            if matched is not None:
-                # Exact typed bytes, row keys and account scope are already
-                # represented by a complete committed snapshot. Preserve its
-                # stronger historical proof and attach independent free-space
-                # evidence rather than inventing a second chat message.
-                matched["recovery_status"] = item["recovery_status"]
-                matched["deletion_interpretation"] = item["deletion_interpretation"]
-                matched["deleted"] = None
-                provenance = {**item, "source_record": record, "source_file": source_label,
-                              "snapshot_id": self.worker.snapshot}
-                matched.setdefault("residual_sources", []).append(provenance)
-                continue
-            media_fields, attachments = self.native_photo(media, record, original)
+            media_fields, attachments = None, None
             evidence = "previous" if item["recovery_status"] == "previous_version_residual" else "backup"
-            self.message(text, evidence, _native_row_verified=True,
-                chat_id=row["uid"], message_id=row["mid"],
-                sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
-                sender_name=None, timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
-                source_record=record, identity_scope=identity, record_kind="sqlite_deleted_record",
-                completeness=value["validation"], native_constructor=value["constructor"],
-                native_layer=value["layer"], application_confirmed=True,
-                native_tl_body_sha256=hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest(),
-                attachments=attachments, **item, **media_fields)
+            for text, role, secondary in parts:
+                if len(self.worker.messages) >= MAX_MESSAGES:
+                    self.stop = True
+                    self.remark("TELEGRAM_MESSAGE_LIMIT", original)
+                    break
+                key = ("Telegram", identity, "tl_message_caption" if secondary else "tl_message",
+                       row["uid"], row["mid"])
+                matched = next((previous for previous in self.worker.identities.get(key, [])
+                    if self.worker._checked_native_records.get(id(previous)) is previous
+                    and previous.get("native_tl_body_sha256") == body_hash
+                    and (previous.get("text_field") or "message") == role), None)
+                if matched is not None:
+                    # Physical evidence must bind the checked text slot too;
+                    # neither a claimed body digest nor another field qualifies.
+                    matched["recovery_status"] = item["recovery_status"]
+                    matched["deletion_interpretation"] = item["deletion_interpretation"]
+                    matched["deleted"] = None
+                    provenance = {**item, "source_record": record, "source_file": source_label,
+                                  "snapshot_id": self.worker.snapshot, "text_field": role}
+                    matched.setdefault("residual_sources", []).append(provenance)
+                    continue
+                if media_fields is None:
+                    media_fields, attachments = self.native_photo(media, record, original)
+                self.message(text, evidence, _native_row_verified=True, text_field=role,
+                    chat_id=row["uid"], message_id=row["mid"],
+                    sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
+                    sender_name=None, timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
+                    source_record=record, identity_scope=identity,
+                    record_kind="sqlite_deleted_caption" if secondary else "sqlite_deleted_record",
+                    completeness=value["validation"], native_constructor=value["constructor"],
+                    native_layer=value["layer"], application_confirmed=True,
+                    native_tl_body_sha256=body_hash, attachments=attachments, **item, **media_fields)
             self.confirmed_tl_bodies.add(hashlib.sha256(row["data"][:value["tl_bytes"]]).hexdigest())
             if len(self.worker.messages) >= MAX_MESSAGES:
                 self.stop = True
@@ -1498,7 +1540,7 @@ class Analyzer:
             self.warnings = list(dict.fromkeys([*self.warnings, *notes]))
             summary = {"status": "partial" if self.warnings else "complete", "code": "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
                        "messages": len(self.worker.messages), "history_messages": len(history), "notification_records": self.notifications, "fragment_records": self.fragments,
-                       "native_records": sum(m.get("record_kind") in ("tl_message", "sqlite_deleted_record", "telegram_media_cache") for m in self.worker.messages),
+                       "native_records": sum(m.get("record_kind") in NATIVE_RECORD_KINDS for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
                        "structured_fragment_records": sum(m.get("record_kind") in ("sqlite_residual_fragment", "sqlite_wal_residual", "sqlite_rollback_fragment", "typed_tl_fragment", "android_heap_message") for m in self.worker.messages),

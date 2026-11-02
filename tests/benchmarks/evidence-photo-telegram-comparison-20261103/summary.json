@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "status": "INDEPENDENTLY_REVIEWED",
+  "created_utc": "2026-11-02T21:02:24.102256+00:00",
+  "scope": "Five previous own synthetic8MiB images only; current accepted app/helper plus stock PhotoRec/TestDisk. Vendor files are unchanged saved exports, rescored; no new vendor scans.",
+  "current_application_sha256": "70b4ef317d1593519b18dd1a15fd0598280e1f6bd6838c73a862da88a7d81d0f",
+  "current_helper_sha256": "590e94fc8f78db291ecb7a3303277fcf148f1df36e614a95c52766d9c99c95f4",
+  "trusted_scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+  "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "original_full_corpus_manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+  "selected_cases": [
+    "raw-contiguous-baseline",
+    "raw-scattered-restart",
+    "raw-scattered-avc-dual",
+    "raw-scattered-mjpeg-dual",
+    "raw-scattered-png-chunks"
+  ],
+  "current": {
+    "cases": 5,
+    "exact_targets": 5,
+    "equivalent_only_targets": 0,
+    "exported_candidates": 32,
+    "unvalidated_candidates": 0,
+    "false_positive_rate": null
+  },
+  "saved_rstudio": {
+    "cases": 5,
+    "exact_targets": 1,
+    "equivalent_only_targets": 0,
+    "exported_candidates": 18,
+    "unvalidated_candidates": 0,
+    "false_positive_rate": null
+  },
+  "saved_dmde": {
+    "cases": 2,
+    "exact_targets": 0,
+    "equivalent_only_targets": 1,
+    "exported_candidates": 2,
+    "unvalidated_candidates": 0,
+    "false_positive_rate": null
+  },
+  "selected_stages_per_case": [
+    10,
+    10,
+    10,
+    10,
+    10
+  ],
+  "overall_session_statuses": [
+    "finished_with_warnings",
+    "finished_with_warnings",
+    "finished_with_warnings",
+    "finished_with_warnings",
+    "finished_with_warnings"
+  ],
+  "stage_artifacts_verified": 176,
+  "all_original_sources_runtime_scorer_and_twenty_saved_exports_unchanged": true,
+  "paid_tools_rerun": false,
+  "new_png_ten_cases": "NOT_RUN_USER_INTERRUPTED_BEFORE_SCAN",
+  "real_devices_tested": false,
+  "speed_ranking": null,
+  "prior_same_five_results": "V8 and prior JPEG build were already5/5 exact; this current replay retains that narrow result, not an improvement on these five.",
+  "original_actual01": "Preserved setupFAIL: incomplete selected PhotoRec from omitted nonbinary stock resource in private runtime clone; no score or overallPASS. Resource-complete actual02 changed no app/helper/vendor/original image bytes or TERM.",
+  "limitations": [
+    "Not a broad recovery rate or universal paid-product ranking.",
+    "R-Studio has five saved cases, DMDE only two-case subset.",
+    "Decodable embedded movie frames are not automatically false positives.",
+    "All ten selected stages completed, but overall sessions retain finished_with_warnings.",
+    "Independent audit required before public comparison update."
+  ],
+  "projection": {
+    "format": "sanitized_public_projection",
+    "projection_schema": 1,
+    "raw_source_sha256": "09a408649b1acaf70d0e4efc5cbe55c972021192e21ac3361d400e12aac65472",
+    "original_raw_status": "ACTUAL_REPLAY_PASS_PENDING_INDEPENDENT_REVIEW",
+    "independent_review": "INDEPENDENTLY_REVIEWED",
+    "transformations": [
+      "Absolute local input/export paths replaced by verified public complete-proof entry references.",
+      "Current output references are marked available_via_reproduce and are not fake public artifact links.",
+      "Source references are repository-relative; private driver/snapshot locations are represented by SHA only.",
+      "Decoder stderr is omitted and replaced by a digest; vendor virtual labels use forward slashes and remain unauthenticated; no decoder rerun.",
+      "Original private JSON, failed attempt and immutable physical proof remain unchanged."
+    ]
+  },
+  "candidate_count_definition": "Scored exported candidate entries in each supplied run; extra decodable frames are not a false-positive rate.",
+  "decoded_equivalence_review_scope": "Recorded trusted-scorer/FFmpeg hash results and unchanged historical metadata were checked; independent review did not rerun pixel/frame decoding.",
+  "no_new_measured_gain_on_selected_five": true,
+  "saved_dmde_equivalent_only_explanation": [
+    {
+      "case": "raw-contiguous-baseline",
+      "asset": "baseline.jpg",
+      "original_bytes": 45234,
+      "export_bytes": 8257536,
+      "trailing_bytes": 8212302,
+      "complete_original_prefix_sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+      "export_sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092",
+      "conclusion": "Complete original JPEG bytes are present as a prefix with additional trailing bytes; not a byte-exact file, and not a lost-photo result."
+    }
+  ]
+}

@@ -82,6 +82,49 @@ public static class TelegramRecoveryProvenanceUiTests
                 Check((bool)validClaims.Invoke(null,new object[]{message}),"claim display boundary counts Unicode code points, including4096astral emoji");
                 message.archive_claims["deletion_interpretation"]+=(Char.ConvertFromUtf32(0x1f967));
                 Check(!(bool)validClaims.Invoke(null,new object[]{message}),"claim boundary rejects4097Unicode code points");
+                foreach(string kind in new[]{"tl_message_caption","sqlite_deleted_caption","telegram_media_cache_caption"}){
+                    raw=serializer.Serialize(new{app="Telegram",text="Отдельная подпись 🥧",record_kind=kind,text_field="media.legacy_caption",evidence_kind="backup",media_kind="photo",media_status="photo_reference_only"});
+                    message=serializer.Deserialize<ArchiveMessage>(raw);details=Show(panel,message);
+                    Check(message.text_field=="media.legacy_caption"&&((string)category.Invoke(null,new object[]{message})).IndexOf("подпись",StringComparison.OrdinalIgnoreCase)>=0,"caption role survives DTO and receives a caption category: "+kind);
+                    Check(details.Contains("Отдельное поле той же исходной записи, не самостоятельное сообщение")&&Field<TextBox>(panel,"body").Text=="Отдельная подпись 🥧","supplemental caption stays a separate labelled field without synthesized combined text: "+kind);
+                    Check(Field<ComboBox>(panel,"attachments").Items.Count==0&&message.deleted==null,"caption reference invents neither recovered image nor deletion: "+kind);
+                    message.recovery_status="imported_recovery_claim";message.provenance_verification="provided_archive_metadata";
+                    Check((string)category.Invoke(null,new object[]{message})=="Заявлено в архиве","imported claim label precedes every supplemental caption kind: "+kind);
+                }
+                message=new ArchiveMessage{app="Telegram",text="Only caption",record_kind="tl_message",text_field="media.legacy_caption",evidence_kind="backup"};
+                Check((string)category.Invoke(null,new object[]{message})=="Подпись к фото"&&!Show(panel,message).Contains("не самостоятельное сообщение"),"primary legacy-caption fallback identifies its field without claiming another supplemental record");
+                message.record_kind="tl_message_caption";message.text_field=null;
+                Check(Show(panel,message).Contains("Поле текста: неизвестно"),"unknown field remains unknown instead of being inferred from caption record kind");
+                message=new ArchiveMessage{app="Telegram",text="Original",record_kind="tl_message",text_field="message",evidence_kind="backup",
+                    sources=new[]{new Dictionary<string,object>{{"source_file","owned/cache4.db"},{"record_kind","telegram_media_cache_caption"},{"text_field","media.legacy_caption"}}},
+                    residual_sources=new[]{new Dictionary<string,object>{{"physical_source","wal"},{"sqlite_page",2},{"physical_byte_offset",4096},{"text_field","media.legacy_caption"}}}};
+                details=Show(panel,message);
+                Check(details.Contains("Поле текста источника: подпись к фото")&&details.Contains("Поле текста остатка: подпись к фото"),"additional and residual source field roles are visible");
+                Check(details.Contains("Дополнительный источник — медиакэш Telegram")&&(string)category.Invoke(null,new object[]{message})=="Из резервной копии","supplemental cache origin does not replace a stronger main record category");
+                var validFields=typeof(ArchiveSearchService).GetMethod("ValidTextFields",BindingFlags.Static|BindingFlags.NonPublic);
+                Check((bool)validFields.Invoke(null,new object[]{message}),"strict known roles accepted in top-level and both provenance arrays");
+                message.text_field="legacy_caption";
+                Check(!(bool)validFields.Invoke(null,new object[]{message}),"unsupported top-level role is rejected at helper response boundary");
+                message.text_field="message";message.sources[0]["text_field"]=true;
+                Check(!(bool)validFields.Invoke(null,new object[]{message}),"boolean cannot become a source field role");
+                message.sources[0]["text_field"]=null;message.residual_sources[0]["text_field"]="message.text";
+                Check(!(bool)validFields.Invoke(null,new object[]{message}),"unknown residual role cannot be treated as a known field");
+                message=new ArchiveMessage{record_kind="tl_message_caption",text_field="media.legacy_caption",evidence_kind="backup",application_confirmed=true,
+                    rollback_journal_sha256=new string('a',64),rollback_page_map="provenance/rollback/"+new string('a',64)+".json",rollback_page_map_sha256=new string('b',64),
+                    rollback_hot_state="unknown",rollback_current_state_confirmed=false,rollback_content_authenticity_verified=false,rollback_checksum_kind="sqlite_sparse_32bit",
+                    rollback_initial_pages=3,rollback_parse_status="complete",rollback_proof="all_pages_from_validated_rollback_journal",rollback_snapshot_sha256=new string('c',64)};
+                var validRollback=typeof(ArchiveSearchService).GetMethod("ValidRollback",BindingFlags.Static|BindingFlags.NonPublic);
+                Check((bool)validRollback.Invoke(null,new object[]{message}),"complete rollback permits a confirmed supplemental TL caption with exact role");
+                message.text_field="message";
+                Check(!(bool)validRollback.Invoke(null,new object[]{message}),"supplemental rollback caption cannot claim the main text role");
+                message.text_field="media.legacy_caption";message.application_confirmed=false;
+                Check(!(bool)validRollback.Invoke(null,new object[]{message}),"unconfirmed caption cannot retain complete rollback proof");
+                message.application_confirmed=true;message.record_kind="telegram_media_cache_caption";
+                Check(!(bool)validRollback.Invoke(null,new object[]{message}),"rollback allowance does not expand to cache-caption records");
+                message.record_kind="tl_message";message.text_field=null;
+                Check((bool)validRollback.Invoke(null,new object[]{message}),"legacy complete TL rollback record without a field label remains valid");
+                string summary=TelegramAnalysisService.Summary(new HelperResult{Status="complete",Messages=2,HistoryMessages=2,ReadableSources=1});
+                Check(summary.Contains("Найдено записей Telegram: 2")&&!summary.Contains("Найдено сообщений"),"summary counts records rather than inventing independent chat-message count");
             }
             Console.WriteLine("PASS TelegramRecoveryProvenanceUi: "+checks+" checks; real DTO decoding and controlled WinForms presentation of WAL-prefix uncertainty and mapped overflow candidates. Owned synthetic metadata only.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}

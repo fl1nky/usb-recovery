@@ -8,6 +8,7 @@ from pathlib import Path
 from contextlib import closing
 import hashlib
 import json
+import os
 import sqlite3
 import struct
 import sys
@@ -166,6 +167,38 @@ class ResidualProvenance(unittest.TestCase):
         self.assertEqual(residual["wal_commit_frame"], count * 2)
         self.assertEqual(residual["source_file"], str(captured))
         self.assertNotIn("@wal_commit:", residual["source_record"])
+
+    def test_supplied_body_hash_cannot_borrow_checked_residual_proof(self):
+        captured, sidecar, before, _ = self.fixture(deleted_before_history=True, secure_delete=False)
+        original_text = "independent recipe 4 " + "X" * 80
+        identity = "telegram-db:" + hashlib.sha256(
+            os.path.normcase(os.path.abspath(captured)).encode("utf8")).hexdigest()
+        claim = dict(app="Telegram", text="Different text declared by an owned archive",
+            evidence_kind="backup", record_kind="tl_message", identity_scope=identity,
+            chat_id=77, message_id=4, native_tl_body_sha256=hashlib.sha256(
+                message(original_text, mid=4, tail=False)).hexdigest(), attachments=[])
+        provided = captured.parent / "messages.jsonl"
+        provided.write_text(json.dumps(claim) + "\n", encoding="utf8")
+        supplied_before = {p.name: sha(p) for p in captured.parent.iterdir() if p.is_file()}
+        output = self.work / "archive-with-claim"
+        with patch.object(engine, "emit", lambda *a, **k: None):
+            result = telegram_auto.analyze(dict(protocol=1, operation="telegram_analyze",
+                destination=str(output), options=dict(roots=[str(provided), str(captured)])),
+                engine.Importer, lambda *a, **k: None)
+        rows = [json.loads(line) for line in (output / "messages.jsonl").read_text(encoding="utf8").splitlines()]
+        targets = [row for row in rows if row.get("message_id") == 4]
+        self.assertEqual(len(targets), 2, "Original checked bytes and different archive text must remain separate")
+        restored = next(row for row in targets if row["text"] == original_text)
+        imported = next(row for row in targets if row["text"] == claim["text"])
+        self.assertEqual(restored["record_kind"], "sqlite_deleted_record")
+        self.assertEqual(restored["recovery_status"], "deleted_supported_by_evidence")
+        self.assertEqual(restored["source_file"], str(captured))
+        self.assertEqual(imported["provenance_verification"], "provided_archive_metadata")
+        self.assertNotEqual(imported.get("recovery_status"), "deleted_supported_by_evidence")
+        self.assertFalse(imported.get("residual_sources"))
+        self.assertEqual(result["deleted_supported_records"], 1)
+        self.assertEqual(supplied_before, {p.name: sha(p) for p in captured.parent.iterdir() if p.is_file()})
+        self.assertEqual(before, {"db": sha(captured), "wal": sha(sidecar)})
 
 
 if __name__ == "__main__":

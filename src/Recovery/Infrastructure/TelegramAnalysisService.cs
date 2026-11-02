@@ -39,7 +39,7 @@ namespace UsbRecovery
         public static string Summary(HelperResult result)
         {
             if (result.Status == "error") return "Не удалось завершить чтение источника. Готовый архив не создан.";
-            string text = "Найдено сообщений Telegram: " + result.HistoryMessages + ". Читаемых источников: " + result.ReadableSources + ".";
+            string text = "Найдено записей Telegram: " + result.HistoryMessages + ". Читаемых источников: " + result.ReadableSources + ".";
             if(result.DeletedSupportedRecords>0)text+=" Сохранившихся остатков удалённых записей: "+result.DeletedSupportedRecords+". Причина удаления не установлена.";
             if(result.StructuredFragmentRecords>0)text+=" Структурных фрагментов: "+result.StructuredFragmentRecords+" (связи с чатом могут быть неизвестны).";
             if (result.NativeRecords > 0) text += " Записей из базы Android: " + result.NativeRecords + ".";

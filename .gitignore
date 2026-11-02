@@ -75,6 +75,11 @@
 !/tests/benchmarks/evidence-jpeg-comparison-20261102/summary.json
 !/tests/benchmarks/evidence-jpeg-comparison-20261102/scores.json
 !/tests/benchmarks/evidence-jpeg-comparison-20261102/bindings.json
+!/tests/benchmarks/evidence-photo-telegram-comparison-20261103/
+/tests/benchmarks/evidence-photo-telegram-comparison-20261103/*
+!/tests/benchmarks/evidence-photo-telegram-comparison-20261103/summary.json
+!/tests/benchmarks/evidence-photo-telegram-comparison-20261103/scores.json
+!/tests/benchmarks/evidence-photo-telegram-comparison-20261103/bindings.json
 
 # Small pinned Linux MD images with upstream license and hashes
 !/tests/fixtures/
@@ -83,6 +88,7 @@
 !/tests/fixtures/ext4/
 !/tests/fixtures/refs/
 !/tests/fixtures/raid-controller/
+!/tests/fixtures/telegram-cache-profiles/
 
 !/tests/fixtures/aac-lc/
 

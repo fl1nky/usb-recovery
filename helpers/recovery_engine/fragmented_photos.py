@@ -150,6 +150,15 @@ class PhotoAssembler:
                         (token == b"PLTE" and (not 0 < length <= 768 or length % 3)) or
                         (token == b"IEND" and length != 0)):
                     continue
+                if token == b"IDAT":
+                    # A physical cluster boundary can split the chunk body.
+                    # Retain a bounded header position even when its contiguous
+                    # bytes fail CRC; every later use still checks original CRC.
+                    if length <= MAX_CHUNK:
+                        if len(self.idat) >= MAX_CHUNKS:
+                            raise LimitReached("png_chunks")
+                        self.idat.append(at - 4)
+                    continue
                 chunk = self.chunk(at - 4)
                 if chunk and chunk[0] == token:
                     target = {b"IHDR": self.ihdr, b"PLTE": self.plte,
@@ -285,6 +294,26 @@ class PhotoAssembler:
                     yield prefix[0], header, prefix[1]
 
     def png(self, start):
+        from png_fragments import idat_candidates, GapSearchIncomplete
+        before = dict(self.skipped)
+        result = self._png(start)
+        # A contiguous surviving PNG has direct physical context. A result
+        # assembled from whole chunks still competes with within-IDAT gaps;
+        # it cannot establish uniqueness before those alternatives are read.
+        if any(all(at + len(raw) == recipe[index+1][0]
+                   for index, (at, raw) in enumerate(recipe[:-1])) for recipe in result):
+            return result
+        if any(value != before.get(key, 0) for key, value in self.skipped.items()
+               if key == "png_ambiguous" or key.endswith(("_limit", "_incomplete"))):
+            return []
+        try:
+            virtual = idat_candidates(self)
+        except GapSearchIncomplete as error:
+            self.skipped[str(error)] += 1
+            return []
+        return self._png(start, virtual) if virtual else result
+
+    def _png(self, start, virtual=()):
         if not self.iend:
             return []
         solutions, states = {}, 0
@@ -300,16 +329,24 @@ class PhotoAssembler:
                     continue
                 # Equal IDAT bytes can have different surviving ancillary
                 # tails. Only complete payloads establish equivalence.
-                candidates.append((at, raw))
+                candidates.append((at, raw, [(at, raw)], at+len(raw), False))
                 candidate_bytes += len(raw)
                 if len(candidates) > 128 or candidate_bytes > MAX_FILE:
                     self.skipped["png_branch_limit"] += 1
                     return []
-            stack = [(parts, zlib.decompressobj(), 0, frozenset(), sum(len(raw) for _, raw in parts))]
+            for candidate in virtual:
+                if not disjoint(parts + candidate[2]):
+                    continue
+                candidates.append(candidate)
+                candidate_bytes += len(candidate[1])
+                if len(candidates) > 128 or candidate_bytes > MAX_FILE:
+                    self.skipped["png_branch_limit"] += 1
+                    return []
+            stack = [(parts, zlib.decompressobj(), 0, frozenset(), sum(len(raw) for _, raw in parts), 0)]
             while stack:
-                chain, decoder, decoded, used, output_bytes = stack.pop()
-                for at, raw in candidates:
-                    if at in used or output_bytes + len(raw) > MAX_FILE or len(used) >= 64 or not disjoint(chain + [(at, raw)]):
+                chain, decoder, decoded, used, output_bytes, gaps = stack.pop()
+                for at, raw, physical_parts, physical_end, spliced in candidates:
+                    if at in used or gaps + spliced > 1 or output_bytes + len(raw) > MAX_FILE or len(used) >= 64 or not disjoint(chain + physical_parts):
                         continue
                     states += 1
                     if states > self.max_states:
@@ -333,13 +370,16 @@ class PhotoAssembler:
                     first_filter = (-decoded) % header["row_bytes"]
                     if any(value > 4 for value in block[first_filter::header["row_bytes"]]):
                         continue
-                    next_chain = chain + [(at, raw)]
+                    next_chain = chain + physical_parts
                     if trial.eof:
                         if count != expected:
                             continue
                         # Preserve surviving ancillary chunks after the last IDAT.
-                        tail, cursor, tail_bytes = [], at + len(raw), 0
-                        tail_seen = {piece[4:8] for _, piece in next_chain if piece != PNG}
+                        tail, cursor, tail_bytes = [], physical_end, 0
+                        # Physical IDAT slices are not separate logical chunks.
+                        # Inspect only intact prefix chunks plus the known type.
+                        tail_seen = {piece[4:8] for _, piece in parts if piece != PNG}
+                        tail_seen.add(b"IDAT")
                         invalid_tail = False
                         for _ in range(128):
                             following = self.chunk(cursor)
@@ -380,7 +420,7 @@ class PhotoAssembler:
                                 self.skipped["png_ambiguous"] += 1
                                 return []
                     else:
-                        stack.append((next_chain, trial, count, used | {at}, output_bytes + len(raw)))
+                        stack.append((next_chain, trial, count, used | {at}, output_bytes + len(raw), gaps + spliced))
         return list(solutions.values())
 
     def recipes(self, completed=None, png_start=0, jpeg_start=0):
@@ -583,6 +623,7 @@ def _cached_image_valid(payload,name,status):
 
 def recover(image, destination, options=None, progress=None, checkpoint_progress=None):
     import jpeg_fragments
+    import png_fragments
     import recovery_checkpoint as checkpoint
     from PIL import __version__ as pillow_version
     image, destination = checkpoint.plain(image), checkpoint.plain(destination)
@@ -612,7 +653,7 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
             stream.seek(0)
             assembler = PhotoAssembler(stream, normalized, progress)
             binding = dict(SourceSha256=input_sha256,SourceBytes=identity.st_size,Options=normalized,
-                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,checkpoint]),
+                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,png_fragments,checkpoint]),
                            Runtime=dict(Python=list(sys.version_info[:3]),Pillow=pillow_version,Zlib=zlib.ZLIB_RUNTIME_VERSION))
             journal = checkpoint.Journal(state_directory,binding,anchor,checkpoint_progress)
             cursor, verified_prior, decoded_prior, phase = dict(Png=0,Jpeg=0),0,0,'index'

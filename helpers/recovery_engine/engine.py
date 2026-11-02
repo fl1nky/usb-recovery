@@ -301,6 +301,10 @@ class Importer:
              "sender_id": None, "sender_name": None, "timestamp": None,
              "text": str(text or ""), "message_id": None, "evidence_kind": evidence,
              "source_file": self.source_label, "source_record": None, "attachments": [], **fields}
+        # A payload-field label is metadata, never evidence of verification.
+        # Keep the two known wire slots distinct without guessing a missing one.
+        role = m.get("text_field")
+        m["text_field"] = role if isinstance(role, str) and role in ("message", "media.legacy_caption") else None
         if self.current_origin:
             m["source_id"] = self.current_origin.get("Id")
             m["original_relative_path"] = self.current_origin.get("RelativePath")
@@ -329,10 +333,10 @@ class Importer:
                 # or removed in a later committed snapshot. Preserve those
                 # versions even if neither source contains full image bytes.
                 if all(previous.get(k) == m.get(k) for k in ("text", "sender_id", "timestamp", "attachments",
-                        "media_kind", "media_id", "media_status", "thumbnail_count", "native_tl_body_sha256")):
+                        "media_kind", "media_id", "media_status", "thumbnail_count", "native_tl_body_sha256", "text_field")):
                     previous.setdefault("additional_sources", []).append(
                         {name: m.get(name) for name in ("snapshot_id", "source_file", "source_record", "source_sha256",
-                            "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
+                            "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "text_field",
                             "wal_commit_frame", "wal_proof", "wal_db_sha256", "wal_sha256", "wal_snapshot_sha256",
                             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
                             "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
@@ -1352,18 +1356,24 @@ class Importer:
         script = """const data=JSON.parse(document.getElementById('data').textContent);let page=0;const size=100;
 const labels={export:'из экспорта',backup:'из резервной копии',previous:'предыдущая версия',fragment:'текстовый фрагмент'};
 const cacheNote='Медиакэш Telegram: сохранившаяся подпись и ссылка на фото. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.';
-function category(m){if(m.recovery_status==='imported_recovery_claim')return 'заявлено в исходном архиве';if(m.record_kind==='telegram_media_cache')return m.evidence_kind==='previous'?'кэш Telegram · предыдущая версия':'кэш Telegram';return m.recovery_status==='deleted_supported_by_evidence'?'сохранившийся остаток записи':labels[m.evidence_kind]??'категория неизвестна';}
+function cacheRecord(kind){return kind==='telegram_media_cache'||kind==='telegram_media_cache_caption';}
+function supplementalCaption(kind){return ['tl_message_caption','sqlite_deleted_caption','telegram_media_cache_caption'].includes(kind);}
+function textField(field){return field==='message'?'основной текст':field==='media.legacy_caption'?'подпись к фото':'неизвестно';}
+function category(m){if(m.recovery_status==='imported_recovery_claim')return 'заявлено в исходном архиве';const caption=m.text_field==='media.legacy_caption'||supplementalCaption(m.record_kind);if(cacheRecord(m.record_kind))return caption?(m.evidence_kind==='previous'?'кэш · предыдущая подпись':'кэш · подпись к фото'):(m.evidence_kind==='previous'?'кэш Telegram · предыдущая версия':'кэш Telegram');if(caption)return m.recovery_status==='deleted_supported_by_evidence'?'подпись к фото · остаток записи':m.evidence_kind==='previous'?'подпись к фото · предыдущая версия':'подпись к фото';return m.recovery_status==='deleted_supported_by_evidence'?'сохранившийся остаток записи':labels[m.evidence_kind]??'категория неизвестна';}
 function draw(){const q=document.getElementById('q').value.toLocaleLowerCase();const cat=document.getElementById('cat').value;
 const list=data.filter(m=>(!cat||(cat==='deleted'?m.recovery_status==='deleted_supported_by_evidence':m.evidence_kind===cat))&&[m.text,m.sender_name,m.sender_id,m.app,m.chat_name,m.chat_id].some(x=>String(x??'').toLocaleLowerCase().includes(q)));
 page=Math.max(0,Math.min(page,Math.ceil(list.length/size)-1));const root=document.getElementById('messages');root.replaceChildren();
 for(const m of list.slice(page*size,(page+1)*size)){const a=document.createElement('article');const h=document.createElement('strong');h.textContent=[m.app,m.chat_name??m.chat_id??'Чат неизвестен',m.sender_name??m.sender_id??'Автор неизвестен',m.timestamp??m.timestamp_raw??'Дата неизвестна'].join(' · ');a.append(h);
 const b=document.createElement('small');b.textContent=category(m)+' · '+(m.source_file??'')+' · '+(m.source_record??'')+(m.record_kind==='memory_fragment'?' · Telegram, автор, дата и факт удаления не подтверждены':'')+(m.record_kind==='notification'?' · неполный текст уведомления':'');a.append(b);const t=document.createElement('pre');t.textContent=m.text;a.append(t);
-if(m.record_kind==='telegram_media_cache'){const note=document.createElement('p');note.textContent=cacheNote;a.append(note);}
+if(m.text_field||supplementalCaption(m.record_kind)){const note=document.createElement('small');note.textContent='Поле текста: '+textField(m.text_field);a.append(note);}
+if(supplementalCaption(m.record_kind)){const note=document.createElement('p');note.textContent='Отдельное поле той же исходной записи, не самостоятельное сообщение. Основной текст и подпись сохранены раздельно.';a.append(note);}
+if(cacheRecord(m.record_kind)){const note=document.createElement('p');note.textContent=cacheNote;a.append(note);}
 if(m.provenance_verification==='provided_archive_metadata'){const note=document.createElement('p');note.textContent='Запись импортирована из предоставленного архива. Его сведения о происхождении в этом анализе независимо не проверялись.';a.append(note);}
 if(m.recovery_status==='imported_recovery_claim'){const note=document.createElement('p');note.textContent='Отметка об удалении перенесена из исходного архива; проверенной находкой удалённой записи в этом анализе она не считается. Исходная отметка: '+(m.archive_claims?.recovery_status??'не указана')+' · '+(m.archive_claims?.deletion_interpretation??'без пояснения');a.append(note);}
-if(Array.isArray(m.additional_sources)&&m.additional_sources.length){const d=document.createElement('details'),s=document.createElement('summary');s.textContent='Дополнительные источники';d.append(s);for(const o of m.additional_sources.slice(0,10)){const p=document.createElement('small');p.textContent=[o.record_kind==='telegram_media_cache'?cacheNote:'Другой источник',o.source_file,o.source_record,o.native_tl_body_sha256?'SHA256 TL: '+o.native_tl_body_sha256:null,o.wal_db_sha256?'SHA256 базы WAL: '+o.wal_db_sha256:null].filter(Boolean).join(' · ');d.append(p);}a.append(d);}
+if(Array.isArray(m.additional_sources)&&m.additional_sources.length){const d=document.createElement('details'),s=document.createElement('summary');s.textContent='Дополнительные источники';d.append(s);for(const o of m.additional_sources.slice(0,10)){const p=document.createElement('small');p.textContent=[cacheRecord(o.record_kind)?cacheNote:'Другой источник',o.source_file,o.source_record,o.text_field?'Поле текста: '+textField(o.text_field):null,o.native_tl_body_sha256?'SHA256 TL: '+o.native_tl_body_sha256:null,o.wal_db_sha256?'SHA256 базы WAL: '+o.wal_db_sha256:null].filter(Boolean).join(' · ');d.append(p);}a.append(d);}
+if(Array.isArray(m.residual_sources)&&m.residual_sources.length){const d=document.createElement('details'),s=document.createElement('summary');s.textContent='Сохранившиеся остатки исходной записи';d.append(s);for(const o of m.residual_sources.slice(0,20)){const p=document.createElement('small');p.textContent=[o.source_file,o.source_record,o.text_field?'Поле текста: '+textField(o.text_field):null,o.physical_source,o.physical_byte_offset].filter(x=>x!==null&&x!==undefined).join(' · ');d.append(p);}a.append(d);}
 for(const f of m.attachments??[]){if(!/^media\\/[a-f0-9]{64}\\.[a-z0-9]{1,12}$/.test(f))continue;const link=document.createElement('a');link.href=f;link.textContent='Открыть вложение';link.target='_blank';link.rel='noopener';link.download=f.split('/').pop();a.append(link);}root.append(a);}
-document.getElementById('count').textContent=list.length+' сообщений · страница '+(page+1)+' из '+Math.max(1,Math.ceil(list.length/size));}
+document.getElementById('count').textContent='Записей: '+list.length+' · страница '+(page+1)+' из '+Math.max(1,Math.ceil(list.length/size));}
 document.getElementById('q').oninput=()=>{page=0;draw()};document.getElementById('cat').onchange=()=>{page=0;draw()};document.getElementById('prev').onclick=()=>{page--;draw()};document.getElementById('next').onclick=()=>{page++;draw()};draw();"""
         script_hash = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
         markup = """<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width">

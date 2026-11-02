@@ -3,7 +3,7 @@
 Format: Telegram Android 13.1.0, commit
 4de548e79fed27f1a66fbdff84223321838fe925, MessagesStorage.java:559-561;
 MediaDataController.java:4556-4562 deserializes the blob as a full Message.
-Only layer232 photo captions are supported. Cache presence/removal says
+Only explicitly pinned Message/photo-media profiles are supported. Cache presence/removal says
 nothing about user deletion. No attachment paths, decryption or freeblocks.
 """
 from __future__ import annotations
@@ -15,6 +15,20 @@ SOURCE_COMMIT = "4de548e79fed27f1a66fbdff84223321838fe925"
 _COLUMNS = (("mid", "INTEGER", 1), ("uid", "INTEGER", 2),
             ("date", "INTEGER", 0), ("type", "INTEGER", 3),
             ("data", "BLOB", 0))
+# Official migration copies older serialized Message bodies into media_v4
+# unchanged. Keep this explicit list: new decoder profiles do not silently
+# expand this reader. Unknown nested flags still fail in parse_message.
+_MESSAGE_PROFILES = {
+    "0x7600b9d3": 232, "0x95ef6f2b": 226, "0x3ae56482": 224,
+    "0x9cb490e9": 222, "0xb92f76cf": 220, "0x9815cec8": 216,
+    "0xeabcdd4d": 205, "0x96fdbbe9": 199, "0x94345242": 195,
+    "0xbde09c2e": 180, "0x2357bf25": 179, "0xa66c7efc": 176,
+    "0x1e4c8a69": 175, "0x76bec211": 173, "0x38116ee0": 169,
+    "0x85d6cbe2": 135, "0xbce383d2": 131, "0x58ae39c9": 123,
+    "0xf52e6b7f": 118,
+}
+_PHOTO_MEDIA = frozenset(("0xe216eb63", "0x695150d7", "0xb5223b0f",
+                          "0x3d8ce53d", "0xc8c45a2a"))
 
 
 class MediaCacheError(ValueError):
@@ -47,11 +61,11 @@ def _checked(row):
     if not isinstance(data, bytes) or not 0 < len(data) <= MAX_BLOB:
         raise MediaCacheError("MEDIA_CACHE_BLOB_INVALID_OR_LIMITED")
     value = parse_message(data)
-    if value["layer"] != 232 or value["constructor"] != "0x7600b9d3":
+    if _MESSAGE_PROFILES.get(value["constructor"]) != value["layer"]:
         raise MediaCacheError("MEDIA_CACHE_LAYER_UNSUPPORTED")
     media = value.get("media", {})
     if (media.get("type") != "photo" or
-            media.get("constructor") != "0xe216eb63"):
+            media.get("constructor") not in _PHOTO_MEDIA):
         raise MediaCacheError("MEDIA_CACHE_PHOTO_UNSUPPORTED")
     if mid <= 0 or mid != value["id"] or date != value["date"]:
         raise MediaCacheError("MEDIA_CACHE_KEYS_MISMATCH")

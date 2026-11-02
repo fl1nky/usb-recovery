@@ -1,0 +1,1449 @@
+{
+  "schema": 1,
+  "current": [
+    {
+      "schema": 1,
+      "tool": "Recovery",
+      "edition": "source build",
+      "label": "current-photo-telegram-paired-five-resource-complete",
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "run_sha256": "89218323b647a7831bdd9eedea094e1c08422f90248055051d8839603bd909f8",
+      "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "cases": [
+        {
+          "name": "raw-contiguous-baseline",
+          "status": "completed",
+          "elapsed_ms": 3768,
+          "source_unchanged": true,
+          "expected": [
+            {
+              "asset": "baseline.jpg",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 0,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null,
+          "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+          "candidates": [
+            {
+              "sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+              "bytes": 45234,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "f3c395b508241f92103f0c7f2ce05bebcd3a99b9f151b69ae52a784ab8a03b86",
+              "valid": true,
+              "benchmark_class": "exact_original",
+              "matches": [
+                "baseline.jpg"
+              ],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-contiguous-baseline",
+                "case_output_relative_path": "files.1/f0000256.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            }
+          ]
+        }
+      ],
+      "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+      "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "pillow_version": "12.3.0",
+      "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+    },
+    {
+      "schema": 1,
+      "tool": "Recovery",
+      "edition": "source build",
+      "label": "current-photo-telegram-paired-five-resource-complete",
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "run_sha256": "560d46f60285fccd72646e998ab3835d5c2c558b28df5a915904994adf3fe541",
+      "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "cases": [
+        {
+          "name": "raw-scattered-restart",
+          "status": "completed",
+          "elapsed_ms": 14917,
+          "source_unchanged": true,
+          "expected": [
+            {
+              "asset": "restart.jpg",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 2,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null,
+          "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+          "candidates": [
+            {
+              "sha256": "ce3a498b1d9346586a27090962115f73dc463b00b59a660b968d53e95f2a34ef",
+              "bytes": 6946816,
+              "method": "PhotoRec",
+              "status": "Повреждённый кандидат",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "unknown_or_damaged",
+              "decoded_sha256": null,
+              "valid": false,
+              "benchmark_class": "damaged_or_nonmedia",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-restart",
+                "case_output_relative_path": "files.1/b0002816.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              },
+              "decoder_diagnostic_sha256": "b647580b1f54e34d4a2e1b791fd69a2eb95d276e49a5b24afaa5412c94949753",
+              "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+            },
+            {
+              "sha256": "76bb6e3e72ca51c31078fecbb6bfbb7e9cd26126e695a95477f7e7c3fa3e5e48",
+              "bytes": 45393,
+              "method": "Сборка разрозненных медиа",
+              "status": "Кандидат сборки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "81a0660577e7b17408ba1a96461f125283b4de977ba1ad457a233cefbbbb7a7a",
+              "valid": true,
+              "benchmark_class": "exact_original",
+              "matches": [
+                "restart.jpg"
+              ],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-restart",
+                "case_output_relative_path": "fragmented-photos/jpeg-76bb6e3e72ca51c31078fecbb6bfbb7e9cd26126e695a95477f7e7c3fa3e5e48.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            }
+          ]
+        }
+      ],
+      "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+      "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "pillow_version": "12.3.0",
+      "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+    },
+    {
+      "schema": 1,
+      "tool": "Recovery",
+      "edition": "source build",
+      "label": "current-photo-telegram-paired-five-resource-complete",
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "run_sha256": "140d416202c43fb564c5dfa8384b1fca6bea31269da21f56ab373a05a72f131c",
+      "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "cases": [
+        {
+          "name": "raw-scattered-avc-dual",
+          "status": "completed",
+          "elapsed_ms": 3650,
+          "source_unchanged": true,
+          "expected": [
+            {
+              "asset": "avc-dual.mp4",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 2,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null,
+          "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+          "candidates": [
+            {
+              "sha256": "a1103cbef5b2c42fd7d4bc5d4c1c5011ac7603262e03774f8b134dd13c4eb613",
+              "bytes": 23813,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Видео",
+              "original_path": null,
+              "kind": "unknown_or_damaged",
+              "decoded_sha256": null,
+              "valid": false,
+              "benchmark_class": "damaged_or_nonmedia",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-avc-dual",
+                "case_output_relative_path": "files.1/f0004416.mp4",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              },
+              "decoder_diagnostic_sha256": "2b3f4081536eef3e90f89ff2e7a09c82d0d1de51e90856847fad95b51a126283",
+              "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+            },
+            {
+              "sha256": "d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f",
+              "bytes": 23813,
+              "method": "Сборка разрозненных медиа",
+              "status": "Кандидат сборки",
+              "category": "Видео",
+              "original_path": null,
+              "kind": "video",
+              "decoded_sha256": "9cffa874a20b85c42f0d516bd399f5838a2f871e18d96c42e72094748cb18183",
+              "valid": true,
+              "decoded_audio_sha256": null,
+              "benchmark_class": "exact_original",
+              "matches": [
+                "avc-dual.mp4"
+              ],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-avc-dual",
+                "case_output_relative_path": "fragmented-media/candidate-d7b820ed22bdcb5784126da494918e9871bc7b087dc59af5466fc487462f057f.mp4",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            }
+          ]
+        }
+      ],
+      "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+      "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "pillow_version": "12.3.0",
+      "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+    },
+    {
+      "schema": 1,
+      "tool": "Recovery",
+      "edition": "source build",
+      "label": "current-photo-telegram-paired-five-resource-complete",
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "run_sha256": "9afe277396f1a237d77222b41def21a9c205da28c787ad562fd90a36438dd207",
+      "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "cases": [
+        {
+          "name": "raw-scattered-mjpeg-dual",
+          "status": "completed",
+          "elapsed_ms": 4714,
+          "source_unchanged": true,
+          "expected": [
+            {
+              "asset": "mjpeg-dual.mov",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 26,
+          "decodable_nonmatching": 24,
+          "damaged_or_nonmedia": 1,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null,
+          "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+          "candidates": [
+            {
+              "sha256": "a0322e667d98f1c6ed83c3a6f6e3b28df4a3c77d15215de106a6df10b5844fd7",
+              "bytes": 4179,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "6ff6e33ce6e227b283c3cac8fa7b51732b2d35f108ddf79e02f96dbc390216a2",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0000192.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "457019fef8eff5b9afe6dbf064d9c734fd0ed8017226ce8135f401c1eddd2a41",
+              "bytes": 2801,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "6eb88560a2556500d7b1b066400e2e8b83f85adb2de809d073b9a76c9c3b22dc",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0000448.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "8ffc408409208a75a0691f6dd46df4def7c2e42bf60f8316f558f946a95d9728",
+              "bytes": 4106,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "d67ea26981e3c32ecc580b339c5d915851432be060adaa058a934e4cf934fefd",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0000512.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "e90089ab4ffa6f6c1d63641e2aa3ad9362d318ba9077d05d91723139546654ec",
+              "bytes": 3000,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "1c975d2ffe9c60d76e76ed8c4a3aed4d1c75c89b9a6fa58e4f2d7ca414cb37ca",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0001536.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "702a75f2217d0ce90f4ae08ea323cb816c7a411c2a538437773eb3fde2db56f8",
+              "bytes": 2819,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "b9b78e719505459fe643a5c9405880e99a446ac9f2abaca5b7de853e6e83be33",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0001728.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "04b65939fe5a35df9600c00d6d64eff4db96d403c16c7abf2890f47f5db874a5",
+              "bytes": 3825,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "c269aa1d2909b2115ee6807f73c428ae435ea654ab1b83286ba5c2742c6fd297",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0001792.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "ddc29e3f9fb3e7f40506a54f386eba9a82c9a3563b7c360e0ff14b0fc791b3b8",
+              "bytes": 85295,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Видео",
+              "original_path": null,
+              "kind": "unknown_or_damaged",
+              "decoded_sha256": null,
+              "valid": false,
+              "benchmark_class": "damaged_or_nonmedia",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0003968_ftyp.mov",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              },
+              "decoder_diagnostic_sha256": "58015b5f4cb9ff3220fcf142b0c40e60b934552accde7eb6aba9eac3f4ebbbca",
+              "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+            },
+            {
+              "sha256": "bb60c4a6be8e4706b7eb1393386f693318a843e06b971f74bac2e6121b3e2e9e",
+              "bytes": 4389,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "bd96f41f4e16c3016854b0275fff3a6ac8444d97e5e736d22110ee0a0a49fa97",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0004352.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "a796149b01e337700221a53d859260f03017a210dc33f45302f6d31f13055b3b",
+              "bytes": 3003,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "98570695b1945c429e5b8df78b50fae48f43303b2994b170d3973584b260245b",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0005120.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "6d0cc4c639c25bb3786692328f654332055133ddfa70ee816663b842103d0818",
+              "bytes": 2991,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "05d8251c835ccc844d62f724a67414ec0aaa9e4e0187bbae376fd1314223eb37",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0005632.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "4aa93d8432f160f93dbea4e255bef1abefd3c1a566d854041192234cfa9646af",
+              "bytes": 4041,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "0fd77835f97e5794985456f2ed626bf48546c8c33924432f48b1892a540e38e8",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0005888.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "4f3cd8f79410d582c99070f5679cb5261d7009cc5d958c3b7a09074958bd860a",
+              "bytes": 2835,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "52a50d713b156292f9900bd237bfd97ff750436bdcc11656d12d1bb87674d113",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0006208.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "746fd1d8768c66fa443fed029730e86a3ef51157fa0535152b8647987c5bbcbd",
+              "bytes": 3014,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "25e4347828e20189b591bb9328260f7b624c71443d0e15767fd714e1f873e221",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0006592.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "4efebb270d6b2ab22bc1cc67052dd6eb1cb80ef8e8437c851c32c813b08896f7",
+              "bytes": 3665,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "66257f2f21ceae80327eae298107274e52487743d157592cee24c337f2ade19d",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0006912.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "2522e3d06748039ac4fb7bf4f7ec6fe2a73781bda47adb7718f5bb37a2c2c1d0",
+              "bytes": 3733,
+              "method": "PhotoRec",
+              "status": "Требует проверки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "2cfbe4ffda66f9abb0e94991479d93f0b3dabe17cdfe4d2c7d9ddd91e4b05b14",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "files.1/f0007168.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "914f8b0544da06f97e66f18dac8a0529abdb8752bcfa98b2429047fb2c04213d",
+              "bytes": 4293,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "f3ef188bb8414e8626862f4bc097bb7ee15c2c8146025ab0ab3a25c842ac02f2",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000000102483.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "d64fc603cd07ef2fb9f26b5b39afd5a8f16f56ed89ee3b40e46bbf340a1d5812",
+              "bytes": 4308,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "9f1eb27ad232733b1e160230b310549e29ea186f88e59a378fb3d717cbf975f7",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000000106776.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "353c3772782ee9eaf8a67ab18054d9f087a49b6a200d1f28aeff4a762fb245ca",
+              "bytes": 4193,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "3af66d2d3008bc777eb31e96162b1a428772b07670e62d64e56914d1a93c53d0",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000000111084.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "4c50bfbaf067cf116ea7bffc05d7e93e3696046cc1359e76b0ec2216884f1155",
+              "bytes": 4460,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "906a223812878f3dcc16e79063b9588276529c28d79b2f493de4e3eda798d1da",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000000115277.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "c7b498e9a737a5d94e44898cf73203249224560b17981f41eeb1083c7b176207",
+              "bytes": 2986,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "efb62388544776d599152fe84371603310f029eccdf02c9ed1599dd89118147c",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000000789432.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "07dba31fe20f0d224e631651260ee834ab95bde1564218d8a6cff0bfd50ef992",
+              "bytes": 3022,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "e1d10026585bcc52ed8773585ff64f383dede140c0851ef7d8a4d49e83cc78cc",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000002624443.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "41568f59ce4c5156c0a98a1022c76fd8bcb85c23ed9263bc02128eb732555469",
+              "bytes": 2883,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "4df42051bebe11621a3be2652e48f94d8fec004ed90f3e780b2dab8703f9c651",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000003378118.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "8243abbbf221d0efc8c0e3fa194328c5dbd708154d2473eccc920d47f6dfb567",
+              "bytes": 2856,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "679d41c3dcf688c4731cf49f30c7706fb21f93c194b9b5a44af63a4b47813c5c",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000003381001.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "9c86e43484872f391b4c55fd970fa9531f8242dff61c0ff7445448b59236dc68",
+              "bytes": 2835,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "638c911181a7ed56e6a47126bf9054a772882b6707ee986c59a32d9b85030bd8",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000003383857.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "95a134554dcef6973e45fca955c86446bc29a1088a2fdd33bf43579b283292ed",
+              "bytes": 3564,
+              "method": "JPEG/PNG внутри данных",
+              "status": "Изображение открывается",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "73a24182cd57caaa85efaf10965dcc60e493712254dc02fc6de856a93fef841c",
+              "valid": true,
+              "benchmark_class": "decodable_nonmatching",
+              "matches": [],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "extra-photos/offset-0000000003542609.jpg",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            },
+            {
+              "sha256": "add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7",
+              "bytes": 85295,
+              "method": "Сборка разрозненных медиа",
+              "status": "Кандидат сборки",
+              "category": "Видео",
+              "original_path": null,
+              "kind": "video",
+              "decoded_sha256": "7e0ac3069eb5499b49d0cdc50414a5df609cb228e6d8ead162a19f1370dddc52",
+              "valid": true,
+              "decoded_audio_sha256": null,
+              "benchmark_class": "exact_original",
+              "matches": [
+                "mjpeg-dual.mov"
+              ],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-mjpeg-dual",
+                "case_output_relative_path": "fragmented-media/candidate-add2d2cb93dd660c37ca16e7223448ed90d91ee43171931c3086d5aae8e5a4a7.mp4",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            }
+          ]
+        }
+      ],
+      "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+      "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "pillow_version": "12.3.0",
+      "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+    },
+    {
+      "schema": 1,
+      "tool": "Recovery",
+      "edition": "source build",
+      "label": "current-photo-telegram-paired-five-resource-complete",
+      "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+      "run_sha256": "0ee4d48a2b19854079d14cd2ba2e2cd0e651ed987a9619e3af916d7b559727db",
+      "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+      "cases": [
+        {
+          "name": "raw-scattered-png-chunks",
+          "status": "completed",
+          "elapsed_ms": 4087,
+          "source_unchanged": true,
+          "expected": [
+            {
+              "asset": "chunked.png",
+              "all_original_bytes_present": true,
+              "exact": true,
+              "decoded_equivalent": true,
+              "trial_not_exported": false
+            }
+          ],
+          "candidate_count": 1,
+          "decodable_nonmatching": 0,
+          "damaged_or_nonmedia": 0,
+          "unvalidated_candidates": 0,
+          "false_positive_rate": null,
+          "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+          "candidates": [
+            {
+              "sha256": "a8a6a292ad06a56169c73182e52e4caadb90f140a78d36b339178b1dbf04584a",
+              "bytes": 127244,
+              "method": "Сборка разрозненных медиа",
+              "status": "Кандидат сборки",
+              "category": "Фотографии",
+              "original_path": null,
+              "kind": "image",
+              "decoded_sha256": "81a0660577e7b17408ba1a96461f125283b4de977ba1ad457a233cefbbbb7a7a",
+              "valid": true,
+              "benchmark_class": "exact_original",
+              "matches": [
+                "chunked.png"
+              ],
+              "artifact_ref": {
+                "availability": "available_via_reproduce",
+                "case": "raw-scattered-png-chunks",
+                "case_output_relative_path": "fragmented-photos/png-a8a6a292ad06a56169c73182e52e4caadb90f140a78d36b339178b1dbf04584a.png",
+                "note": "Logical reproduction reference, not a link to a published recovery output."
+              }
+            }
+          ]
+        }
+      ],
+      "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+      "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+      "pillow_version": "12.3.0",
+      "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+    }
+  ],
+  "saved_rstudio": {
+    "schema": 1,
+    "tool": "R-Studio",
+    "edition": "Technician Demo 9.5.191861",
+    "label": "actual observed exports",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "run_sha256": "e0f5d127a15953128f8327bcd58e858a9f07b17fd0a4b7fdf1dcaf5746cc43b7",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "status": "completed",
+        "elapsed_ms": 33,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "exact": true,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 45234,
+            "sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "JPEG Образ/img_320x192x24_00.jpg",
+            "kind": "image",
+            "decoded_sha256": "f3c395b508241f92103f0c7f2ce05bebcd3a99b9f151b69ae52a784ab8a03b86",
+            "valid": true,
+            "benchmark_class": "exact_original",
+            "matches": [
+              "baseline.jpg"
+            ],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-contiguous-baseline/JPEG Образ/img_320x192x24_00.jpg",
+              "entry_sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe"
+            }
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-restart",
+        "status": "completed",
+        "elapsed_ms": 35,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 629,
+            "sha256": "fb913e257ad0df11a10f730bc238915020e732915918dd10bb1dd81a2bc39158",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_320x192x24_00.jpg",
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-restart/Графика, Изображение/JPEG Образ/img_320x192x24_00.jpg",
+              "entry_sha256": "fb913e257ad0df11a10f730bc238915020e732915918dd10bb1dd81a2bc39158"
+            },
+            "decoder_diagnostic_sha256": "ee3b1a2fd5d9c55549177a06c6d5b6cd5a4f35e2ab9a2a9f267e022abcedab7e",
+            "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-avc-dual",
+        "status": "completed",
+        "elapsed_ms": null,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "avc-dual.mp4",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 23813,
+            "sha256": "a1103cbef5b2c42fd7d4bc5d4c1c5011ac7603262e03774f8b134dd13c4eb613",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Root/Мультимедиа Видео/MP4 Файл/00.mp4",
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-avc-dual/Root/Мультимедиа Видео/MP4 Файл/00.mp4",
+              "entry_sha256": "a1103cbef5b2c42fd7d4bc5d4c1c5011ac7603262e03774f8b134dd13c4eb613"
+            },
+            "decoder_diagnostic_sha256": "fc8167b0640b84a2f5bfd90836989277789e2c23bebbf0374c2c595d09c388fe",
+            "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-mjpeg-dual",
+        "status": "completed",
+        "elapsed_ms": 33,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "mjpeg-dual.mov",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 15,
+        "decodable_nonmatching": 14,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 3000,
+            "sha256": "e90089ab4ffa6f6c1d63641e2aa3ad9362d318ba9077d05d91723139546654ec",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_003.jpg",
+            "kind": "image",
+            "decoded_sha256": "1c975d2ffe9c60d76e76ed8c4a3aed4d1c75c89b9a6fa58e4f2d7ca414cb37ca",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_003.jpg",
+              "entry_sha256": "e90089ab4ffa6f6c1d63641e2aa3ad9362d318ba9077d05d91723139546654ec"
+            }
+          },
+          {
+            "bytes": 4389,
+            "sha256": "bb60c4a6be8e4706b7eb1393386f693318a843e06b971f74bac2e6121b3e2e9e",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_007.jpg",
+            "kind": "image",
+            "decoded_sha256": "bd96f41f4e16c3016854b0275fff3a6ac8444d97e5e736d22110ee0a0a49fa97",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_007.jpg",
+              "entry_sha256": "bb60c4a6be8e4706b7eb1393386f693318a843e06b971f74bac2e6121b3e2e9e"
+            }
+          },
+          {
+            "bytes": 3003,
+            "sha256": "a796149b01e337700221a53d859260f03017a210dc33f45302f6d31f13055b3b",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_008.jpg",
+            "kind": "image",
+            "decoded_sha256": "98570695b1945c429e5b8df78b50fae48f43303b2994b170d3973584b260245b",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_008.jpg",
+              "entry_sha256": "a796149b01e337700221a53d859260f03017a210dc33f45302f6d31f13055b3b"
+            }
+          },
+          {
+            "bytes": 2991,
+            "sha256": "6d0cc4c639c25bb3786692328f654332055133ddfa70ee816663b842103d0818",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_009.jpg",
+            "kind": "image",
+            "decoded_sha256": "05d8251c835ccc844d62f724a67414ec0aaa9e4e0187bbae376fd1314223eb37",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_009.jpg",
+              "entry_sha256": "6d0cc4c639c25bb3786692328f654332055133ddfa70ee816663b842103d0818"
+            }
+          },
+          {
+            "bytes": 3014,
+            "sha256": "746fd1d8768c66fa443fed029730e86a3ef51157fa0535152b8647987c5bbcbd",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_257x3_012.jpg",
+            "kind": "image",
+            "decoded_sha256": "25e4347828e20189b591bb9328260f7b624c71443d0e15767fd714e1f873e221",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_257x3_012.jpg",
+              "entry_sha256": "746fd1d8768c66fa443fed029730e86a3ef51157fa0535152b8647987c5bbcbd"
+            }
+          },
+          {
+            "bytes": 2801,
+            "sha256": "457019fef8eff5b9afe6dbf064d9c734fd0ed8017226ce8135f401c1eddd2a41",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_001.jpg",
+            "kind": "image",
+            "decoded_sha256": "6eb88560a2556500d7b1b066400e2e8b83f85adb2de809d073b9a76c9c3b22dc",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_001.jpg",
+              "entry_sha256": "457019fef8eff5b9afe6dbf064d9c734fd0ed8017226ce8135f401c1eddd2a41"
+            }
+          },
+          {
+            "bytes": 2819,
+            "sha256": "702a75f2217d0ce90f4ae08ea323cb816c7a411c2a538437773eb3fde2db56f8",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_004.jpg",
+            "kind": "image",
+            "decoded_sha256": "b9b78e719505459fe643a5c9405880e99a446ac9f2abaca5b7de853e6e83be33",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_004.jpg",
+              "entry_sha256": "702a75f2217d0ce90f4ae08ea323cb816c7a411c2a538437773eb3fde2db56f8"
+            }
+          },
+          {
+            "bytes": 2835,
+            "sha256": "4f3cd8f79410d582c99070f5679cb5261d7009cc5d958c3b7a09074958bd860a",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_011.jpg",
+            "kind": "image",
+            "decoded_sha256": "52a50d713b156292f9900bd237bfd97ff750436bdcc11656d12d1bb87674d113",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_011.jpg",
+              "entry_sha256": "4f3cd8f79410d582c99070f5679cb5261d7009cc5d958c3b7a09074958bd860a"
+            }
+          },
+          {
+            "bytes": 3665,
+            "sha256": "4efebb270d6b2ab22bc1cc67052dd6eb1cb80ef8e8437c851c32c813b08896f7",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_3x3_013.jpg",
+            "kind": "image",
+            "decoded_sha256": "66257f2f21ceae80327eae298107274e52487743d157592cee24c337f2ade19d",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_3x3_013.jpg",
+              "entry_sha256": "4efebb270d6b2ab22bc1cc67052dd6eb1cb80ef8e8437c851c32c813b08896f7"
+            }
+          },
+          {
+            "bytes": 4179,
+            "sha256": "a0322e667d98f1c6ed83c3a6f6e3b28df4a3c77d15215de106a6df10b5844fd7",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_768x2_000.jpg",
+            "kind": "image",
+            "decoded_sha256": "6ff6e33ce6e227b283c3cac8fa7b51732b2d35f108ddf79e02f96dbc390216a2",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_768x2_000.jpg",
+              "entry_sha256": "a0322e667d98f1c6ed83c3a6f6e3b28df4a3c77d15215de106a6df10b5844fd7"
+            }
+          },
+          {
+            "bytes": 4106,
+            "sha256": "8ffc408409208a75a0691f6dd46df4def7c2e42bf60f8316f558f946a95d9728",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_002.jpg",
+            "kind": "image",
+            "decoded_sha256": "d67ea26981e3c32ecc580b339c5d915851432be060adaa058a934e4cf934fefd",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_002.jpg",
+              "entry_sha256": "8ffc408409208a75a0691f6dd46df4def7c2e42bf60f8316f558f946a95d9728"
+            }
+          },
+          {
+            "bytes": 3825,
+            "sha256": "04b65939fe5a35df9600c00d6d64eff4db96d403c16c7abf2890f47f5db874a5",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_005.jpg",
+            "kind": "image",
+            "decoded_sha256": "c269aa1d2909b2115ee6807f73c428ae435ea654ab1b83286ba5c2742c6fd297",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_005.jpg",
+              "entry_sha256": "04b65939fe5a35df9600c00d6d64eff4db96d403c16c7abf2890f47f5db874a5"
+            }
+          },
+          {
+            "bytes": 4041,
+            "sha256": "4aa93d8432f160f93dbea4e255bef1abefd3c1a566d854041192234cfa9646af",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_010.jpg",
+            "kind": "image",
+            "decoded_sha256": "0fd77835f97e5794985456f2ed626bf48546c8c33924432f48b1892a540e38e8",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_010.jpg",
+              "entry_sha256": "4aa93d8432f160f93dbea4e255bef1abefd3c1a566d854041192234cfa9646af"
+            }
+          },
+          {
+            "bytes": 3733,
+            "sha256": "2522e3d06748039ac4fb7bf4f7ec6fe2a73781bda47adb7718f5bb37a2c2c1d0",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Графика, Изображение/JPEG Образ/img_769x2_014.jpg",
+            "kind": "image",
+            "decoded_sha256": "2cfbe4ffda66f9abb0e94991479d93f0b3dabe17cdfe4d2c7d9ddd91e4b05b14",
+            "valid": true,
+            "benchmark_class": "decodable_nonmatching",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Графика, Изображение/JPEG Образ/img_769x2_014.jpg",
+              "entry_sha256": "2522e3d06748039ac4fb7bf4f7ec6fe2a73781bda47adb7718f5bb37a2c2c1d0"
+            }
+          },
+          {
+            "bytes": 85295,
+            "sha256": "ddc29e3f9fb3e7f40506a54f386eba9a82c9a3563b7c360e0ff14b0fc791b3b8",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "Мультимедиа Видео/MP4 Файл/006.mp4",
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/rstudio-results/raw-scattered-mjpeg-dual/Мультимедиа Видео/MP4 Файл/006.mp4",
+              "entry_sha256": "ddc29e3f9fb3e7f40506a54f386eba9a82c9a3563b7c360e0ff14b0fc791b3b8"
+            },
+            "decoder_diagnostic_sha256": "544b9c9f7f6ac7e895736b8518826184377fbd9a4480381081d3812fcad25791",
+            "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-png-chunks",
+        "status": "no_findings",
+        "elapsed_ms": 34,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "chunked.png",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 0,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": []
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate."
+  },
+  "saved_dmde": {
+    "schema": 1,
+    "tool": "DMDE",
+    "edition": "Console Free 4.4.4.842",
+    "label": "actual observed exports",
+    "manifest_sha256": "da682d094b53e2a326b633e099e88352c97240c0a0b736a0ea382585b1f73623",
+    "run_sha256": "414b29d5fe4db425fed21ec93546c72c5327f19a31193e9da2c4f2e7bf737e5f",
+    "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+    "cases": [
+      {
+        "name": "raw-contiguous-baseline",
+        "status": "completed",
+        "elapsed_ms": null,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "baseline.jpg",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": true,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 0,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 8257536,
+            "sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f256.jpeg",
+            "kind": "image",
+            "decoded_sha256": "f3c395b508241f92103f0c7f2ce05bebcd3a99b9f151b69ae52a784ab8a03b86",
+            "valid": true,
+            "benchmark_class": "decoded_equivalent",
+            "matches": [
+              "baseline.jpg"
+            ],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/dmde-results/raw-contiguous-baseline/f256.jpeg",
+              "entry_sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092"
+            }
+          }
+        ]
+      },
+      {
+        "name": "raw-scattered-restart",
+        "status": "completed",
+        "elapsed_ms": null,
+        "source_unchanged": true,
+        "expected": [
+          {
+            "asset": "restart.jpg",
+            "all_original_bytes_present": true,
+            "exact": false,
+            "decoded_equivalent": false,
+            "trial_not_exported": false
+          }
+        ],
+        "candidate_count": 1,
+        "decodable_nonmatching": 0,
+        "damaged_or_nonmedia": 1,
+        "unvalidated_candidates": 0,
+        "false_positive_rate": null,
+        "false_positive_note": "Extra media may be valid embedded frames; they are not automatically false positives.",
+        "candidates": [
+          {
+            "bytes": 6946816,
+            "sha256": "ce3a498b1d9346586a27090962115f73dc463b00b59a660b968d53e95f2a34ef",
+            "method": "competitor_export",
+            "status": "exported_candidate",
+            "original_path": "f2816.jpeg",
+            "kind": "unknown_or_damaged",
+            "decoded_sha256": null,
+            "valid": false,
+            "benchmark_class": "damaged_or_nonmedia",
+            "matches": [],
+            "original_path_evidence": "Reported saved vendor virtual export label, not an authenticated original filesystem path.",
+            "artifact_ref": {
+              "availability": "public_complete_proof_entry",
+              "proof_document": "tests/benchmarks/evidence-v8-comparison/complete-proof.json",
+              "proof_document_sha256": "69eac190726fc6dc7b8eb497d4d98d79d1c89e7a32b31dff2181d7bf8f5aef90",
+              "entry": "historical/dmde-results/raw-scattered-restart/f2816.jpeg",
+              "entry_sha256": "ce3a498b1d9346586a27090962115f73dc463b00b59a660b968d53e95f2a34ef"
+            },
+            "decoder_diagnostic_sha256": "066765821c78dce76330b917c8099070cbd0af3df12bcafed5e317a44101cdc2",
+            "decoder_diagnostic_availability": "Omitted machine-specific stderr; raw private score remains SHA-bound."
+          }
+        ]
+      }
+    ],
+    "scorer_sha256": "3345f856fae206eda87f6f63cf733a6645af2d7ba2b3a841dfe745a4070c5654",
+    "python_version": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "pillow_version": "12.3.0",
+    "scope": "Generated regular files only; decode/exact hashes do not establish real-device recovery rate.",
+    "equivalent_only_static_byte_check": [
+      {
+        "case": "raw-contiguous-baseline",
+        "asset": "baseline.jpg",
+        "original_bytes": 45234,
+        "export_bytes": 8257536,
+        "trailing_bytes": 8212302,
+        "complete_original_prefix_sha256": "2b4fc7bc0c098b198d6a45acf9c55f56056e099d11299231b5421270ad280fbe",
+        "export_sha256": "816feb1d8831659f2d1573692cfa054afd02f9d3be850e6cb8daec6a6bb6b092",
+        "conclusion": "Complete original JPEG bytes are present as a prefix with additional trailing bytes; not a byte-exact file, and not a lost-photo result."
+      }
+    ]
+  },
+  "projection": {
+    "format": "sanitized_public_projection",
+    "projection_schema": 1,
+    "raw_source_sha256": "a169c53772e616c6c0feb7562dd92595207ffb0e3f8fdb8bfb9d2f833c6731a9",
+    "original_raw_status": null,
+    "independent_review": "INDEPENDENTLY_REVIEWED",
+    "transformations": [
+      "Absolute local input/export paths replaced by verified public complete-proof entry references.",
+      "Current output references are marked available_via_reproduce and are not fake public artifact links.",
+      "Source references are repository-relative; private driver/snapshot locations are represented by SHA only.",
+      "Decoder stderr is omitted and replaced by a digest; vendor virtual labels use forward slashes and remain unauthenticated; no decoder rerun.",
+      "Original private JSON, failed attempt and immutable physical proof remain unchanged."
+    ]
+  }
+}

@@ -14,6 +14,8 @@ if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'prepare_photo_telegram_fixtures.py')
+if($LASTEXITCODE-ne0){throw 'Independent PNG/Telegram profile fixture preparation or SHA binding failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
 $taskMediaCacheGenerator=Join-Path $taskLayout.Tests 'build_telegram_media_cache_fixtures.py'

@@ -127,13 +127,17 @@ def _container_provenance(raw):
     return {name: value[:4096] for name, value in values.items()}
 
 
+def _text_field(value):
+    return value if isinstance(value, str) and value in ("message", "media.legacy_caption") else None
+
+
 def _normalized(raw):
     if not isinstance(raw, dict) or not isinstance(raw.get("text"), str) or not _valid_unicode(raw["text"]):
         return None
     # Keep only known display/provenance fields. Never forward app crypto keys.
     names = ("app", "snapshot_id", "chat_id", "chat_name", "sender_id", "sender_name",
              "timestamp", "timestamp_raw", "message_id", "evidence_kind", "source_file",
-             "source_record", "text", "timezone_unknown", "date_ambiguous", "previous_version",
+             "source_record", "text", "text_field", "timezone_unknown", "date_ambiguous", "previous_version",
              "source_id", "original_relative_path", "source_sha256", "record_kind", "completeness",
              "byte_offset", "byte_length", "encoding", "application_confirmed", "identity_scope",
              "native_constructor", "native_layer", "wal_commit_frame", "wal_proof", "wal_db_sha256",
@@ -163,12 +167,15 @@ def _normalized(raw):
             result[name] = None
         if name != "text" and isinstance(result[name], str):
             result[name] = result[name][:4096] if _valid_unicode(result[name]) else None
+    result["text_field"] = _text_field(raw.get("text_field"))
     result.update(overflow)
     result.update(rollback)
     if rollback:
         result.update(deleted=None, deletion_interpretation="unknown", previous_version=False)
         if (rollback["rollback_proof"] == "all_pages_from_validated_rollback_journal" and
-                (result.get("record_kind") != "tl_message" or result.get("application_confirmed") is not True)):
+                (not (result.get("record_kind") == "tl_message" or
+                      result.get("record_kind") == "tl_message_caption" and result["text_field"] == "media.legacy_caption")
+                 or result.get("application_confirmed") is not True)):
             result["rollback_proof"] = "archive_text_from_rollback_snapshot"
         if result["rollback_proof"] != "all_pages_from_validated_rollback_journal":
             result.update(evidence_kind="fragment", chat_id=None, chat_name=None,
@@ -209,6 +216,8 @@ def _normalized(raw):
         origin.update(overflow)
         origin.update(rollback)
         origin.update(_container_provenance(item))
+        if "text_field" in item:
+            origin["text_field"] = _text_field(item["text_field"])
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid
@@ -229,6 +238,8 @@ def _normalized(raw):
         origin.update(overflow)
         origin.update(rollback)
         origin.update(_container_provenance(item))
+        if "text_field" in item:
+            origin["text_field"] = _text_field(item["text_field"])
         stored_mid = item.get("sqlite_stored_mid")
         if type(stored_mid) is int and -(1 << 63) <= stored_mid < (1 << 63):
             origin["sqlite_stored_mid"] = stored_mid

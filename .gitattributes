@@ -9,6 +9,8 @@
 *.jpg binary
 *.db binary
 *.db-wal binary
+/tests/fixtures/telegram-cache-profiles/*.gz -text
+/tests/fixtures/telegram-cache-profiles/LICENSE -text
 # Preserve the exact bytes referenced by immutable benchmark hash indexes.
 /tests/benchmarks/evidence-v7-telegram/** -text
 /tests/benchmarks/evidence-v8-telegram/** -text whitespace=cr-at-eol
