@@ -16,6 +16,15 @@ if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'prepare_photo_telegram_fixtures.py')
 if($LASTEXITCODE-ne0){throw 'Independent PNG/Telegram profile fixture preparation or SHA binding failed.'}
+$taskDocumentGenerator=Join-Path $taskLayout.Tests 'build_telegram_document_portable_fixtures.py'
+$taskDocumentTarget=Join-Path $taskLayout.Root '.build\telegram-document-fixtures-current'
+if(Test-Path -LiteralPath (Join-Path $taskDocumentTarget 'manifest.json') -PathType Leaf){
+ & $Python312 $taskDocumentGenerator --verify $taskDocumentTarget
+}else{
+ if(Test-Path -LiteralPath $taskDocumentTarget){throw 'Incomplete Telegram document fixtures exist; preserve that directory and prepare a fresh destination. No existing files were changed.'}
+ & $Python312 $taskDocumentGenerator $taskDocumentTarget
+}
+if($LASTEXITCODE-ne0){throw 'Independent Telegram document fixtures or source/oracle SHA binding failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
 $taskMediaCacheGenerator=Join-Path $taskLayout.Tests 'build_telegram_media_cache_fixtures.py'

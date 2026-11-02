@@ -92,14 +92,22 @@ public static class TelegramRecoveryProvenanceUiTests
                     Check((string)category.Invoke(null,new object[]{message})=="Заявлено в архиве","imported claim label precedes every supplemental caption kind: "+kind);
                 }
                 message=new ArchiveMessage{app="Telegram",text="Only caption",record_kind="tl_message",text_field="media.legacy_caption",evidence_kind="backup"};
-                Check((string)category.Invoke(null,new object[]{message})=="Подпись к фото"&&!Show(panel,message).Contains("не самостоятельное сообщение"),"primary legacy-caption fallback identifies its field without claiming another supplemental record");
+                Check((string)category.Invoke(null,new object[]{message})=="Подпись к вложению"&&!Show(panel,message).Contains("не самостоятельное сообщение"),"primary legacy-caption fallback identifies its field without claiming another supplemental record");
                 message.record_kind="tl_message_caption";message.text_field=null;
                 Check(Show(panel,message).Contains("Поле текста: неизвестно"),"unknown field remains unknown instead of being inferred from caption record kind");
+                foreach(string documentId in new string[]{null,"0","-1","-9223372036854775808","9223372036854775807"}){
+                    message=new ArchiveMessage{app="Telegram",text="Подпись документа",record_kind="tl_message_caption",text_field="media.legacy_caption",evidence_kind="backup",
+                        media_kind="document",media_status="document_reference_only",media_id=documentId,thumbnail_count=0,attachments=new string[0]};
+                    details=Show(panel,message);
+                    Check(details.Contains("Сохранилась запись о вложении.")&&details.Contains("Сам файл из этой записи не извлечён")&&details.Contains("его тип, имя и наличие локальных байтов не установлены"),"document reference explicitly separates observed metadata from unknown file bytes and subtype");
+                    Check(details.Contains("ID вложения: "+(documentId??"неизвестен")+".")&&!details.Contains("В записи есть фотография")&&!details.Contains("подпись к фото"),"document IDs stay exact strings including zero and both signed endpoints; absence stays unknown");
+                    Check((string)category.Invoke(null,new object[]{message})=="Подпись к вложению"&&Field<ComboBox>(panel,"attachments").Items.Count==0&&message.deleted==null,"document caption has a generic category without fabricated attachment or deletion");
+                }
                 message=new ArchiveMessage{app="Telegram",text="Original",record_kind="tl_message",text_field="message",evidence_kind="backup",
                     sources=new[]{new Dictionary<string,object>{{"source_file","owned/cache4.db"},{"record_kind","telegram_media_cache_caption"},{"text_field","media.legacy_caption"}}},
                     residual_sources=new[]{new Dictionary<string,object>{{"physical_source","wal"},{"sqlite_page",2},{"physical_byte_offset",4096},{"text_field","media.legacy_caption"}}}};
                 details=Show(panel,message);
-                Check(details.Contains("Поле текста источника: подпись к фото")&&details.Contains("Поле текста остатка: подпись к фото"),"additional and residual source field roles are visible");
+                Check(details.Contains("Поле текста источника: подпись к вложению")&&details.Contains("Поле текста остатка: подпись к вложению"),"additional and residual source field roles are visible");
                 Check(details.Contains("Дополнительный источник — медиакэш Telegram")&&(string)category.Invoke(null,new object[]{message})=="Из резервной копии","supplemental cache origin does not replace a stronger main record category");
                 var validFields=typeof(ArchiveSearchService).GetMethod("ValidTextFields",BindingFlags.Static|BindingFlags.NonPublic);
                 Check((bool)validFields.Invoke(null,new object[]{message}),"strict known roles accepted in top-level and both provenance arrays");

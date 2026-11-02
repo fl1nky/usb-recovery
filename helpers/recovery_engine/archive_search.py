@@ -207,6 +207,7 @@ def _normalized(raw):
         result["provenance_verification"] = None
     residuals = raw.get("residual_sources", [])
     provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256", "container_sha256", "container_source_id", "container_source_file")
+    provenance_names += ("media_kind", "media_id", "media_status", "thumbnail_count")
     result["residual_sources"] = []
     for item in residuals[:20] if isinstance(residuals, list) else []:
         if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:

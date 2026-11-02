@@ -279,6 +279,24 @@ def _media(reader: _Reader):
         return {"type": "empty"}
     if constructor == 0x9F84F49E:
         return {"type": "unsupported", "attachment_available": False}
+    if constructor == 0x7C4414D3:
+        # Legacy Document media, pinned TLRPC.java:7687-7717. Only its
+        # DocumentEmpty payload is understood; do not skip unknown documents.
+        flags = reader.u32()
+        _flags(flags, 7)
+        document = {"type": "empty"}
+        if flags & 1:
+            if reader.u32() != 0x36F8C871:
+                raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT")
+            # The official empty reference stores an opaque signed int64.
+            # Missing bit0 is distinct from an explicitly serialized zero id.
+            document["id"] = reader.i64()
+        result = {"type": "document", "constructor": f"0x{constructor:08x}", "document": document}
+        if flags & 2:
+            result["legacy_caption"] = reader.string()
+        if flags & 4:
+            result["ttl_seconds"] = _nonnegative(reader.i32())
+        return result
     if constructor in (0xE216EB63, 0x695150D7, 0xB5223B0F, 0x3D8CE53D, 0xC8C45A2A):
         result = {"type": "photo", "constructor": f"0x{constructor:08x}"}
         if constructor in (0x3D8CE53D, 0xC8C45A2A):

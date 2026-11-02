@@ -824,7 +824,7 @@ class Analyzer:
                         continue
                     timestamp = dt.datetime.fromtimestamp(date, dt.timezone.utc).isoformat() if date else None
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
-                    media_fields, attachments = self.native_photo(media, record, original)
+                    media_fields, attachments = self.native_media(media, record, original)
                     self.native_text_messages(value, "backup", "tl_message", keep_empty_photo=True,
                         chat_id=uid, message_id=value["id"],
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
@@ -921,10 +921,13 @@ class Analyzer:
                     matched["deleted"] = None
                     provenance = {**item, "source_record": record, "source_file": source_label,
                                   "snapshot_id": self.worker.snapshot, "text_field": role}
+                    provenance.update({name: matched[name] for name in (
+                        "media_kind", "media_id", "media_status", "thumbnail_count")
+                        if matched.get(name) is not None})
                     matched.setdefault("residual_sources", []).append(provenance)
                     continue
                 if media_fields is None:
-                    media_fields, attachments = self.native_photo(media, record, original)
+                    media_fields, attachments = self.native_media(media, record, original)
                 self.message(text, evidence, _native_row_verified=True, text_field=role,
                     chat_id=row["uid"], message_id=row["mid"],
                     sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
@@ -940,13 +943,23 @@ class Analyzer:
                 self.remark("TELEGRAM_MESSAGE_LIMIT", original)
                 break
 
-    def native_photo(self, media, record, original):
-        """Link only cached image bytes embedded in this validated TL record.
+    def native_media(self, media, record, original):
+        """Publish checked media metadata and only embedded cached image bytes.
 
         File locations/access hashes/references and the Android attachPath are
         never used to open another file or access the network. Stripped/path
         encodings are metadata, not complete image attachments.
         """
+        if media.get("type") == "document":
+            document = media.get("document", {})
+            if document.get("type") != "empty":
+                return {}, []
+            # DocumentEmpty contains no file bytes, MIME or filename. Its
+            # optional opaque signed ID is observed metadata, including zero.
+            document_id = document.get("id")
+            return {"media_kind": "document",
+                    "media_id": str(document_id) if document_id is not None else None,
+                    "media_status": "document_reference_only", "thumbnail_count": 0}, []
         if media.get("type") != "photo":
             return {}, []
         photo = media.get("photo", {})

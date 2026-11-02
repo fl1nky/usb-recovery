@@ -481,12 +481,12 @@ namespace UsbRecovery
             if(message.recovery_status=="imported_recovery_claim")return "Заявлено в архиве";
             bool caption=message.text_field=="media.legacy_caption"||SupplementalCaption(message.record_kind);
             if(CacheRecord(message.record_kind))return caption?(message.evidence_kind=="previous"?"Кэш · предыдущая подпись":"Кэш · подпись к фото"):(message.evidence_kind=="previous"?"Кэш · предыдущая версия":"Кэш Telegram");
-            if(caption)return message.recovery_status=="deleted_supported_by_evidence"?"Подпись к фото · остаток записи":message.evidence_kind=="previous"?"Подпись к фото · предыдущая версия":"Подпись к фото";
+            if(caption)return message.recovery_status=="deleted_supported_by_evidence"?"Подпись к вложению · остаток записи":message.evidence_kind=="previous"?"Подпись к вложению · предыдущая версия":"Подпись к вложению";
             return message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind=="notification"?"Уведомление":Category(message.evidence_kind);
         }
         static bool CacheRecord(string kind){return kind=="telegram_media_cache"||kind=="telegram_media_cache_caption";}
         static bool SupplementalCaption(string kind){return kind=="tl_message_caption"||kind=="sqlite_deleted_caption"||kind=="telegram_media_cache_caption";}
-        static string TextFieldLabel(string field){return field=="message"?"основной текст":field=="media.legacy_caption"?"подпись к фото":"неизвестно";}
+        static string TextFieldLabel(string field){return field=="message"?"основной текст":field=="media.legacy_caption"?"подпись к вложению":"неизвестно";}
         static int CodePointIndex(string text,long points)
         {
             int index=0;while(index<text.Length&&points>0){if(Char.IsHighSurrogate(text[index])&&index+1<text.Length&&Char.IsLowSurrogate(text[index+1]))index++;index++;points--;}return index;
@@ -552,6 +552,7 @@ namespace UsbRecovery
                 if(!String.IsNullOrEmpty(message.rollback_page_map))details.AppendLine("Карта исходных байтов: "+message.rollback_page_map);
             }
             if (message.media_kind == "photo") details.AppendLine("\r\nВ записи есть фотография. Вложения включают только найденные локальные байты; наличие подписи не доказывает сохранность оригинального фото.");
+            if (message.media_kind == "document" && message.media_status == "document_reference_only") details.AppendLine("\r\nСохранилась запись о вложении. Сам файл из этой записи не извлечён; его тип, имя и наличие локальных байтов не установлены. ID вложения: " + Known(message.media_id, null, "неизвестен") + ".");
             if (message.wal_proof == "all_pages_from_validated_wal") {
                 details.AppendLine("\r\n"+(message.wal_snapshot_latest_known_commit==true?"Последний полностью проверенный коммит WAL":"Предыдущий зафиксированный снимок SQLite")+": кадр " + Known(null, message.wal_commit_frame, "неизвестен") + ". Все страницы снимка получены из проверенного журнала. Факт удаления сообщения не установлен.");
                 details.AppendLine("SHA256 журнала: " + Known(message.wal_sha256, null, "неизвестен") + "\r\nSHA256 снимка: " + Known(message.wal_snapshot_sha256, null, "неизвестен"));

@@ -1,0 +1,449 @@
+{
+  "schema": 1,
+  "cases": 167,
+  "telegram_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "oracle": "Unchanged official Java serializeToStream methods and SerializedData writer; own synthetic field values",
+  "scope": "19 existing outer Message profiles, one legacy DocumentEmpty media subset, eight flag combinations, signed id/role/direction controls and one eight-byte-different photo control; no attachment bytes",
+  "uncompressed_json_bytes": 197325,
+  "files": [
+    {
+      "path": "oracle.json.gz",
+      "bytes": 18614,
+      "sha256": "e9a14ea3a184f182e06e1af32aaa892f0c8ef48029e40a272e314d809ceac310"
+    },
+    {
+      "path": "oracle-sources.tar.gz",
+      "bytes": 391152,
+      "sha256": "62d3a61213f1cb5a1ed419de386d1845e3b63a773216af1b65c8ce242adb5380"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    }
+  ],
+  "upstream_sources": [
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/TLRPC.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/TLRPC.java",
+      "bytes": 2965258,
+      "sha256": "36333f97d944d6a356f703248480b0577c1aff1e5a748b695d8640b2a0f048dc"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/tl/legacy/TL_legacy_message.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/tl/legacy/TL_legacy_message.java",
+      "bytes": 138008,
+      "sha256": "8bcf9fbf58ef78fbb13f22395d1790e697605a787621f21a59b222be8adad43e"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/SerializedData.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/SerializedData.java",
+      "bytes": 15890,
+      "sha256": "ab731c185eef0d24af92b2492331fbb8c78f34226c3b71483b9ca1a16bb0dd9b"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/AbstractSerializedData.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/AbstractSerializedData.java",
+      "bytes": 1942,
+      "sha256": "8e020728128e943adf483885a45dcab988c9a261af519a8c04708ea9a977a23d"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/TLObject.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/TLObject.java",
+      "bytes": 4180,
+      "sha256": "e04c8fa25f8043d5a4d6caa5aa07cb56241f7e9d3b2af2433f27e9d90b771878"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/Vector.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/Vector.java",
+      "bytes": 7913,
+      "sha256": "b587a58fa7525d062d1602e3289bed35d3d41e8b50e23116ca7d72b9fa99d824"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/InputSerializedData.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/InputSerializedData.java",
+      "bytes": 684,
+      "sha256": "9a413cb58b234e73013895191d68905bf56039c51a7f281957fed7cf02863bca"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/OutputSerializedData.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/OutputSerializedData.java",
+      "bytes": 601,
+      "sha256": "53b853435907b66b656875b025767e2292bcf94060321af216138c9dd05bb475"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/tgnet/TLDataSourceType.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/TLDataSourceType.java",
+      "bytes": 152,
+      "sha256": "32507211cf72106a169e2e1d8cf7396a1ecd6f7c409a327045c839c3c0c3c688"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/messenger/MessagesStorage.java",
+      "bytes": 991331,
+      "sha256": "c516c275088d6be22f6b321be7879f40971aabfb33e2071a5ac070b7900f0aa3"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/MediaDataController.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/messenger/MediaDataController.java",
+      "bytes": 524520,
+      "sha256": "55ea904503240f24862144d6496af224cebceb4191a01b24fff95238a6557004"
+    },
+    {
+      "path": "TMessagesProj/src/main/java/org/telegram/messenger/DatabaseMigrationHelper.java",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/messenger/DatabaseMigrationHelper.java",
+      "bytes": 108525,
+      "sha256": "3d148e4028bc7e82567b86b9a9917a1bec7e0466609bb99f4db1516a365b9bb4"
+    },
+    {
+      "path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/DrKLO/Telegram/4de548e79fed27f1a66fbdff84223321838fe925/LICENSE",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    }
+  ],
+  "exact_method_provenance": {
+    "commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+    "methods": [
+      {
+        "class_name": "TL_message",
+        "source": "TLRPC.java",
+        "constructor": "0x7600b9d3",
+        "start_line": 59669,
+        "end_line": 59787,
+        "method_sha256": "079b4940a36c3a7589ae453b8176b67d6f2e94a978d1f306975f12c2157347a2",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer226",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x95ef6f2b",
+        "start_line": 135,
+        "end_line": 249,
+        "method_sha256": "18330e53511aa482b8fac0124f28d2fcbde50e614685f1e6283cdaa4a27a2bba",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer224",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x3AE56482",
+        "start_line": 368,
+        "end_line": 478,
+        "method_sha256": "2f3152c9f682831629347c0099f9281a265fed0064f124648d08f83c47eb0129",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer222",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x9cb490e9",
+        "start_line": 594,
+        "end_line": 700,
+        "method_sha256": "0abf2dccfe96ccbdd8b696424885c7033fbcbfb8211846c6ccada060e8c15ff8",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer220",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xb92f76cf",
+        "start_line": 813,
+        "end_line": 916,
+        "method_sha256": "58b4a961abe3b5ee64ccea70334d03836878a2a1e19c949e97d5dc6c0aecfb96",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer216",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x9815cec8",
+        "start_line": 1026,
+        "end_line": 1126,
+        "method_sha256": "c1d96deaabd07dfea78e0081e1aa20c213716739be71dd09f2b86d6e1bea78d3",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer205",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xeabcdd4d",
+        "start_line": 1231,
+        "end_line": 1325,
+        "method_sha256": "9fa582f90b5b0fe920328e2ce78c74060ca4211e4afe7ba388bc0fd6ede2b183",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer199",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x96fdbbe9",
+        "start_line": 1427,
+        "end_line": 1518,
+        "method_sha256": "9f34a79de8a4d6161295035f90ff485d3c2940bff25ebc1d84d0c36f52099546",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer195",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x94345242",
+        "start_line": 1617,
+        "end_line": 1705,
+        "method_sha256": "a15c587e812883b962faa1047a23457130950648aae127b958bcd02c690f8843",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer180",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xbde09c2e",
+        "start_line": 1800,
+        "end_line": 1884,
+        "method_sha256": "9ffbb45527ea5551c9ee599c1459ec5ffa00485118c3c4d9fd2b25a660d80c39",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer179",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x2357bf25",
+        "start_line": 1976,
+        "end_line": 2057,
+        "method_sha256": "93629ba0be1a7e364c187d18addb21926e4770cfe17b74922fc12fe16acf2c14",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer176",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xa66c7efc",
+        "start_line": 2144,
+        "end_line": 2220,
+        "method_sha256": "6d9314064f4143bcffa90ad462d549c91b525ccbc38271aa43aeda2cacd75ebe",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer175",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x1e4c8a69",
+        "start_line": 2304,
+        "end_line": 2377,
+        "method_sha256": "e07a3e36a3b9e0300ea4c9633b8d8a5f2a0e42f8a574d365f3e0e508ccc8d683",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer173",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x76bec211",
+        "start_line": 2458,
+        "end_line": 2528,
+        "method_sha256": "676d4329b35caf884562b92632dd17d06f433b3c4477506aa477b5d8132b71d5",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer169",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x38116ee0",
+        "start_line": 2606,
+        "end_line": 2673,
+        "method_sha256": "7883c68c330575762e9fde0c382d3e5b94827bf741ea8f35b2c367ad0d7f1a8b",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer135",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x85d6cbe2",
+        "start_line": 2747,
+        "end_line": 2810,
+        "method_sha256": "f304833dc9238c6403bb5b970a5a8d88eb55ccf6d42940c91bfdd4b5d9b0618f",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer131",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xbce383d2",
+        "start_line": 2883,
+        "end_line": 2945,
+        "method_sha256": "9a90d2271f34951bba802de20af33258c9be2c0aa1074ab9fb3f0a296960fa8d",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer123",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0x58ae39c9",
+        "start_line": 3015,
+        "end_line": 3074,
+        "method_sha256": "cdb0c17996e312a4d79f568bb80d4828384dc2a14e23b41858783f6337945592",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_message_layer118",
+        "source": "tl/legacy/TL_legacy_message.java",
+        "constructor": "0xf52e6b7f",
+        "start_line": 3143,
+        "end_line": 3198,
+        "method_sha256": "12b4c4d9cd656ca9e2138f923fdb6c8c8236dba876a203e44e3013959ea3b2da",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaPhoto",
+        "source": "TLRPC.java",
+        "constructor": "0xe216eb63",
+        "start_line": 7768,
+        "end_line": 7782,
+        "method_sha256": "70cd9fa0306318d0d4f541350d39916b51e324b4b44b5f498f3cc059d14d08a2",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaPhoto_layer223",
+        "source": "TLRPC.java",
+        "constructor": "0x695150d7",
+        "start_line": 7801,
+        "end_line": 7811,
+        "method_sha256": "6a286e1efafff34db365854cbecc32de957e2291c81a429535864327c213a7a5",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaPhoto_layer74",
+        "source": "TLRPC.java",
+        "constructor": "0xb5223b0f",
+        "start_line": 7875,
+        "end_line": 7887,
+        "method_sha256": "d540d294b8cbc1d37c56f9e50cf5c9ee2dfe2b42c081f7152710a4137eecea47",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaPhoto_layer68",
+        "source": "TLRPC.java",
+        "constructor": "0x3d8ce53d",
+        "start_line": 8032,
+        "end_line": 8036,
+        "method_sha256": "fb9401edb72624396057b97b598d804755cd32e29500c4fd91cf68c687f4036b",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaPhoto_old",
+        "source": "TLRPC.java",
+        "constructor": "0xc8c45a2a",
+        "start_line": 7218,
+        "end_line": 7221,
+        "method_sha256": "6704dcac329410a2b7694ee8717d8f09c01dbf0268af29aac2890865fbeba8a0",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerUser",
+        "source": "TLRPC.java",
+        "constructor": "0x59511722",
+        "start_line": 3799,
+        "end_line": 3802,
+        "method_sha256": "d4b60d48926402f962565ce4a52cf36d31bbe4a1432c7896d4632619580487fc",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerChat",
+        "source": "TLRPC.java",
+        "constructor": "0x36c6019a",
+        "start_line": 3825,
+        "end_line": 3828,
+        "method_sha256": "d70ac394added4a2312c044f4885fc13a5e9d00ed69b12f87ac3f11924d6c1b7",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerChannel",
+        "source": "TLRPC.java",
+        "constructor": "0xa2a5371e",
+        "start_line": 3812,
+        "end_line": 3815,
+        "method_sha256": "6824b407661fd5b45143bf5dd7c33b0bb123a41e0bdd967b223037540043e353",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerUser_layer131",
+        "source": "TLRPC.java",
+        "constructor": "0x9db1bc6d",
+        "start_line": 3838,
+        "end_line": 3841,
+        "method_sha256": "34bf90a422f55bee340c0c947dc19fa9ed27f8c5505db36376598baa18bdcbf5",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerChat_layer131",
+        "source": "TLRPC.java",
+        "constructor": "0xbad0e5bb",
+        "start_line": 3851,
+        "end_line": 3854,
+        "method_sha256": "2a7731c268183aa6ef2dda7bff284c7153554ef9f23d73ac818209ead83cf42b",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_peerChannel_layer131",
+        "source": "TLRPC.java",
+        "constructor": "0xbddde532",
+        "start_line": 3786,
+        "end_line": 3789,
+        "method_sha256": "8709bfd133ec2cfe7f78aaa3dc7b239009a52a53569c67e9d707553fc654d03d",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_photoEmpty",
+        "source": "TLRPC.java",
+        "constructor": "0x2331b22d",
+        "start_line": 33017,
+        "end_line": 33020,
+        "method_sha256": "ef059e72bfe441e4449e7bea8398cc0c1a6cdbe30fafa1f280506234a7e7cf47",
+        "exact_method": true
+      },
+      {
+        "class_name": "Vector",
+        "source": "Vector.java",
+        "exact_method": true,
+        "method_sha256": "5b5c445809b007265c4bde51de5b24dd9d29270aae956a35172ed0aeeac83112"
+      },
+      {
+        "class_name": "TL_documentEmpty",
+        "source": "TLRPC.java",
+        "constructor": "0x36f8c871",
+        "start_line": 29183,
+        "end_line": 29186,
+        "method_sha256": "ef059e72bfe441e4449e7bea8398cc0c1a6cdbe30fafa1f280506234a7e7cf47",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaDocument_layer74",
+        "source": "TLRPC.java",
+        "constructor": "0x7c4414d3",
+        "start_line": 7705,
+        "end_line": 7717,
+        "method_sha256": "89c89e799f4797dcc29180b2381ff1220a640dfca4cb783f0321b7e757cdb84d",
+        "exact_method": true
+      }
+    ],
+    "new_exact_methods": [
+      {
+        "class_name": "TL_documentEmpty",
+        "source": "TLRPC.java",
+        "constructor": "0x36f8c871",
+        "start_line": 29183,
+        "end_line": 29186,
+        "method_sha256": "ef059e72bfe441e4449e7bea8398cc0c1a6cdbe30fafa1f280506234a7e7cf47",
+        "exact_method": true
+      },
+      {
+        "class_name": "TL_messageMediaDocument_layer74",
+        "source": "TLRPC.java",
+        "constructor": "0x7c4414d3",
+        "start_line": 7705,
+        "end_line": 7717,
+        "method_sha256": "89c89e799f4797dcc29180b2381ff1220a640dfca4cb783f0321b7e757cdb84d",
+        "exact_method": true
+      }
+    ],
+    "independent_writer": true,
+    "limits": "Official serializer subset and native SQLite only; not Android/device or helper execution."
+  },
+  "paired_control": {
+    "document": "layer118-flags3",
+    "photo": "photo-control",
+    "different_offsets": [
+      80,
+      81,
+      82,
+      83,
+      88,
+      89,
+      90,
+      91
+    ]
+  }
+}

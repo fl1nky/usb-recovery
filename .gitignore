@@ -89,6 +89,7 @@
 !/tests/fixtures/refs/
 !/tests/fixtures/raid-controller/
 !/tests/fixtures/telegram-cache-profiles/
+!/tests/fixtures/telegram-document-empty/
 
 !/tests/fixtures/aac-lc/
 
