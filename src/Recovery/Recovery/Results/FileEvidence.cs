@@ -65,8 +65,8 @@ namespace UsbRecovery
             }
             return false;
         }
-        static long Number(Dictionary<string,object> row,string key,long fallback=0){object value;try{return row.TryGetValue(key,out value)&&value!=null?Convert.ToInt64(value):fallback;}catch(FormatException){return fallback;}catch(InvalidCastException){return fallback;}catch(OverflowException){return fallback;}}
-        static string Value(Dictionary<string,object> row,string key){object value;return row.TryGetValue(key,out value)?Convert.ToString(value):null;}
+        static long Number(Dictionary<string,object> row,string key,long fallback=0){if(row==null)return fallback;object value;try{return row.TryGetValue(key,out value)&&value!=null?Convert.ToInt64(value):fallback;}catch(FormatException){return fallback;}catch(InvalidCastException){return fallback;}catch(OverflowException){return fallback;}}
+        static string Value(Dictionary<string,object> row,string key){if(row==null)return null;object value;return row.TryGetValue(key,out value)?Convert.ToString(value):null;}
         void Add(string path,long offset,long length,string kind,bool complete=true)
         {
             if(String.IsNullOrEmpty(path)||offset<0||length<=0||offset>Int64.MaxValue-length)return;
@@ -118,7 +118,8 @@ namespace UsbRecovery
                 result.entries[path.Replace('\\','/')]=proof;
             }
             var ext4=Read(root,"ext4/report.json");
-            if(ext4!=null&&Number(ext4,"Schema",-1)==1&&Value(ext4,"Method")=="ext4_retained_deleted_inode"&&Value(ext4,"Status")=="complete"&&Value(ext4,"SourceUnchanged")=="True"&&Value(ext4,"Limited")=="False"&&Value(ext4,"Cancelled")=="False"&&Value(ext4,"Failed")=="False"){
+            string ext4Method=Value(ext4,"Method");
+            if(ext4!=null&&Number(ext4,"Schema",-1)==1&&(ext4Method=="ext4_retained_deleted_inode"||ext4Method=="ext4_journal_retained_inode")&&Value(ext4,"Status")=="complete"&&Value(ext4,"SourceUnchanged")=="True"&&Value(ext4,"Limited")=="False"&&Value(ext4,"Cancelled")=="False"&&Value(ext4,"Failed")=="False"){
                 long sourceBytes=Number(ext4,"InputBytes",-1);string sourceSha=Value(ext4,"SourceSha256");
                 var session=Read(root,RecoverySession.FileName);
                 bool sourceBound=sourceBytes>0&&sourceSha!=null&&sourceSha.Length==64&&sourceSha.All(Uri.IsHexDigit)&&
@@ -127,17 +128,52 @@ namespace UsbRecovery
                     string relative=Value(row,"Output"),sha=Value(row,"Sha256");long size=Number(row,"RecoveredBytes",-1);
                     if(relative==null||!relative.StartsWith("files/",StringComparison.Ordinal)||relative.Contains("\\")||relative.Contains("..")||Value(row,"Status")!="deleted_inode_candidate"||size<=0||size!=Number(row,"DeclaredSize",-1)||sha==null||sha.Length!=64||!sha.All(Uri.IsHexDigit))continue;
                     string allocation=Value(row,"AllocationStatus"),mapping=Value(row,"Mapping"),integrity=Value(row,"MappingIntegrity");long volumeOffset=Number(row,"VolumeOffset",-1);
-                    if(!(allocation=="currently_free"||allocation=="currently_free_unchecksummed_bitmap")||Number(row,"Inode",0)<=0||Number(row,"DeletionTime",0)<=0||Value(row,"DeletionEvidence")!="free_inode_bitmap_and_zero_links_and_nonzero_dtime")continue;
-                    if(!(mapping=="extent_tree"&&(integrity=="inode_and_extent_nodes_crc32c"||integrity=="structural_only_no_metadata_checksum")||mapping=="direct_indirect"&&integrity=="inode_only_indirect_blocks_have_no_checksum"))continue;
+                    string delEvidence=Value(row,"DeletionEvidence");
+                    bool validEvidence=delEvidence=="free_inode_bitmap_and_zero_links_and_nonzero_dtime"||delEvidence=="journal_transaction_pre_deletion_record";
+                    if(!(allocation=="currently_free"||allocation=="currently_free_unchecksummed_bitmap")||Number(row,"Inode",0)<=0||!validEvidence)continue;
+                    if(delEvidence=="free_inode_bitmap_and_zero_links_and_nonzero_dtime"&&Number(row,"DeletionTime",0)<=0)continue;
+                    if(!(mapping=="extent_tree"&&(integrity=="inode_and_extent_nodes_crc32c"||integrity=="structural_only_no_metadata_checksum"||integrity=="journal_transaction_checksum_verified")||mapping=="direct_indirect"&&(integrity=="inode_only_indirect_blocks_have_no_checksum"||integrity=="journal_transaction_checksum_verified")))continue;
                     var volume=Rows(ext4,"Volumes").FirstOrDefault(x=>Number(x,"Offset",-1)==volumeOffset&&Value(x,"Status")=="complete");long volumeBytes=volume==null?-1:Number(volume,"Bytes",-1),inodeOffset=Number(row,"InodeOffset",-1);
                     if(volumeOffset<0||volumeBytes<=0||volumeOffset>sourceBytes-volumeBytes||inodeOffset<volumeOffset||inodeOffset>volumeOffset+volumeBytes-128)continue;
                     string path="ext4/"+relative;RecoveryCatalog.SafeFile(root,path);
-                    var proof=new EvidenceEntry{Path=path,Kind="ext4_inode_candidate",VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=Value(row,"Status"),Note=Value(row,"Note"),MappingComplete=true,FileSystem="ext4",VolumeOffset=Number(row,"VolumeOffset",-1)};
+                    string kind=delEvidence=="journal_transaction_pre_deletion_record"?"ext4_journal_candidate":"ext4_inode_candidate";
+                    var proof=new EvidenceEntry{Path=path,Kind=kind,VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=Value(row,"Status"),Note=Value(row,"Note"),MappingComplete=true,FileSystem="ext4",VolumeOffset=Number(row,"VolumeOffset",-1)};
                     long logical=0,priorEnd=-1;
                     foreach(var extent in Rows(row,"Extents")){
                         long at=Number(extent,"LogicalOffset",-1),offset=Number(extent,"ImageOffset",-1),length=Number(extent,"Length",-1);
                         if(at!=logical||offset<volumeOffset||length<=0||length>size-logical||offset>volumeOffset+volumeBytes-length){proof.MappingComplete=false;break;}
                         proof.Ranges.Add(new FileExtent{Offset=offset,Length=length});logical+=length;
+                    }
+                    foreach(var range in proof.Ranges.OrderBy(x=>x.Offset)){if(range.Offset<priorEnd){proof.MappingComplete=false;break;}priorEnd=range.Offset+range.Length;}
+                    if(!proof.MappingComplete||logical!=size||proof.Ranges.Count==0)continue;
+                    proof.Offset=proof.Ranges[0].Offset;result.entries[path]=proof;
+                }
+            }
+            var refs=Read(root,"refs/report.json");
+            string refsMethod=Value(refs,"Method");
+            if(refs!=null&&Number(refs,"Schema",-1)==1&&refsMethod=="refs_metadata_salvage"&&(Value(refs,"Status")=="complete"||Value(refs,"Status")=="limited")&&Value(refs,"SourceUnchanged")=="True"&&Value(refs,"Cancelled")=="False"&&Value(refs,"Failed")=="False"){
+                long sourceBytes=Number(refs,"InputBytes",-1);string sourceSha=Value(refs,"SourceSha256");
+                var session=Read(root,RecoverySession.FileName);
+                bool sourceBound=sourceBytes>0&&sourceSha!=null&&sourceSha.Length==64&&sourceSha.All(Uri.IsHexDigit)&&
+                    (session==null||Number(session,"SourceBytes",-1)==sourceBytes&&String.Equals(Value(session,"SourceSha256"),sourceSha,StringComparison.OrdinalIgnoreCase));
+                if(sourceBound)foreach(var row in Rows(refs,"Entries")){
+                    string relative=Value(row,"Output"),sha=Value(row,"Sha256");long size=Number(row,"RecoveredBytes",-1);
+                    string status=Value(row,"Status");
+                    if(relative==null||!relative.StartsWith("files/",StringComparison.Ordinal)||relative.Contains("\\")||relative.Contains("..")||(status!="recovered_live"&&status!="deleted_refs_candidate"&&status!="checkpoint_rollback_candidate")||size<=0||size!=Number(row,"DeclaredSize",-1)||sha==null||sha.Length!=64||!sha.All(Uri.IsHexDigit))continue;
+                    long volumeOffset=Number(row,"VolumeOffset",-1);
+                    if(volumeOffset<0||volumeOffset>sourceBytes-size)continue;
+                    string path="refs/"+relative;RecoveryCatalog.SafeFile(root,path);
+                    string kind=status=="deleted_refs_candidate"?"refs_deleted_candidate":status=="checkpoint_rollback_candidate"?"refs_checkpoint_candidate":"refs_recovered_file";
+                    var proof=new EvidenceEntry{Path=path,Kind=kind,VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note")??(status=="deleted_refs_candidate"?"Сохранившаяся запись ReFS (удалённый файл). Исходные кластеры свободны в текущем дереве, но могли быть перезаписаны; факт удаления и подлинность содержимого не подтверждены.":"Кандидат ReFS; метаданные подтверждены CRC."),MappingComplete=true,FileSystem="ReFS",VolumeOffset=volumeOffset,OriginalPath=Value(row,"RelativePath"),OriginalPathStatus=status=="deleted_refs_candidate"?"refs_salvaged_path":"refs_referenced_path",PathEvidence="ReFS Directory Entry 0x30; Object="+Value(row,"ObjectId")};
+                    long logical=0,priorEnd=-1;
+                    foreach(var extent in Rows(row,"Extents")){
+                        long at=Number(extent,"LogicalOffset",-1),offset=Number(extent,"ImageOffset",-1),length=Number(extent,"Length",-1);
+                        if(at!=logical||length<=0||length>size-logical){proof.MappingComplete=false;break;}
+                        if(offset>=0){
+                            if(offset<volumeOffset||offset>sourceBytes-length){proof.MappingComplete=false;break;}
+                            proof.Ranges.Add(new FileExtent{Offset=offset,Length=length});
+                        }
+                        logical+=length;
                     }
                     foreach(var range in proof.Ranges.OrderBy(x=>x.Offset)){if(range.Offset<priorEnd){proof.MappingComplete=false;break;}priorEnd=range.Offset+range.Length;}
                     if(!proof.MappingComplete||logical!=size||proof.Ranges.Count==0)continue;
@@ -215,7 +251,7 @@ namespace UsbRecovery
             var preferred=item.OriginalLocations.FirstOrDefault(x=>x.Status=="verified_parent_chain")??item.OriginalLocations.FirstOrDefault(x=>x.Status=="apfs_referenced_path")??item.OriginalLocations.FirstOrDefault();
             if(preferred!=null){item.OriginalPath=preferred.Path;item.OriginalPathStatus=preferred.Status;item.OriginalPathEvidence=preferred.Evidence;item.SourceVolumeOffset=preferred.VolumeOffset;}
             var record=For(preferred==null?item.Path:preferred.CandidatePath);
-            if(record==null&&preferred==null)record=item.Copies.Select(For).FirstOrDefault(x=>x!=null&&x.Kind=="ext4_inode_candidate"&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
+            if(record==null&&preferred==null)record=item.Copies.Select(For).FirstOrDefault(x=>x!=null&&(x.Kind=="ext4_inode_candidate"||x.Kind=="ext4_journal_candidate")&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
             if(record!=null&&record.VerifiedSha256!=null&&(!String.Equals(record.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||record.VerifiedBytes!=item.Bytes)){
                 item.Quality="changed";item.QualityLabel="Изменён после извлечения";item.IntegrityDetail+=" Прежняя карта источника не применяется: текущий файл не совпадает с манифестом извлечения.";record=null;
             }
@@ -232,11 +268,14 @@ namespace UsbRecovery
                 item.IntegrityDetail+=" "+record.Note+" SHA256 фиксирует полученную сборку, а не исходное содержимое.";
                 if(record.VerificationStatus=="progressive_partial_precision_candidate"){if(!PreserveProblem(item))item.QualityLabel="JPEG с частичной точностью";item.Note+=" Сохранились не все уровни точности progressive JPEG; сравни детали изображения.";}
             }
-            if(record!=null&&record.Kind=="ext4_inode_candidate"){
-                item.Method="ext4 · запись inode";item.Status="Кандидат ext4";
+            if(record!=null&&(record.Kind=="ext4_inode_candidate"||record.Kind=="ext4_journal_candidate")){
+                item.Method=record.Kind=="ext4_journal_candidate"?"ext4 · журнал JBD2":"ext4 · запись inode";
+                item.Status=record.Kind=="ext4_journal_candidate"?"Кандидат ext4 (журнал)":"Кандидат ext4";
                 if(!PreserveProblem(item)){item.Quality="metadata_candidate";item.QualityLabel="Метаданные согласованы";}
                 item.SourceVolumeOffset=record.VolumeOffset;
-                item.Note="Сохранилась карта удалённого inode. Блоки свободны в этом образе, но могли быть перезаписаны после удаления. Исходное имя и содержимое не подтверждены.";
+                item.Note=record.Kind=="ext4_journal_candidate"
+                    ?"Восстановлена карта удалённого файла из журнала JBD2. Исходные блоки свободны в образе, но могли быть перезаписаны после удаления."
+                    :"Сохранилась карта удалённого inode. Блоки свободны в этом образе, но могли быть перезаписаны после удаления. Исходное имя и содержимое не подтверждены.";
                 item.IntegrityDetail+=" "+record.Note+" Ссылки каталогов без поколения inode приведены только в ext4/report.json; исходный путь по ним не восстанавливается.";
             }
             if(!HasReadErrors)return;

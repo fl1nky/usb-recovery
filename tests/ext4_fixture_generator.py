@@ -340,6 +340,90 @@ class Generator:
                 target = self.write(image)
                 self.debug(image, [operation, "rm /old.bin"])
             self.add(name, image, target, "reject")
+
+        # Milestone 2 synthetic fixtures derived from base (extent-deleted.dd)
+        # 1. mmp-feature-tolerated
+        image = self.clone(base, "mmp-feature-tolerated")
+        data = bytearray(image.read_bytes())
+        struct.pack_into("<I", data, 1024 + 0x60, u32(data, 1024 + 0x60) | 0x100)
+        struct.pack_into("<Q", data, 1024 + 0x180, 20000)
+        repair_super(data); image.write_bytes(data)
+        self.add("mmp-feature-tolerated", image, inode, "recover", expected_handled_feature="mmp")
+
+        # 2. largedir-feature-tolerated
+        image = self.clone(base, "largedir-feature-tolerated")
+        data = bytearray(image.read_bytes())
+        struct.pack_into("<I", data, 1024 + 0x60, u32(data, 1024 + 0x60) | 0x4000)
+        repair_super(data); image.write_bytes(data)
+        self.add("largedir-feature-tolerated", image, inode, "recover", expected_handled_feature="largedir")
+
+        # 3. orphan-present-tolerated
+        image = self.clone(base, "orphan-present-tolerated")
+        data = bytearray(image.read_bytes())
+        struct.pack_into("<I", data, 1024 + 0x64, u32(data, 1024 + 0x64) | 0x10000)
+        repair_super(data); image.write_bytes(data)
+        self.add("orphan-present-tolerated", image, inode, "recover", expected_handled_feature="orphan_present")
+
+        # Journal parameters
+        j_base = 16385 * g["block"]
+        itable_blk_269 = bytes(g["data"][269 * g["block"]:270 * g["block"]])
+
+        # 4. journal-dirty-replay
+        image = self.clone(base, "journal-dirty-replay")
+        data = bytearray(image.read_bytes())
+        data[g["inode_offset"]:g["inode_offset"] + g["inode_size"]] = b"\0" * g["inode_size"]
+        struct.pack_into(">I", data, j_base + 0x18, 100)
+        struct.pack_into(">I", data, j_base + 0x1C, 1)
+        j_desc_off = j_base + g["block"]
+        desc_block = bytearray(g["block"])
+        struct.pack_into(">III", desc_block, 0, 0xC03B3998, 1, 100)
+        struct.pack_into(">II", desc_block, 12, 269, 10)
+        data[j_desc_off:j_desc_off + g["block"]] = desc_block
+        j_data_off = j_base + 2 * g["block"]
+        data[j_data_off:j_data_off + g["block"]] = itable_blk_269
+        j_commit_off = j_base + 3 * g["block"]
+        commit_block = bytearray(g["block"])
+        struct.pack_into(">III", commit_block, 0, 0xC03B3998, 2, 100)
+        data[j_commit_off:j_commit_off + g["block"]] = commit_block
+        struct.pack_into("<I", data, 1024 + 0x60, u32(data, 1024 + 0x60) | 0x4)
+        repair_super(data); image.write_bytes(data)
+        self.add("journal-dirty-replay", image, inode, "recover", expected_handled_feature="recover", expected_journal_replay_applied=True)
+
+        # 5. journal-historical-deleted
+        image = self.clone(base, "journal-historical-deleted")
+        data = bytearray(image.read_bytes())
+        data[g["inode_offset"]:g["inode_offset"] + g["inode_size"]] = b"\0" * g["inode_size"]
+        struct.pack_into(">I", data, j_base + 0x18, 51)
+        struct.pack_into(">I", data, j_base + 0x1C, 0)
+        h_desc_off = j_base + 10 * g["block"]
+        h_desc_block = bytearray(g["block"])
+        struct.pack_into(">III", h_desc_block, 0, 0xC03B3998, 1, 50)
+        struct.pack_into(">II", h_desc_block, 12, 269, 10)
+        data[h_desc_off:h_desc_off + g["block"]] = h_desc_block
+        h_data_off = j_base + 11 * g["block"]
+        data[h_data_off:h_data_off + g["block"]] = itable_blk_269
+        h_commit_off = j_base + 12 * g["block"]
+        h_commit_block = bytearray(g["block"])
+        struct.pack_into(">III", h_commit_block, 0, 0xC03B3998, 2, 50)
+        data[h_commit_off:h_commit_off + g["block"]] = h_commit_block
+        image.write_bytes(data)
+        self.add("journal-historical-deleted", image, inode, "recover", expected_deletion_evidence="journal_transaction_pre_deletion_record", expected_historical_inodes=1)
+
+        # 6. journal-historical-conflict
+        image = self.clone(image, "journal-historical-conflict")
+        data = bytearray(image.read_bytes())
+        bb_block = u32(data, g["descriptor"])
+        bb_byte_idx = 376 // 8
+        bb_bit_idx = 376 % 8
+        bb_off = bb_block * g["block"] + bb_byte_idx
+        data[bb_off] |= (1 << bb_bit_idx)
+        b_per_g = u32(g["data"], 1024 + 0x20)
+        bb_size = (b_per_g + 7) // 8
+        bb_csum = crc32c(g["seed"], data[bb_block * g["block"]:bb_block * g["block"] + bb_size])
+        struct.pack_into("<H", data, g["descriptor"] + 24, bb_csum & 0xFFFF)
+        struct.pack_into("<H", data, g["descriptor"] + 56, bb_csum >> 16)
+        repair_group(data, g, 0); image.write_bytes(data)
+        self.add("journal-historical-conflict", image, inode, "reject", reason="currently_allocated_block_conflict", expected_historical_inodes=1)
         self.run(["/usr/sbin/debugfs", "-V"])
         debugfs_version = re.search(r"debugfs [0-9.]+[^\r\n]*", self.last_stderr).group(0)
         self.run(["/sbin/mke2fs", "-V"])

@@ -58,6 +58,10 @@ public static class Ext4RecoveryTests
                 if (sample.ContainsKey("mapping")) Assert(entry.Mapping == (string)sample["mapping"], name + ": legacy mapping exercised");
                 if (sample.ContainsKey("expected_name")) Assert(entry.Names.Any(x => x.Name == (string)sample["expected_name"] && x.DirectoryPath == "/архив/" && x.DirectoryChecksumVerified), name + ": Unicode name is an actual checksummed directory reference");
                 if (sample.ContainsKey("names_must_be_absent")) Assert(entry.Names.Count == 0, "Damaged directory checksum cannot attach a filename");
+                if (sample.ContainsKey("expected_handled_feature")) Assert(report.Volumes[0].HandledFeatures.Contains((string)sample["expected_handled_feature"]), name + ": handled feature recorded");
+                if (sample.ContainsKey("expected_journal_replay_applied")) Assert(report.Volumes[0].JournalReplayApplied == (bool)sample["expected_journal_replay_applied"], name + ": journal replay applied");
+                if (sample.ContainsKey("expected_historical_inodes")) Assert(report.Volumes[0].JournalHistoricalInodesFound >= Convert.ToInt32(sample["expected_historical_inodes"]), name + ": historical inodes found in journal");
+                if (sample.ContainsKey("expected_deletion_evidence")) Assert(entry.DeletionEvidence == (string)sample["expected_deletion_evidence"], name + ": expected deletion evidence");
                 if (name == "partition-offset") {
                     Assert(entry.VolumeOffset == 1048576, "MBR partition offset is included in source extents");
                     Ext4Recovery.Report explicitReport; Run(image, name + "-explicit", out explicitReport, new long[] { 1048576 });

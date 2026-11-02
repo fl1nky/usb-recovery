@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -76,6 +76,13 @@ namespace UsbRecovery
                         int found=Ext4Recovery.Recover(image,directory,cancel,progress);
                         var report=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<Ext4Recovery.Report>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"ext4/report.json")));
                         if(report==null||report.Status!="complete")throw new IOException("ext4: проход не завершён; найденные кандидаты сохранены.");
+                        return found;
+                    }});
+                    if(options.RefsMetadata)methods.Add(new Work{Key="refs",Name="Записи и метаданные ReFS",Run=()=>{
+                        if(FileEvidence.HasUnreadSource(directory,image))throw new IOException("refs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
+                        int found=RefsRecovery.Recover(image,directory,cancel,progress,options.LostPartitions?bootCandidates:null);
+                        var report=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<RefsRecovery.Report>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"refs/report.json")));
+                        if(report==null||(report.Status!="complete"&&report.Status!="limited"))throw new IOException("refs: проход не завершён; найденные кандидаты сохранены.");
                         return found;
                     }});
                     if(options.LostPartitions)methods.Add(new Work{Key="partitions",Name="Поиск потерянных разделов по всему образу",Run=()=>{

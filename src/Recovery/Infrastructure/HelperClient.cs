@@ -41,6 +41,9 @@ namespace UsbRecovery
     // text can include third-party diagnostics, and must never enter user reports.
     public static class HelperClient
     {
+        [DllImport("kernel32.dll")] static extern uint GetConsoleCP();
+        [DllImport("kernel32.dll")] static extern bool SetConsoleCP(uint cp);
+
         public static string Executable { get { return ApplicationPaths.Tool("recovery-helper/recovery-helper.exe"); } }
         public static HelperResult Scan(string snapshot, string output, Dictionary<string, string> secrets, bool deep, CancellationToken cancel, Action<string> progress)
         {
@@ -82,7 +85,15 @@ namespace UsbRecovery
                     RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                     StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8, CreateNoWindow = true
                 };
-                try { process.Start(); job.Attach(process); }
+                uint oldCp = GetConsoleCP();
+                try {
+                    if (oldCp == 65001) SetConsoleCP(28591);
+                    process.Start();
+                }
+                finally {
+                    if (oldCp == 65001) SetConsoleCP(oldCp);
+                }
+                try { job.Attach(process); }
                 catch { throw new IOException("HELPER_START_FAILED"); }
                 HelperResult result = null;
                 // Drain without retaining third-party messages. This also prevents pipe deadlocks.
@@ -113,6 +124,8 @@ namespace UsbRecovery
                     try
                     {
                         // No secret-bearing command line, environment variable or job file.
+                        var preambleField = typeof(StreamWriter).GetField("haveWrittenPreamble", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) ?? typeof(StreamWriter).GetField("_haveWrittenPreamble", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                        if (preambleField != null) preambleField.SetValue(process.StandardInput, true);
                         byte[] input = new UTF8Encoding(false).GetBytes(serializer.Serialize(request) + "\n");
                         try { process.StandardInput.BaseStream.Write(input, 0, input.Length); process.StandardInput.BaseStream.Flush(); }
                         finally { Array.Clear(input, 0, input.Length); process.StandardInput.Close(); }

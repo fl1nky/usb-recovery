@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -82,6 +83,8 @@ namespace UsbRecovery
 
     public static class ArchiveSearchService
     {
+        [DllImport("kernel32.dll")] static extern uint GetConsoleCP();
+        [DllImport("kernel32.dll")] static extern bool SetConsoleCP(uint cp);
         const int MaxResponse = 64 * 1024 * 1024;
         public static ArchiveSearchResult Search(string archive, string application, string query, string evidence, long offset, CancellationToken cancel)
         { return Search(archive, application, query, evidence, offset, cancel, false); }
@@ -193,7 +196,15 @@ namespace UsbRecovery
                 process.StartInfo = new ProcessStartInfo(executable) { Arguments = "", WorkingDirectory = Path.GetDirectoryName(executable), UseShellExecute = false,
                     RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                     StandardOutputEncoding = new UTF8Encoding(false,true), StandardErrorEncoding = Encoding.UTF8, CreateNoWindow = true };
-                try { process.Start(); job.Attach(process); } catch { throw new IOException("HELPER_START_FAILED"); }
+                uint oldCp = GetConsoleCP();
+                try {
+                    if (oldCp == 65001) SetConsoleCP(28591);
+                    process.Start();
+                }
+                finally {
+                    if (oldCp == 65001) SetConsoleCP(oldCp);
+                }
+                try { job.Attach(process); } catch { throw new IOException("HELPER_START_FAILED"); }
                 T result = null;
                 Task errors = Task.Run(() => { var buffer = new char[4096]; while (process.StandardError.Read(buffer, 0, buffer.Length) > 0) { } });
                 Task output = Task.Run(() => {
@@ -216,6 +227,8 @@ namespace UsbRecovery
                 using (cancel.Register(() => job.Stop()))
                 {
                     try {
+                        var preambleField = typeof(StreamWriter).GetField("haveWrittenPreamble", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) ?? typeof(StreamWriter).GetField("_haveWrittenPreamble", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                        if (preambleField != null) preambleField.SetValue(process.StandardInput, true);
                         byte[] input = new UTF8Encoding(false).GetBytes(serializer.Serialize(request) + "\n");
                         try{process.StandardInput.BaseStream.Write(input, 0, input.Length); process.StandardInput.BaseStream.Flush();}finally{Array.Clear(input,0,input.Length);process.StandardInput.Close();}
                         while (!process.WaitForExit(200)){cancel.ThrowIfCancellationRequested();if(output.IsFaulted||errors.IsFaulted)throw new IOException("SEARCH_PROTOCOL_ERROR");}

@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
+param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'OfflineEvidence.ps1')
 $taskApp=[IO.Path]::GetFullPath($ApplicationDirectory)
@@ -11,14 +11,14 @@ $taskSourceProofs=@{}
 $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular image files only; actual packaged managed recovery modules. No user profiles or physical devices.' $PSCommandPath
 try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
-    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests','TelegramRecoveryProvenanceUiTests','TelegramRecoveryPortableTests','TelegramRollbackPortableTests','ArchiveTextPortableTests','FragmentedMediaUnitRecoveryTests','FragmentedMediaScaleTests')
+    $taskNames=@('ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','RefsRecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests','TelegramRecoveryProvenanceUiTests','TelegramRecoveryPortableTests','TelegramRollbackPortableTests','ArchiveTextPortableTests','FragmentedMediaUnitRecoveryTests','FragmentedMediaScaleTests')
     foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests','RaidRecoveryTests','StorageUiTests','StoragePipelineTests','HelperMemoryTests','AtomicJsonSaveTests','ExportTempCollisionTests','StorageWorkflowTests','CaptureProvenanceTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
         $taskSources=@((Join-Path $PSScriptRoot ($taskName+'.cs')))
         if($taskName-eq'ContentQualityTests'){$taskSources+=Join-Path $PSScriptRoot 'FilesystemRecoveryTests.cs'}
         $taskSourceProofs[$taskName]=New-RecoveryTestSources $taskSources
-        & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:"$taskApp\USB-Recovery.exe" "/main:$taskName" "/out:$taskHarness" @taskSources
+        & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll /reference:"$taskApp\USB-Recovery.exe" "/main:$taskName" "/out:$taskHarness" @taskSources
         if($LASTEXITCODE-ne 0){throw ('Packaged quality test build failed: '+$taskName)}
         $taskHarnesses+=$taskHarness
     }
@@ -35,6 +35,7 @@ try {
         if($taskName-eq'HevcSampleValidatorTests'){$taskInput=Join-Path $taskProject '.build\hevc-validation-fixtures-current'}
         $taskExtraArguments=@()
         if($taskName-eq'Ext4RecoveryTests'){$taskInput=Join-Path $taskProject '.build\ext4-fixtures-current';$taskExtraArguments=@((Join-Path $taskProject ('.build\ext4-offline-'+[Guid]::NewGuid().ToString('N'))))}
+        if($taskName-eq'RefsRecoveryTests'){$taskInput=Join-Path $taskProject '.build\refs-fixtures-current';$taskExtraArguments=@((Join-Path $taskProject ('.build\refs-offline-'+[Guid]::NewGuid().ToString('N'))))}
         $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
         & $taskHarness $taskInput @taskExtraArguments *> $taskLog
         if($LASTEXITCODE-ne 0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Packaged quality test failed: '+$taskName)}

@@ -74,6 +74,7 @@
 /tests/fixtures/*
 !/tests/fixtures/raid-md/
 !/tests/fixtures/ext4/
+!/tests/fixtures/refs/
 
 !/tests/fixtures/aac-lc/
 

@@ -315,6 +315,63 @@
       "sha256": "55f86ac3db80ffd2d512617ec8f2652d143e604203356f6629c7fef04e56deb2",
       "outcome": "reject",
       "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f"
+    },
+    {
+      "name": "mmp-feature-tolerated",
+      "image": "mmp-feature-tolerated.dd",
+      "target_inode": 13,
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_handled_feature": "mmp",
+      "sha256": "2ce2d1e4cc1bc786fccbba1fc40191a56b9350ab372caae76872d9ee83dc010c"
+    },
+    {
+      "name": "largedir-feature-tolerated",
+      "image": "largedir-feature-tolerated.dd",
+      "target_inode": 13,
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_handled_feature": "largedir",
+      "sha256": "8e2133b7eed965a519a89e8c29e9994fb02c79cd1ed05005807fb8ae70aeac08"
+    },
+    {
+      "name": "orphan-present-tolerated",
+      "image": "orphan-present-tolerated.dd",
+      "target_inode": 13,
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_handled_feature": "orphan_present",
+      "sha256": "37ed472307ec747a285a77e49d43bf52f4e62467d3d6f898966e2d9abeadb73a"
+    },
+    {
+      "name": "journal-dirty-replay",
+      "image": "journal-dirty-replay.dd",
+      "target_inode": 13,
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_handled_feature": "recover",
+      "expected_journal_replay_applied": true,
+      "sha256": "e9fc7ed11f4732875470773ba5c1784338900f29ab398206bfef59a07a5afa72"
+    },
+    {
+      "name": "journal-historical-deleted",
+      "image": "journal-historical-deleted.dd",
+      "target_inode": 13,
+      "outcome": "recover",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "expected_deletion_evidence": "journal_transaction_pre_deletion_record",
+      "expected_historical_inodes": 1,
+      "sha256": "a71d46b5f92da73aa4c362a23ead6cf7a571a4e6518c02b4dedc4a3630721f83"
+    },
+    {
+      "name": "journal-historical-conflict",
+      "image": "journal-historical-conflict.dd",
+      "target_inode": 13,
+      "outcome": "reject",
+      "payload_sha256": "e323f13f44ab4f5c6fc5d887eb49c224a52f32ab800720ebc0ab85a969360c1f",
+      "reason": "currently_allocated_block_conflict",
+      "expected_historical_inodes": 1,
+      "sha256": "a335fa6b613782c37b5894ce9c78a603071e7db88b456d26ef582690099dc36d"
     }
   ],
   "limits": "debugfs deletion preserves inode maps; normal kernel deletion may clear them. Retained directory link case intentionally uses kill_file without unlink. No journal history recovery claim.",
@@ -497,6 +554,36 @@
     "unwritten-deleted.dd": {
       "archive": "unwritten-deleted.dd.gz",
       "archive_sha256": "c568227b1beb90412adca8388c3aab603d37bce0469d0a8f84eb76bea7a74fb0",
+      "bytes": 33554432
+    },
+    "mmp-feature-tolerated.dd": {
+      "archive": "mmp-feature-tolerated.dd.gz",
+      "archive_sha256": "c9b9d9f3c03682566ed17631a37f6e7d1c7bab4f61b6e21e7d216b48e46d4b65",
+      "bytes": 33554432
+    },
+    "largedir-feature-tolerated.dd": {
+      "archive": "largedir-feature-tolerated.dd.gz",
+      "archive_sha256": "a5a4da1191c3d386ed19dc7ff5abdd7eb02a5b96754487e5dc1109c01f2171c1",
+      "bytes": 33554432
+    },
+    "orphan-present-tolerated.dd": {
+      "archive": "orphan-present-tolerated.dd.gz",
+      "archive_sha256": "7336e071a1279e2f7fb353e46e5355eed2683170232f7c65c903325389fcaaaf",
+      "bytes": 33554432
+    },
+    "journal-dirty-replay.dd": {
+      "archive": "journal-dirty-replay.dd.gz",
+      "archive_sha256": "bcaba9325a04851939129c83c584b3acb0abee26150c2cf2ff026e1e356fed4b",
+      "bytes": 33554432
+    },
+    "journal-historical-deleted.dd": {
+      "archive": "journal-historical-deleted.dd.gz",
+      "archive_sha256": "74e427fbcc068ed30456b4414f9047c166278572594d42b4d72d7d079cfa0b56",
+      "bytes": 33554432
+    },
+    "journal-historical-conflict.dd": {
+      "archive": "journal-historical-conflict.dd.gz",
+      "archive_sha256": "6749bfc22337789ea05eb2a3d0bebe733ec5a83e5eb47dd06ffbfd9667a35c20",
       "bytes": 33554432
     }
   },

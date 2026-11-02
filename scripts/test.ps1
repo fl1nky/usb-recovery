@@ -1,4 +1,4 @@
-﻿param([string]$Python312='')
+param([string]$Python312='')
 $ErrorActionPreference='Stop'
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
@@ -65,6 +65,11 @@ $taskExt4Fixtures=Join-Path $taskLayout.Root '.build\ext4-fixtures-current'
 if(-not(Test-Path -LiteralPath (Join-Path $taskExt4Fixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'ext4_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\ext4') --destination $taskExt4Fixtures
  if($LASTEXITCODE-ne0){throw 'Offline ext4 fixture extraction failed.'}
+}
+$taskRefsFixtures=Join-Path $taskLayout.Root '.build\refs-fixtures-current'
+if(-not(Test-Path -LiteralPath (Join-Path $taskRefsFixtures 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'refs_fixture_generator.py') --extract (Join-Path $taskLayout.Tests 'fixtures\refs') --destination $taskRefsFixtures
+ if($LASTEXITCODE-ne0){throw 'Offline ReFS fixture extraction failed.'}
 }
 $taskHeapFixtures=Join-Path $taskLayout.Root '.build\telegram-heap-portable-fixtures'
 if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){

@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "provenance": "Pure Python synthetic ReFS v1.2 and v3.4 fixtures without external dependencies.",
+  "cases": [
+    {
+      "name": "refs-v12-minimal",
+      "image": "refs-v12-minimal.dd",
+      "sha256": "d043274107fe91ecd0aeaba5fff53164eba0c49139fedea068809527c5aa2962",
+      "outcome": "recover",
+      "expected_version": "1.2",
+      "target_name": "hello.txt",
+      "payload_sha256": "ba4285f858ca4b6dfd9210b8f230464ae8eaf0792a9ac9b80279680b622b7892"
+    },
+    {
+      "name": "refs-v34-minimal",
+      "image": "refs-v34-minimal.dd",
+      "sha256": "08ea3352c75896844a7c72ebf3f2379fc0ef8572319d92462a76d1485cec89d5",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "welcome.txt",
+      "payload_sha256": "02f963ab1129a6b7aa534bb38264057d021ebab5c7aa4357fff6009761f239e5"
+    },
+    {
+      "name": "refs-v34-nested-dirs",
+      "image": "refs-v34-nested-dirs.dd",
+      "sha256": "c77724c1644530c3de2848b12c847470090237bb45e6dcd639dc3600e19233a9",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "report.pdf",
+      "expected_path": "Documents/Work/report.pdf",
+      "payload_sha256": "3d495adc7db003b1f9a42dd965d9293bb3bc4edfdb24cc457f8d7538f17d18a3"
+    },
+    {
+      "name": "refs-v34-discontiguous",
+      "image": "refs-v34-discontiguous.dd",
+      "sha256": "ea12e6a92c60ee2d7b04b99a55f253316b05e194071455eb3497c0c548763a84",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "fragmented.bin",
+      "payload_sha256": "ff08315632acaffee48b25c5d51b7fc71570895f09c54a49e59df0f9edde7342"
+    },
+    {
+      "name": "refs-backup-vbr",
+      "image": "refs-backup-vbr.dd",
+      "sha256": "139dbda02cfdd86ce4e7e961432feaa4c0627090288c3ba16e522cb1690eeaf2",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "survivor.txt",
+      "payload_sha256": "6a05d263fdb48768e2a4fd9e7f91c767d076d3bd09ff689bf1d9f9a7c5e225fe"
+    },
+    {
+      "name": "refs-checkpoint-pingpong",
+      "image": "refs-checkpoint-pingpong.dd",
+      "sha256": "d1a7143c9095a4dc74f126e9130a230fa6c8981e81c298963a21b667f5a4cbb3",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "active_version.txt",
+      "payload_sha256": "04f15f6265f0d249074a6fe307ab77016b6a8c5c956cf25a6382c1d65c1adbd8"
+    },
+    {
+      "name": "refs-corrupted-crc",
+      "image": "refs-corrupted-crc.dd",
+      "sha256": "cf90e2419f51e06a12fbf2f6fa21b6b6ba76394e2e2d4bfbc49b4eeb07d737fd",
+      "outcome": "reject",
+      "target_name": "corrupted_node.txt"
+    },
+    {
+      "name": "refs-unsupported-compression",
+      "image": "refs-unsupported-compression.dd",
+      "sha256": "0972aa9eb40406b469cdc23b96c911fd9cbed55fdf783cc99fb7e51c34ea5d2a",
+      "outcome": "reject",
+      "target_name": "compressed_file.bin"
+    },
+    {
+      "name": "refs-unicode-surrogates",
+      "image": "refs-unicode-surrogates.dd",
+      "sha256": "3bdf695566928313df3c7b4b7f1dd320e160421633cc5809d4e7be854cabe5bf",
+      "outcome": "recover",
+      "expected_version": "3.4",
+      "target_name": "Project🚀Plan.txt",
+      "payload_sha256": "435fd9c2f782ea1053502f6bf814bb429696b4aa797a4db516b54c67c8756894"
+    },
+    {
+      "name": "refs-deleted-salvage",
+      "image": "refs-deleted-salvage.dd",
+      "sha256": "9661037776dba1c8a48a08513ad991702dc508d1d822c7933d052be27471b66b",
+      "outcome": "salvage",
+      "expected_version": "3.4",
+      "target_name": "deleted_secret.doc",
+      "payload_sha256": "61e3c7f5fe50592f4b64fed215c2538e97ff3b0e660a24cf78e442e2e51874ef"
+    }
+  ],
+  "compressed_images": {
+    "refs-v12-minimal.dd": {
+      "archive": "refs-v12-minimal.dd.gz",
+      "archive_sha256": "354bbbd237d68882095f97e18380bd2c84fd4b8c9e050c873eb218658bba635c",
+      "bytes": 8388608
+    },
+    "refs-v34-minimal.dd": {
+      "archive": "refs-v34-minimal.dd.gz",
+      "archive_sha256": "0fea5baf433bd6f15b4c1c0cd0f320a2fbd7b9109b675809c2a85d0eb6480da9",
+      "bytes": 4194304
+    },
+    "refs-v34-nested-dirs.dd": {
+      "archive": "refs-v34-nested-dirs.dd.gz",
+      "archive_sha256": "8af500bad866b6a55e1bd95e8b785e9e4ae024311926c5c308d6160e8cf37fe4",
+      "bytes": 4194304
+    },
+    "refs-v34-discontiguous.dd": {
+      "archive": "refs-v34-discontiguous.dd.gz",
+      "archive_sha256": "bb9470da95a7247270d5b630679cbee1c9edae364e74d76eae33b9fddd930b66",
+      "bytes": 4194304
+    },
+    "refs-backup-vbr.dd": {
+      "archive": "refs-backup-vbr.dd.gz",
+      "archive_sha256": "048a4acb491a4216a005a83850632c27cc0c5f295ca90c5cae0f363797fc292c",
+      "bytes": 4194304
+    },
+    "refs-checkpoint-pingpong.dd": {
+      "archive": "refs-checkpoint-pingpong.dd.gz",
+      "archive_sha256": "fb35bb685b8d3376245a7ee635c3ba20c11c127adc2a9761c862ea2f2035c7c8",
+      "bytes": 4194304
+    },
+    "refs-corrupted-crc.dd": {
+      "archive": "refs-corrupted-crc.dd.gz",
+      "archive_sha256": "a6bd696994dbb9425b85cd5987614fe2fb7ec91a5c943374927afe5f36fc474b",
+      "bytes": 4194304
+    },
+    "refs-unsupported-compression.dd": {
+      "archive": "refs-unsupported-compression.dd.gz",
+      "archive_sha256": "365a0720597e0f7c18c156331e68b0c6d66690c656a3cb303b411f224c7e47ae",
+      "bytes": 4194304
+    },
+    "refs-unicode-surrogates.dd": {
+      "archive": "refs-unicode-surrogates.dd.gz",
+      "archive_sha256": "10c32b9139c7a5515fe38b1f2faebc6cd953a8f9a1dbbdc32f7a62b0e34daacc",
+      "bytes": 4194304
+    },
+    "refs-deleted-salvage.dd": {
+      "archive": "refs-deleted-salvage.dd.gz",
+      "archive_sha256": "31453c431f2db0a6f95052e490ec8fd4006c532c86aa672e0b13096fada6cfa9",
+      "bytes": 4194304
+    }
+  }
+}

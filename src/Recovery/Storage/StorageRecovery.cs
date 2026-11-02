@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -72,8 +72,8 @@ namespace UsbRecovery
         }
         public static RecoveryOptions SearchOptions(bool maximum,bool partial)
         {
-            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum,KeepCorrupted=maximum,FragmentedPhotos=maximum,FragmentedVideo=maximum,Ext4Metadata=maximum};
-            if(partial)options.FatMetadata=options.NtfsMetadata=options.Ext4Metadata=options.LostPartitions=options.OrphanDirectories=options.MetadataRescue=false;
+            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum,KeepCorrupted=maximum,FragmentedPhotos=maximum,FragmentedVideo=maximum,Ext4Metadata=maximum,RefsMetadata=maximum};
+            if(partial)options.FatMetadata=options.NtfsMetadata=options.Ext4Metadata=options.RefsMetadata=options.LostPartitions=options.OrphanDirectories=options.MetadataRescue=false;
             return options;
         }
         public static string ErrorText(string code)
