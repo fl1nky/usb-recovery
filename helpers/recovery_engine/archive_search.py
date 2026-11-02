@@ -139,7 +139,7 @@ def _normalized(raw):
              "native_constructor", "native_layer", "wal_commit_frame", "wal_proof", "wal_db_sha256",
              "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit", "wal_current_state_confirmed",
              "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count",
-             "recovery_status", "deletion_interpretation", "deleted", "sqlite_page", "sqlite_region", "sqlite_stored_mid",
+             "recovery_status", "deletion_interpretation", "deleted", "provenance_verification", "sqlite_page", "sqlite_region", "sqlite_stored_mid",
              "record_page_offset", "blob_page_offset", "record_length", "record_sha256",
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
@@ -186,6 +186,18 @@ def _normalized(raw):
         else:
             result.update(evidence_kind="backup", recovery_status="rollback_before_image_snapshot")
     result.update(_container_provenance(raw))
+    claims = raw.get("archive_claims")
+    result["archive_claims"] = {}
+    if isinstance(claims, dict):
+        for name in ("recovery_status", "deletion_interpretation"):
+            value = claims.get(name)
+            if isinstance(value, str) and _valid_unicode(value):
+                result["archive_claims"][name] = value[:4096]
+        if type(claims.get("deleted")) is bool:
+            result["archive_claims"]["deleted"] = claims["deleted"]
+    result["archive_claims"] = result["archive_claims"] or None
+    if result["provenance_verification"] != "provided_archive_metadata":
+        result["provenance_verification"] = None
     residuals = raw.get("residual_sources", [])
     provenance_names = ("source_file", "source_record", "source_sha256", "physical_source", "physical_byte_offset", "sqlite_page", "sqlite_region", "record_page_offset", "blob_page_offset", "record_length", "record_sha256", "header_length_reconstructed", "wal_frame", "wal_commit_frame", "proof", "recovery_status", "deletion_interpretation", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256", "container_sha256", "container_source_id", "container_source_file")
     result["residual_sources"] = []
@@ -209,7 +221,8 @@ def _normalized(raw):
         if not isinstance(item, dict) or (overflow := _overflow_provenance(item)) is None or (rollback := _rollback_provenance(item)) is None:
             continue
         origin = {k: str(item.get(k))[:4096] for k in ("source_file", "source_record", "snapshot_id", "source_sha256",
-             "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count", "container_sha256", "container_source_id", "container_source_file")
+             "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
+             "wal_commit_frame", "wal_proof", "wal_db_sha256", "wal_sha256", "wal_snapshot_sha256", "media_kind", "media_id", "media_status", "thumbnail_count", "container_sha256", "container_source_id", "container_source_file")
          if isinstance(item.get(k), (str, int)) and (not isinstance(item[k], str) or _valid_unicode(item[k]))}
         origin.update({name: item[name][:4096] if isinstance(item[name], str) else item[name]
                        for name in WAL_TAIL_FIELDS if isinstance(item.get(name), (str, int, bool)) and (not isinstance(item[name], str) or _valid_unicode(item[name]))})

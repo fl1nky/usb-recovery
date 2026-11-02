@@ -1,4 +1,4 @@
-param([string]$Python312='')
+﻿param([string]$Python312='')
 $ErrorActionPreference='Stop'
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
@@ -16,6 +16,40 @@ if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_deleted_fixtures.py') (Join-Path $taskLayout.Root '.build\telegram-deleted-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent Telegram DELETE fixture generation failed.'}
+$taskMediaCacheGenerator=Join-Path $taskLayout.Tests 'build_telegram_media_cache_fixtures.py'
+$taskMediaCacheGeneratorHash=(Get-FileHash -LiteralPath $taskMediaCacheGenerator -Algorithm SHA256).Hash.ToLowerInvariant()
+$taskMediaCacheBuild=[IO.Path]::GetFullPath((Join-Path $taskLayout.Root '.build')).TrimEnd('\')
+$taskMediaCacheTarget=[IO.Path]::GetFullPath((Join-Path $taskMediaCacheBuild 'telegram-media-cache-fixtures-current'))
+if(-not $taskMediaCacheTarget.StartsWith($taskMediaCacheBuild+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Telegram media cache fixtures must stay inside .build.'}
+for($taskMediaCacheParent=[IO.DirectoryInfo]$taskMediaCacheTarget;$null-ne$taskMediaCacheParent;$taskMediaCacheParent=$taskMediaCacheParent.Parent){
+ if($taskMediaCacheParent.Exists-and($taskMediaCacheParent.Attributes-band[IO.FileAttributes]::ReparsePoint)){throw 'Linked Telegram media cache fixture paths are forbidden.'}
+}
+$taskMediaCacheManifest=Join-Path $taskMediaCacheTarget 'manifest.json'
+if(-not(Test-Path -LiteralPath $taskMediaCacheManifest -PathType Leaf)){
+ if(Test-Path -LiteralPath $taskMediaCacheTarget){throw 'Incomplete Telegram media cache fixtures exist at .build\telegram-media-cache-fixtures-current; preserve that directory under a distinct .build path and prepare a fresh current destination before testing. No files were moved or deleted.'}
+ & $Python312 $taskMediaCacheGenerator $taskMediaCacheTarget
+ if($LASTEXITCODE-ne0){throw 'Independent Telegram media cache SQLite/WAL fixture generation failed.'}
+}
+if((Get-FileHash -LiteralPath $taskMediaCacheGenerator -Algorithm SHA256).Hash.ToLowerInvariant()-ne$taskMediaCacheGeneratorHash){throw 'Telegram media cache generator changed during fixture preparation.'}
+if(-not(Test-Path -LiteralPath $taskMediaCacheManifest -PathType Leaf)){throw 'Telegram media cache generation did not publish its manifest.'}
+if((Get-Item -LiteralPath $taskMediaCacheManifest).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'Linked Telegram media cache fixture manifests are forbidden.'}
+$taskMediaCacheReceipt=Get-Content -LiteralPath $taskMediaCacheManifest -Raw -Encoding UTF8|ConvertFrom-Json
+if($taskMediaCacheReceipt.generator_sha256-cne$taskMediaCacheGeneratorHash){throw 'Telegram media cache fixtures at .build\telegram-media-cache-fixtures-current belong to another or unrecorded generator; preserve that directory under a distinct .build path and prepare a fresh current destination before testing. No files were moved or deleted.'}
+$taskMediaCacheNames=@('current','history','missing-preimage','corrupt-wal','wrong-schema','wrong-type','mid-mismatch','uid-mismatch','date-mismatch','unknown-flags','missing-media','secret-uid','primary-current','primary-historical','primary-different','repeated-history','metadata-only-edit')
+$taskMediaCacheCases=@($taskMediaCacheReceipt.cases)
+if($taskMediaCacheReceipt.schema-ne1-or$taskMediaCacheReceipt.source_commit-cne'4de548e79fed27f1a66fbdff84223321838fe925'-or-not($taskMediaCacheReceipt.independent_sqlite_writer-is[bool])-or$taskMediaCacheReceipt.independent_sqlite_writer-ne$true-or$taskMediaCacheCases.Count-ne17-or@($taskMediaCacheCases.variant|Select-Object -Unique).Count-ne17-or@(Compare-Object $taskMediaCacheNames @($taskMediaCacheCases.variant)).Count){throw 'Telegram media cache fixture manifest must contain exactly the seventeen current independent controls.'}
+foreach($taskMediaCacheCase in $taskMediaCacheCases){
+ if($taskMediaCacheCase.database-cne($taskMediaCacheCase.variant+'/cache4.db')){throw 'Unexpected Telegram media cache database path.'}
+ $taskMediaCacheFolder=Join-Path $taskMediaCacheTarget $taskMediaCacheCase.variant
+ if(-not(Test-Path -LiteralPath $taskMediaCacheFolder -PathType Container)-or((Get-Item -LiteralPath $taskMediaCacheFolder).Attributes-band[IO.FileAttributes]::ReparsePoint)){throw 'Missing or linked Telegram media cache fixture directory.'}
+ $taskMediaCacheSourceFiles=@($taskMediaCacheCase.source_files.PSObject.Properties)
+ if(-not($taskMediaCacheSourceFiles.Name-ccontains'cache4.db')){throw 'Telegram media cache fixture has no declared source database hash.'}
+ foreach($taskMediaCacheSourceFile in $taskMediaCacheSourceFiles){
+  if($taskMediaCacheSourceFile.Name-cnotin'cache4.db','cache4.db-wal','cache4.db-shm'-or$taskMediaCacheSourceFile.Value-cnotmatch'\A[a-f0-9]{64}\z'){throw 'Unexpected Telegram media cache source hash entry.'}
+  $taskMediaCacheSourcePath=Join-Path $taskMediaCacheFolder $taskMediaCacheSourceFile.Name
+  if(-not(Test-Path -LiteralPath $taskMediaCacheSourcePath -PathType Leaf)-or((Get-Item -LiteralPath $taskMediaCacheSourcePath).Attributes-band[IO.FileAttributes]::ReparsePoint)-or(Get-FileHash -LiteralPath $taskMediaCacheSourcePath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$taskMediaCacheSourceFile.Value){throw 'Telegram media cache fixture DB/WAL/SHM is missing, linked or changed; preserve existing evidence and prepare a fresh corpus.'}
+ }
+}
 foreach($taskTelegramKind in 'wal_tail','overflow'){
  $taskTelegramTarget=Join-Path $taskLayout.Root ('.build\telegram-'+$taskTelegramKind.Replace('_','-')+'-fixtures-current')
  if(-not(Test-Path -LiteralPath (Join-Path $taskTelegramTarget 'manifest.json'))){

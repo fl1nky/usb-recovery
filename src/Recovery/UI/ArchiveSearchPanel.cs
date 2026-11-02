@@ -21,6 +21,8 @@ namespace UsbRecovery
         public string source_id, original_relative_path, source_sha256;
         public string record_kind, completeness;
         public string recovery_status,deletion_interpretation,physical_source,record_sha256,proof,native_tl_body_sha256;
+        public string provenance_verification;
+        public Dictionary<string,object> archive_claims;
         public Dictionary<string,object>[] residual_sources;
         public object sqlite_page,record_page_offset,blob_page_offset,record_length,physical_byte_offset,wal_frame,candidate_message_id,candidate_peer,candidate_date;
         public object sqlite_stored_mid;
@@ -109,7 +111,7 @@ namespace UsbRecovery
                     if(!LowerHash(message.container_sha256)||String.IsNullOrEmpty(message.container_source_id)||String.IsNullOrEmpty(message.container_source_file)||
                         !DisplayBound(message.container_source_id)||!DisplayBound(message.container_source_file))return false;
                 }
-                if(!ValidRollback(message))return false;
+                if(!ValidRollback(message)||!ValidArchiveClaims(message))return false;
                 long length=CodePoints(message.text);if(length<0||length>65536)return false;
                 if(message.text_truncated&&(message.text_length<=length||message.text_length>4*1024*1024||message.text_offset<0||message.text_end<message.text_offset||message.text_end>message.text_length||message.text_end-message.text_offset!=length||message.match_offset<message.text_offset||message.match_offset>message.text_end||message.match_end<message.match_offset||message.match_end>message.text_length))return false;
             }return true;
@@ -121,6 +123,16 @@ namespace UsbRecovery
             return true;
         }
         static bool DisplayBound(string value){return value==null||value.Length<=8192;}
+        static bool ValidArchiveClaims(ArchiveMessage message)
+        {
+            if(message.provenance_verification!=null&&message.provenance_verification!="provided_archive_metadata")return false;
+            if(message.archive_claims==null)return true;
+            if(message.archive_claims.Count>3)return false;
+            foreach(var field in message.archive_claims){
+                if(field.Key=="deleted"){if(!(field.Value is bool))return false;}
+                else if(field.Key!="recovery_status"&&field.Key!="deletion_interpretation"||!(field.Value is string)||CodePoints((string)field.Value)<0||CodePoints((string)field.Value)>4096)return false;
+            }return true;
+        }
         static bool BoundedInteger(object value,long minimum,long maximum)
         {
             if(!(value is int)&&!(value is long))return false;
@@ -417,7 +429,7 @@ namespace UsbRecovery
                 current = result; pageOffset = result.offset; grid.Rows.Clear(); body.Clear(); provenance.Clear();
                 foreach (var message in result.records) {
                     if (!String.Equals(message.app, "Telegram", StringComparison.OrdinalIgnoreCase)) throw new IOException("SEARCH_APP_MISMATCH");
-                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind == "notification" ? "Уведомление" : Category(message.evidence_kind), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text,message)); grid.Rows[row].Tag = message;
+                    int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), MessageCategory(message), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text,message)); grid.Rows[row].Tag = message;
                 }
                 long last = Math.Min(result.total, pageOffset + result.records.Count); count.Text = result.total == 0 ? "По запросу ничего не найдено" : "Найдено: " + result.total.ToString("N0") + " · " + (pageOffset + 1) + "–" + last;
                 if (result.status == "partial") count.Text += " · есть замечания к архиву";
@@ -450,6 +462,12 @@ namespace UsbRecovery
             return(start>0?"…":"")+value.Substring(start,length)+(start+length<value.Length?"…":"");
         }
         static string Category(string value) { switch (value) { case "export": return "Из экспорта"; case "backup": return "Из резервной копии"; case "previous": return "Предыдущая версия"; case "fragment": return "Текстовый фрагмент"; default: return "Категория неизвестна"; } }
+        static string MessageCategory(ArchiveMessage message)
+        {
+            if(message.recovery_status=="imported_recovery_claim")return "Заявлено в архиве";
+            if(message.record_kind=="telegram_media_cache")return message.evidence_kind=="previous"?"Кэш · предыдущая версия":"Кэш Telegram";
+            return message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind=="notification"?"Уведомление":Category(message.evidence_kind);
+        }
         static int CodePointIndex(string text,long points)
         {
             int index=0;while(index<text.Length&&points>0){if(Char.IsHighSurrogate(text[index])&&index+1<text.Length&&Char.IsLowSurrogate(text[index+1]))index++;index++;points--;}return index;
@@ -483,10 +501,21 @@ namespace UsbRecovery
             details.AppendLine("Дата записи: " + Known(null, message.timestamp ?? message.timestamp_raw, "неизвестна"));
             details.Append("Снимок: " + Known(message.snapshot_id, null, "неизвестен") + " · ID чата: " + Known(null, message.chat_id, "неизвестен") + " · ID автора: " + Known(null, message.sender_id, "неизвестен") + " · ID сообщения: " + Known(null, message.message_id, "неизвестен"));
             if (!String.IsNullOrEmpty(message.source_sha256)) details.AppendLine("\r\nSHA256 источника: " + message.source_sha256);
+            if(message.provenance_verification=="provided_archive_metadata")details.AppendLine("\r\nЗапись импортирована из предоставленного архива. Указанные в нём сведения о происхождении в этом анализе независимо не проверялись.");
+            if(message.recovery_status=="imported_recovery_claim"){
+                details.AppendLine("\r\nОтметка об удалении перенесена из исходного архива; проверенной находкой удалённой записи в этом анализе она не считается.");
+                object status,interpretation;var claims=message.archive_claims;
+                if(claims!=null){claims.TryGetValue("recovery_status",out status);claims.TryGetValue("deletion_interpretation",out interpretation);details.AppendLine("Исходная отметка: "+Known(null,status,"не указана")+" · "+Known(null,interpretation,"без пояснения"));}
+            }
             if(!String.IsNullOrEmpty(message.container_source_file))details.AppendLine("\r\nАрхив-источник: "+message.container_source_file+" · SHA256: "+message.container_sha256);
             if (message.date_ambiguous == true || message.timezone_unknown == true) details.AppendLine("\r\nДата или часовой пояс требуют уточнения по исходному экспорту.");
             if (message.record_kind == "notification") details.AppendLine("\r\nСохранённый текст уведомления: может содержать только часть сообщения. Полная переписка в источнике может отсутствовать.");
             if (message.record_kind == "tl_message") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
+            if(message.record_kind=="telegram_media_cache"){
+                details.AppendLine("\r\nМедиакэш Telegram: сохранившаяся подпись и ссылка на фотографию. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.");
+                if(message.evidence_kind=="previous")details.AppendLine("Подпись найдена в предыдущем проверенном снимке кэша; это не доказывает удаления переписки.");
+            }
+            if(!String.IsNullOrEmpty(message.native_tl_body_sha256))details.AppendLine("SHA256 TL-записи: "+message.native_tl_body_sha256);
             if(message.sqlite_stored_mid!=null)details.AppendLine("Ключ записи в SQLite: "+Known(null,message.sqlite_stored_mid,"неизвестен")+". ID самого сообщения показан отдельно.");
             if(!String.IsNullOrEmpty(message.rollback_journal_sha256)){
                 details.AppendLine(message.rollback_proof=="all_pages_from_validated_rollback_journal"
@@ -525,7 +554,13 @@ namespace UsbRecovery
             }
             if (message.text_truncated) details.AppendLine("\r\nПоказан фрагмент: символы "+message.text_offset+"–"+(message.text_end>0?message.text_end:Math.Min(message.text_length,65536))+" из "+message.text_length+". Полная запись остаётся в архиве; открой «Полный текст» для чтения частями.");
             if (current != null && current.warnings != null && current.warnings.Length > 0) details.AppendLine("\r\nПри чтении архива часть некорректных записей пропущена или использован резервный JSONL.");
-            if (message.sources != null) foreach (var origin in message.sources) { object file, record; origin.TryGetValue("source_file", out file); origin.TryGetValue("source_record", out record); details.AppendLine("\r\nТакже: " + Known(null, file, "источник неизвестен") + " · " + Known(null, record, "запись неизвестна")); }
+            if (message.sources != null) foreach (var origin in message.sources) {
+                object file,record,kind,digest,walDb;origin.TryGetValue("source_file",out file);origin.TryGetValue("source_record",out record);origin.TryGetValue("record_kind",out kind);origin.TryGetValue("native_tl_body_sha256",out digest);origin.TryGetValue("wal_db_sha256",out walDb);
+                details.AppendLine("\r\nТакже: "+Known(null,file,"источник неизвестен")+" · "+Known(null,record,"запись неизвестна"));
+                if(String.Equals(kind as string,"telegram_media_cache",StringComparison.Ordinal))details.AppendLine("Дополнительный источник — медиакэш Telegram. Факт удаления сообщения по кэшу не установлен; ссылка на фото не означает, что его байты извлечены.");
+                if(digest!=null)details.AppendLine("SHA256 TL-записи источника: "+Known(null,digest,"неизвестен"));
+                if(walDb!=null)details.AppendLine("SHA256 базы источника WAL: "+Known(null,walDb,"неизвестен"));
+            }
             const int maximumDetails=24576;
             if(details.Length>maximumDetails){details.Length=maximumDetails;if(Char.IsHighSurrogate(details[details.Length-1]))details.Length--;details.Append("\r\n… Полное происхождение сохранено в JSON архива.");}
             provenance.Text = details.ToString();

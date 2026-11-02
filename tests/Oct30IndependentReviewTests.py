@@ -29,6 +29,7 @@ class MessageVersionIdentity(unittest.TestCase):
         self.worker.source_label = "synthetic/cache4.db"
         self.worker.current_origin = {"Sha256": "a" * 64}
         self.worker.identities = {}
+        self.worker._checked_native_records = {}
         self.worker.messages = []
 
     def add(self, *, older=False, caption="Same recipe caption", **fields):

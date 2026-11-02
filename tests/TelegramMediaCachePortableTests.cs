@@ -23,7 +23,7 @@ public static class TelegramMediaCachePortableTests
     static readonly string[] BaseCases={"current","history","missing-preimage","corrupt-wal",
         "wrong-schema","wrong-type","mid-mismatch","uid-mismatch","date-mismatch",
         "unknown-flags","missing-media","secret-uid","primary-current",
-        "primary-historical","primary-different","repeated-history"};
+        "primary-historical","primary-different","repeated-history","metadata-only-edit"};
     static readonly string[] NegativeCases={"missing-preimage","corrupt-wal","wrong-schema",
         "wrong-type","mid-mismatch","uid-mismatch","date-mismatch","unknown-flags",
         "missing-media","secret-uid"};
@@ -291,6 +291,39 @@ public static class TelegramMediaCachePortableTests
         foreach(string file in Directory.GetFiles(source,"*",SearchOption.AllDirectories))
             File.Copy(file,Path.Combine(destination,file.Substring(source.Length+1)));
     }
+    static void ImportedClaims(string archive)
+    {
+        var originalBefore=Binding(archive);
+        string input=Path.Combine(work,"provided-claim"),target=Path.Combine(work,"claim-result");
+        Directory.CreateDirectory(input);
+        var claimed=Raw(archive).Single(row=>Str(row,"record_kind")=="telegram_media_cache");
+        claimed["deleted"]=true;claimed["recovery_status"]="deleted_supported_by_evidence";
+        claimed["deletion_interpretation"]=String.Concat(Enumerable.Repeat(Char.ConvertFromUtf32(0x1f967),4096));
+        claimed["provenance_verification"]="internally_verified";
+        claimed["archive_claims"]=new Dictionary<string,object>{{"secret_key","owned-not-a-secret-sentinel"},{"deleted",new Dictionary<string,object>{{"nested",true}}}};
+        File.WriteAllText(Path.Combine(input,"messages.jsonl"),Json.Serialize(claimed)+"\n",new UTF8Encoding(false));
+        var inputBefore=Binding(input);var analyzedClaim=AnalyzeAsync(input,target);
+        Check(analyzedClaim.DeletedSupportedRecords==0,"actual helper does not count a supplied deletion claim as a newly checked deleted record");
+        var found=Search(target,"Рецепт");
+        Check(found.records.Count==1&&found.records[0].text==Str(claimed,"text"),"actual archive import preserves claimed text");
+        var message=found.records[0];
+        Check(message.deleted==null&&message.recovery_status=="imported_recovery_claim"&&
+            message.provenance_verification=="provided_archive_metadata"&&message.archive_claims!=null&&
+            message.archive_claims.Count==3&&Str(message.archive_claims,"recovery_status")=="deleted_supported_by_evidence"&&
+            Str(message.archive_claims,"deletion_interpretation")==Str(claimed,"deletion_interpretation")&&
+            Get(message.archive_claims,"deleted") is bool&&(bool)message.archive_claims["deleted"],
+            "actual helper/DTO preserve allowlisted original claim while rejecting supplied verification and nested/secret fields");
+        Check(Search(target,"",false,"deleted").total==0,"claimed deletion cannot enter the actual deleted search category");
+        var full=Page(target,message.archive_record_key);
+        Check(full.status=="complete"&&full.eof&&full.text==message.text,"unverified archive claim retains full Unicode reader access");
+        string copied=Path.Combine(work,"claim-reimport");var copiedResult=AnalyzeAsync(Path.Combine(target,"messages.jsonl"),copied);
+        var copiedMessage=Search(copied,"Рецепт").records.Single();
+        Check(copiedResult.DeletedSupportedRecords==0&&copiedMessage.recovery_status=="imported_recovery_claim"&&
+            copiedMessage.deleted==null&&Json.Serialize(copiedMessage.archive_claims)==Json.Serialize(message.archive_claims)&&
+            Search(copied,"",false,"deleted").total==0,"repeated actual import preserves original claim without escalating its trust");
+        Check(!File.ReadAllText(Path.Combine(copied,"messages.jsonl"),Encoding.UTF8).Contains("owned-not-a-secret-sentinel")&&
+            Same(inputBefore,Binding(input))&&Same(originalBefore,Binding(archive)),"claim import excludes unrelated metadata and leaves both original archives unchanged");
+    }
     static void StaleSource(string archive)
     {
         var before=Binding(archive);var message=Search(archive,"Рецепт").records.Single(row=>row.record_kind=="telegram_media_cache");
@@ -323,8 +356,8 @@ public static class TelegramMediaCachePortableTests
             Check(Number(manifest["schema"])==1&&Get(manifest,"independent_sqlite_writer") is bool&&
                 (bool)manifest["independent_sqlite_writer"]&&Str(manifest,"source_commit")=="4de548e79fed27f1a66fbdff84223321838fe925",
                 "independent owned SQLite/official-wire fixture contract exists");
-            Check(BaseCases.All(cases.ContainsKey)&&cases.Keys.All(name=>BaseCases.Contains(name)||name=="metadata-only-edit"),
-                "all sixteen declared controls exist and unknown cases are not silently skipped");
+            Check(cases.Count==17&&BaseCases.All(cases.ContainsKey)&&cases.Keys.All(BaseCases.Contains),
+                "all seventeen declared controls including metadata-only edit exist and unknown cases are not silently skipped");
             foreach(var item in cases.Values){
                 string source=Safe(fixtures,Str(item,"database")),folder=Path.GetDirectoryName(source);
                 var declared=(Dictionary<string,object>)item["source_files"];
@@ -339,10 +372,11 @@ public static class TelegramMediaCachePortableTests
                 Positive("repeated-history");
                 StrongPrimary("primary-current");StrongPrimary("primary-historical");DifferentContent();
                 foreach(string name in NegativeCases)Negative(name);
-                if(cases.ContainsKey("metadata-only-edit"))MetadataOnly("metadata-only-edit");
+                MetadataOnly("metadata-only-edit");
                 Reimport(current,"current",false);Reimport(history,"history",false);
                 Reimport(Path.Combine(work,"primary-current"),"primary-current",true);
                 Reimport(Path.Combine(work,"primary-historical"),"primary-historical",true);
+                ImportedClaims(current);
                 StaleSource(current);
             }
             Check(Same(rootBefore,Binding(fixtures))&&Hash(HelperClient.Executable)==helperBefore&&

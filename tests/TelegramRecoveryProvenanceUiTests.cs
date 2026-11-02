@@ -57,6 +57,31 @@ public static class TelegramRecoveryProvenanceUiTests
                 Check(details.Contains("цепочки свободных страниц")&&details.Contains("Диапазонов: 2")&&details.Contains("600"),"assembled overflow origin is visible");
                 Check(details.Contains("не подтверждает первоначальное содержание")&&details.Contains("JSON архива"),"structural uncertainty and complete map location are visible");
                 Check(details.Contains(new string('a',64))&&message.deleted==null,"payload digest and unknown deletion are preserved");
+                message=new ArchiveMessage{text="Сохранившаяся подпись",record_kind="telegram_media_cache",evidence_kind="backup",media_kind="photo",media_status="photo_reference_only",native_tl_body_sha256=new string('b',64)};
+                details=Show(panel,message);
+                var category=typeof(ArchiveSearchPanel).GetMethod("MessageCategory",BindingFlags.Static|BindingFlags.NonPublic);
+                Check((string)category.Invoke(null,new object[]{message})=="Кэш Telegram","current cache gets its own category instead of backup claim");
+                Check(details.Contains("Медиакэш Telegram")&&details.Contains("Байты фотографии из этой записи не извлечены")&&details.Contains("Факт удаления сообщения не установлен"),"cache origin, missing image and unknown deletion are explicit");
+                Check(details.Contains(new string('b',64)),"full native body digest is available for different same-text versions");
+                Check(Field<ComboBox>(panel,"attachments").Items.Count==0,"photo reference does not create an attachment action");
+                message.evidence_kind="previous";
+                Check((string)category.Invoke(null,new object[]{message})=="Кэш · предыдущая версия"&&Show(panel,message).Contains("предыдущем проверенном снимке кэша"),"historical cache is distinct and does not prove chat deletion");
+                message.record_kind="tl_message";message.evidence_kind="backup";
+                message.sources=new[]{new Dictionary<string,object>{{"source_file","owned/cache4.db"},{"source_record","media_v4(mid=41,uid=77,type=0)"},{"record_kind","telegram_media_cache"},{"native_tl_body_sha256",new string('c',64)},{"wal_db_sha256",new string('d',64)}}};
+                details=Show(panel,message);
+                Check((string)category.Invoke(null,new object[]{message})=="Из резервной копии","cache extra source preserves stronger primary category");
+                Check(details.Contains("Дополнительный источник — медиакэш Telegram")&&details.Contains(new string('c',64))&&details.Contains(new string('d',64)),"extra cache origin and body/WAL binding remain visible");
+                message.recovery_status="imported_recovery_claim";message.provenance_verification="provided_archive_metadata";
+                message.archive_claims=new Dictionary<string,object>{{"recovery_status","deleted_supported_by_evidence"},{"deletion_interpretation","claimed in supplied archive"},{"deleted",true}};
+                details=Show(panel,message);
+                Check((string)category.Invoke(null,new object[]{message})=="Заявлено в архиве","imported deletion claim has a separate display category");
+                Check(details.Contains("независимо не проверялись")&&details.Contains("проверенной находкой удалённой записи в этом анализе она не считается"),"imported claim cannot masquerade as a freshly checked deleted find");
+                Check(details.Contains("deleted_supported_by_evidence")&&details.Contains("claimed in supplied archive")&&message.deleted==null,"original archive claim remains inspectable with unknown actual deletion");
+                var validClaims=typeof(ArchiveSearchService).GetMethod("ValidArchiveClaims",BindingFlags.Static|BindingFlags.NonPublic);
+                message.archive_claims["deletion_interpretation"]=String.Concat(System.Linq.Enumerable.Repeat(Char.ConvertFromUtf32(0x1f967),4096));
+                Check((bool)validClaims.Invoke(null,new object[]{message}),"claim display boundary counts Unicode code points, including4096astral emoji");
+                message.archive_claims["deletion_interpretation"]+=(Char.ConvertFromUtf32(0x1f967));
+                Check(!(bool)validClaims.Invoke(null,new object[]{message}),"claim boundary rejects4097Unicode code points");
             }
             Console.WriteLine("PASS TelegramRecoveryProvenanceUi: "+checks+" checks; real DTO decoding and controlled WinForms presentation of WAL-prefix uncertainty and mapped overflow candidates. Owned synthetic metadata only.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}

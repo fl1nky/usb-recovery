@@ -20,7 +20,8 @@ VARIANTS = ("current", "history", "missing-preimage", "corrupt-wal",
             "wrong-schema", "wrong-type", "mid-mismatch", "uid-mismatch",
             "date-mismatch", "unknown-flags", "missing-media", "secret-uid",
             "primary-current", "primary-historical", "primary-different",
-            "repeated-history")
+            "repeated-history", "metadata-only-edit")
+ATTACH_PATH = "../../never-follow-this-attachment.jpg"
 
 
 def word(value):
@@ -39,16 +40,28 @@ def peer(kind, value):
 
 
 def message(text=TEXT, *, mid=41, date=DATE, sender=77, dialog=909,
-            kind="user", photo=True, extra_flags=0):
+            kind="user", photo=True, extra_flags=0, edit_date=None):
     # Official layer232: constructor,flags,flags2,id,from_id?,peer,date,text,media?.
     flags = (256 if sender is not None else 0) | (512 if photo else 0) | extra_flags
+    if edit_date is not None:
+        flags |= 1 << 15
     raw = word(0x7600b9d3) + word(flags) + word(0) + word(mid)
     if sender is not None:
         raw += peer("user", sender)
     raw += peer(kind, dialog) + word(date) + string(text)
     if photo:
         raw += word(0xe216eb63) + word(1) + word(0x2331b22d) + struct.pack("<q", 987654321)
-    return raw + string("../../never-follow-this-attachment.jpg")
+    if edit_date is not None:
+        raw += word(edit_date)
+    return raw + string(ATTACH_PATH)
+
+
+def body_digest(raw):
+    # The independent writer knows its own opaque attachPath trailer. No
+    # recovery/parser offsets are used as the oracle for the full TL body.
+    trailer = string(ATTACH_PATH)
+    assert raw.endswith(trailer)
+    return hashlib.sha256(raw[:-len(trailer)]).hexdigest()
 
 
 def digest(path):
@@ -64,7 +77,7 @@ def create(destination, variant="current"):
     destination = Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
     require_wal = variant in ("history", "missing-preimage", "corrupt-wal",
-                              "primary-historical", "repeated-history")
+                              "primary-historical", "repeated-history", "metadata-only-edit")
     with tempfile.TemporaryDirectory(prefix="owned-media-cache-writer-") as temporary:
         source = Path(temporary) / "cache4.db"
         con = sqlite3.connect(source)
@@ -102,6 +115,7 @@ def create(destination, variant="current"):
             golden = {"variant": variant, "text": TEXT, "mid": observed[0],
                       "uid": observed[1], "date": observed[2], "type": observed[3],
                       "blob_sha256": hashlib.sha256(observed[4]).hexdigest(),
+                      "tl_body_sha256": body_digest(observed[4]),
                       "message_constructor": "0x7600b9d3",
                       "media_constructor": "0xe216eb63",
                       "secure_delete": con.execute("PRAGMA secure_delete").fetchone()[0],
@@ -112,6 +126,13 @@ def create(destination, variant="current"):
             if variant == "primary-historical":
                 con.execute("DELETE FROM messages_v2")
                 con.commit()
+            if variant == "metadata-only-edit":
+                edited = message(edit_date=DATE + 60)
+                con.execute("UPDATE media_v4 SET data=?", (edited,))
+                con.commit()
+                current = con.execute("SELECT data FROM media_v4").fetchone()[0]
+                golden["body_versions_sha256"] = [body_digest(observed[4]), body_digest(current)]
+                golden["current_tl_body_sha256"] = body_digest(current)
             golden["current_cache_rows"] = con.execute("SELECT count(*) FROM media_v4").fetchone()[0]
             if variant == "repeated-history":
                 for tick in range(24):
@@ -144,7 +165,8 @@ def build(destination):
         path, golden = create(destination / variant, variant)
         cases.append({"variant": variant, "database": path.relative_to(destination).as_posix(),
                       "source_files": golden["source_files"]})
-    manifest = {"schema": 1, "source_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+    manifest = {"schema": 1, "generator_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                "source_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
                 "independent_sqlite_writer": True, "cases": cases}
     (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest

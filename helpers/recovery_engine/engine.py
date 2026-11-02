@@ -270,6 +270,9 @@ class Importer:
         self.photos = {}
         self.sources = []
         self.identities = {}
+        # Object identity is internal evidence, never a field accepted from an
+        # imported JSON/archive. Claimed IDs/body hashes cannot join this set.
+        self._checked_native_records = {}
         self.handled = set()
         self.attachment_map = {}
         self.attachments = {}
@@ -287,6 +290,13 @@ class Importer:
         self.sources.append({"code": code, "source": str(source or self.source_label or self.source), **details})
 
     def message(self, app, text, evidence="export", **fields):
+        self._message(app, text, evidence, fields, False)
+
+    def checked_native_message(self, app, text, evidence, **fields):
+        """Called only after the native SQL/TL reader has checked a full row."""
+        return self._message(app, text, evidence, fields, True)
+
+    def _message(self, app, text, evidence, fields, checked_native):
         m = {"app": app, "snapshot_id": self.snapshot, "chat_id": None,
              "sender_id": None, "sender_name": None, "timestamp": None,
              "text": str(text or ""), "message_id": None, "evidence_kind": evidence,
@@ -311,24 +321,32 @@ class Importer:
         if m["chat_id"] is not None and m["message_id"] is not None and evidence != "fragment":
             candidates = self.identities.setdefault(key, [])
             for previous in candidates:
+                if (self._checked_native_records.get(id(previous)) is previous) != checked_native:
+                    # A supplied archive claim must not become the carrier of
+                    # a freshly checked native row or its cache provenance.
+                    continue
                 # Equal captions/IDs are insufficient when a photo was replaced
                 # or removed in a later committed snapshot. Preserve those
                 # versions even if neither source contains full image bytes.
                 if all(previous.get(k) == m.get(k) for k in ("text", "sender_id", "timestamp", "attachments",
-                        "media_kind", "media_id", "media_status", "thumbnail_count")):
+                        "media_kind", "media_id", "media_status", "thumbnail_count", "native_tl_body_sha256")):
                     previous.setdefault("additional_sources", []).append(
                         {name: m.get(name) for name in ("snapshot_id", "source_file", "source_record", "source_sha256",
-                            "wal_commit_frame", "wal_proof", "wal_sha256", "wal_snapshot_sha256",
+                            "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
+                            "wal_commit_frame", "wal_proof", "wal_db_sha256", "wal_sha256", "wal_snapshot_sha256",
                             "wal_tail_reason", "wal_validated_prefix_bytes", "wal_snapshot_latest_known_commit",
                             "wal_current_state_confirmed", "sqlite_payload_length", "sqlite_payload_sha256",
                             "sqlite_payload_ranges", "sqlite_overflow_pages", "sqlite_overflow_chain_verified", "sqlite_stored_mid",
                             "container_sha256", "container_source_id", "container_source_file",
                             *ROLLBACK_FIELDS) if m.get(name) is not None})
-                    return
+                    return previous
             if candidates and evidence == "previous":
                 m["evidence_kind"] = "previous"
             candidates.append(m)
         self.messages.append(m)
+        if checked_native:
+            self._checked_native_records[id(m)] = m
+        return m
 
     def attachment(self, reference, base):
         if not reference or not isinstance(reference, str):
@@ -1333,11 +1351,17 @@ class Importer:
         payload = json.dumps(self.messages, ensure_ascii=False).replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
         script = """const data=JSON.parse(document.getElementById('data').textContent);let page=0;const size=100;
 const labels={export:'из экспорта',backup:'из резервной копии',previous:'предыдущая версия',fragment:'текстовый фрагмент'};
+const cacheNote='Медиакэш Telegram: сохранившаяся подпись и ссылка на фото. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.';
+function category(m){if(m.recovery_status==='imported_recovery_claim')return 'заявлено в исходном архиве';if(m.record_kind==='telegram_media_cache')return m.evidence_kind==='previous'?'кэш Telegram · предыдущая версия':'кэш Telegram';return m.recovery_status==='deleted_supported_by_evidence'?'сохранившийся остаток записи':labels[m.evidence_kind]??'категория неизвестна';}
 function draw(){const q=document.getElementById('q').value.toLocaleLowerCase();const cat=document.getElementById('cat').value;
 const list=data.filter(m=>(!cat||(cat==='deleted'?m.recovery_status==='deleted_supported_by_evidence':m.evidence_kind===cat))&&[m.text,m.sender_name,m.sender_id,m.app,m.chat_name,m.chat_id].some(x=>String(x??'').toLocaleLowerCase().includes(q)));
 page=Math.max(0,Math.min(page,Math.ceil(list.length/size)-1));const root=document.getElementById('messages');root.replaceChildren();
 for(const m of list.slice(page*size,(page+1)*size)){const a=document.createElement('article');const h=document.createElement('strong');h.textContent=[m.app,m.chat_name??m.chat_id??'Чат неизвестен',m.sender_name??m.sender_id??'Автор неизвестен',m.timestamp??m.timestamp_raw??'Дата неизвестна'].join(' · ');a.append(h);
-const b=document.createElement('small');b.textContent=(m.recovery_status==='deleted_supported_by_evidence'?'сохранившийся остаток записи':labels[m.evidence_kind])+' · '+(m.source_file??'')+' · '+(m.source_record??'')+(m.record_kind==='memory_fragment'?' · Telegram, автор, дата и факт удаления не подтверждены':'')+(m.record_kind==='notification'?' · неполный текст уведомления':'');a.append(b);const t=document.createElement('pre');t.textContent=m.text;a.append(t);
+const b=document.createElement('small');b.textContent=category(m)+' · '+(m.source_file??'')+' · '+(m.source_record??'')+(m.record_kind==='memory_fragment'?' · Telegram, автор, дата и факт удаления не подтверждены':'')+(m.record_kind==='notification'?' · неполный текст уведомления':'');a.append(b);const t=document.createElement('pre');t.textContent=m.text;a.append(t);
+if(m.record_kind==='telegram_media_cache'){const note=document.createElement('p');note.textContent=cacheNote;a.append(note);}
+if(m.provenance_verification==='provided_archive_metadata'){const note=document.createElement('p');note.textContent='Запись импортирована из предоставленного архива. Его сведения о происхождении в этом анализе независимо не проверялись.';a.append(note);}
+if(m.recovery_status==='imported_recovery_claim'){const note=document.createElement('p');note.textContent='Отметка об удалении перенесена из исходного архива; проверенной находкой удалённой записи в этом анализе она не считается. Исходная отметка: '+(m.archive_claims?.recovery_status??'не указана')+' · '+(m.archive_claims?.deletion_interpretation??'без пояснения');a.append(note);}
+if(Array.isArray(m.additional_sources)&&m.additional_sources.length){const d=document.createElement('details'),s=document.createElement('summary');s.textContent='Дополнительные источники';d.append(s);for(const o of m.additional_sources.slice(0,10)){const p=document.createElement('small');p.textContent=[o.record_kind==='telegram_media_cache'?cacheNote:'Другой источник',o.source_file,o.source_record,o.native_tl_body_sha256?'SHA256 TL: '+o.native_tl_body_sha256:null,o.wal_db_sha256?'SHA256 базы WAL: '+o.wal_db_sha256:null].filter(Boolean).join(' · ');d.append(p);}a.append(d);}
 for(const f of m.attachments??[]){if(!/^media\\/[a-f0-9]{64}\\.[a-z0-9]{1,12}$/.test(f))continue;const link=document.createElement('a');link.href=f;link.textContent='Открыть вложение';link.target='_blank';link.rel='noopener';link.download=f.split('/').pop();a.append(link);}root.append(a);}
 document.getElementById('count').textContent=list.length+' сообщений · страница '+(page+1)+' из '+Math.max(1,Math.ceil(list.length/size));}
 document.getElementById('q').oninput=()=>{page=0;draw()};document.getElementById('cat').onchange=()=>{page=0;draw()};document.getElementById('prev').onclick=()=>{page--;draw()};document.getElementById('next').onclick=()=>{page++;draw()};draw();"""

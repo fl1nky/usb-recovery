@@ -438,6 +438,17 @@ class Analyzer:
         if lost_maps:
             previous_provenance["unavailable_rollback_maps"] = lost_maps
         provided_sources = value.pop("sources", [])
+        # A supplied archive is evidence of its own text, not a fresh check of
+        # the physical SQLite links/deletion claims recorded by its writer.
+        # Never accept a supplied verification flag as internal provenance.
+        claims = value.pop("archive_claims", None) or {}
+        if value.get("recovery_status") == "deleted_supported_by_evidence" or value.get("deleted") is True:
+            claims.update({name: value[name] for name in
+                ("recovery_status", "deletion_interpretation", "deleted")
+                if isinstance(value.get(name), (str, bool))})
+            value.update(deleted=None, recovery_status="imported_recovery_claim",
+                         deletion_interpretation="unknown")
+        value.update(provenance_verification="provided_archive_metadata", archive_claims=claims or None)
         for field in ("app", "snapshot_id", "sources", "source_file", "source_record", "source_id", "source_sha256", "original_relative_path"):
             value.pop(field, None)
         self.message(text, evidence, source_record=record, previous_provenance=previous_provenance,
@@ -491,7 +502,7 @@ class Analyzer:
             fields.update(wal_commit_frame=self.current_wal.get("latest_commit_frame"),
                 wal_proof="validated_wal_commit", wal_sha256=self.current_wal.get("wal_sha256"),
                 wal_db_sha256=self.current_wal.get("db_sha256"))
-        if _native_row_verified and fields.get("record_kind") in (
+        if _native_row_verified is True and fields.get("record_kind") in (
                 "tl_message", "sqlite_deleted_record", "telegram_media_cache"):
             # Only internally checked SQL/TL rows enter this index. Published
             # JSON's self-declared IDs/body hashes cannot qualify as a primary.
@@ -530,7 +541,7 @@ class Analyzer:
                 prior = {
                     name: row[name] for name in (
                         "snapshot_id", "source_file", "source_record", "source_sha256",
-                        "record_kind", "recovery_status", "deletion_interpretation",
+                        "record_kind", "recovery_status", "deletion_interpretation", "native_tl_body_sha256",
                         "wal_commit_frame", "wal_proof", "wal_sha256",
                         "wal_db_sha256", "wal_snapshot_sha256", "media_kind",
                         "media_id", "media_status", "thumbnail_count")
@@ -542,11 +553,9 @@ class Analyzer:
                             sources.append(saved_origin)
                         else:
                             self.remark("TELEGRAM_MEDIA_CACHE_PROVENANCE_LIMIT")
-            self.worker.message("Telegram", text, evidence, **fields)
-            identity = ("Telegram", fields.get("identity_scope"), fields["record_kind"],
-                        fields.get("chat_id"), fields.get("message_id"))
-            target = next((row for row in self.worker.identities.get(identity, [])
-                           if row.get("native_tl_body_sha256") == key[-1]), None)
+            # Take the actual internally checked object, never find a row by
+            # self-declared archive fields after generic deduplication.
+            target = self.worker.checked_native_message("Telegram", text, evidence, **fields)
             if target is not None:
                 if target not in matched:
                     matched.append(target)
@@ -559,6 +568,7 @@ class Analyzer:
                     if row in saved:
                         saved.remove(row)
                     matched.remove(row)
+                    self.worker._checked_native_records.pop(id(row), None)
             return
         if fields.get("record_kind") != "notification":
             result = self.worker.message("Telegram", text, evidence, **fields)
