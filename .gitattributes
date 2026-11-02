@@ -11,6 +11,8 @@
 *.db-wal binary
 /tests/fixtures/telegram-cache-profiles/*.gz -text
 /tests/fixtures/telegram-cache-profiles/LICENSE -text
+/tests/fixtures/telegram-cache-profiles/manifest.json -text whitespace=cr-at-eol
+/tests/benchmarks/evidence-photo-telegram-comparison-20261103/** -text whitespace=cr-at-eol
 # Preserve the exact bytes referenced by immutable benchmark hash indexes.
 /tests/benchmarks/evidence-v7-telegram/** -text
 /tests/benchmarks/evidence-v8-telegram/** -text whitespace=cr-at-eol
