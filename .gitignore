@@ -92,6 +92,8 @@
 !/tests/fixtures/telegram-document-empty/
 !/tests/fixtures/telegram-document-descriptor/
 !/tests/fixtures/telegram-document-descriptor-portable/
+!/tests/fixtures/telegram-document-attributes/
+!/tests/fixtures/telegram-document-attributes-compatibility/
 !/tests/fixtures/video-stz2/
 !/tests/fixtures/video-fmp4/
 

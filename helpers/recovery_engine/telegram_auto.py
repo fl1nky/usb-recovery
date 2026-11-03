@@ -954,16 +954,18 @@ class Analyzer:
             document = media.get("document", {})
             if document.get("type") not in ("empty", "descriptor"):
                 return {}, []
-            # Neither an Empty reference nor a parsed descriptor contains the
-            # original file. Only the observed opaque signed ID is published;
-            # the declared filename/MIME/size never become text or attachments.
-            document_id = document.get("id")
-            return {"media_kind": "document",
-                    "media_id": str(document_id) if document_id is not None else None,
-                    "media_status": "document_reference_only", "thumbnail_count": 0}, []
-        if media.get("type") != "photo":
+            # Cached thumbnail bytes are distinct from the original document.
+            # Declared filename/MIME/size never become text or attachment paths.
+            media_kind, media_id = "document", document.get("id")
+            sizes, size_field = document.get("thumbs", []), "document.thumbs"
+            reference_status = "document_reference_only"
+        elif media.get("type") == "photo":
+            photo = media.get("photo", {})
+            media_kind, media_id = "photo", photo.get("id")
+            sizes, size_field = photo.get("sizes", []), "photo.sizes"
+            reference_status = "photo_reference_only"
+        else:
             return {}, []
-        photo = media.get("photo", {})
         attachments = []
         snapshot = self.history_snapshot
         history_fields = {name: snapshot[key] for name, key in (
@@ -973,7 +975,7 @@ class Analyzer:
             history_fields.update(self.rollback_snapshot)
         if snapshot:
             record += "@wal_commit:" + str(snapshot["commit_frame"])
-        for index, size in enumerate(photo.get("sizes", [])):
+        for index, size in enumerate(sizes):
             if size.get("kind") != "cached" or not size.get("content"):
                 continue
             content = size["content"]
@@ -992,11 +994,11 @@ class Analyzer:
                 self.native_thumbnail_count = count + 1
                 self.native_thumbnail_bytes = amount + len(content)
             self.worker.photo(content, self.worker.source_label or str(original), embedded=True,
-                record=record + f"/photo.sizes[{index}]", blob_offset=size["blob_offset"])
+                record=record + f"/{size_field}[{index}]", blob_offset=size["blob_offset"])
             saved = self.worker.photos.get(digest)
             if saved and saved["status"] == "decoded":
                 for origin in saved["sources"]:
-                    if origin["source_record"] == record + f"/photo.sizes[{index}]" and origin["snapshot_id"] == self.worker.snapshot:
+                    if origin["source_record"] == record + f"/{size_field}[{index}]" and origin["snapshot_id"] == self.worker.snapshot:
                         origin.update(history_fields)
                 if (saved["width"], saved["height"]) != (size["width"], size["height"]):
                     self.remark("TELEGRAM_THUMBNAIL_DIMENSIONS_MISMATCH", original, record=record, size_index=index)
@@ -1008,16 +1010,16 @@ class Analyzer:
                 metadata = self.worker.attachments.setdefault(digest, {"sha256": digest, "path": path,
                     "size": len(content), "kind": "cached_thumbnail", "sources": []})
                 origin = {"source_file": self.worker.source_label or str(original),
-                    "source_record": record + f"/photo.sizes[{index}]", "snapshot_id": self.worker.snapshot,
+                    "source_record": record + f"/{size_field}[{index}]", "snapshot_id": self.worker.snapshot,
                     "source_sha256": self.worker.current_origin.get("Sha256"),
                     "blob_offset": size["blob_offset"], "offset_kind": "sqlite_tl_blob_relative", **history_fields}
                 if origin not in metadata["sources"]:
                     metadata["sources"].append(origin)
             else:
                 self.remark("TELEGRAM_CACHED_THUMBNAIL_UNREADABLE", original, record=record, size_index=index)
-        return {"media_kind": "photo", "media_id": str(photo["id"]) if photo.get("id") is not None else None,
+        return {"media_kind": media_kind, "media_id": str(media_id) if media_id is not None else None,
                 "thumbnail_count": len(attachments),
-                "media_status": "cached_thumbnail_available" if attachments else "photo_reference_only"}, attachments
+                "media_status": "cached_thumbnail_available" if attachments else reference_status}, attachments
 
     def copy_sqlite_sidecars(self, source, copied):
         """Keep the journal away from SQLite's automatic hot-journal replay.

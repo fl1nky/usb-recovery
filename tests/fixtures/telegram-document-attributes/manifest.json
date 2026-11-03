@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "status": "INPUT_ONLY_OUTSIDE_CURRENT_READER_NOT_ACCEPTED",
+  "telegram_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "native_cases": 31,
+  "existing_profile_controls": 1,
+  "outside_current_reader_profiles": 30,
+  "expected_text_slots": 30,
+  "mutation_controls": 171,
+  "native_sqlite_sources": 202,
+  "native_java_runs": 2,
+  "native_sqlite_runs": 2,
+  "independent_checks": 2257,
+  "uncompressed_json_bytes": 303672,
+  "uncompressed_json_sha256": "590cbafaa74966ab88f94248deaf37822986a54f9cebe5d0d173801292dc5dc0",
+  "files": [
+    {
+      "path": "oracle.json.gz",
+      "bytes": 41121,
+      "sha256": "11b43c5c54248abe00ab4a6a4f0cf0df275ca78aafe04e89d85ed7d9b4f3e959"
+    },
+    {
+      "path": "native-sqlite-cases.zip",
+      "bytes": 163782,
+      "sha256": "7ae8796ca41cd2f2cccb5be21eb9b4268b96ab6e60480dfdb9fe522b5b6a6971"
+    },
+    {
+      "path": "oracle-sources.tar.gz",
+      "bytes": 392440,
+      "sha256": "db1cd39ea3cf8a94c612d4f4bba0454de8d9bc1f03ab4bd61422d8db235fdb12"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    }
+  ],
+  "scope": "Own native Java/SQLite input production only; no reader/helper/app/device/server/paid result"
+}

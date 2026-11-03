@@ -16,6 +16,7 @@ and report snapshot/original-byte provenance independently.
 """
 from __future__ import annotations
 
+import math
 import struct
 
 SOURCE_COMMIT = "4de548e79fed27f1a66fbdff84223321838fe925"
@@ -98,6 +99,12 @@ class _Reader:
 
     def i64(self) -> int:
         return struct.unpack("<q", self.take(8))[0]
+
+    def f64(self) -> float:
+        value = struct.unpack("<d", self.take(8))[0]
+        if not math.isfinite(value) or value < 0:
+            raise TelegramTlError("TL_INVALID_NUMBER")
+        return value
 
     def data_string_span(self) -> tuple[bytes, int]:
         first = self.take(1)[0]
@@ -273,36 +280,93 @@ def _photo(reader: _Reader):
             "constructor": f"0x{constructor:08x}"}
 
 
-def _document_reference(reader: _Reader):
-    """Read a plain current descriptor, without treating metadata as file bytes.
+def _document_dimensions(reader: _Reader):
+    width, height = reader.i32(), reader.i32()
+    if not 0 < width <= MAX_PHOTO_DIMENSION or not 0 < height <= MAX_PHOTO_DIMENSION:
+        raise TelegramTlError("TL_INVALID_PHOTO_DIMENSIONS")
 
-    Pinned TL_document 0x8fd4c4d8 stores size as int64. Optional thumbnail and
-    video-thumbnail vectors need their own readers. In this profile only zero
-    attributes or one filename attribute is understood. Consume and validate
-    names/MIME/references, but do not publish them as text, paths or content.
+
+def _document_attribute(reader: _Reader):
+    """Consume exact pinned attribute fields; none are message text or paths."""
+    constructor = reader.u32()
+    if constructor == 0x15590068:
+        reader.string()  # filename: metadata only
+    elif constructor == 0x43C57C48:
+        flags = reader.u32()
+        _flags(flags, 0x3F)
+        reader.f64()  # current video duration is a double
+        _document_dimensions(reader)
+        if flags & 4:
+            _nonnegative(reader.i32())
+        if flags & 16:
+            reader.f64()
+        if flags & 32:
+            reader.string()
+    elif constructor == 0x9852F9C6:
+        flags = reader.u32()
+        _flags(flags, 0x407)
+        _nonnegative(reader.i32())  # audio/voice duration remains int32
+        if flags & 1:
+            reader.string()
+        if flags & 2:
+            reader.string()
+        if flags & 4:
+            reader.data_string()
+    elif constructor == 0x6C37C15C:
+        _document_dimensions(reader)
+    elif constructor != 0x11B58939:  # animated has no fields
+        raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT_ATTRIBUTE")
+    return constructor
+
+
+def _document_video_size(reader: _Reader):
+    if reader.u32() != 0xDE33B094:
+        raise TelegramTlError("TL_UNSUPPORTED_VIDEO_SIZE")
+    flags = reader.u32()
+    _flags(flags, 1)
+    if len(reader.string()) > 32:
+        raise TelegramTlError("TL_PHOTO_TYPE_LIMIT")
+    _document_dimensions(reader)
+    _nonnegative(reader.i32())
+    if flags & 1:
+        reader.f64()
+
+
+def _document_reference(reader: _Reader):
+    """Read a bounded descriptor and cached thumbs, never original file bytes.
+
+    Only exact pinned Video/Audio/Animated/ImageSize/Filename attributes are
+    understood. Declared size remains int64, not an allocation request. Names,
+    MIME/references and attribute strings never become message text or paths.
+    Video thumbnails describe remote bytes; only cached photo bytes are local.
     """
     constructor = reader.u32()
     if constructor == 0x36F8C871:
         return {"type": "empty", "id": reader.i64()}
     if constructor != 0x8FD4C4D8:
         raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT")
-    _flags(reader.u32(), 0)
+    flags = reader.u32()
+    _flags(flags, 3)
     document_id = reader.i64()
     reader.i64()  # access_hash: never return it or perform a lookup
     reader.data_string()  # opaque file_reference, not embedded attachment bytes
     _nonnegative(reader.i32())  # document date is not the message date
     reader.string()  # declared MIME, never interpreted as executable content
     _nonnegative(reader.i64())  # declared size: validate, never allocate it
+    thumbs = reader.vector(lambda: _photo_size(reader), MAX_PHOTO_SIZES) if flags & 1 else []
+    if flags & 2:
+        reader.vector(lambda: _document_video_size(reader), MAX_PHOTO_SIZES)
     _nonnegative(reader.i32())  # dc_id; no network access
-
-    def filename():
-        if reader.u32() != 0x15590068:
-            raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT_ATTRIBUTE")
-        reader.string()  # metadata only; never open or resolve this name
-
-    reader.vector(filename, 1)
-    return {"type": "descriptor", "id": document_id,
-            "constructor": f"0x{constructor:08x}"}
+    attributes = reader.vector(lambda: _document_attribute(reader), 16)
+    # Repeated kinds are outside this bounded profile. Do not choose one of
+    # two conflicting filename/dimension/duration declarations arbitrarily.
+    if len(attributes) != len(set(attributes)):
+        raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT_ATTRIBUTE")
+    result = {"type": "descriptor", "id": document_id,
+              "constructor": f"0x{constructor:08x}"}
+    if thumbs:
+        result["thumbs"] = thumbs
+    return result
 
 
 def _media(reader: _Reader, *, allow_current_document=False):
@@ -313,12 +377,19 @@ def _media(reader: _Reader, *, allow_current_document=False):
         return {"type": "unsupported", "attachment_available": False}
     if constructor == 0x52D8CCD9 and allow_current_document:
         # Current media in the independently serialized layer232 outer profile.
-        # Other outer profiles, reply media, booleans and optional nested fields
-        # retain their existing unsupported status until separately validated.
-        if reader.u32() != 1:
+        # Other outer profiles, reply media, alternate documents/video covers
+        # and newer fields retain their existing unsupported status.
+        flags = reader.u32()
+        _flags(flags, 0x5DD)  # document, ttl, booleans3/4/6/7/8, video_timestamp
+        if not flags & 1:
             raise TelegramTlError("TL_UNSUPPORTED_FLAGS")
-        return {"type": "document", "constructor": f"0x{constructor:08x}",
-                "document": _document_reference(reader)}
+        result = {"type": "document", "constructor": f"0x{constructor:08x}",
+                  "document": _document_reference(reader)}
+        if flags & 1024:
+            _nonnegative(reader.i32())  # not the message timestamp
+        if flags & 4:
+            result["ttl_seconds"] = _nonnegative(reader.i32())
+        return result
     if constructor == 0x7C4414D3:
         # Legacy Document media, pinned TLRPC.java:7687-7717. Only its
         # DocumentEmpty payload is understood; do not skip unknown documents.

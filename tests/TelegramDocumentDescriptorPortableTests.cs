@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,13 +18,14 @@ public static class TelegramDocumentDescriptorPortableTests
 {
     const string Commit="4de548e79fed27f1a66fbdff84223321838fe925";
     const string OracleManifest="8b2d3c7b6fe1f259607ef18987bcd51625412aad9a59c747f72980b212f712f7";
+    const string CompatibilityManifest="27075f5e9ca95c54c0e07163bdf22d3756cdc7ef756e1baeff3fffa415d10f33";
     const string CorpusManifest="799f8beebdae559417726f53d396ea36172e463d82e2869293bb6789904d7585";
     const string CorpusZip="b49b62b0c45eca231eb4da8c9bdd00d156c2ac5ed210f1f1dc1a29ded6fd7d49";
     const string CorpusProducer="5271f29ccb6770ffd67b5373c06dd028d36f2dbae55a543cbdd93fdbe84b65cc";
     const string Factory="bef894bb21c46198ef3617c1f974db40dce52fae9f2051a7e50e73368697c4da";
     const string SqliteFactory="3936357e1a2dee4e4fe9bd7d7c422b35f6cea0724dc7a0df7da93b396b2da205";
     static readonly JavaScriptSerializer Json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};
-    static Dictionary<string,Dictionary<string,object>> oracle,controls;
+    static Dictionary<string,Dictionary<string,object>> oracle,controls,compatibility;
     static Dictionary<string,object> corpus,files;
     static string project,work,fixtures,context;
     static int checks,analyses;
@@ -103,6 +104,33 @@ public static class TelegramDocumentDescriptorPortableTests
         Check(Parts(oracle["descriptor-empty-text"]).Count==0&&Parts(oracle["legacy-empty-two-text-slots"]).Count==2,"filename never becomes text; distinct legacy slots remain separate");
     }
     static List<Dictionary<string,object>> Cases(string category){return List(corpus["cases"]).Where(p=>Str(p,"category")==category).ToList();}
+    static void BindCompatibility()
+    {
+        string root=Path.Combine(project,"tests","fixtures","telegram-document-attributes-compatibility"),manifest=Path.Combine(root,"manifest.json");Plain(manifest);
+        Check(Hash(manifest)==CompatibilityManifest,"hard-pinned supplemental native compatibility manifest");
+        var pinned=Read(manifest);var members=List(pinned["files"]);
+        var names=new HashSet<string>(new[]{3,4,6,7,8}.Select(bit=>"reject-media-flags-bit"+bit));
+        Check(Str(pinned,"source_fixture_manifest_sha256")==OracleManifest&&Num(pinned["explicit_compatibility_upgrades"])==5&&members.Count==4&&new HashSet<string>(members.Select(m=>Str(m,"path"))).SetEquals(new[]{"compatibility.json.gz","oracle-sources.tar.gz","LICENSE","README.md"}),"exact five-only policy and complete native source payload");
+        foreach(var member in members){string file=Safe(root,Str(member,"path"));Plain(file);Check(new FileInfo(file).Length==Num(member["bytes"])&&Hash(file)==Str(member,"sha256"),"compatibility proof member bytes remain exact");}
+        byte[] raw;
+        using(var input=File.OpenRead(Path.Combine(root,"compatibility.json.gz")))using(var gzip=new GZipStream(input,CompressionMode.Decompress))using(var output=new MemoryStream()){
+            byte[] buffer=new byte[8192];int n;while((n=gzip.Read(buffer,0,buffer.Length))>0){phase.ThrowIfCancellationRequested();Check(output.Length<=1024*1024-n,"bounded compatibility expansion");output.Write(buffer,0,n);}raw=output.ToArray();
+        }
+        Check(raw.Length==Num(pinned["uncompressed_json_bytes"])&&HashBytes(raw,raw.Length)==Str(pinned,"uncompressed_json_sha256"),"complete independent compatibility JSON bytes");
+        var payload=Json.Deserialize<Dictionary<string,object>>(new UTF8Encoding(false,true).GetString(raw));
+        var proofs=List(payload["cases"]);var native=List(payload["native_results"]).ToDictionary(p=>Str(p,"name"),StringComparer.Ordinal);
+        var policy=(Dictionary<string,object>)payload["policy"];
+        Check(Str(payload,"old_fixture_manifest_sha256")==OracleManifest&&proofs.Count==6&&native.Count==6&&new HashSet<string>(((IEnumerable)policy["upgrade_control_names"]).Cast<string>()).SetEquals(names),"supplement preserves old oracle and names only five upgrades");
+        compatibility=new Dictionary<string,Dictionary<string,object>>(StringComparer.Ordinal);
+        foreach(var proof in proofs.Where(p=>names.Contains(Str(p,"name")))){
+            string name=Str(proof,"name");var old=controls[name];var known=new Dictionary<string,object>(oracle[Str(old,"parent")]);foreach(var item in old)known[item.Key]=item.Value;
+            var outputs=(Dictionary<string,object>)native[name]["outputs"];var blob=(Dictionary<string,object>)outputs["blob"];var body=(Dictionary<string,object>)outputs["body"];
+            Check(Num(old["expected_native_parts"])==0&&Str(old,"parent")=="descriptor-filename"&&Str(native[name],"scope")=="WHOLE_BLOB_NATIVE_EXACT"&&Str(proof,"blob_sha256")==Str(old,"blob_sha256")&&Str(blob,"sha256")==Str(old,"blob_sha256")&&Str(proof,"tl_body_sha256")==Str(old,"tl_body_sha256")&&Str(body,"sha256")==Str(old,"tl_body_sha256")&&Num(proof["tl_bytes"])==Num(old["tl_bytes"]),"exact historical control independently reserialized as a complete native body/BLOB");
+            Check(Json.Serialize(proof["exact_sql"])==Json.Serialize(known["exact_sql"])&&Json.Serialize(proof["expected_message"])==Json.Serialize(known["expected"]),"same independent native field and SQL expectations");
+            Wire(known);known["expected_native_parts"]=1;compatibility.Add(name,known);
+        }
+        Check(new HashSet<string>(compatibility.Keys).SetEquals(names),"no omitted, duplicate or extra compatibility upgrade; old goldens unchanged");
+    }
     static Dictionary<string,object> FileProof(string relative){return (Dictionary<string,object>)files[relative];}
     static void ExtractCorpus()
     {
@@ -264,7 +292,9 @@ public static class TelegramDocumentDescriptorPortableTests
     static void Negatives()
     {
         string archive=Path.Combine(work,"controls");var summary=Analyze(Path.Combine(fixtures,"controls"),archive);Acquired(archive,Cases("controls").SelectMany(Members));
-        var all=All(archive);Counts(summary,all,all.Where(Native).ToList(),0,0);Check(Search(archive,"",0,false,"deleted").total==0,"all42 acquired invalid/scope controls remain nonnative");
+        var all=All(archive);var rows=all.Where(Native).ToList();Counts(summary,all,rows,5,0);
+        foreach(var pair in compatibility){var known=pair.Value;var selected=rows.Where(r=>r.native_tl_body_sha256==Str(known,"tl_body_sha256")).ToList();Check(selected.Count==1,"each of five independently proved compatibility inputs yields exactly its one text slot");var row=selected[0];Part(row,known,false);var item=Cases("controls").Single(c=>Str(c,"name")==pair.Key);string source=Safe(fixtures,Str(item,"database"));Scope(row,source);Check(String.Equals(Path.GetFullPath(row.source_file),source,StringComparison.OrdinalIgnoreCase)&&row.source_sha256==Hash(source),"compatible input retains its own physical source binding");Full(archive,row);}
+        Check(Search(archive,"",0,false,"deleted").total==0,"37 strict controls remain nonnative; five known boolean profiles make no deletion claim");
         Check(summary.ReadableSources==42,"all42 negative SQLite sources actually opened, not silently skipped");
     }
     static void Snapshots()
@@ -337,7 +367,7 @@ public static class TelegramDocumentDescriptorPortableTests
     static Dictionary<string,string> SourceBinding()
     {
         var result=new Dictionary<string,string>(StringComparer.Ordinal);
-        foreach(string folder in new[]{"telegram-document-descriptor","telegram-document-descriptor-portable"}){
+        foreach(string folder in new[]{"telegram-document-descriptor","telegram-document-descriptor-portable","telegram-document-attributes-compatibility"}){
             string root=Path.Combine(project,"tests","fixtures",folder);foreach(var item in Binding(root))result.Add(folder+"/"+item.Key,item.Value);
         }
         foreach(string source in new[]{"build_telegram_descriptor_portable_corpus.py","build_telegram_document_descriptor_fixtures.py","build_telegram_document_empty_fixtures.py","TelegramDocumentDescriptorPortableTests.cs"})result.Add("tests/"+source,Hash(Path.Combine(project,"tests",source)));
@@ -357,7 +387,7 @@ public static class TelegramDocumentDescriptorPortableTests
         try{
             if(args.Length!=1)throw new ArgumentException("Expected project directory");project=Path.GetFullPath(args[0]);
             work=Path.Combine(project,".build","telegram-document-descriptor-portable-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);fixtures=Path.Combine(work,"inputs");
-            stop=new CancellationTokenSource(TimeSpan.FromMinutes(20));phase=stop.Token;clock=Stopwatch.StartNew();sourceBefore=SourceBinding();BindOracle();ExtractCorpus();inputBefore=Binding(fixtures);
+            stop=new CancellationTokenSource(TimeSpan.FromMinutes(20));phase=stop.Token;clock=Stopwatch.StartNew();sourceBefore=SourceBinding();BindOracle();BindCompatibility();ExtractCorpus();inputBefore=Binding(fixtures);
             helper=HelperClient.Executable;app=typeof(RecoveryCore).Assembly.Location;harness=typeof(TelegramDocumentDescriptorPortableTests).Assembly.Location;Plain(helper);Plain(app);
             runtimeBefore=RuntimeBinding(helper,app,harness);
             PreCanceled();Current();Negatives();Snapshots();Versions();HiddenDump();ForgedResidual();phase.ThrowIfCancellationRequested();
@@ -371,11 +401,11 @@ public static class TelegramDocumentDescriptorPortableTests
             }catch(Exception error){cleanupErrors.Add(error.Message);if(failure==null)failure=error;}
             if(stop!=null)stop.Dispose();
             if(work!=null)try{
-                File.WriteAllText(Path.Combine(work,"acceptance.json"),Json.Serialize(new{schema=0,status=failure==null?"PASS":"FAIL",scope="Actual packaged public Telegram/search APIs on owned native fixtures; no device or full document-byte recovery",checks=checks,analyses=analyses,oracle_manifest_sha256=OracleManifest,corpus_manifest_sha256=CorpusManifest,zip_sha256=CorpusZip,
+                File.WriteAllText(Path.Combine(work,"acceptance.json"),Json.Serialize(new{schema=0,status=failure==null?"PASS":"FAIL",scope="Actual packaged public Telegram/search APIs on owned native fixtures; no device or full document-byte recovery",checks=checks,analyses=analyses,oracle_manifest_sha256=OracleManifest,compatibility_manifest_sha256=CompatibilityManifest,corpus_manifest_sha256=CorpusManifest,zip_sha256=CorpusZip,
                     app=app,helper=helper,harness=harness,runtime_before=runtimeBefore,runtime_after=runtimeAfter,source_before=sourceBefore,source_after=sourceAfter,input_before=inputBefore,input_after=inputAfter,runs=runs,cleanup_errors=cleanupErrors,error=failure==null?null:failure.ToString()}),new UTF8Encoding(false));
             }catch(Exception error){if(failure==null)failure=error;}
         }
         if(failure!=null){Console.Error.WriteLine(failure);return 1;}
-        Console.WriteLine("PASS TelegramDocumentDescriptorPortable: "+checks+" checks;21 native Java cases/42 rejection controls, exact signed document references, public helper/search/Regex/fulltext/canonical import, WAL/residual replay, changed-body versions and forged-claim isolation. No device, attachment-byte or paid-tool claim.");return 0;
+        Console.WriteLine("PASS TelegramDocumentDescriptorPortable: "+checks+" checks;21 native Java cases/37 strict controls+5 independently proved compatibility upgrades; old goldens unchanged. Exact signed references, public helper/search/Regex/fulltext/import, WAL/residual replay, versions and forged-claim isolation. No device, attachment-byte or paid-tool claim.");return 0;
     }
 }

@@ -21,6 +21,7 @@ from telegram_tl import parse_message, TelegramTlError
 from build_telegram_document_descriptor_fixtures import (
     load_cases, create, create_versions, expected_parts, inventory,
 )
+from telegram_document_compatibility import UPGRADED, current_case
 
 
 class TelegramDocumentDescriptorTests(unittest.TestCase):
@@ -103,10 +104,21 @@ class TelegramDocumentDescriptorTests(unittest.TestCase):
                 self.assertEqual(summary['deleted_supported_records'], 0)
                 self.assertTrue(all(r['evidence_kind'] == 'backup' and r.get('deleted') is None for r in native))
 
-    def test_independent_malformed_and_unsupported_controls_do_not_become_messages(self):
+    def test_old_controls_keep_explicit_current_compatibility_and_strict_rejections(self):
         self.assertGreaterEqual(len(self.controls), 8)
         for case in self.controls:
             with self.subTest(case=case['name']):
+                current = current_case(case)
+                if current is not case:
+                    # Historical labels remain zero. A supplemental exact
+                    # official whole-BLOB proof upgrades only five old inputs.
+                    value = parse_message(case['blob'])
+                    for key, expected in case['expected'].items():
+                        self.assertEqual(value[key], expected)
+                    _, summary, _, native = self.analyze(case, fragments=True)
+                    self.assert_native(current, native)
+                    self.assertEqual((summary['native_records'], summary['deleted_supported_records']), (1, 0))
+                    continue
                 sql_only = (case['expected_outcome'] == 'scope_reject' and
                             case['blob_sha256'] == case['native_parent_blob_sha256'])
                 if not sql_only:
@@ -121,7 +133,8 @@ class TelegramDocumentDescriptorTests(unittest.TestCase):
                 self.assertEqual(summary['native_records'], 0)
                 self.assertEqual(summary['deleted_supported_records'], 0)
 
-    def test_invalid_fixture_goldens_do_not_claim_parent_text(self):
+    def test_historical_fixture_goldens_remain_unchanged_by_current_policy(self):
+        self.assertEqual({c['name'] for c in self.controls if current_case(c) is not c}, UPGRADED)
         for case in self.controls:
             with self.subTest(case=case['name']):
                 database, golden = create(self.root / case['name'], case)

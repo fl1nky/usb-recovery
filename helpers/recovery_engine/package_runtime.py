@@ -64,6 +64,10 @@ if "--skip-rebuild-bundle" not in sys.argv:
                     rebuild / "tests/fixtures/telegram-document-empty", dirs_exist_ok=True)
     shutil.copytree(ROOT / "tests/fixtures/telegram-document-descriptor",
                     rebuild / "tests/fixtures/telegram-document-descriptor", dirs_exist_ok=True)
+    for name in ("TelegramDocumentAttributesTests.py", "build_telegram_document_attributes_fixtures.py", "telegram_document_compatibility.py"):
+        shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    for name in ("telegram-document-attributes", "telegram-document-attributes-compatibility"):
+        shutil.copytree(ROOT / "tests/fixtures" / name, rebuild / "tests/fixtures" / name, dirs_exist_ok=True)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"
         "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"

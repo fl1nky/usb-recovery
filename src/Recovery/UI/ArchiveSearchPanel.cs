@@ -85,6 +85,8 @@ namespace UsbRecovery
 
     public static class ArchiveSearchService
     {
+        public const int PageSize = 100;
+        public const long LatestWindowLimit = 100000;
         [DllImport("kernel32.dll")] static extern uint GetConsoleCP();
         [DllImport("kernel32.dll")] static extern bool SetConsoleCP(uint cp);
         const int MaxResponse = 64 * 1024 * 1024;
@@ -92,7 +94,7 @@ namespace UsbRecovery
         { return Search(archive, application, query, evidence, offset, cancel, false); }
         public static ArchiveSearchResult Search(string archive, string application, string query, string evidence, long offset, CancellationToken cancel, bool useRegex)
         {
-            return RunRequest<ArchiveSearchResult>(new{protocol=1,operation="search",archive=archive,app="Telegram",query=query??"",query_mode=useRegex?"regex":"literal",evidence=evidence??"",offset=offset,limit=100,sort="latest"},cancel,
+            return RunRequest<ArchiveSearchResult>(new{protocol=1,operation="search",archive=archive,app="Telegram",query=query??"",query_mode=useRegex?"regex":"literal",evidence=evidence??"",offset=offset,limit=PageSize,sort="latest"},cancel,
                 candidate=>ValidSearch(candidate,offset));
         }
         public static ArchiveTextPage ReadPage(string archive,string recordKey,long offset,CancellationToken cancel)
@@ -103,7 +105,7 @@ namespace UsbRecovery
         }
         static bool ValidSearch(ArchiveSearchResult candidate,long offset)
         {
-            if(candidate.total<0||candidate.offset!=offset||candidate.limit!=100||candidate.records==null||candidate.records.Count>100)return false;
+            if(candidate.total<0||candidate.offset!=offset||candidate.limit!=PageSize||candidate.records==null||candidate.records.Count>PageSize)return false;
             foreach(var message in candidate.records){
                 if(message==null||message.app!="Telegram"||message.text==null||message.text.Length>131072)return false;
                 if(!DisplayBound(message.source_file)||!DisplayBound(message.source_record)||!DisplayBound(message.source_sha256)||!DisplayBound(message.snapshot_id))return false;
@@ -317,6 +319,7 @@ namespace UsbRecovery
         readonly DataGridView grid = new DataGridView();
         CancellationTokenSource cancellation;
         ArchiveSearchResult current;
+        Tuple<string,string,string,bool> currentSearch, pendingSearch;
         bool busy, rerun, analysisBusy;
         long pageOffset;
         public bool IsBusy { get { return busy || analysisBusy; } }
@@ -358,7 +361,7 @@ namespace UsbRecovery
             var paging = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 4, Margin = new Padding(0, 3, 0, 3) };
             paging.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); for (int i = 0; i < 3; i++) paging.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
             count.Text = "Анализ ещё не выполнен"; count.AutoSize = true; count.Anchor = AnchorStyles.Left; paging.Controls.Add(count, 0, 0);
-            Configure(previous, "← Назад", delegate { StartSearch(Math.Max(0, pageOffset - 100)); }); Configure(next, "Далее →", delegate { StartSearch(pageOffset + 100); }); Configure(cancelButton, "Остановить", delegate { if (analysisBusy) { var handler = AnalysisCancelRequested; if (handler != null) handler(this, EventArgs.Empty); } else if (cancellation != null) cancellation.Cancel(); }); cancelButton.Name = "telegram-stop";
+            Configure(previous, "← Назад", delegate { StartSearch(Math.Max(0, pageOffset - ArchiveSearchService.PageSize)); }); Configure(next, "Далее →", delegate { StartSearch(pageOffset + ArchiveSearchService.PageSize); }); Configure(cancelButton, "Остановить", delegate { if (analysisBusy) { var handler = AnalysisCancelRequested; if (handler != null) handler(this, EventArgs.Empty); } else if (cancellation != null) cancellation.Cancel(); }); cancelButton.Name = "telegram-stop";
             previous.Enabled = next.Enabled = cancelButton.Enabled = false; paging.Controls.Add(previous, 1, 0); paging.Controls.Add(next, 2, 0); paging.Controls.Add(cancelButton, 3, 0); layout.Controls.Add(paging, 0, 4);
             grid.Dock = DockStyle.Fill; grid.ReadOnly = true; grid.AllowUserToAddRows = grid.AllowUserToDeleteRows = grid.AllowUserToResizeRows = false; grid.MultiSelect = false; grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect; grid.RowHeadersVisible = false; grid.AutoGenerateColumns = false; grid.BorderStyle = BorderStyle.FixedSingle; grid.BackgroundColor = Color.White; grid.GridColor = Color.FromArgb(224, 224, 224); grid.EnableHeadersVisualStyles = false; grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(239, 239, 239); grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(35, 35, 35); grid.ColumnHeadersHeight = 36; grid.RowTemplate.Height = 34;
             Column("chat", "Чат", 125); Column("author", "Автор", 125); Column("date", "Дата", 150); Column("category", "Категория", 130); Column("text", "Сообщение", 200); grid.Columns[4].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
@@ -419,6 +422,10 @@ namespace UsbRecovery
             if (String.IsNullOrWhiteSpace(archive.Text)) { count.Text = "Сначала нажми «Анализировать»"; return; }
             string path = archive.Text, app = "Telegram", words = query.Text; bool useRegex = regexMode.Checked;
             string[] categories = { "", "export", "backup", "previous", "fragment", "deleted" }; string category = categories[Math.Max(0, evidence.SelectedIndex)];
+            var selection = Tuple.Create(path, words, category, useRegex);
+            if (offset > 0 && !selection.Equals(currentSearch)) offset = 0;
+            if (offset < 0 || offset > ArchiveSearchService.LatestWindowLimit - ArchiveSearchService.PageSize) { count.Text = ErrorLabel("QUERY_WINDOW_LIMIT"); SetBusy(false); return; }
+            pendingSearch = selection;
             cancellation = new CancellationTokenSource(); busy = true; SetBusy(true); count.Text = "Поиск в локальном архиве…";
             CancellationToken token = cancellation.Token;
             ArchiveSearchResult result = null; int failure = 0;
@@ -439,21 +446,22 @@ namespace UsbRecovery
                 if (IsDisposed) return;
                 if (failure == 1) { count.Text = "Поиск остановлен"; return; }
                 if (failure == 2 || result == null) { ClearResults(); count.Text = "Не удалось прочитать архив. Проверь папку и готовый комплект программы."; return; }
-                if (result.status == "error") { ClearResults(); count.Text = ErrorLabel(result.code); return; }
-                current = result; pageOffset = result.offset; grid.Rows.Clear(); body.Clear(); provenance.Clear();
+                if (result.status == "error") { if (result.code != "QUERY_WINDOW_LIMIT") ClearResults(); count.Text = ErrorLabel(result.code); return; }
+                current = result; currentSearch = pendingSearch; pageOffset = result.offset; grid.Rows.Clear(); body.Clear(); provenance.Clear();
                 foreach (var message in result.records) {
                     if (!String.Equals(message.app, "Telegram", StringComparison.OrdinalIgnoreCase)) throw new IOException("SEARCH_APP_MISMATCH");
                     int row = grid.Rows.Add(Known(message.chat_name, message.chat_id, "Чат неизвестен"), Known(message.sender_name, message.sender_id, "Автор неизвестен"), DisplayDate(message), MessageCategory(message), OneLine(message.media_kind=="photo"&&String.IsNullOrEmpty(message.text)?"Фотография без подписи":message.text,message)); grid.Rows[row].Tag = message;
                 }
                 long last = Math.Min(result.total, pageOffset + result.records.Count); count.Text = result.total == 0 ? "По запросу ничего не найдено" : "Найдено: " + result.total.ToString("N0") + " · " + (pageOffset + 1) + "–" + last;
                 if (result.status == "partial") count.Text += " · есть замечания к архиву";
+                if (result.total > ArchiveSearchService.LatestWindowLimit && pageOffset >= ArchiveSearchService.LatestWindowLimit - ArchiveSearchService.PageSize) count.Text += " · уточни запрос";
                 if (grid.Rows.Count > 0) { grid.Rows[0].Selected = true; grid.CurrentCell = grid.Rows[0].Cells[0]; } ShowMessage();
             } catch { ClearResults(); count.Text = "Не удалось прочитать архив. Проверь папку и готовый комплект программы."; }
             finally { busy = false; if (cancellation != null) { cancellation.Dispose(); cancellation = null; } if (!IsDisposed) { SetBusy(false); if (rerun) { rerun = false; BeginInvoke(new Action(() => StartSearch(0))); } } }
         }
 
-        void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset + 100 < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
-        void ClearResults() { current = null; pageOffset = 0; grid.Rows.Clear(); ShowMessage(); }
+        void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset >= 0 && pageOffset <= ArchiveSearchService.LatestWindowLimit - 2 * ArchiveSearchService.PageSize && pageOffset + ArchiveSearchService.PageSize < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
+        void ClearResults() { current = null; currentSearch = null; pageOffset = 0; grid.Rows.Clear(); ShowMessage(); }
         static string Known(string preferred, object fallback, string unknown)
         {
             string result=!String.IsNullOrEmpty(preferred)?preferred:fallback==null||String.IsNullOrEmpty(Convert.ToString(fallback))?unknown:Convert.ToString(fallback);
@@ -507,7 +515,7 @@ namespace UsbRecovery
             }
             return null;
         }
-        static string ErrorLabel(string code) { switch (code) { case "REGEX_INVALID": return "Ошибка в регулярном выражении. Исправь запрос или выключи Regex."; case "REGEX_TIMEOUT": return "Регулярное выражение слишком сложное. Сократи запрос."; case "ARCHIVE_NOT_FOUND": return "В папке нет готового архива. Нажми «Анализировать» или выбери другую папку."; case "ARCHIVE_INCOMPLETE": return "Этот архив не завершён. Дождись успешного окончания импорта."; case "ARCHIVE_PATH_UNSAFE": return "Выбери обычную папку без ссылок и перенаправлений."; case "ARCHIVE_INDEX_INVALID": case "ARCHIVE_SCHEMA_UNSUPPORTED": return "Индекс архива повреждён или его формат не поддерживается."; case "QUERY_TOO_LONG": case "INVALID_REQUEST": return "Сократи запрос до 32 слов."; case "ARCHIVE_TOO_LARGE": return "Размер индекса превышает поддерживаемый предел."; default: return "Не удалось прочитать архив."; } }
+        static string ErrorLabel(string code) { switch (code) { case "REGEX_INVALID": return "Ошибка в регулярном выражении. Исправь запрос или выключи Regex."; case "REGEX_TIMEOUT": return "Регулярное выражение слишком сложное. Сократи запрос."; case "QUERY_WINDOW_LIMIT": return "Доступны первые 100 000 совпадений. Уточни запрос, чтобы найти нужное."; case "ARCHIVE_NOT_FOUND": return "В папке нет готового архива. Нажми «Анализировать» или выбери другую папку."; case "ARCHIVE_INCOMPLETE": return "Этот архив не завершён. Дождись успешного окончания импорта."; case "ARCHIVE_PATH_UNSAFE": return "Выбери обычную папку без ссылок и перенаправлений."; case "ARCHIVE_INDEX_INVALID": case "ARCHIVE_SCHEMA_UNSUPPORTED": return "Индекс архива повреждён или его формат не поддерживается."; case "QUERY_TOO_LONG": case "INVALID_REQUEST": return "Сократи запрос до 32 слов."; case "ARCHIVE_TOO_LARGE": return "Размер индекса превышает поддерживаемый предел."; default: return "Не удалось прочитать архив."; } }
         void ShowMessage()
         {
             var message = grid.SelectedRows.Count == 0 ? null : grid.SelectedRows[0].Tag as ArchiveMessage;

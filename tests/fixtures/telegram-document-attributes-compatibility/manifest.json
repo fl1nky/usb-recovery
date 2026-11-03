@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "telegram_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "status": "INPUT_ONLY_NATIVE_WIRE_COMPATIBILITY_PROOF",
+  "source_fixture": "telegram-document-descriptor",
+  "source_fixture_manifest_sha256": "8b2d3c7b6fe1f259607ef18987bcd51625412aad9a59c747f72980b212f712f7",
+  "old_positive_cases": 21,
+  "old_controls": 42,
+  "native_whole_blob_proofs": 6,
+  "explicit_compatibility_upgrades": 5,
+  "compatibility_case_names": [
+    "reject-media-flags-bit3",
+    "reject-media-flags-bit4",
+    "reject-media-flags-bit6",
+    "reject-media-flags-bit7",
+    "reject-media-flags-bit8"
+  ],
+  "uncompressed_json_bytes": 29292,
+  "uncompressed_json_sha256": "fa20ca0ee509262c5bef15aad323e8669af4924be5e436609601ca784eff047d",
+  "native_run_receipt_sha256": "eb3329b2d27112adae2f061b298cbc511697cb96228cfcfb3efb7a8fd7d22038",
+  "files": [
+    {
+      "path": "compatibility.json.gz",
+      "bytes": 4443,
+      "sha256": "b369e4af63e93eac5f2c28294ad26334ac55c96494172152e6609566f7ad5853"
+    },
+    {
+      "path": "oracle-sources.tar.gz",
+      "bytes": 385623,
+      "sha256": "f7acb304ee01a0c7688faa52e028d8defb9008d58eb78fc63b71b2de3255b3f3"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2958,
+      "sha256": "5caf2f8bf2538240e0c2149493b07e55f40cc9d983159c8494cd65bf9718311a"
+    }
+  ],
+  "no_change_to_old_fixture": true,
+  "duplicate_filename_policy": "STRICT_UNSUPPORTED",
+  "legacy_empty_policy": "NO_RECLASSIFICATION",
+  "recovery_parser_imported": false,
+  "product_recovery_run": false,
+  "native_device_server_auth_claimed": false,
+  "paid20_benchmark_changed": false
+}

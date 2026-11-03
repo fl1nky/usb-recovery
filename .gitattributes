@@ -17,6 +17,8 @@
 /tests/fixtures/telegram-document-descriptor/LICENSE -text
 /tests/fixtures/telegram-document-descriptor/manifest.json -text
 /tests/fixtures/telegram-document-descriptor-portable/** -text
+/tests/fixtures/telegram-document-attributes/** -text
+/tests/fixtures/telegram-document-attributes-compatibility/** -text
 /tests/fixtures/video-stz2/** -text
 /tests/fixtures/video-fmp4/** -text
 /tests/fixtures/telegram-document-empty/manifest.json -text whitespace=cr-at-eol
