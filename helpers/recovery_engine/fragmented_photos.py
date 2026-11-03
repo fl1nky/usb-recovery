@@ -104,6 +104,35 @@ class PhotoAssembler:
         self.ihdr, self.plte = [], []
         self.max_states = min(MAX_STATES, max(1, int(self.options.get("max_states", MAX_STATES))))
         self.index_position, self.index_tokens, self.index_last_match = 0, 0, -1
+        self.streaming_png = self.options.get('streaming_png', False)
+        self.sector_index = None
+        self.png_search, self.png_search_state, self.png_checkpoint = None, None, None
+        self.png_cursor = 0
+        self.unsupported_idat = 0
+        self.historical_skipped = Counter()
+
+    def notify(self, phase, done, total):
+        if not self.streaming_png:
+            return self.progress(done, total)
+        low, high = {'index': (0, 400000), 'png_two': (400000, 500000),
+                     'png_join': (500000, 900000), 'png': (900000, 950000),
+                     'jpeg': (950000, 1000000)}[phase]
+        value = low + min(max(0, done), max(1, total)) * (high - low) // max(1, total)
+        self.progress(value, 1000000)
+
+    def png_join_progress(self):
+        if self.png_search is None:
+            self.notify('png_join', 0, 1)
+        else:
+            self.notify(*self.png_search.progress())
+
+    def active_incomplete(self):
+        pending = {key for key, value in self.skipped.items()
+                   if key.endswith(('_limit', '_incomplete')) and
+                   (not self.streaming_png or value > self.historical_skipped.get(key, 0))}
+        if self.streaming_png and self.unsupported_idat:
+            pending.add('png_idat_size_incomplete')
+        return sorted(pending)
 
     def read(self, offset, length):
         if time.monotonic() - self.started > 120:
@@ -144,18 +173,22 @@ class PhotoAssembler:
                 checkpoint_prefix()
                 raise LimitReached("index_time_budget")
             counts = [len(values) for values in lists]
+            unsupported = self.unsupported_idat
             try:
                 self.stream.seek(position)
                 block = self.stream.read(1024 * 1024)
                 if block:
                     data, base = carry + block, position - len(carry)
                     next_match, next_tokens = self.index_data(data,base,last_match,tokens)
+                    if self.sector_index is not None:
+                        self.sector_index.append(position, block)
             except BaseException:
                 # An exception inside CRC/header validation must not combine a
                 # previous block position with partially appended next-block
                 # entries. Only the last complete block may become durable.
                 for values,count in zip(lists,counts):
                     del values[count:]
+                self.unsupported_idat = unsupported
                 checkpoint_prefix()
                 raise
             if not block:
@@ -168,7 +201,7 @@ class PhotoAssembler:
             if position == self.size or position - saved >= interval or time.monotonic()-saved_at >= 10:
                 checkpoint_prefix()
             try:
-                self.progress(position, self.size)
+                self.notify('index', position, self.size)
             except BaseException:
                 checkpoint_prefix()
                 raise
@@ -208,6 +241,10 @@ class PhotoAssembler:
                         if len(self.idat) >= MAX_CHUNKS:
                             raise LimitReached("png_chunks")
                         self.idat.append(at - 4)
+                    elif self.streaming_png:
+                        # A plausible header beyond the supported chunk bound
+                        # remains an explicit coverage gap, including on resume.
+                        self.unsupported_idat += 1
                     continue
                 chunk = self.chunk(at - 4)
                 if chunk and chunk[0] == token:
@@ -487,10 +524,13 @@ class PhotoAssembler:
 
     def recipes(self, completed=None, png_start=0, jpeg_start=0):
         for index, start in enumerate(self.starts[png_start:], png_start):
+            self.png_cursor = index
             for recipe in self.png(start):
                 yield recipe, "png_crc_zlib_reassembled_candidate", "Chunk CRC, full zlib Adler stream and image decoding agree; original ownership and deletion are not authenticated."
             if completed:
                 completed("Png", index + 1)
+            if self.streaming_png:
+                self.notify('png', index + 1, len(self.starts))
         from jpeg_fragments import recover_jpegs
         original = self.jpeg_starts
         self.jpeg_starts = _CompletedStarts(original[jpeg_start:], completed, jpeg_start)
@@ -532,9 +572,13 @@ class _CompletedStarts(list):
 
 
 def _snapshot(assembler):
-    return dict(Position=assembler.index_position, Tokens=assembler.index_tokens,
+    value = dict(Position=assembler.index_position, Tokens=assembler.index_tokens,
                 LastMatch=assembler.index_last_match,
                 **{name: list(getattr(assembler, name)) for name in ('starts', 'jpeg_starts', 'ihdr', 'plte', 'idat', 'iend')})
+    if assembler.streaming_png:
+        value['SectorCrc'] = assembler.sector_index.snapshot()
+        value['UnsupportedIdat'] = assembler.unsupported_idat
+    return value
 
 
 def _restore(assembler, journal):
@@ -542,14 +586,18 @@ def _restore(assembler, journal):
     index, cursor, records, skipped = None, dict(Png=0, Jpeg=0), [], {}
     verified = decoded = 0
     phase = 'index'
+    sector_meta, png_state = None, None
     keys = {'Schema','Binding','Sequence','Previous','Phase','Index','Cursor','Files','Skipped','VerifiedBytes','DecodedBytes'}
     for state in journal.chain:
-        if (set(state) not in (keys, keys | {'AliasUpdates'}) or
+        expected_keys = keys | ({'PngSearch'} if assembler.streaming_png else set())
+        if (set(state) not in (expected_keys, expected_keys | {'AliasUpdates'}) or
                 not isinstance(state['Phase'],str) or state['Phase'] not in {'index','candidates','complete'}):
             raise CheckpointError('PHOTO_CHECKPOINT_STRUCTURE_INVALID')
         incoming = state['Index']
         if incoming is not None:
             names = {'Position','Tokens','LastMatch','starts','jpeg_starts','ihdr','plte','idat','iend'}
+            if assembler.streaming_png:
+                names.update(('SectorCrc', 'UnsupportedIdat'))
             if not isinstance(incoming, dict) or set(incoming) != names:
                 raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
             position, tokens, last = incoming['Position'], incoming['Tokens'], incoming['LastMatch']
@@ -558,7 +606,7 @@ def _restore(assembler, journal):
                     type(tokens) is not int or not 0 <= tokens <= 2_000_000 or
                     type(last) is not int or not -1 <= last < max(1, position)):
                 raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
-            for name in names - {'Position','Tokens','LastMatch'}:
+            for name in names - {'Position','Tokens','LastMatch','SectorCrc','UnsupportedIdat'}:
                 values, maximum = incoming[name], MAX_STARTS if name in {'starts','jpeg_starts'} else MAX_CHUNKS
                 if (not isinstance(values, list) or len(values) > maximum or
                         any(type(at) is not int or not 0 <= at < position for at in values) or
@@ -567,7 +615,38 @@ def _restore(assembler, journal):
                     raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
             if index is not None and (position < index['Position'] or tokens < index['Tokens'] or last < index['LastMatch']):
                 raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
+            if assembler.streaming_png:
+                unsupported = incoming['UnsupportedIdat']
+                if (type(unsupported) is not int or not 0 <= unsupported <= tokens or
+                        index is not None and unsupported < index['UnsupportedIdat']):
+                    raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
+                incoming_sector = incoming['SectorCrc']
+                assembler.sector_index.validate_metadata(incoming_sector, assembler.size, position)
+                if sector_meta is not None:
+                    assembler.sector_index.extension(sector_meta, incoming_sector)
+                sector_meta = incoming_sector
             index = incoming
+        if assembler.streaming_png:
+            incoming_png = state['PngSearch']
+            if png_state is not None:
+                if incoming_png is None:
+                    raise CheckpointError('PHOTO_CHECKPOINT_PNG_SEARCH_STATE_INVALID')
+                # Journal hashes authenticate the entire previous transition.
+                # Retained maps and completed row count still must be monotonic.
+                try:
+                    phases = {'anchors': 0, 'two': 1, 'three': 2, 'complete': 3}
+                    before = (phases[png_state['Phase']], png_state['Head'], png_state['Anchor'],
+                              -4097 if png_state['Unit'] is None else png_state['Unit'])
+                    after = (phases[incoming_png['Phase']], incoming_png['Head'], incoming_png['Anchor'],
+                             -4097 if incoming_png['Unit'] is None else incoming_png['Unit'])
+                    if (after < before or incoming_png['Rows'] < png_state['Rows'] or
+                            incoming_png['Candidates'][:len(png_state['Candidates'])] != png_state['Candidates'] or
+                            png_state['Anchors'] is not None and incoming_png['Anchors'] != png_state['Anchors'] or
+                            incoming_png['StartedAtPng'] != png_state['StartedAtPng']):
+                        raise ValueError()
+                except (KeyError, TypeError, ValueError):
+                    raise CheckpointError('PHOTO_CHECKPOINT_PNG_SEARCH_STATE_INVALID') from None
+            png_state = incoming_png
         if index is None:
             raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
         next_cursor = state['Cursor']
@@ -646,6 +725,16 @@ def _restore(assembler, journal):
     for name in ('starts','jpeg_starts','ihdr','plte','idat','iend'):
         setattr(assembler, name, list(index[name]))
     assembler.skipped.update(skipped)
+    if assembler.streaming_png:
+        assembler.unsupported_idat = index['UnsupportedIdat']
+        assembler.sector_index.restore(sector_meta)
+        if png_state is not None:
+            from png_streaming import GlobalPngSearch
+            GlobalPngSearch.validate_state(png_state, assembler)
+            if png_state['Phase'] != 'complete' and cursor['Png'] > png_state['StartedAtPng']:
+                raise CheckpointError('PHOTO_CHECKPOINT_PNG_SEARCH_CURSOR_INVALID')
+        assembler.png_search_state = png_state
+        assembler.historical_skipped.update(skipped)
     return records, cursor, verified, decoded, phase
 
 
@@ -753,21 +842,29 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
     import jpeg_fragments
     import png_fragments
     import recovery_checkpoint as checkpoint
+    import png_sector_index
+    import png_streaming
     from PIL import __version__ as pillow_version
     image, destination = checkpoint.plain(image), checkpoint.plain(destination)
     options = dict(options or {})
     anchor = options.pop('resume_checkpoint', None)
-    if any(key != 'max_states' for key in options):
+    if any(key not in {'max_states', 'streaming_png'} for key in options) or type(options.get('streaming_png', False)) is not bool:
         raise ValueError('PHOTO_OPTIONS_INVALID')
     normalized = dict(max_states=min(MAX_STATES,max(1,int(options.get('max_states',MAX_STATES)))))
+    streaming = options.get('streaming_png', False)
+    if streaming:
+        normalized['streaming_png'] = True
     state_directory = checkpoint.plain(destination.parent / (destination.name+'.state'))
+    index_directory = checkpoint.plain(destination.parent / (destination.name+'.index'))
     if (not image.is_file() or image == destination or
             image.is_relative_to(destination) or image.is_relative_to(state_directory) or
-            anchor is None and (destination.exists() or state_directory.exists())):
+            streaming and image.is_relative_to(index_directory) or
+            anchor is None and (destination.exists() or state_directory.exists() or streaming and index_directory.exists())):
         raise ValueError('PHOTO_SOURCE_OR_DESTINATION_INVALID')
-    if anchor is not None and (not destination.is_dir() or not state_directory.is_dir()):
+    if anchor is not None and (not destination.is_dir() or not state_directory.is_dir() or streaming and not index_directory.is_dir()):
         raise checkpoint.CheckpointError('PHOTO_CHECKPOINT_JOB_MISSING')
     records, hashes, status, output_bytes = [], set(), 'complete', 0
+    sector_index = None
     resumed_index_bytes = reused_candidates = 0
     if anchor is None:
         destination.mkdir(parents=True, exist_ok=False)
@@ -780,8 +877,12 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
             input_sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
             stream.seek(0)
             assembler = PhotoAssembler(stream, normalized, progress)
+            if streaming:
+                sector_index = png_sector_index.SectorPrefixIndex(index_directory, identity.st_size, create=anchor is None)
+                assembler.sector_index = sector_index
             binding = dict(SourceSha256=input_sha256,SourceBytes=identity.st_size,Options=normalized,
-                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,png_fragments,checkpoint]),
+                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,png_fragments,checkpoint,
+                                                              png_sector_index,png_streaming]),
                            Runtime=dict(Python=list(sys.version_info[:3]),Pillow=pillow_version,Zlib=zlib.ZLIB_RUNTIME_VERSION))
             journal = checkpoint.Journal(state_directory,binding,anchor,checkpoint_progress)
             cursor, verified_prior, decoded_prior, phase = dict(Png=0,Jpeg=0),0,0,'index'
@@ -821,6 +922,9 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 value = dict(Phase=phase_name,Index=_snapshot(assembler) if include_index else None,
                     Cursor=dict(cursor),Files=copy.deepcopy(records[committed_records:]),Skipped=dict(assembler.skipped),
                     VerifiedBytes=verified_prior+assembler.verified,DecodedBytes=decoded_prior+assembler.decoded)
+                if streaming:
+                    value['PngSearch'] = (assembler.png_search.snapshot() if assembler.png_search is not None else
+                                          copy.deepcopy(assembler.png_search_state))
                 if pending_aliases:
                     value['AliasUpdates'] = [dict(Sha256=sha, **copy.deepcopy(update))
                         for sha, update in sorted(pending_aliases.items())]
@@ -834,8 +938,10 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 pending_aliases.clear()
             if anchor is None:
                 save('index',True)
+            if streaming:
+                assembler.png_checkpoint = lambda: save('candidates')
             def completed(kind, value):
-                if any(key.endswith(('_limit','_incomplete')) for key in assembler.skipped):
+                if assembler.active_incomplete():
                     raise LimitReached('candidate_search_incomplete')
                 cursor[kind] = value
                 save('candidates')
@@ -898,14 +1004,17 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
             if ((identity.st_size, identity.st_mtime_ns, identity.st_ino) != (after.st_size, after.st_mtime_ns, after.st_ino) or
                     identity.st_ino != path_state.st_ino or input_sha256 != final_sha256):
                 raise ValueError("PHOTO_SOURCE_CHANGED")
-            if any(key.endswith(("_limit", "_incomplete")) for key in assembler.skipped):
+            if assembler.active_incomplete():
+                status = 'limited'
+            if streaming and assembler.png_search is not None and assembler.png_search.state['Phase'] != 'complete':
                 status = 'limited'
             if status == 'complete':
                 try:
                     save('complete')
                 except LimitReached as error:
                     status = 'limited';assembler.skipped[str(error)] += 1
-            elif assembler.index_position == assembler.size and (pending_aliases or len(records) > committed_records):
+            elif assembler.index_position == assembler.size and (pending_aliases or len(records) > committed_records or
+                                                                 streaming and assembler.png_search is not None):
                 # The full source hash is now checked. Keep validated new maps
                 # and weaker evidence durable even if another branch hit a
                 # limit; the cursor remains before the uncompleted candidate.
@@ -928,6 +1037,13 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                           SourceUnchanged=True, Skipped=dict(assembler.skipped), Files=published,
                           ResumedFromCheckpoint=anchor is not None,ResumedIndexBytes=resumed_index_bytes,
                           ReusedCandidates=reused_candidates)
+            if streaming:
+                report.update(StreamingPng=True, IndexBytes=sector_index.states * 4,
+                              ActiveIncomplete=assembler.active_incomplete(),
+                              PngSearchCoverage=(dict(Phase=assembler.png_search.state['Phase'],
+                                  Head=assembler.png_search.state['Head'], Anchor=assembler.png_search.state['Anchor'],
+                                  Unit=assembler.png_search.state['Unit'], Rows=assembler.png_search.state['Rows'])
+                                  if assembler.png_search is not None else None))
             temporary = destination/'report.json.partial'
             with temporary.open('xb') as target:
                 target.write(json.dumps(report,ensure_ascii=False,indent=2).encode('utf-8'));target.flush();os.fsync(target.fileno())
@@ -939,3 +1055,6 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
         if job_open:
             (destination / "job.incomplete").touch()
         raise
+    finally:
+        if sector_index is not None:
+            sector_index.close()

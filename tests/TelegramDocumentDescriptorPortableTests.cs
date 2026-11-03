@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -77,6 +77,16 @@ public static class TelegramDocumentDescriptorPortableTests
         var expected=(Dictionary<string,object>)value["expected"];string text=Str(expected,"text"),caption=Str(value,"expected_legacy_caption");
         if(!String.IsNullOrEmpty(text))result.Add(new Dictionary<string,object>{{"text",text},{"text_field","message"},{"supplemental",false}});
         if(!String.IsNullOrEmpty(caption)&&caption!=text)result.Add(new Dictionary<string,object>{{"text",caption},{"text_field","media.legacy_caption"},{"supplemental",!String.IsNullOrEmpty(text)}});
+        return result;
+    }
+    // retained_media_records_v1 changes record retention, never frozen text-slot goldens.
+    static List<Dictionary<string,object>> CurrentParts(Dictionary<string,object> value)
+    {
+        var result=Parts(value);
+        if(result.Count==0&&Get(value,"document_id")!=null){
+            Check(String.IsNullOrEmpty(Str((Dictionary<string,object>)value["expected"],"text")),"retained media-only record has exact empty native text");
+            result.Add(new Dictionary<string,object>{{"text",""},{"text_field","message"},{"supplemental",false}});
+        }
         return result;
     }
     static void Wire(Dictionary<string,object> item)
@@ -232,7 +242,7 @@ public static class TelegramDocumentDescriptorPortableTests
     }
     static void Part(ArchiveMessage row,Dictionary<string,object> known,bool historical,bool imported=false)
     {
-        var parts=Parts(known);var part=parts.Single(p=>Str(p,"text_field")==row.text_field);var expected=(Dictionary<string,object>)known["expected"];var sql=(Dictionary<string,object>)known["exact_sql"];
+        var parts=CurrentParts(known);var part=parts.Single(p=>Str(p,"text_field")==row.text_field);var expected=(Dictionary<string,object>)known["expected"];var sql=(Dictionary<string,object>)known["exact_sql"];
         Check(row.text==Str(part,"text")&&Num(row.chat_id)==Num(sql["uid"])&&Num(row.message_id)==Num(expected["id"])&&Num(row.native_layer)==Num(known["layer"])&&row.native_constructor==Str(known,"constructor")&&row.native_tl_body_sha256==Str(known,"tl_body_sha256"),"native Unicode field, SQL identity, exact profile and independently measured full body SHA");
         var sender=Get(expected,"from_peer") as Dictionary<string,object>;string wanted=sender==null?null:Str(sender,"kind")+":"+Num(sender["id"]).ToString(CultureInfo.InvariantCulture);
         Check((wanted==null?row.sender_id==null:row.sender_id is string&&(string)row.sender_id==wanted)&&row.sender_name==null&&row.chat_name==null,"observed author and unknown names are exact");
@@ -264,14 +274,14 @@ public static class TelegramDocumentDescriptorPortableTests
     static List<ArchiveMessage> Current()
     {
         string archive=Path.Combine(work,"current");var items=Cases("current");var summary=Analyze(Path.Combine(fixtures,"current"),archive);Acquired(archive,items.SelectMany(Members));
-        var all=All(archive);var rows=all.Where(Native).ToList();int expected=oracle.Values.Sum(p=>Parts(p).Count);Counts(summary,all,rows,expected,0);
+        var all=All(archive);var rows=all.Where(Native).ToList();int expected=oracle.Values.Sum(p=>CurrentParts(p).Count);Counts(summary,all,rows,expected,0);
         var bySource=items.ToDictionary(i=>Safe(fixtures,Str(i,"database")),i=>i,StringComparer.OrdinalIgnoreCase);var actual=new HashSet<string>();
         foreach(var row in rows){Check(bySource.ContainsKey(Path.GetFullPath(row.source_file)),"every native row belongs to a preselected exact current source");var item=bySource[Path.GetFullPath(row.source_file)];string name=Str(item,"oracle_name");var known=oracle[name];Part(row,known,false);Scope(row,Safe(fixtures,Str(item,"database")));
             Check(actual.Add(name+"|"+row.text_field)&&row.source_sha256==Str(FileProof(Str(item,"database")),"sha256"),"every native case/slot occurs once with exact source hash");Full(archive,row);
         }
-        var expectedKeys=new HashSet<string>(oracle.SelectMany(p=>Parts(p.Value).Select(part=>p.Key+"|"+Str(part,"text_field"))));
+        var expectedKeys=new HashSet<string>(oracle.SelectMany(p=>CurrentParts(p.Value).Select(part=>p.Key+"|"+Str(part,"text_field"))));
         Check(actual.SetEquals(expectedKeys)&&rows.Select(Key).Distinct().Count()==expected,"all independent text slots/identities, including signed endpoints, appear exactly once");
-        Check(!rows.Any(r=>Path.GetFileName(Path.GetDirectoryName(r.source_file))=="descriptor-empty-text"),"filename metadata never creates native text");
+        Check(rows.Count(row=>Path.GetFileName(Path.GetDirectoryName(row.source_file))=="descriptor-empty-text"&&row.text==""&&row.text_field=="message")==1&&Parts(oracle["descriptor-empty-text"]).Count==0,"native media-only record survives; filename never becomes text");
         foreach(string id in new[]{"0","-1",Int64.MinValue.ToString(CultureInfo.InvariantCulture),Int64.MaxValue.ToString(CultureInfo.InvariantCulture)})Check(rows.Any(r=>r.media_id==id),"actual public DTO/search preserves signed document endpoint "+id);
         foreach(var query in new[]{new[]{"recipe","literal"},new[]{"recipe[\\s\\S]*第二行","regex"}}){
             bool regex=query[1]=="regex";var found=All(archive,query[0],regex);var native=found.Where(Native).ToList();Fragments(found.Where(r=>!native.Contains(r)));
@@ -301,7 +311,7 @@ public static class TelegramDocumentDescriptorPortableTests
     {
         foreach(string category in new[]{"history","residual"}){
             var item=Cases(category).Single();var known=oracle[Str(item,"oracle_name")];string source=Safe(fixtures,Str(item,"database")),archive=Path.Combine(work,category);var summary=Analyze(source,archive);Acquired(archive,Members(item));
-            var all=All(archive);var native=all.Where(Native).ToList();int expected=Parts(known).Count;Counts(summary,all,native,expected,category=="residual"?expected:0);
+            var all=All(archive);var native=all.Where(Native).ToList();int expected=CurrentParts(known).Count;Counts(summary,all,native,expected,category=="residual"?expected:0);
             Check(native.Select(Key).Distinct().Count()==expected,"snapshot text roles retain uniqueness");
             foreach(var row in native){Part(row,known,true);Scope(row,source);Check(String.Equals(Path.GetFullPath(row.source_file),source,StringComparison.OrdinalIgnoreCase)&&row.source_sha256==Hash(source),"snapshot identifies original DB bytes");Wal(row,source,known);Full(archive,row);
                 if(category=="residual"){Check(row.recovery_status=="deleted_supported_by_evidence"&&row.residual_sources!=null&&row.residual_sources.Length>0,"residual has structural physical support");foreach(var origin in row.residual_sources)Residual(origin,source,known,row);}
@@ -342,7 +352,7 @@ public static class TelegramDocumentDescriptorPortableTests
         var item=Cases("residual").Single();var known=oracle[Str(item,"oracle_name")];string input=Path.Combine(work,"forged-source"),folder=Path.Combine(input,"native");Directory.CreateDirectory(folder);
         foreach(string file in Members(item)){string target=Path.Combine(folder,Path.GetFileName(file));File.Copy(file,target,false);Check(Hash(target)==Hash(file),"forged scenario begins with exact independent native DB/WAL/SHM copies");}
         string database=Path.Combine(folder,"cache4.db"),baselineArchive=Path.Combine(work,"forged-baseline");var initial=Binding(input);var baselineSummary=Analyze(input,baselineArchive);Acquired(baselineArchive,Directory.GetFiles(folder));
-        var baselineAll=All(baselineArchive);var baseline=baselineAll.Where(Native).ToList();int expected=Parts(known).Count;Counts(baselineSummary,baselineAll,baseline,expected,expected);
+        var baselineAll=All(baselineArchive);var baseline=baselineAll.Where(Native).ToList();int expected=CurrentParts(known).Count;Counts(baselineSummary,baselineAll,baseline,expected,expected);
         foreach(var row in baseline){Part(row,known,true);Scope(row,database);Check(row.recovery_status=="deleted_supported_by_evidence"&&row.residual_sources!=null&&row.residual_sources.Length>0,"actual baseline has genuine structural residual support");foreach(var origin in row.residual_sources)Residual(origin,database,known,row);}
         Check(Same(initial,Binding(input)),"baseline source folder remains exact before adding provided metadata");
         var selected=baseline.Single(r=>r.text_field=="message");var observed=Json.Deserialize<Dictionary<string,object>>(Json.Serialize(selected));var claim=new Dictionary<string,object>();

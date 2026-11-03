@@ -1,0 +1,157 @@
+[
+  {
+    "name": "altgraph-0.17.5-py2.py3-none-any.whl",
+    "sha256": "f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597",
+    "bytes": 21228
+  },
+  {
+    "name": "asn1crypto-1.5.1-py2.py3-none-any.whl",
+    "sha256": "db4e40728b728508912cbb3d44f19ce188f218e9eba635821bb4b68564f8fd67",
+    "bytes": 105045
+  },
+  {
+    "name": "bleach-6.4.0-py3-none-any.whl",
+    "sha256": "4b6b6a54fff2e69a3dde9d21cc6301220bee3c3cb792187d11403fd795031081",
+    "bytes": 165109
+  },
+  {
+    "name": "colorama-0.4.6-py2.py3-none-any.whl",
+    "sha256": "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6",
+    "bytes": 25335
+  },
+  {
+    "name": "dissect_apfs-1.1-py3-none-any.whl",
+    "sha256": "0e73884d54efdcf9a0c2ad68e49d0aaf80849a6f60f0a9837030a8a36555945b",
+    "bytes": 68263
+  },
+  {
+    "name": "dissect_cstruct-4.7-py3-none-any.whl",
+    "sha256": "0427621ce67baa3106df2dc63a320d0a7f5c2da88ba3faf2ef5886a1a6b458fd",
+    "bytes": 54225
+  },
+  {
+    "name": "dissect_fve-4.6-cp310-abi3-win_amd64.whl",
+    "sha256": "f85fd8724f3e6bb4ca3796664b3fd6a8ce7316170909e9b87ab764b211f71f34",
+    "bytes": 196841
+  },
+  {
+    "name": "dissect_util-3.24-cp310-abi3-win_amd64.whl",
+    "sha256": "5bc368d495afeb867b8bf5711f752bd023ae22334b474b375f5ac9a326fea89c",
+    "bytes": 160500
+  },
+  {
+    "name": "dissect_volume-3.18-py3-none-any.whl",
+    "sha256": "f8f321adccacbd948c503cf14a14d4a6626d1b86ddcbe55c532b59caad833d79",
+    "bytes": 81974
+  },
+  {
+    "name": "iniconfig-2.3.1-py3-none-any.whl",
+    "sha256": "9121e2c1fdb355232495be3194c8dfe87ccc2d5dee45947b78e68f499790d7a7",
+    "bytes": 7552
+  },
+  {
+    "name": "javaobj_py3-0.6.1-py2.py3-none-any.whl",
+    "sha256": "da97c61cb050bad37cca00523b1a617cc26ed2b698b6322cbc118820a4f52b30",
+    "bytes": 94957
+  },
+  {
+    "name": "jinja2-3.1.6-py3-none-any.whl",
+    "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+    "bytes": 134899
+  },
+  {
+    "name": "markupsafe-3.0.4-cp312-cp312-win_amd64.whl",
+    "sha256": "11935df9bf455ed0c04eb87bcd720f02b1fe5e02128a9430f23aed6f93336fc7",
+    "bytes": 14303
+  },
+  {
+    "name": "packaging-26.3-py3-none-any.whl",
+    "sha256": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c",
+    "bytes": 129956
+  },
+  {
+    "name": "pefile-2024.8.26-py3-none-any.whl",
+    "sha256": "76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f",
+    "bytes": 74766
+  },
+  {
+    "name": "pillow-12.3.0-cp312-cp312-win_amd64.whl",
+    "sha256": "a2b55dd6b2a4c4b7d87ffa56bdb33fdc5fdb9a462173861a7bc097f17d91cb09",
+    "bytes": 7227137
+  },
+  {
+    "name": "pillow_heif-1.8.1-cp312-cp312-win_amd64.whl",
+    "sha256": "ce0ff957ad901a5a6bf8cd22ea26c4304bab7cf2f93d0a2f03046487e5711910",
+    "bytes": 6604108
+  },
+  {
+    "name": "pip-25.0.1-py3-none-any.whl",
+    "sha256": "c46efd13b6aa8279f33f2864459c8ce587ea6a1a59ee20de055868d8f7688f7f",
+    "bytes": 1841526
+  },
+  {
+    "name": "pluggy-1.6.0-py3-none-any.whl",
+    "sha256": "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746",
+    "bytes": 20538
+  },
+  {
+    "name": "protobuf-7.36.2-cp310-abi3-win_amd64.whl",
+    "sha256": "a300819d441e078a5608c0d3c709796bb548136058fda017ae51d425b44fd353",
+    "bytes": 456514
+  },
+  {
+    "name": "pycryptodome-3.24.1-cp37-abi3-win_amd64.whl",
+    "sha256": "c00aa444033bac0379413728e92223c7e2f2b5b85fb3e9284fee19239b6ad8a4",
+    "bytes": 1822462
+  },
+  {
+    "name": "pycryptodomex-3.24.1-cp37-abi3-win_amd64.whl",
+    "sha256": "82eb0dd8a95be97f03527b108ee49f9b86a7c534fa47fa7a510be3eab8ea9acd",
+    "bytes": 1825955
+  },
+  {
+    "name": "pygments-2.21.0-py3-none-any.whl",
+    "sha256": "2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9",
+    "bytes": 1250147
+  },
+  {
+    "name": "pyinstaller-6.22.3-py3-none-win_amd64.whl",
+    "sha256": "500bd58c7bf7e584a8435adccbd763a0b918d5c12b08d74ff50fd79b2915458b",
+    "bytes": 1454907
+  },
+  {
+    "name": "pyinstaller_hooks_contrib-2026.8-py3-none-any.whl",
+    "sha256": "6d21d65323ea4467753afc21f52d7d0e69416ae8101dd88269bf273ad48db084",
+    "bytes": 462145
+  },
+  {
+    "name": "pytest-9.1.1-py3-none-any.whl",
+    "sha256": "37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c",
+    "bytes": 386536
+  },
+  {
+    "name": "pywin32_ctypes-0.2.3-py3-none-any.whl",
+    "sha256": "8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8",
+    "bytes": 30756
+  },
+  {
+    "name": "regex-2026.9.29-cp312-cp312-win_amd64.whl",
+    "sha256": "fdd88ed5e20b1bcdd234421e454962c971aa44b653bdb7f1ea9ef683e90fb649",
+    "bytes": 280334
+  },
+  {
+    "name": "setuptools-84.0.0-py3-none-any.whl",
+    "sha256": "51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670",
+    "bytes": 818216
+  },
+  {
+    "name": "tqdm-4.70.1-py3-none-any.whl",
+    "sha256": "c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73",
+    "bytes": 80199
+  },
+  {
+    "name": "webencodings-0.6.1-py3-none-any.whl",
+    "sha256": "7fab6269c8bf237c657876b52058ccb182e861518d1c695c1a9aaa8c1c105d5b",
+    "bytes": 8745
+  }
+]

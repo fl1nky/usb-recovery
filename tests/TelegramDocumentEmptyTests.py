@@ -18,6 +18,7 @@ import telegram_auto
 import telegram_media_cache
 from telegram_tl import parse_message, TelegramTlError
 from build_telegram_document_empty_fixtures import load_cases, expected_parts, create, inventory
+from telegram_media_retention_policy import retained_parts_v1
 
 
 class TelegramDocumentEmptyTests(unittest.TestCase):
@@ -49,7 +50,7 @@ class TelegramDocumentEmptyTests(unittest.TestCase):
         return output, summary, rows, native
 
     def assert_parts(self, case, rows, *, imported=False):
-        expected = {part['text_field']: part['text'] for part in expected_parts(case)}
+        expected = {part['text_field']: part['text'] for part in retained_parts_v1(case, expected_parts(case))}
         self.assertEqual(len(rows), len(expected), case['name'])
         self.assertEqual({row['text_field']: row['text'] for row in rows}, expected, case['name'])
         for row in rows:
@@ -136,7 +137,7 @@ class TelegramDocumentEmptyTests(unittest.TestCase):
                 _, summary, rows, native = self.analyze(case)
                 self.assert_parts(case, native)
                 self.assertEqual(len(rows), len(native))
-                self.assertEqual(summary['native_records'], len(list(expected_parts(case))))
+                self.assertEqual(summary['native_records'], len(retained_parts_v1(case, expected_parts(case))))
                 self.assertEqual(summary['deleted_supported_records'], 0)
                 for row in native:
                     self.assertEqual(row['evidence_kind'], 'backup')

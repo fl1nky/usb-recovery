@@ -93,7 +93,10 @@ class _Budget:
         self.assembler.read(0, 0)  # Existing120-second/global read budget.
         now = time.monotonic()
         if now - self.last_progress >= 0.25:
-            self.assembler.progress(self.assembler.size, self.assembler.size)
+            if getattr(self.assembler, 'streaming_png', False):
+                self.assembler.png_join_progress()
+            else:
+                self.assembler.progress(self.assembler.size, self.assembler.size)
             self.last_progress = now
 
     def pair(self):
@@ -450,6 +453,19 @@ def idat_candidates(assembler):
     three-run chunks, with every bounded physical map retained even for equal
     bytes. At most one returned spliced chunk may be selected in a PNG path.
     """
+    if getattr(assembler, 'streaming_png', False):
+        from png_streaming import GlobalPngSearch
+        if assembler.png_search is None:
+            resumed = assembler.png_search_state is not None
+            GlobalPngSearch(assembler, assembler.png_search_state)
+            if resumed:
+                # Parent-anchored pool replay has separate finite bounds.
+                # Give newly unvisited join rows their own work interval.
+                assembler.started = time.monotonic()
+        return assembler.png_search.run()
+    cached = getattr(assembler, '_idat_candidates_cache', None)
+    if cached is not None:
+        return cached
     budget = _Budget(assembler)
     anchors = _anchors(assembler, budget)
     result, pool, heads, interned, physical, distinct = [], 0, [], {}, set(), 0
@@ -533,4 +549,5 @@ def idat_candidates(assembler):
                 retain((at, raw, parts, anchor, True))
     for candidate in _three_run_candidates(assembler, budget, heads, anchors):
         retain(candidate)
+    assembler._idat_candidates_cache = result
     return result

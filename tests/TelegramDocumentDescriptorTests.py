@@ -22,6 +22,7 @@ from build_telegram_document_descriptor_fixtures import (
     load_cases, create, create_versions, expected_parts, inventory,
 )
 from telegram_document_compatibility import UPGRADED, current_case
+from telegram_media_retention_policy import retained_parts_v1
 
 
 class TelegramDocumentDescriptorTests(unittest.TestCase):
@@ -58,7 +59,7 @@ class TelegramDocumentDescriptorTests(unittest.TestCase):
         return output, result, rows, native
 
     def assert_native(self, case, rows):
-        parts = list(expected_parts(case))
+        parts = retained_parts_v1(case, expected_parts(case))
         self.assertEqual(len(rows), len(parts), case['name'])
         self.assertEqual({r['text_field']: r['text'] for r in rows}, {p['text_field']: p['text'] for p in parts})
         for row in rows:
@@ -100,7 +101,7 @@ class TelegramDocumentDescriptorTests(unittest.TestCase):
                 _, summary, rows, native = self.analyze(case)
                 self.assert_native(case, native)
                 self.assertEqual(len(rows), len(native))
-                self.assertEqual(summary['native_records'], len(list(expected_parts(case))))
+                self.assertEqual(summary['native_records'], len(retained_parts_v1(case, expected_parts(case))))
                 self.assertEqual(summary['deleted_supported_records'], 0)
                 self.assertTrue(all(r['evidence_kind'] == 'backup' and r.get('deleted') is None for r in native))
 

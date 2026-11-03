@@ -56,6 +56,16 @@ public static class TelegramDocumentEmptyPortableTests
         if(!String.IsNullOrEmpty(caption)&&caption!=text)result.Add(new Dictionary<string,object>{{"text",caption},{"text_field","media.legacy_caption"},{"supplemental",!String.IsNullOrEmpty(text)}});
         return result;
     }
+    // retained_media_records_v1 changes record retention, never frozen text-slot goldens.
+    static List<Dictionary<string,object>> CurrentParts(Dictionary<string,object> value)
+    {
+        var result=Parts(value);
+        if(result.Count==0&&Get(value,"document_id")!=null){
+            Check(String.IsNullOrEmpty(Str((Dictionary<string,object>)value["expected"],"text")),"retained media-only record has exact empty native text");
+            result.Add(new Dictionary<string,object>{{"text",""},{"text_field","message"},{"supplemental",false}});
+        }
+        return result;
+    }
     static void BindCase(Dictionary<string,object> item,string category,string variant,string name,string oracleName)
     {
         Check(Str(item,"name")==name&&Str(item,"oracle_name")==oracleName&&Str(item,"variant")==variant&&Str(item,"database")==category+"/"+name+"/cache4.db","fixture paths and variants are exact, preselected independent inputs");
@@ -144,7 +154,7 @@ public static class TelegramDocumentEmptyPortableTests
     }
     static void Part(ArchiveMessage row,Dictionary<string,object> item,bool historical,bool imported=false)
     {
-        var known=oracle[Str(item,"oracle_name")];var part=Parts(known).Single(value=>Str(value,"text_field")==row.text_field);var sql=(Dictionary<string,object>)known["exact_sql"];var expected=(Dictionary<string,object>)known["expected"];
+        var known=oracle[Str(item,"oracle_name")];var part=CurrentParts(known).Single(value=>Str(value,"text_field")==row.text_field);var sql=(Dictionary<string,object>)known["exact_sql"];var expected=(Dictionary<string,object>)known["expected"];
         Check(row.text==Str(part,"text")&&Num(row.chat_id)==Num(sql["uid"])&&Num(row.message_id)==Num(expected["id"])&&Num(row.native_layer)==Num(known["layer"])&&row.native_constructor==Str(known,"constructor")&&row.native_tl_body_sha256==Str(known,"tl_body_sha256"),"exact Unicode slot, SQL identity, official Message constructor and body hash survive helper/search/DTO");
         var sender=Get(expected,"from_peer") as Dictionary<string,object>;string wanted=sender==null?null:Str(sender,"kind")+":"+Num(sender["id"]).ToString(CultureInfo.InvariantCulture);
         Check((wanted==null?row.sender_id==null:row.sender_id is string&&(string)row.sender_id==wanted)&&row.sender_name==null,"independent sender and unknown name are preserved");
@@ -174,13 +184,13 @@ public static class TelegramDocumentEmptyPortableTests
     static List<ArchiveMessage> Current(Dictionary<string,object> manifest)
     {
         var cases=List(manifest["cases"]);foreach(var item in cases)Source(item);
-        string archive=Path.Combine(work,"current");var summary=Analyze(Path.Combine(fixtures,"current"),archive);var all=All(archive);var rows=all.Where(Native).ToList();int expected=cases.Sum(item=>Parts(oracle[Str(item,"name")]).Count);
-        Counts(summary,all,rows,expected,0);var expectedKeys=new HashSet<string>(cases.SelectMany(item=>Parts(oracle[Str(item,"name")]).Select(part=>Str(item,"name")+"|"+Str(part,"text_field"))));var actualKeys=new HashSet<string>();
+        string archive=Path.Combine(work,"current");var summary=Analyze(Path.Combine(fixtures,"current"),archive);var all=All(archive);var rows=all.Where(Native).ToList();int expected=cases.Sum(item=>CurrentParts(oracle[Str(item,"name")]).Count);
+        Counts(summary,all,rows,expected,0);var expectedKeys=new HashSet<string>(cases.SelectMany(item=>CurrentParts(oracle[Str(item,"name")]).Select(part=>Str(item,"name")+"|"+Str(part,"text_field"))));var actualKeys=new HashSet<string>();
         foreach(var row in rows){string name=Path.GetFileName(Path.GetDirectoryName(row.source_file));var item=cases.Single(value=>Str(value,"name")==name);Part(row,item,false);Scope(row,Safe(fixtures,Str(item,"database")));Check(actualKeys.Add(name+"|"+row.text_field),"every independently expected case/slot occurs once");Check(String.Equals(Path.GetFullPath(row.source_file),Safe(fixtures,Str(item,"database")),StringComparison.OrdinalIgnoreCase)&&row.source_sha256==(string)((Dictionary<string,object>)item["source_files"])["cache4.db"],"result names the immutable original native database and its exact hash");}
         Check(actualKeys.SetEquals(expectedKeys)&&rows.Select(Key).Distinct().Count()==expected,"all exact independent identities/roles appear, including absent IDs and empty/equal text controls");
-        Check(!rows.Any(row=>Path.GetFileName(Path.GetDirectoryName(row.source_file))=="mode4"),"empty document metadata is not manufactured into a text message");
-        foreach(string name in new[]{"id0","id1","id2","id3","layer118-flags2"}){var selected=rows.Where(row=>Path.GetFileName(Path.GetDirectoryName(row.source_file))==name).ToList();Check(selected.Count==Parts(oracle[name]).Count,"explicit zero, signed endpoints and absent document IDs are covered by actual results");}
-        int captions=cases.Sum(item=>Parts(oracle[Str(item,"name")]).Count(part=>Str(part,"text_field")=="media.legacy_caption"));var regexAll=AllRegex(archive,"caption[\\s\\S]*第二行");var regex=regexAll.Where(Native).ToList();Fragments(regexAll.Where(row=>!regex.Contains(row)));Check(regex.Count==captions&&regex.All(row=>row.text_field=="media.legacy_caption"),"Regex searches every independent caption without replacing outer text");
+        Check(rows.Count(row=>Path.GetFileName(Path.GetDirectoryName(row.source_file))=="mode4"&&row.text==""&&row.text_field=="message")==1&&Parts(oracle["mode4"]).Count==0,"media-only record retains empty text; historical text slots remain zero");
+        foreach(string name in new[]{"id0","id1","id2","id3","layer118-flags2"}){var selected=rows.Where(row=>Path.GetFileName(Path.GetDirectoryName(row.source_file))==name).ToList();Check(selected.Count==CurrentParts(oracle[name]).Count,"explicit zero, signed endpoints and absent document IDs are covered by actual results");}
+        int captions=cases.Sum(item=>CurrentParts(oracle[Str(item,"name")]).Count(part=>Str(part,"text_field")=="media.legacy_caption"));var regexAll=AllRegex(archive,"caption[\\s\\S]*第二行");var regex=regexAll.Where(Native).ToList();Fragments(regexAll.Where(row=>!regex.Contains(row)));Check(regex.Count==captions&&regex.All(row=>row.text_field=="media.legacy_caption"),"Regex searches every independent caption without replacing outer text");
         var keywordAll=All(archive,"second");var keyword=keywordAll.Where(Native).ToList();Fragments(keywordAll.Where(row=>!keyword.Contains(row)));Check(keyword.Count==rows.Count(row=>row.text.IndexOf("second",StringComparison.OrdinalIgnoreCase)>=0)&&keyword.All(row=>row.text_field=="message"),"literal keyword search finds the complete independent outer-text set");
         Check(Search(archive,"",0,false,"deleted").total==0,"current surviving records are excluded from supported deletion");
         foreach(var row in rows.Where(value=>value.text_field=="media.legacy_caption").Take(3).Concat(rows.Where(value=>value.text_field=="message").Take(3)))Full(archive,row);
@@ -196,8 +206,8 @@ public static class TelegramDocumentEmptyPortableTests
     }
     static void Snapshots(Dictionary<string,object> manifest)
     {
-        foreach(var item in List(manifest["snapshot_cases"])){Source(item);string name=Str(item,"name"),archive=Path.Combine(work,name);var summary=Analyze(Safe(fixtures,Str(item,"database")),archive);var all=All(archive);var rows=all.Where(Native).ToList();int count=Parts(oracle[Str(item,"oracle_name")]).Count;Counts(summary,all,rows,count,name=="residual"?count:0);
-            Check(rows.Select(Key).Distinct().Count()==count&&new HashSet<string>(rows.Select(row=>row.text_field)).SetEquals(Parts(oracle[Str(item,"oracle_name")]).Select(part=>Str(part,"text_field"))),"each historical field is present exactly once");
+        foreach(var item in List(manifest["snapshot_cases"])){Source(item);string name=Str(item,"name"),archive=Path.Combine(work,name);var summary=Analyze(Safe(fixtures,Str(item,"database")),archive);var all=All(archive);var rows=all.Where(Native).ToList();int count=CurrentParts(oracle[Str(item,"oracle_name")]).Count;Counts(summary,all,rows,count,name=="residual"?count:0);
+            Check(rows.Select(Key).Distinct().Count()==count&&new HashSet<string>(rows.Select(row=>row.text_field)).SetEquals(CurrentParts(oracle[Str(item,"oracle_name")]).Select(part=>Str(part,"text_field"))),"each historical field is present exactly once");
             foreach(var row in rows){Part(row,item,true);Scope(row,Safe(fixtures,Str(item,"database")));Full(archive,row);Check(row.wal_proof=="all_pages_from_validated_wal"&&!String.IsNullOrEmpty(row.wal_snapshot_sha256),"historical fields retain the validated whole-page WAL snapshot");if(name=="residual"){Check(row.recovery_status=="deleted_supported_by_evidence"&&row.residual_sources!=null&&row.residual_sources.Length>0,"native residual evidence remains attached to both exact fields");foreach(var origin in row.residual_sources)Residual(origin,item,row);}else Check(row.recovery_status!="deleted_supported_by_evidence","ordinary historical observation is not evidence of deletion");}
             Check(Search(archive,"",0,false,"deleted").total==(name=="residual"?count:0),"supported-deletion filter agrees with physical residual evidence only");
             if(name=="residual"){string imported=Path.Combine(work,"residual-reimport");Analyze(Path.Combine(archive,"messages.jsonl"),imported);var copied=All(imported).Where(row=>row.provenance_verification=="provided_archive_metadata"&&new[]{"tl_message","tl_message_caption"}.Contains(row.record_kind)).ToList();Check(copied.Count==count&&new HashSet<string>(copied.Select(Key)).SetEquals(rows.Select(Key))&&copied.All(row=>row.recovery_status=="imported_recovery_claim"&&row.deleted==null),"provided archive keeps exact residual text identities but downgrades its deletion claim");foreach(var row in copied){Part(row,item,true,true);Scope(row,Safe(fixtures,Str(item,"database")));}Check(Search(imported,"",0,false,"deleted").total==0,"unverified residual reimport never enters the supported-deletion filter");}
@@ -212,7 +222,7 @@ public static class TelegramDocumentEmptyPortableTests
         var item=(Dictionary<string,object>)manifest["version_case"];Source(item);string source=Safe(fixtures,Str(item,"database")),archive=Path.Combine(work,"wal-versions");var summary=Analyze(source,archive);var all=All(archive);var rows=all.Where(Native).ToList();Counts(summary,all,rows,4,0);
         Check(rows.Select(row=>row.identity_scope).Distinct().Count()==1&&rows.Select(row=>Num(row.chat_id)).Distinct().Count()==1&&rows.Select(row=>Num(row.message_id)).Distinct().Count()==1&&rows.Select(Key).Distinct().Count()==4,"same-account SQL IDs retain both distinct complete document bodies and both original text slots");
         foreach(string name in new[]{"id0","id1"}){
-            bool historical=name=="id0";var known=oracle[name];var selected=rows.Where(row=>row.native_tl_body_sha256==Str(known,"tl_body_sha256")).ToList();Check(selected.Count==2&&new HashSet<string>(selected.Select(row=>row.text_field)).SetEquals(Parts(known).Select(part=>Str(part,"text_field"))),"each exact independent document version appears once per field");
+            bool historical=name=="id0";var known=oracle[name];var selected=rows.Where(row=>row.native_tl_body_sha256==Str(known,"tl_body_sha256")).ToList();Check(selected.Count==2&&new HashSet<string>(selected.Select(row=>row.text_field)).SetEquals(CurrentParts(known).Select(part=>Str(part,"text_field"))),"each exact independent document version appears once per field");
             foreach(var row in selected){Part(row,new Dictionary<string,object>{{"oracle_name",name}},historical);Scope(row,source);Check(String.Equals(Path.GetFullPath(row.source_file),source,StringComparison.OrdinalIgnoreCase)&&row.recovery_status!="deleted_supported_by_evidence","changed document reference preserves the same physical source without claiming deletion");if(historical)Check(row.wal_proof=="all_pages_from_validated_wal"&&!String.IsNullOrEmpty(row.wal_snapshot_sha256),"earlier document reference is tied to its validated WAL commit");Full(archive,row);}
         }
         Check(Search(archive,"",0,false,"deleted").total==0,"changed document ID alone is never classified as a deleted message");

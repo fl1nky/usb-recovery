@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,19 +17,23 @@ namespace UsbRecovery
     {
         public sealed class Extent { public long ImageOffset,LogicalOffset,Length; }
         public sealed class Candidate { public string Path,Sha256,Status,Note;public long Bytes;public List<Extent> Extents=new List<Extent>();public List<List<Extent>> AlternateExtents=new List<List<Extent>>(); }
-        public sealed class Report { public int Schema,Candidates,ReusedCandidates;public string Status,SourceSha256;public bool SourceUnchanged,ResumedFromCheckpoint;public long OutputBytes,VerifiedBytes,ResumedIndexBytes;public Dictionary<string,int> Skipped=new Dictionary<string,int>();public List<Candidate> Files=new List<Candidate>(); }
+        public sealed class Report { public int Schema,Candidates,ReusedCandidates;public string Status,SourceSha256;public bool SourceUnchanged,ResumedFromCheckpoint,StreamingPng;public long OutputBytes,VerifiedBytes,ResumedIndexBytes,IndexBytes;public Dictionary<string,int> Skipped=new Dictionary<string,int>();public List<Candidate> Files=new List<Candidate>(); }
         public static int Recover(string image,string directory,CancellationToken cancel,Action<long,long> progress)
         {return Recover(image,directory,cancel,progress,null,null);}
         public static int Recover(string image,string directory,CancellationToken cancel,Action<long,long> progress,PhotoRecoveryCheckpoint resume,Action<PhotoRecoveryCheckpoint> checkpoint)
         {return Recover(image,directory,cancel,progress,resume,checkpoint,null);}
         internal static int Recover(string image,string directory,CancellationToken cancel,Action<long,long> progress,PhotoRecoveryCheckpoint resume,Action<PhotoRecoveryCheckpoint> checkpoint,string expectedSourceSha256)
+        {return Recover(image,directory,cancel,progress,resume,checkpoint,expectedSourceSha256,false);}
+        internal static int Recover(string image,string directory,CancellationToken cancel,Action<long,long> progress,PhotoRecoveryCheckpoint resume,Action<PhotoRecoveryCheckpoint> checkpoint,string expectedSourceSha256,bool streamingPng)
         {
             cancel.ThrowIfCancellationRequested();SourcePaths.NoLinks(image);
             string output=RecoveryCatalog.SafeFile(directory,"fragmented-photos");
             using(var sourceGuard=new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read)){
             string sourceSha=expectedSourceSha256??RecoveryCore.HashFile(image,cancel,(a,b)=>{});
             if(sourceSha.Length!=64||!sourceSha.All(Uri.IsHexDigit))throw new IOException("Неверная контрольная сумма исходного образа.");
-            var result=HelperClient.Run(HelperClient.Executable,new{protocol=1,operation="fragmented_photos",source=image,destination=output,options=new{resume_checkpoint=resume}},cancel,delegate(string message){},delegate(HelperProgress update){
+            var helperOptions=new Dictionary<string,object>{{"resume_checkpoint",resume}};
+            if(streamingPng)helperOptions.Add("streaming_png",true);
+            var result=HelperClient.Run(HelperClient.Executable,new{protocol=1,operation="fragmented_photos",source=image,destination=output,options=helperOptions},cancel,delegate(string message){},delegate(HelperProgress update){
                 if(update.Phase=="photo_checkpoint"){
                     if(checkpoint==null)return;
                     checkpoint(new PhotoRecoveryCheckpoint{Path=update.CheckpointPath,Sha256=update.CheckpointSha256,Sequence=update.CheckpointSequence});
@@ -41,6 +45,7 @@ namespace UsbRecovery
             if(!File.Exists(reportPath)||new FileInfo(reportPath).Length>16L*1024*1024)throw new IOException("Отчёт сборки фотографий отсутствует или превышает лимит.");
             var report=new JavaScriptSerializer{MaxJsonLength=16*1024*1024}.Deserialize<Report>(File.ReadAllText(reportPath));
             if(report==null||report.Schema!=1||report.Files==null||report.Files.Count>1000||report.Candidates!=report.Files.Count)throw new IOException("Неверный отчёт сборки фотографий.");
+            if(streamingPng&&(!report.StreamingPng||report.IndexBytes<4||report.IndexBytes%4!=0||report.IndexBytes>(sourceGuard.Length/512+1)*4||report.Status=="complete"&&report.IndexBytes!=(sourceGuard.Length/512+1)*4))throw new IOException("Компонент поиска не подтвердил выбранный режим больших PNG-образов. Используй готовый комплект одной версии.");
             if(!report.SourceUnchanged||report.SourceSha256==null||report.SourceSha256.Length!=64||!report.SourceSha256.All(Uri.IsHexDigit)||!String.Equals(report.SourceSha256,sourceSha,StringComparison.OrdinalIgnoreCase))throw new IOException("Отчёт фотографий не подтверждает неизменность этого исходного образа. Существующие результаты сохранены.");
             if(!(report.Status=="complete"||report.Status=="limited")||(result.Status=="complete")!=(report.Status=="complete")||report.Status=="complete"&&File.Exists(RecoveryCatalog.SafeFile(directory,"fragmented-photos/job.incomplete")))throw new IOException("Состояние отчёта фотографий противоречит завершению обработки.");
             long outputBytes=0,alternateBytes=0;int alternateExtents=0;var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -59,7 +64,7 @@ namespace UsbRecovery
             }
             if(report.OutputBytes!=outputBytes||report.VerifiedBytes<0)throw new IOException("Размеры отчёта фотографий не совпадают с сохранёнными файлами.");
             RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"fragmented-photo-search.json"),report);
-            if(progress!=null)progress(new FileInfo(image).Length,new FileInfo(image).Length);
+            if(progress!=null&&report.Status=="complete")progress(new FileInfo(image).Length,new FileInfo(image).Length);
             if(result.Status=="partial"||report.Status!="complete")throw new IOException("Сборка фотографий достигла ограничения; подтверждённые кандидаты сохранены, проход неполный.");
             return report.Candidates;
             }

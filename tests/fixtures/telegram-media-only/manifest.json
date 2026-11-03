@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "status": "INPUT_ONLY_NATIVE_MEDIA_METADATA_NOT_RECOVERY_ACCEPTANCE",
+  "telegram_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "source_predecessor_manifest_sha256": "73e02a818c974582952ee3b07c3b0c8db37d8d2abb105644bb4a893714711fee",
+  "native_cases": 14,
+  "empty_text_cases": 7,
+  "nonempty_paired_cases": 7,
+  "observed_native_metadata_messages": 14,
+  "nonempty_text_slots": 7,
+  "mutation_controls": 56,
+  "native_sqlite_sources": 70,
+  "native_java_runs": 2,
+  "native_sqlite_runs": 2,
+  "independent_producer_checks": 1853,
+  "independent_review_checks": 1892,
+  "independent_review_receipt_sha256": "341ece46952fef65e323f65de86e55262db28d346899cfca170bc1d574209870",
+  "uncompressed_json_bytes": 142959,
+  "uncompressed_json_sha256": "fb1ad97c628493fe6bc385e0f9fdf36deb783343ac615b412966b9171fb93778",
+  "files": [
+    {
+      "path": "oracle.json.gz",
+      "bytes": 19410,
+      "sha256": "fe44222b54d14277764f96c346bacfacc29dee13f265d20666aa6f695ce57ba2"
+    },
+    {
+      "path": "native-sqlite-cases.zip",
+      "bytes": 55203,
+      "sha256": "894a6220b270586bfcb0d6bc995071c45ddff1d87b02f079e374ca70fbb24757"
+    },
+    {
+      "path": "oracle-sources.tar.gz",
+      "bytes": 472331,
+      "sha256": "81028ccfac626f6066ebf09cdeb89fd4bb675fc89bef60db9a8f04aacdbb779b"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4522,
+      "sha256": "38d1113fbc50a8531feb9ee0b480a3779c77218a13d30c60d495e22b1026d449"
+    }
+  ],
+  "scope": "Independent fixture production only; retention policy and all product results remain unmeasured"
+}

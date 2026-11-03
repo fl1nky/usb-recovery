@@ -35,8 +35,13 @@ NATIVE_RECORD_KINDS = CACHE_RECORD_KINDS | frozenset((
     "tl_message", "tl_message_caption", "sqlite_deleted_record", "sqlite_deleted_caption"))
 
 
-def _native_text_parts(value, *, keep_empty_photo=False):
-    """Preserve distinct original slots without manufacturing joined text."""
+def _native_text_parts(value, *, keep_empty_media=False):
+    """Preserve original text slots and meaningful native media-only records.
+
+    An empty document needs an observed ID, including a serialized zero ID.
+    An absent document reference is not enough to manufacture a message. This
+    policy runs only after the caller has checked the native SQL/TL relation.
+    """
     outer = value["text"]
     media = value.get("media", {})
     caption = media.get("legacy_caption", "")
@@ -46,7 +51,10 @@ def _native_text_parts(value, *, keep_empty_photo=False):
             yield caption, "media.legacy_caption", True
     elif caption:
         yield caption, "media.legacy_caption", False
-    elif keep_empty_photo and media.get("type") == "photo":
+    elif keep_empty_media and (media.get("type") == "photo" or (
+            media.get("type") == "document" and
+            media.get("document", {}).get("type") in ("empty", "descriptor") and
+            "id" in media.get("document", {}))):
         yield "", "message", False
 
 
@@ -703,13 +711,13 @@ class Analyzer:
         finally:
             connection.close()
 
-    def native_text_messages(self, value, evidence, record_kind, *, keep_empty_photo=False, **fields):
+    def native_text_messages(self, value, evidence, record_kind, *, keep_empty_media=False, **fields):
         """Publish independently labelled text slots from an already checked row."""
         secondary_kind = {"tl_message": "tl_message_caption",
                           "sqlite_deleted_record": "sqlite_deleted_caption",
                           "telegram_media_cache": "telegram_media_cache_caption"}[record_kind]
         published = 0
-        for text, role, secondary in _native_text_parts(value, keep_empty_photo=keep_empty_photo):
+        for text, role, secondary in _native_text_parts(value, keep_empty_media=keep_empty_media):
             if self.stop or len(self.worker.messages) >= MAX_MESSAGES:
                 self.stop = True
                 self.remark("TELEGRAM_MESSAGE_LIMIT", self.worker.source_label)
@@ -820,12 +828,12 @@ class Analyzer:
                     if not related:
                         raise TelegramTlError("TL_DB_DIALOG_MISMATCH")
                     media = value.get("media", {})
-                    if not list(_native_text_parts(value, keep_empty_photo=True)):
+                    if not list(_native_text_parts(value, keep_empty_media=True)):
                         continue
                     timestamp = dt.datetime.fromtimestamp(date, dt.timezone.utc).isoformat() if date else None
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
                     media_fields, attachments = self.native_media(media, record, original)
-                    self.native_text_messages(value, "backup", "tl_message", keep_empty_photo=True,
+                    self.native_text_messages(value, "backup", "tl_message", keep_empty_media=True,
                         chat_id=uid, message_id=value["id"],
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                         sender_name=None, timestamp=timestamp, source_record=record,
@@ -895,7 +903,7 @@ class Analyzer:
             row, value = item.pop("row"), item.pop("value")
             sender = value["from_peer"]
             media = value.get("media", {})
-            parts = list(_native_text_parts(value, keep_empty_photo=True))
+            parts = list(_native_text_parts(value, keep_empty_media=True))
             if not parts:
                 continue
             record = f"{item['table']}(uid={row['uid']},mid={row['mid']})@sqlite-page:{item['sqlite_page']}:byte:{item['sqlite_record_page_offset']}"

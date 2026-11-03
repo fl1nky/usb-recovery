@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,6 +10,8 @@ namespace UsbRecovery
         public bool Signatures = true, SmallBlocks = true, JpegFragments, KeepCorrupted;
         public bool EmbeddedPhotos = true, Containers = true, TolerateReadErrors;
         public bool OrphanDirectories, TextFragments, FragmentedPhotos, FragmentedVideo;
+        // Missing in old saved sessions means the original bounded mode.
+        public bool StreamingPngIndex;
         public bool MetadataRescue, ArchiveMembers, FragmentedArchives;
         public bool CustomSignatures;
         public List<UserSignatureRule> CustomRules=new List<UserSignatureRule>();

@@ -20,6 +20,7 @@ import telegram_media_cache
 from telegram_tl import parse_message, TelegramTlError
 from build_telegram_document_attributes_fixtures import load_cases, extract_sources
 from build_telegram_document_descriptor_fixtures import create, inventory
+from telegram_media_retention_policy import expected_record_count_v1
 
 
 class TelegramDocumentAttributesTests(unittest.TestCase):
@@ -51,7 +52,7 @@ class TelegramDocumentAttributesTests(unittest.TestCase):
         return output, summary, rows, native
 
     def assert_native(self, case, rows):
-        self.assertEqual(len(rows), case['expected_text_slots'], case['name'])
+        self.assertEqual(len(rows), expected_record_count_v1(case), case['name'])
         for row in rows:
             self.assertEqual(row['text'], case['expected']['text'])
             self.assertEqual((row['chat_id'], row['message_id']), (case['exact_sql']['uid'], case['exact_sql']['mid']))
@@ -105,7 +106,7 @@ class TelegramDocumentAttributesTests(unittest.TestCase):
             with self.subTest(case=case['name']):
                 output, summary, _, native = self.analyze(self.inputs[case['name']])
                 self.assert_native(case, native)
-                self.assertEqual(summary['native_records'], case['expected_text_slots'])
+                self.assertEqual(summary['native_records'], expected_record_count_v1(case))
                 if case['name'] in ('doc-cached-png', 'doc-two-photo-thumbs'):
                     self.assertEqual((native[0]['thumbnail_count'], native[0]['media_status']), (1, 'cached_thumbnail_available'))
                     self.assertEqual(len(native[0]['attachments']), 1)

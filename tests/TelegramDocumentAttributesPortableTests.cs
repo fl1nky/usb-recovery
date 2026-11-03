@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -141,7 +141,7 @@ public static class TelegramDocumentAttributesPortableTests
     static void Current()
     {
         string archive=Path.Combine(work,"current");var summary=Analyze(Path.Combine(inputs,"current"),archive);var all=Search(archive);var native=all.Where(Native).ToList();Weak(all.Where(r=>!Native(r)));
-        Check(summary.ReadableSources==31&&native.Count==30&&summary.NativeRecords==30&&summary.HistoryMessages==30&&summary.Messages==all.Count&&summary.FragmentRecords==all.Count-30&&summary.DeletedSupportedRecords==0,"31 readable sources,30 native text slots,one intentionally empty");
+        Check(summary.ReadableSources==31&&native.Count==31&&summary.NativeRecords==31&&summary.HistoryMessages==31&&summary.Messages==all.Count&&summary.FragmentRecords==all.Count-31&&summary.DeletedSupportedRecords==0,"31 readable sources and retained records; 30 nonempty text slots plus one exact-empty media record");
         var bySource=positives.Keys.ToDictionary(name=>Source("current",name),name=>name,StringComparer.OrdinalIgnoreCase);var seen=new HashSet<string>();
         foreach(var row in native){string file=Path.GetFullPath(row.source_file);Check(bySource.ContainsKey(file),"native row exact preselected DB source");string name=bySource[file];var expected=positives[name];var message=(Dictionary<string,object>)expected["expected"];var sql=(Dictionary<string,object>)expected["exact_sql"];var sender=(Dictionary<string,object>)message["from_peer"];
             Check(seen.Add(name)&&row.text==Str(message,"text")&&row.text_field=="message"&&row.record_kind=="tl_message"&&Num(row.chat_id)==Num(sql["uid"])&&Num(row.message_id)==Num(sql["mid"]),"native exact text/SQL identity/field role once");
@@ -153,7 +153,7 @@ public static class TelegramDocumentAttributesPortableTests
             foreach(string marker in new[]{"ATTRIBUTE_FILENAME_","ATTRIBUTE_TITLE_","ATTRIBUTE_PERFORMER_","OPAQUE_THUMB_"})Check(!row.text.Contains(marker),"metadata not promoted into native chat text");
             if(cached)Check(Hash(Safe(archive,row.attachments[0]))==Hash(Convert.FromBase64String(Png)),"cached PNG exact original bytes");Full(archive,row);
         }
-        Check(seen.SetEquals(positives.Where(p=>Num(p.Value["expected_text_slots"])==1).Select(p=>p.Key)),"all30 independent text identities covered,empty metadata creates no message");
+        Check(seen.SetEquals(positives.Keys)&&native.Count(row=>!String.IsNullOrEmpty(row.text))==30&&native.Single(row=>String.IsNullOrEmpty(row.text)).media_status=="document_reference_only","retained_media_records_v1 preserves31 identities and the immutable30 nonempty text slots");
         foreach(var query in new[]{new[]{"recipe","literal"},new[]{"doc-cached-png","literal"},new[]{"recipe[\\s\\S]*第二行","regex"}}){bool regex=query[1]=="regex";var found=Search(archive,query[0],regex);Weak(found.Where(r=>!Native(r)));
             var expected=new HashSet<string>(positives.Values.Where(p=>Num(p["expected_text_slots"])==1&&(regex?Regex.IsMatch(Str((Dictionary<string,object>)p["expected"],"text"),query[0]):Str((Dictionary<string,object>)p["expected"],"text").IndexOf(query[0],StringComparison.OrdinalIgnoreCase)>=0)).Select(p=>Str(p,"tl_body_sha256")));
             Check(new HashSet<string>(found.Where(Native).Select(r=>r.native_tl_body_sha256)).SetEquals(expected)&&found.Count(Native)==expected.Count,"literal/Regex independent expected native body set");}

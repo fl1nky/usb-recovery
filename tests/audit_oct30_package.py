@@ -103,7 +103,7 @@ def audit():
     archive = CArchiveReader(str(helper / "recovery-helper.exe"))
     pyz = archive.open_embedded_archive("PYZ.pyz")
     embedded = []
-    for name in ("engine", "telegram_auto", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
+    for name in ("engine", "telegram_auto", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "png_sector_index", "png_streaming", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
         code = marshal.loads(archive.extract(name)) if name == "engine" else pyz.extract(name)
         source = ROOT / "helpers/recovery_engine" / (name + ".py")
         reference = compile(source.read_bytes(), str(source), "exec", optimize=0)
