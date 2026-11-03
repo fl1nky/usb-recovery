@@ -23,17 +23,14 @@ try {
     $taskResult.python_on_path=[bool](Get-Command python.exe -ErrorAction SilentlyContinue)
     if($taskResult.python_on_path){throw 'Python unexpectedly on restricted PATH.'}
     $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-    & $taskHarness $taskProject *> (Join-Path $PSScriptRoot 'UsbOfflineTests.result.txt')
-    if($LASTEXITCODE -ne 0){Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UsbOfflineTests.result.txt') -Tail 8;throw 'Packaged offline test failed.'}
+    $taskLog=Join-Path $PSScriptRoot 'UsbOfflineTests.result.txt'
+    $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult 'UsbPackaged' $taskHarness @($taskProject) $taskLog $taskSourceProof
+    if($taskNativeExit -ne 0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Packaged offline test failed; exit '+$taskNativeExit)}
     Get-Content -LiteralPath (Join-Path $PSScriptRoot 'UsbOfflineTests.result.txt') -Tail 1
     Add-RecoveryTestEvidence $taskResult 'UsbPackaged' (Join-Path $PSScriptRoot 'UsbOfflineTests.result.txt') $taskHarness $taskSourceProof $taskStartedUtc
     $taskResult.status='passed'
-} finally {
+} catch {$taskResult.failure=[string]$_;$taskResult.status='failed'} finally {
     $env:PATH=$taskOldPath
-    Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-    $taskResult.rules_removed=@(Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue).Count -eq 0
-    Complete-RecoveryOfflineEvidence $taskResult
-    foreach($taskFile in @($taskHarness,($taskHarness+".config"))){if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile}}
-    $taskResult|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'UsbOffline-validation.json') -Encoding UTF8
+    Complete-RecoveryOfflineRun $taskResult $taskGroup @($taskHarness) (Join-Path $PSScriptRoot 'UsbOffline-validation.json')
 }
-if($taskResult.status-ne'passed'){throw 'Packaged evidence did not bind unchanged tested binaries.'}
+if($taskResult.status-ne'passed'){throw ('Packaged USB validation failed: '+$taskResult.failure+'; cleanup: '+($taskResult.cleanup_errors-join'; '))}

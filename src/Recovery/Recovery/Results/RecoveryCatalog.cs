@@ -20,6 +20,10 @@ namespace UsbRecovery
         public List<OriginalLocation> OriginalLocations=new List<OriginalLocation>();
         public long? SourceOffset, UnreadBytes;
         public List<FileExtent> SourceRanges = new List<FileExtent>();
+        public List<List<FileExtent>> SourceRangeAlternatives = new List<List<FileExtent>>();
+        public List<SourceMapGroup> SourceMapGroups = new List<SourceMapGroup>();
+        public bool SourceMapGroupsLimited;
+        public int SourceMapGroupsOmitted;
         public long Bytes;
         public List<string> Copies = new List<string>();
     }
@@ -221,7 +225,7 @@ namespace UsbRecovery
                     foreach(var location in locations){
                     cancel.ThrowIfCancellationRequested();string relative=UniqueExportPath(output,location.Relative,item,allocated,directories),target=SafeFile(output,relative),partial=SafeFile(output,".export-"+Guid.NewGuid().ToString("N")+".partial");Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target));SafeFile(output,relative);
                     CopyExportFile(source,target,partial,item,cancel);
-                    records.Add(new{file=relative.Replace('\\','/'),source=item.Path,sha256=item.Sha256,otherCopies=item.Copies,quality=item.Quality,qualityLabel=item.QualityLabel,integrityDetail=item.IntegrityDetail,sourceOffset=item.SourceOffset,sourceRanges=item.SourceRanges,sourceCandidate=item.SourceCandidatePath,unreadBytes=item.UnreadBytes,originalPath=item.OriginalPath,pathStatus=item.OriginalPathStatus,pathEvidence=item.OriginalPathEvidence,originalLocations=item.OriginalLocations,exportedOriginalPath=location.Original,exportedPathStatus=location.Status,exportedVolumeOffset=location.Volume});
+                    records.Add(new{file=relative.Replace('\\','/'),source=item.Path,sha256=item.Sha256,otherCopies=item.Copies,quality=item.Quality,qualityLabel=item.QualityLabel,integrityDetail=item.IntegrityDetail,sourceOffset=item.SourceOffset,sourceRanges=item.SourceRanges,sourceRangeAlternatives=item.SourceRangeAlternatives,sourceMapGroups=item.SourceMapGroups,sourceMapGroupsLimited=item.SourceMapGroupsLimited,sourceMapGroupsOmitted=item.SourceMapGroupsOmitted,sourceCandidate=item.SourceCandidatePath,unreadBytes=item.UnreadBytes,originalPath=item.OriginalPath,pathStatus=item.OriginalPathStatus,pathEvidence=item.OriginalPathEvidence,originalLocations=item.OriginalLocations,exportedOriginalPath=location.Original,exportedPathStatus=location.Status,exportedVolumeOffset=location.Volume});
                     }
                 }
                 status="complete";return output;

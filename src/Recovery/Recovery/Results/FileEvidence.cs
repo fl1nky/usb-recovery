@@ -8,6 +8,13 @@ using System.Web.Script.Serialization;
 namespace UsbRecovery
 {
     public sealed class FileExtent { public long Offset,Length; }
+    public sealed class SourceMapGroup
+    {
+        public string SourceCandidatePath,SourceSha256,VerificationStatus,Note;
+        public long? SourceBytes;
+        public bool SourceScopeVerified,MappingComplete;
+        public List<List<FileExtent>> Maps=new List<List<FileExtent>>();
+    }
     public sealed class EvidenceEntry
     {
         public string Path,Kind,Note,VerifiedSha256,VerificationStatus;
@@ -17,6 +24,11 @@ namespace UsbRecovery
         public long? VolumeOffset;
         public long VerifiedBytes=-1;
         public List<FileExtent> Ranges=new List<FileExtent>();
+        public List<List<FileExtent>> SourceRangeAlternatives=new List<List<FileExtent>>();
+        public string SourceSha256;
+        public long? SourceBytes;
+        public bool SourceScopeVerified;
+        internal bool SourceScopeSpecified;
         public bool MappingComplete;
         public long? Offset;
     }
@@ -25,6 +37,9 @@ namespace UsbRecovery
         readonly Dictionary<string,EvidenceEntry> entries=new Dictionary<string,EvidenceEntry>(StringComparer.OrdinalIgnoreCase);
         public List<FileExtent> Unread=new List<FileExtent>();
         public bool HasReadErrors;
+        string sourceSha256;
+        long? sourceBytes;
+        bool readMapBound;
         static JavaScriptSerializer Json(){return new JavaScriptSerializer{MaxJsonLength=128*1024*1024};}
         public static bool HasUnreadSource(string root,string image=null)
         {
@@ -67,6 +82,33 @@ namespace UsbRecovery
         }
         static long Number(Dictionary<string,object> row,string key,long fallback=0){if(row==null)return fallback;object value;try{return row.TryGetValue(key,out value)&&value!=null?Convert.ToInt64(value):fallback;}catch(FormatException){return fallback;}catch(InvalidCastException){return fallback;}catch(OverflowException){return fallback;}}
         static string Value(Dictionary<string,object> row,string key){if(row==null)return null;object value;return row.TryGetValue(key,out value)?Convert.ToString(value):null;}
+        static bool SourceScope(Dictionary<string,object> session,out string sha,out long bytes)
+        {
+            object raw;long schema;sha=null;bytes=-1;
+            if(session==null||!session.TryGetValue("SourceSha256",out raw)||!(raw is string))return false;
+            sha=(string)raw;return MappingNumber(session,"Schema",out schema)&&schema==1&&MappingNumber(session,"SourceBytes",out bytes)&&bytes>0&&ValidSha(sha);
+        }
+        static bool ValidSha(string sha){return sha!=null&&sha.Length==64&&sha.All(Uri.IsHexDigit);}
+        static void BindSource(EvidenceEntry entry,Dictionary<string,object> report,Dictionary<string,object> session,bool sessionFallback=false)
+        {
+            entry.SourceScopeSpecified=true;entry.SourceScopeVerified=false;entry.SourceSha256=null;entry.SourceBytes=null;string localSha;long localBytes;bool local=SourceScope(session,out localSha,out localBytes);
+            object raw;string reported=report!=null&&report.TryGetValue("SourceSha256",out raw)?raw as string:null;long explicitBytes=-1,schema;
+            bool hasSha=report!=null&&report.ContainsKey("SourceSha256"),badBytes=false;
+            if(report!=null&&report.ContainsKey("InputBytes"))badBytes=!MappingNumber(report,"InputBytes",out explicitBytes)||explicitBytes<=0;
+            else if(report!=null&&report.ContainsKey("SourceBytes"))badBytes=!MappingNumber(report,"SourceBytes",out explicitBytes)||explicitBytes<=0;
+            if(ValidSha(reported))entry.SourceSha256=reported.ToLowerInvariant();
+            if(explicitBytes>0)entry.SourceBytes=explicitBytes;
+            if(report==null||!MappingNumber(report,"Schema",out schema)||schema!=1||badBytes)return;
+            if(hasSha){
+                if(!ValidSha(reported)||!report.TryGetValue("SourceUnchanged",out raw)||!(raw is bool)||!(bool)raw)return;
+                if(local){
+                    if(!String.Equals(reported,localSha,StringComparison.OrdinalIgnoreCase)||explicitBytes>0&&explicitBytes!=localBytes)return;
+                    entry.SourceBytes=localBytes;entry.SourceScopeVerified=true;
+                }else if(session==null&&explicitBytes>0)entry.SourceScopeVerified=true;
+            }else if(sessionFallback&&local&&(explicitBytes<0||explicitBytes==localBytes)){
+                entry.SourceSha256=localSha.ToLowerInvariant();entry.SourceBytes=localBytes;entry.SourceScopeVerified=true;
+            }
+        }
         void Add(string path,long offset,long length,string kind,bool complete=true)
         {
             if(String.IsNullOrEmpty(path)||offset<0||length<=0||offset>Int64.MaxValue-length)return;
@@ -87,35 +129,75 @@ namespace UsbRecovery
             object raw;if(!row.TryGetValue("original_path_components",out raw)||!(raw is IEnumerable)||raw is string)return null;
             var result=new List<string>();foreach(object value in (IEnumerable)raw){string part=value as string;if(part==null||part.Length==0||part.Length>1024||part=="."||part==".."||part.IndexOf('/')>=0||part.IndexOf('\0')>=0||result.Count>=256)return null;result.Add(part);}return result.Count>0?result:null;
         }
+        internal static string CanonicalRangesKey(IEnumerable<FileExtent> ranges)
+        {
+            var joined=new List<FileExtent>();
+            foreach(var range in ranges){
+                if(joined.Count>0&&joined[joined.Count-1].Offset+joined[joined.Count-1].Length==range.Offset)joined[joined.Count-1].Length+=range.Length;
+                else joined.Add(new FileExtent{Offset=range.Offset,Length=range.Length});
+            }
+            return String.Join("|",joined.Select(range=>range.Offset.ToString(System.Globalization.CultureInfo.InvariantCulture)+":"+range.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        }
+        static bool MappingNumber(Dictionary<string,object> row,string name,out long result)
+        {
+            object value;result=0;if(!row.TryGetValue(name,out value)||!(value is int)&&!(value is long))return false;result=Convert.ToInt64(value);return true;
+        }
+        static bool ReadMapping(object raw,long size,long sourceBytes,out List<FileExtent> ranges,int maximum=100000)
+        {
+            ranges=new List<FileExtent>();var sequence=raw as IEnumerable;
+            if(sequence==null||raw is string||raw is IDictionary)return false;
+            long logical=0,priorEnd=-1;
+            foreach(object value in sequence){
+                var row=value as Dictionary<string,object>;long offset,at,length;
+                if(row==null||ranges.Count>=maximum||!MappingNumber(row,"ImageOffset",out offset)||!MappingNumber(row,"LogicalOffset",out at)||!MappingNumber(row,"Length",out length)||offset<0||length<=0||at!=logical||length>size-logical||offset>Int64.MaxValue-length||sourceBytes>=0&&offset>sourceBytes-length)return false;
+                ranges.Add(new FileExtent{Offset=offset,Length=length});logical+=length;
+            }
+            foreach(var range in ranges.OrderBy(value=>value.Offset)){if(range.Offset<priorEnd)return false;priorEnd=range.Offset+range.Length;}
+            return logical==size&&ranges.Count>0;
+        }
         public static FileEvidence Load(string root)
-        {return Load(root,0);}
-        static FileEvidence Load(string root,int depth)
+        {long alternateBytes=0;int alternateExtentCount=0;return Load(root,0,ref alternateBytes,ref alternateExtentCount);}
+        static FileEvidence Load(string root,int depth,ref long alternateBytes,ref int alternateExtentCount)
         {
             var result=new FileEvidence();var map=Read(root,"source-read-errors.json");
+            var localSession=Read(root,RecoverySession.FileName);string localSha;long localBytes;
+            if(SourceScope(localSession,out localSha,out localBytes)){result.sourceSha256=localSha.ToLowerInvariant();result.sourceBytes=localBytes;}
             result.HasReadErrors=HasUnreadSource(root);
             foreach(var range in Rows(map,"ranges")){long offset=Number(range,"Offset",-1),length=Number(range,"Length");if(offset>=0&&length>0&&offset<=Int64.MaxValue-length)result.Unread.Add(new FileExtent{Offset=offset,Length=length});}
             result.Unread=Merge(result.Unread);
             if(map!=null&&Number(map,"unreadBytes",-1)!=result.Unread.Sum(x=>x.Length))result.Unread.Clear();
+            result.readMapBound=result.sourceBytes.HasValue&&map!=null&&Number(map,"size",-1)==result.sourceBytes.Value&&Number(map,"copied",-1)==result.sourceBytes.Value&&Value(map,"status")=="complete_with_read_errors"&&result.Unread.Count>0&&result.Unread.All(range=>range.Offset<=result.sourceBytes.Value-range.Length);
             foreach(var row in Rows(Read(root,"container-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"bytes"),"container");
             foreach(var row in Rows(Read(root,"extra-photo-search.json"),"files"))result.Add(Value(row,"path"),Number(row,"offset",-1),Number(row,"size"),"embedded_photo");
-            foreach(string manifest in new[]{"fragmented-photo-search.json","fragmented-media.json"})foreach(var row in Rows(Read(root,manifest),"Files")){
+            foreach(string manifest in new[]{"fragmented-photo-search.json","fragmented-media.json"}){
+            var mediaReport=Read(root,manifest);
+            foreach(var row in Rows(mediaReport,"Files")){
                 string path=Value(row,"Path"),status=Value(row,"Status");long size=Number(row,"Bytes",-1);
                 if(String.IsNullOrEmpty(path)||size<=0||!(status=="png_crc_zlib_reassembled_candidate"||status=="jpeg_restart_structural_candidate"||status=="jpeg_gap_structural_candidate"||status=="jpeg_gap_ambiguous_candidate"||status=="jpeg_progressive_structural_candidate"||status=="progressive_partial_precision_candidate"||status=="jpeg_restart_huffman_reassembled_candidate"||status=="jpeg_single_gap_huffman_reassembled_candidate"||status=="iso_bmff_structural_candidate"))continue;
                 if(!(path.StartsWith("fragmented-photos/",StringComparison.Ordinal)||path.StartsWith("fragmented-media/",StringComparison.Ordinal)))continue;
-                var proof=new EvidenceEntry{Path=path,Kind="reassembled_media_candidate",VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note"),MappingComplete=true};long logical=0;
-                foreach(var extent in Rows(row,"Extents")){
-                    long offset=Number(extent,"ImageOffset",-1),at=Number(extent,"LogicalOffset",-1),length=Number(extent,"Length",-1);
-                    if(offset<0||length<=0||at!=logical||offset>Int64.MaxValue-length||length>size-logical){proof.MappingComplete=false;break;}
-                    proof.Ranges.Add(new FileExtent{Offset=offset,Length=length});logical+=length;
+                var proof=new EvidenceEntry{Path=path,Kind="reassembled_media_candidate",VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note")};
+                BindSource(proof,mediaReport,localSession,manifest=="fragmented-media.json");
+                var sourceRecord=Read(root,RecoverySession.FileName);long sourceBytes=sourceRecord==null?-1:Number(sourceRecord,"SourceBytes",-1);object raw;
+                List<FileExtent> primary=new List<FileExtent>();
+                proof.MappingComplete=row.TryGetValue("Extents",out raw)&&ReadMapping(raw,size,sourceBytes,out primary,manifest=="fragmented-photo-search.json"?100000:Int32.MaxValue);
+                if(proof.MappingComplete){
+                    proof.Ranges=primary;
+                    var keys=new HashSet<string>(StringComparer.Ordinal){CanonicalRangesKey(primary)};
+                    if(row.TryGetValue("AlternateExtents",out raw)){
+                        var alternatives=raw as IEnumerable;int count=0,extents=0;
+                        if(alternatives==null||raw is string||raw is IDictionary)proof.MappingComplete=false;
+                        else foreach(object alternative in alternatives){
+                            List<FileExtent> ranges;
+                            if(++count>511||size>(512L*1024*1024-alternateBytes)/count||!ReadMapping(alternative,size,sourceBytes,out ranges)||ranges.Count>100000-alternateExtentCount-extents||!keys.Add(CanonicalRangesKey(ranges))){proof.MappingComplete=false;break;}
+                            extents+=ranges.Count;proof.SourceRangeAlternatives.Add(ranges);
+                        }
+                        if(proof.MappingComplete){alternateBytes+=size*count;alternateExtentCount+=extents;}
+                    }
                 }
-                var sourceRecord=Read(root,RecoverySession.FileName);long sourceBytes=sourceRecord==null?-1:Number(sourceRecord,"SourceBytes",-1),priorEnd=-1;
-                foreach(var range in proof.Ranges.OrderBy(x=>x.Offset)){
-                    if(range.Offset<priorEnd||sourceBytes>=0&&range.Offset>sourceBytes-range.Length){proof.MappingComplete=false;break;}
-                    priorEnd=range.Offset+range.Length;
-                }
-                if(!proof.MappingComplete||logical!=size){proof.Ranges.Clear();proof.MappingComplete=false;}
-                if(proof.Ranges.Count>0)proof.Offset=proof.Ranges[0].Offset;
+                if(!proof.MappingComplete){proof.Ranges.Clear();proof.SourceRangeAlternatives.Clear();proof.Note+=" Карта размещения не прошла проверку; положение исходных байтов неизвестно.";}
+                if(proof.Ranges.Count>0&&proof.SourceRangeAlternatives.Count==0)proof.Offset=proof.Ranges[0].Offset;
                 result.entries[path.Replace('\\','/')]=proof;
+            }
             }
             var ext4=Read(root,"ext4/report.json");
             string ext4Method=Value(ext4,"Method");
@@ -137,7 +219,7 @@ namespace UsbRecovery
                     if(volumeOffset<0||volumeBytes<=0||volumeOffset>sourceBytes-volumeBytes||inodeOffset<volumeOffset||inodeOffset>volumeOffset+volumeBytes-128)continue;
                     string path="ext4/"+relative;RecoveryCatalog.SafeFile(root,path);
                     string kind=delEvidence=="journal_transaction_pre_deletion_record"?"ext4_journal_candidate":"ext4_inode_candidate";
-                    var proof=new EvidenceEntry{Path=path,Kind=kind,VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=Value(row,"Status"),Note=Value(row,"Note"),MappingComplete=true,FileSystem="ext4",VolumeOffset=Number(row,"VolumeOffset",-1)};
+                    var proof=new EvidenceEntry{Path=path,Kind=kind,VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=Value(row,"Status"),Note=Value(row,"Note"),MappingComplete=true,FileSystem="ext4",VolumeOffset=Number(row,"VolumeOffset",-1)};BindSource(proof,ext4,session);
                     long logical=0,priorEnd=-1;
                     foreach(var extent in Rows(row,"Extents")){
                         long at=Number(extent,"LogicalOffset",-1),offset=Number(extent,"ImageOffset",-1),length=Number(extent,"Length",-1);
@@ -165,6 +247,7 @@ namespace UsbRecovery
                     string path="refs/"+relative;RecoveryCatalog.SafeFile(root,path);
                     string kind=status=="deleted_refs_candidate"?"refs_deleted_candidate":status=="checkpoint_rollback_candidate"?"refs_checkpoint_candidate":"refs_recovered_file";
                     var proof=new EvidenceEntry{Path=path,Kind=kind,VerifiedSha256=sha,VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note")??(status=="deleted_refs_candidate"?"Сохранившаяся запись ReFS (удалённый файл). Исходные кластеры свободны в текущем дереве, но могли быть перезаписаны; факт удаления и подлинность содержимого не подтверждены.":"Кандидат ReFS; метаданные подтверждены CRC."),MappingComplete=true,FileSystem="ReFS",VolumeOffset=volumeOffset,OriginalPath=Value(row,"RelativePath"),OriginalPathStatus=status=="deleted_refs_candidate"?"refs_salvaged_path":"refs_referenced_path",PathEvidence="ReFS Directory Entry 0x30; Object="+Value(row,"ObjectId")};
+                    BindSource(proof,refs,session);
                     long logical=0,priorEnd=-1;
                     foreach(var extent in Rows(row,"Extents")){
                         long at=Number(extent,"LogicalOffset",-1),offset=Number(extent,"ImageOffset",-1),length=Number(extent,"Length",-1);
@@ -221,9 +304,10 @@ namespace UsbRecovery
                     foreach(var extent in Rows(row,"ranges")){long offset=Number(extent,"Offset",-1),length=Number(extent,"Length");if(offset>=0&&length>0&&offset<=Int64.MaxValue-length)item.Ranges.Add(new FileExtent{Offset=offset,Length=length});}if(item.Ranges.Count>0)item.Offset=item.Ranges[0].Offset;result.entries[path]=item;
                 }
             }
+            if(result.sourceSha256!=null)foreach(var entry in result.entries.Values)if(!entry.SourceScopeSpecified){entry.SourceSha256=result.sourceSha256;entry.SourceBytes=result.sourceBytes;entry.SourceScopeVerified=true;}
             string history=RecoveryCatalog.SafeFile(root,"attempt-history");if(depth==0&&Directory.Exists(history)){
                 var attempts=Directory.EnumerateDirectories(history).Take(257).ToArray();if(attempts.Length>256)throw new IOException("Слишком много предыдущих попыток.");
-                foreach(string attempt in attempts){string prefix="attempt-history/"+Path.GetFileName(attempt)+"/";RecoveryCatalog.SafeFile(root,prefix+"guard");var prior=Load(attempt,1);foreach(var row in prior.entries){row.Value.Path=prefix+row.Value.Path;result.entries[prefix+row.Key]=row.Value;}}
+                foreach(string attempt in attempts){string prefix="attempt-history/"+Path.GetFileName(attempt)+"/";RecoveryCatalog.SafeFile(root,prefix+"guard");var prior=Load(attempt,1,ref alternateBytes,ref alternateExtentCount);foreach(var row in prior.entries){row.Value.Path=prefix+row.Value.Path;result.entries[prefix+row.Key]=row.Value;}}
             }
             return result;
         }
@@ -232,6 +316,72 @@ namespace UsbRecovery
         {
             var source=Merge(ranges);long total=0;int left=0,right=0;
             while(left<source.Count&&right<Unread.Count){var a=source[left];var b=Unread[right];long start=Math.Max(a.Offset,b.Offset),end=Math.Min(a.Offset+a.Length,b.Offset+b.Length);if(end>start)total+=end-start;if(a.Offset+a.Length<=b.Offset+b.Length)left++;else right++;}return total;
+        }
+        List<FileExtent> LogicalUnread(List<FileExtent> ranges)
+        {
+            long logical=0;var placed=new List<Tuple<long,long,long>>();
+            foreach(var range in ranges){placed.Add(Tuple.Create(range.Offset,range.Length,logical));logical+=range.Length;}
+            placed=placed.OrderBy(range=>range.Item1).ToList();var missing=new List<FileExtent>();int left=0,right=0;
+            while(left<placed.Count&&right<Unread.Count){
+                var range=placed[left];var gap=Unread[right];long start=Math.Max(range.Item1,gap.Offset),end=Math.Min(range.Item1+range.Item2,gap.Offset+gap.Length);
+                if(end>start)missing.Add(new FileExtent{Offset=range.Item3+start-range.Item1,Length=end-start});
+                if(range.Item1+range.Item2<=gap.Offset+gap.Length)left++;else right++;
+            }
+            return Merge(missing);
+        }
+        bool AgreedUnread(List<List<FileExtent>> maps,out long bytes)
+        {
+            var first=LogicalUnread(maps[0]);bytes=first.Sum(range=>range.Length);
+            foreach(var map in maps.Skip(1)){
+                var other=LogicalUnread(map);if(first.Count!=other.Count)return false;
+                for(int index=0;index<first.Count;index++)if(first[index].Offset!=other[index].Offset||first[index].Length!=other[index].Length)return false;
+            }
+            return true;
+        }
+        static List<FileExtent> CloneRanges(IEnumerable<FileExtent> ranges){return ranges.Select(range=>new FileExtent{Offset=range.Offset,Length=range.Length}).ToList();}
+        static bool CompleteMap(List<FileExtent> map,long bytes,long? size)
+        {
+            long total=0,prior=-1;
+            foreach(var range in map){if(range==null||range.Offset<0||range.Length<=0||range.Length>bytes-total||range.Offset>Int64.MaxValue-range.Length||size.HasValue&&range.Offset>size.Value-range.Length)return false;total+=range.Length;}
+            foreach(var range in map.OrderBy(value=>value.Offset)){if(range.Offset<prior)return false;prior=range.Offset+range.Length;}
+            return total==bytes&&map.Count>0;
+        }
+        static bool SingleLocalLegacyOrigin(EvidenceEntry selected,IList<EvidenceEntry> origins)
+        {
+            return selected!=null&&origins.Count==1&&Object.ReferenceEquals(selected,origins[0])&&selected.SourceRangeAlternatives.Count==0&&
+                !selected.SourceScopeSpecified&&!selected.Path.StartsWith("attempt-history/",StringComparison.OrdinalIgnoreCase);
+        }
+        void ApplyMapGroups(RecoveredItem item,EvidenceEntry selected,IEnumerable<EvidenceEntry> origins)
+        {
+            long chargedBytes=0;int chargedExtents=0;var carriers=origins.Distinct().ToList();
+            foreach(var origin in carriers){
+                if(origin.Ranges.Count==0)continue;
+                var maps=new[]{origin.Ranges}.Concat(origin.SourceRangeAlternatives).ToList();long extents=maps.Sum(map=>(long)map.Count);
+                if(extents>100000-chargedExtents||item.Bytes>(512L*1024*1024-chargedBytes)/maps.Count){item.SourceMapGroupsLimited=true;item.SourceMapGroupsOmitted++;continue;}
+                chargedBytes+=item.Bytes*maps.Count;chargedExtents+=(int)extents;
+                item.SourceMapGroups.Add(new SourceMapGroup{SourceCandidatePath=origin.Path,SourceSha256=origin.SourceSha256,SourceBytes=origin.SourceBytes,SourceScopeVerified=origin.SourceScopeVerified,
+                    MappingComplete=origin.Kind!="encoded_zip_entry"&&origin.MappingComplete&&maps.All(map=>CompleteMap(map,item.Bytes,origin.SourceBytes)),VerificationStatus=origin.VerificationStatus,Note=origin.Note,Maps=maps.Select(CloneRanges).ToList()});
+            }
+            if(item.SourceMapGroupsLimited){
+                item.SourceRanges.Clear();item.SourceRangeAlternatives.Clear();item.SourceOffset=null;
+                item.IntegrityDetail+=" Перечень карт ограничен: источников не включено "+item.SourceMapGroupsOmitted+". Исходные отчёты и копии сохранены; общая карта размещения и пересечение с пропусками не установлены.";return;
+            }
+            int unmapped=carriers.Count-item.SourceMapGroups.Count;
+            if(unmapped>0)item.IntegrityDetail+=" Источников без физической карты: "+unmapped+". Пути копий сохранены; имеющиеся карты не описывают все источники.";
+            if(carriers.Count>1)item.SourceOffset=null;
+            if(item.SourceMapGroups.Count==0)return;
+            var primary=item.SourceMapGroups.FirstOrDefault(group=>selected!=null&&group.SourceCandidatePath==selected.Path)??item.SourceMapGroups[0];
+            bool same=item.SourceMapGroups.All(group=>group.SourceScopeVerified&&group.MappingComplete&&primary.SourceScopeVerified&&group.SourceSha256==primary.SourceSha256&&group.SourceBytes==primary.SourceBytes);
+            var flat=new List<List<FileExtent>>();var keys=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var map in primary.Maps.Concat(same?item.SourceMapGroups.SelectMany(group=>group.Maps):Enumerable.Empty<List<FileExtent>>()))if(keys.Add(CanonicalRangesKey(map)))flat.Add(map);
+            item.SourceCandidatePath=primary.SourceCandidatePath;item.SourceRanges=CloneRanges(flat[0]);item.SourceRangeAlternatives=flat.Skip(1).Select(CloneRanges).ToList();
+            bool qualifiedLegacy=item.SourceMapGroups.Count==1&&flat.Count==1&&SingleLocalLegacyOrigin(selected,carriers);
+            item.SourceOffset=carriers.Count>1||item.SourceMapGroups.Count>1||flat.Count>1?(long?)null:primary.MappingComplete?item.SourceRanges[0].Offset:qualifiedLegacy?selected.Offset:null;
+            if(qualifiedLegacy&&!primary.MappingComplete)item.IntegrityDetail+=" Указан физический адрес записи или закодированного диапазона; полная логическая карта содержимого не установлена.";
+            item.IntegrityDetail+=" Источников карт: "+item.SourceMapGroups.Count+". ";
+            if(same&&flat.Count>1)item.IntegrityDetail+="Подтверждено карт размещения одинаковых байтов: "+flat.Count+". Исходное размещение неизвестно; основная карта — один воспроизводимый вариант, а не выбранный оригинал.";
+            else if(item.SourceMapGroups.Count>1)item.IntegrityDetail+="Карты сохранены отдельными группами: источники различаются, не привязаны или карта неполна. Их смещения не объединены; исходное размещение неизвестно.";
+            else if(flat.Count>1)item.IntegrityDetail+="Подтверждено карт размещения одинаковых байтов: "+flat.Count+". Источник образа не привязан; исходное размещение неизвестно.";
         }
         static List<FileExtent> Merge(IEnumerable<FileExtent> ranges)
         {
@@ -243,7 +393,7 @@ namespace UsbRecovery
         static bool PreserveProblem(RecoveredItem item){return new[]{"partial","damaged","changed","read_errors","encrypted","mapping_unknown"}.Contains(item.Quality);}
         public void Apply(RecoveredItem item)
         {
-            item.OriginalLocations=new List<OriginalLocation>();item.OriginalPath=item.OriginalPathStatus=item.OriginalPathEvidence=item.SourceCandidatePath=null;item.SourceVolumeOffset=null;item.SourceOffset=null;item.SourceRanges=new List<FileExtent>();item.UnreadBytes=null;
+            item.OriginalLocations=new List<OriginalLocation>();item.OriginalPath=item.OriginalPathStatus=item.OriginalPathEvidence=item.SourceCandidatePath=null;item.SourceVolumeOffset=null;item.SourceOffset=null;item.SourceRanges=new List<FileExtent>();item.SourceRangeAlternatives=new List<List<FileExtent>>();item.SourceMapGroups=new List<SourceMapGroup>();item.SourceMapGroupsLimited=false;item.SourceMapGroupsOmitted=0;item.UnreadBytes=null;
             foreach(string candidate in new[]{item.Path}.Concat(item.Copies)){
                 var origin=For(candidate);if(origin==null||origin.OriginalPath==null||origin.VerifiedSha256==null||!String.Equals(origin.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||origin.VerifiedBytes!=item.Bytes)continue;
                 item.OriginalLocations.Add(new OriginalLocation{Path=origin.OriginalPath,Status=origin.OriginalPathStatus,Evidence=origin.PathEvidence,VolumeOffset=origin.VolumeOffset.HasValue&&origin.VolumeOffset.Value>=0?origin.VolumeOffset:null,CandidatePath=candidate,FileSystem=origin.FileSystem,VolumeId=origin.VolumeId,SnapshotId=origin.SnapshotId,CheckpointId=origin.CheckpointId,Components=origin.Components});
@@ -251,13 +401,23 @@ namespace UsbRecovery
             var preferred=item.OriginalLocations.FirstOrDefault(x=>x.Status=="verified_parent_chain")??item.OriginalLocations.FirstOrDefault(x=>x.Status=="apfs_referenced_path")??item.OriginalLocations.FirstOrDefault();
             if(preferred!=null){item.OriginalPath=preferred.Path;item.OriginalPathStatus=preferred.Status;item.OriginalPathEvidence=preferred.Evidence;item.SourceVolumeOffset=preferred.VolumeOffset;}
             var record=For(preferred==null?item.Path:preferred.CandidatePath);
-            var ambiguous=new[]{item.Path}.Concat(item.Copies).Select(For).FirstOrDefault(x=>x!=null&&x.VerificationStatus=="jpeg_gap_ambiguous_candidate"&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
+            var matching=new[]{item.Path}.Concat(item.Copies).Select(For).Where(origin=>origin!=null&&origin.VerifiedBytes==item.Bytes&&String.Equals(origin.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)).Distinct().ToList();
+            var ambiguous=matching.FirstOrDefault(origin=>origin.VerificationStatus=="jpeg_gap_ambiguous_candidate");
             if(ambiguous!=null)record=ambiguous;
+            else {var partial=matching.FirstOrDefault(origin=>origin.VerificationStatus=="progressive_partial_precision_candidate");if(partial!=null)record=partial;}
             if(record==null&&preferred==null)record=item.Copies.Select(For).FirstOrDefault(x=>x!=null&&(x.Kind=="ext4_inode_candidate"||x.Kind=="ext4_journal_candidate")&&x.VerifiedBytes==item.Bytes&&String.Equals(x.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase));
+            bool changedRecord=false;
             if(record!=null&&record.VerifiedSha256!=null&&(!String.Equals(record.VerifiedSha256,item.Sha256,StringComparison.OrdinalIgnoreCase)||record.VerifiedBytes!=item.Bytes)){
                 item.Quality="changed";item.QualityLabel="Изменён после извлечения";item.IntegrityDetail+=" Прежняя карта источника не применяется: текущий файл не совпадает с манифестом извлечения.";record=null;
+                changedRecord=true;
             }
-            if(record!=null){item.SourceCandidatePath=record.Path;item.SourceOffset=record.Offset;item.SourceRanges=record.Ranges;item.IntegrityDetail+=(String.IsNullOrEmpty(item.IntegrityDetail)?"":" ")+"Происхождение: "+record.Kind+"; диапазонов в образе: "+record.Ranges.Count+".";}
+            if(record!=null){
+                item.SourceCandidatePath=record.Path;item.SourceOffset=record.Offset;item.SourceRanges=CloneRanges(record.Ranges);
+                item.SourceRangeAlternatives=record.SourceRangeAlternatives.Select(CloneRanges).ToList();
+                item.IntegrityDetail+=(String.IsNullOrEmpty(item.IntegrityDetail)?"":" ")+"Происхождение: "+record.Kind+"; диапазонов в образе: "+record.Ranges.Count+".";
+                if(item.SourceRangeAlternatives.Count>0)item.SourceOffset=null;
+            }
+            if(!changedRecord)ApplyMapGroups(item,record,matching);
             if(record!=null&&record.Kind=="ntfs_record"&&!record.MappingComplete)item.IntegrityDetail+=" Для resident-данных восстановлены USA-байты записи; указан адрес записи, а точная физическая карта содержимого не заявляется.";
             if(record!=null&&record.Kind=="encoded_zip_entry")item.IntegrityDetail+=" Диапазон относится к закодированной ZIP-записи с заголовком, а не к несжатому содержимому.";
             if(record!=null&&(record.Kind=="apfs_snapshot"||record.Kind=="apfs_checkpoint"||record.Kind=="apfs_referenced_file")){if(record.Components!=null&&record.Components.Count>0){item.Name=record.Components[record.Components.Count-1];int dot=item.Name.LastIndexOf('.');item.Extension=dot>=0?item.Name.Substring(dot):"";item.Category=RecoveryCatalog.Category(item.Extension);}item.Method=record.Kind=="apfs_checkpoint"?"APFS · предыдущее состояние":record.Kind=="apfs_snapshot"?"APFS · снимок":"APFS · файл";item.Status=record.Kind=="apfs_referenced_file"?"Сохранившийся файл APFS":"Предыдущая версия APFS";item.Note="Файл прочитан по сохранившейся записи APFS; факт удаления не устанавливается. Снимок, том и запись приведены в происхождении. SHA256 удостоверяет полученные байты, а не исходную полноту.";item.IntegrityDetail+=" "+record.PathEvidence+"; физическая карта блоков не установлена.";}
@@ -286,6 +446,21 @@ namespace UsbRecovery
                 item.IntegrityDetail+=" "+record.Note+" Ссылки каталогов без поколения inode приведены только в ext4/report.json; исходный путь по ним не восстанавливается.";
             }
             if(!HasReadErrors)return;
+            if(item.SourceMapGroupsLimited){item.UnreadBytes=null;return;}
+            bool legacySingleOrigin=SingleLocalLegacyOrigin(record,matching)&&item.SourceMapGroups.Count==1&&item.SourceMapGroups[0].Maps.Count==1;
+            if(item.SourceMapGroups.Count>0&&!legacySingleOrigin){
+                if(matching.Count>item.SourceMapGroups.Count||!readMapBound||sourceSha256==null||!sourceBytes.HasValue||item.SourceMapGroups.Any(group=>!group.SourceScopeVerified||!group.MappingComplete||group.SourceSha256!=sourceSha256||group.SourceBytes!=sourceBytes)||Unread.Count==0){
+                    item.UnreadBytes=null;item.IntegrityDetail+=" Карта ошибок текущего образа не привязана ко всем группам источников. Число и положение непрочитанных байтов для файла неизвестны.";return;
+                }
+                var maps=item.SourceMapGroups.SelectMany(group=>group.Maps).ToList();
+                long bytes;
+                if(AgreedUnread(maps,out bytes)){
+                    item.UnreadBytes=bytes;
+                    if(bytes>0){if(!PreserveProblem(item)){item.Quality="read_errors";item.QualityLabel="Есть непрочитанные байты";}item.IntegrityDetail+=" Все подтверждённые карты совпадают по положению пропусков внутри файла: "+bytes+" исходных байт заменены нулями.";}
+                    else item.IntegrityDetail+=" Ни одна из подтверждённых карт не пересекает известные пропуски образа; это не проверка первоначального содержимого.";
+                }else{item.UnreadBytes=null;item.IntegrityDetail+=" Возможные размещения по-разному пересекают карту ошибок. Число и положение непрочитанных байтов для этого файла не установлены; чистая карта не выбирается как исходная.";}
+                return;
+            }
             if(record!=null&&record.MappingComplete&&record.Ranges.Count>0&&Unread.Count>0){
                 long bytes=Intersections(record.Ranges);item.UnreadBytes=bytes;
                 if(bytes>0){item.Quality="read_errors";item.QualityLabel="Есть непрочитанные байты";item.IntegrityDetail+=" Подтверждено пересечение с картой ошибок: "+bytes+" исходных байт заменены нулями.";}

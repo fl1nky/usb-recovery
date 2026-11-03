@@ -51,31 +51,31 @@ try {
     if ($taskResult.python_on_path) { throw 'Python unexpectedly present on restricted PATH.' }
     $taskLog = Join-Path $PSScriptRoot 'TelegramOfflineTests.result.txt'
     $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-    & $taskHarness | Tee-Object -FilePath $taskLog
-    if ($LASTEXITCODE -ne 0) { throw 'Offline portable integration failed.' }
+    $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult 'TelegramPortable' $taskHarness @() $taskLog $taskSourceProofs.TelegramPortable
+    if ($taskNativeExit -ne 0) { Get-Content -LiteralPath $taskLog -Tail 8; throw ('Offline portable integration failed; exit '+$taskNativeExit) }
+    Get-Content -LiteralPath $taskLog -Tail 1
     Add-RecoveryTestEvidence $taskResult 'TelegramPortable' $taskLog $taskHarness $taskSourceProofs.TelegramPortable $taskStartedUtc
     $taskLog = Join-Path $PSScriptRoot 'TelegramNativeOfflineTests.result.txt'
     $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-    & $taskNativeHarness $taskFixtures | Tee-Object -FilePath $taskLog
-    if ($LASTEXITCODE -ne 0) { throw 'Native Telegram offline portable integration failed.' }
+    $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult 'TelegramNativePortable' $taskNativeHarness @($taskFixtures) $taskLog $taskSourceProofs.TelegramNativePortable
+    if ($taskNativeExit -ne 0) { Get-Content -LiteralPath $taskLog -Tail 8; throw ('Native Telegram offline portable integration failed; exit '+$taskNativeExit) }
+    Get-Content -LiteralPath $taskLog -Tail 1
     Add-RecoveryTestEvidence $taskResult 'TelegramNativePortable' $taskLog $taskNativeHarness $taskSourceProofs.TelegramNativePortable $taskStartedUtc
     $taskLog = Join-Path $PSScriptRoot 'TelegramMediaOfflineTests.result.txt'
     $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-    & $taskMediaHarness $taskMediaFixtures | Tee-Object -FilePath $taskLog
-    if ($LASTEXITCODE -ne 0) { throw 'Media Telegram offline portable integration failed.' }
+    $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult 'TelegramMediaPortable' $taskMediaHarness @($taskMediaFixtures) $taskLog $taskSourceProofs.TelegramMediaPortable
+    if ($taskNativeExit -ne 0) { Get-Content -LiteralPath $taskLog -Tail 8; throw ('Media Telegram offline portable integration failed; exit '+$taskNativeExit) }
+    Get-Content -LiteralPath $taskLog -Tail 1
     Add-RecoveryTestEvidence $taskResult 'TelegramMediaPortable' $taskLog $taskMediaHarness $taskSourceProofs.TelegramMediaPortable $taskStartedUtc
     $taskLog=Join-Path $PSScriptRoot 'TelegramDeletedOfflineTests.result.txt'
     $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-    & $taskDeletedHarness $taskDeletedFixtures | Tee-Object -FilePath $taskLog
-    if($LASTEXITCODE-ne0){throw 'Deleted Telegram frozen pipeline failed.'}
+    $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult 'TelegramDeletedPortable' $taskDeletedHarness @($taskDeletedFixtures) $taskLog $taskSourceProofs.TelegramDeletedPortable
+    if($taskNativeExit-ne0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Deleted Telegram frozen pipeline failed; exit '+$taskNativeExit)}
+    Get-Content -LiteralPath $taskLog -Tail 1
     Add-RecoveryTestEvidence $taskResult 'TelegramDeletedPortable' $taskLog $taskDeletedHarness $taskSourceProofs.TelegramDeletedPortable $taskStartedUtc
     $taskResult.status='passed'
-} finally {
+} catch {$taskResult.failure=[string]$_;$taskResult.status='failed'} finally {
     $env:PATH = $taskOldPath; $env:PYTHONHOME = $taskOldHome; $env:PYTHONPATH = $taskOldPythonPath
-    Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue | Remove-NetFirewallRule
-    $taskResult.rules_removed = @(Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue).Count -eq 0
-    Complete-RecoveryOfflineEvidence $taskResult
-    foreach ($taskHarnessFile in $taskHarnesses) { foreach($taskFile in @($taskHarnessFile,($taskHarnessFile+".config"))){if (Test-Path -LiteralPath $taskFile) { Remove-Item -LiteralPath $taskFile }} }
-    $taskResult | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'TelegramOffline-validation.json') -Encoding UTF8
+    Complete-RecoveryOfflineRun $taskResult $taskGroup $taskHarnesses (Join-Path $PSScriptRoot 'TelegramOffline-validation.json')
 }
-if($taskResult.status-ne'passed'){throw 'Packaged evidence did not bind unchanged tested binaries.'}
+if($taskResult.status-ne'passed'){throw ('Packaged Telegram validation failed: '+$taskResult.failure+'; cleanup: '+($taskResult.cleanup_errors-join'; '))}

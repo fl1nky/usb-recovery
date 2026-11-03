@@ -7,6 +7,7 @@ JPEG restart-interval support is implemented in a separate module.
 from __future__ import annotations
 
 from collections import Counter
+import copy
 import hashlib
 import io
 import json
@@ -28,6 +29,35 @@ MAX_STARTS = 2000
 MAX_CHUNKS = 4096
 MAX_STATES = 4096
 MAX_VERIFY_BYTES = 512 * 1024 * 1024
+MAX_SOURCE_MAPS = 512
+MAX_ALIAS_EXTENTS = 100000
+MAX_ALIAS_BYTES = 512 * 1024 * 1024
+PARTIAL_PRECISION_STATUS_RANK = 1
+AMBIGUOUS_JPEG_STATUS_RANK = 2
+
+
+def _critical_status_rank(status):
+    # Scalar policy constants and this function are part of CodeSha256.
+    if status == 'progressive_partial_precision_candidate':
+        return PARTIAL_PRECISION_STATUS_RANK
+    if status == 'jpeg_gap_ambiguous_candidate':
+        return AMBIGUOUS_JPEG_STATUS_RANK
+    return 0
+
+
+def _weaken_evidence(record, status, note):
+    """Equivalent bytes must not erase a later observation of uncertainty."""
+    if _critical_status_rank(status) <= _critical_status_rank(record['Status']):
+        return False
+    previous = record['Note']
+    if not isinstance(note, str) or not note or len(note) > 16384:
+        raise ValueError('PHOTO_CANDIDATE_NOTE_INVALID')
+    combined = previous + '\n' + note if previous and previous != note else note
+    record['Status'] = status
+    # Keep the critical new explanation even when an older supplied note fills
+    # the display budget. The uncertainty flag is never discarded for length.
+    record['Note'] = combined if len(combined) <= 16384 else note
+    return True
 
 
 class LimitReached(Exception):
@@ -38,6 +68,26 @@ def disjoint(recipe):
     ranges = sorted((at, at + len(raw)) for at, raw in recipe)
     return all(start >= 0 and end > start and (not index or ranges[index - 1][1] <= start)
                for index, (start, end) in enumerate(ranges))
+
+
+def _extent_key(extents):
+    """Compare placement, independent of adjacent chunk partitioning."""
+    result = []
+    for extent in extents:
+        at, logical, length = (extent[key] for key in ('ImageOffset', 'LogicalOffset', 'Length'))
+        if result and result[-1][0] + result[-1][2] == at and result[-1][1] + result[-1][2] == logical:
+            result[-1] = (result[-1][0], result[-1][1], result[-1][2] + length)
+        else:
+            result.append((at, logical, length))
+    return tuple(result)
+
+
+def _recipe_extents(recipe):
+    logical, extents = 0, []
+    for at, raw in recipe:
+        extents.append(dict(ImageOffset=at, LogicalOffset=logical, Length=len(raw)))
+        logical += len(raw)
+    return extents
 
 
 class PhotoAssembler:
@@ -319,7 +369,7 @@ class PhotoAssembler:
         solutions, states = {}, 0
         for parts, header, palette in self.prefixes(start):
             expected = header["expected"]
-            candidates, candidate_bytes = [], 0
+            candidates, candidate_bytes, candidate_contents = [], 0, {}
             for at in self.idat:
                 chunk = self.chunk(at)
                 if not chunk:
@@ -329,17 +379,22 @@ class PhotoAssembler:
                     continue
                 # Equal IDAT bytes can have different surviving ancillary
                 # tails. Only complete payloads establish equivalence.
+                if raw not in candidate_contents:
+                    candidate_contents[raw] = raw
+                    candidate_bytes += len(raw)
+                raw = candidate_contents[raw]
                 candidates.append((at, raw, [(at, raw)], at+len(raw), False))
-                candidate_bytes += len(raw)
-                if len(candidates) > 128 or candidate_bytes > MAX_FILE:
+                if len(candidates) > MAX_SOURCE_MAPS or len(candidate_contents) > 128 or candidate_bytes > MAX_FILE:
                     self.skipped["png_branch_limit"] += 1
                     return []
             for candidate in virtual:
                 if not disjoint(parts + candidate[2]):
                     continue
                 candidates.append(candidate)
-                candidate_bytes += len(candidate[1])
-                if len(candidates) > 128 or candidate_bytes > MAX_FILE:
+                if candidate[1] not in candidate_contents:
+                    candidate_contents[candidate[1]] = candidate[1]
+                    candidate_bytes += len(candidate[1])
+                if len(candidates) > MAX_SOURCE_MAPS or len(candidate_contents) > 128 or candidate_bytes > MAX_FILE:
                     self.skipped["png_branch_limit"] += 1
                     return []
             stack = [(parts, zlib.decompressobj(), 0, frozenset(), sum(len(raw) for _, raw in parts), 0)]
@@ -415,13 +470,20 @@ class PhotoAssembler:
                             continue
                         payload = b"".join(piece for _, piece in recipe)
                         if self.decode(payload, "PNG", palette if header["color"] == 3 else None):
-                            solutions[hashlib.sha256(payload).hexdigest()] = recipe
+                            digest = hashlib.sha256(payload).hexdigest()
+                            maps = solutions.setdefault(digest, [])
+                            key = _extent_key(_recipe_extents(recipe))
+                            if not any(_extent_key(_recipe_extents(prior)) == key for prior in maps):
+                                if len(maps) >= MAX_SOURCE_MAPS:
+                                    self.skipped["png_source_aliases_incomplete"] += 1
+                                    return []
+                                maps.append(recipe)
                             if len(solutions) > 1:
                                 self.skipped["png_ambiguous"] += 1
                                 return []
                     else:
                         stack.append((next_chain, trial, count, used | {at}, output_bytes + len(raw), gaps + spliced))
-        return list(solutions.values())
+        return [recipe for maps in solutions.values() for recipe in maps]
 
     def recipes(self, completed=None, png_start=0, jpeg_start=0):
         for index, start in enumerate(self.starts[png_start:], png_start):
@@ -482,7 +544,8 @@ def _restore(assembler, journal):
     phase = 'index'
     keys = {'Schema','Binding','Sequence','Previous','Phase','Index','Cursor','Files','Skipped','VerifiedBytes','DecodedBytes'}
     for state in journal.chain:
-        if set(state) != keys or not isinstance(state['Phase'],str) or state['Phase'] not in {'index','candidates','complete'}:
+        if (set(state) not in (keys, keys | {'AliasUpdates'}) or
+                not isinstance(state['Phase'],str) or state['Phase'] not in {'index','candidates','complete'}):
             raise CheckpointError('PHOTO_CHECKPOINT_STRUCTURE_INVALID')
         incoming = state['Index']
         if incoming is not None:
@@ -522,7 +585,52 @@ def _restore(assembler, journal):
             raise CheckpointError('PHOTO_CHECKPOINT_CURSOR_INVALID')
         if not isinstance(state['Files'], list) or len(state['Files']) > 1000 or len(records)+len(state['Files']) > 1000:
             raise CheckpointError('PHOTO_CHECKPOINT_OUTPUT_INVALID')
-        records.extend(state['Files'])
+        records.extend(copy.deepcopy(state['Files']))
+        updates = state.get('AliasUpdates', [])
+        if not isinstance(updates, list) or len(updates) > 1000:
+            raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+        changed = set()
+        for update in updates:
+            required_update = {'Sha256', 'AddedExtents'}
+            if (not isinstance(update, dict) or set(update) not in (required_update, required_update | {'Status', 'Note'}) or
+                    not isinstance(update['Sha256'], str) or update['Sha256'] in changed):
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            matches = [row for row in records if isinstance(row, dict) and row.get('Sha256') == update['Sha256']]
+            maps = update['AddedExtents']
+            if len(matches) != 1 or not isinstance(maps, list) or len(maps) >= MAX_SOURCE_MAPS:
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            record = matches[0]
+            if not isinstance(record.get('Status'), str) or not isinstance(record.get('Note'), str):
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            evidence_changed = False
+            if 'Status' in update:
+                status, note = update['Status'], update['Note']
+                if (not isinstance(status, str) or not isinstance(note, str) or not note or len(note) > 16384 or
+                        _critical_status_rank(status) < _critical_status_rank(record.get('Status')) or
+                        status != record.get('Status') and _critical_status_rank(status) <= _critical_status_rank(record.get('Status'))):
+                    raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+                evidence_changed = status != record.get('Status') or note != record.get('Note')
+                if evidence_changed and not _critical_status_rank(status):
+                    raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            if not maps and not evidence_changed:
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            prior = matches[0].get('AlternateExtents', [])
+            if not isinstance(prior, list) or len(prior) + len(maps) >= MAX_SOURCE_MAPS:
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+            try:
+                known = {_extent_key(mapping) for mapping in [matches[0]['Extents'], *prior]}
+                for mapping in maps:
+                    key = _extent_key(mapping)
+                    if not key or key in known:
+                        raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+                    known.add(key)
+            except (KeyError, TypeError, IndexError):
+                raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID') from None
+            if maps:
+                matches[0]['AlternateExtents'] = prior + copy.deepcopy(maps)
+            if evidence_changed:
+                record['Status'], record['Note'] = status, note
+            changed.add(update['Sha256'])
         if not isinstance(state['Skipped'], dict) or len(state['Skipped']) > 256 or any(
                 not re.fullmatch(r'[a-z0-9_]{1,100}', key) or type(value) is not int or not 0 <= value <= 2_000_000
                 for key, value in state['Skipped'].items()):
@@ -543,13 +651,14 @@ def _restore(assembler, journal):
 
 def _validate_outputs(stream, destination, records):
     from recovery_checkpoint import CheckpointError, plain
-    hashes, total = set(), 0
+    hashes, total, alias_bytes, alias_extents = set(), 0, 0, 0
     statuses = {'png_crc_zlib_reassembled_candidate','jpeg_gap_structural_candidate','jpeg_gap_ambiguous_candidate','jpeg_restart_structural_candidate',
                 'jpeg_progressive_structural_candidate','progressive_partial_precision_candidate'}
     known = set()
     size = os.fstat(stream.fileno()).st_size
     for record in records:
-        if not isinstance(record, dict) or set(record) != {'Path','Sha256','Bytes','Status','Extents','Note'}:
+        required = {'Path','Sha256','Bytes','Status','Extents','Note'}
+        if not isinstance(record, dict) or set(record) not in (required, required | {'AlternateExtents'}):
             raise CheckpointError('PHOTO_CHECKPOINT_OUTPUT_INVALID')
         name, sha, amount = record['Path'], record['Sha256'], record['Bytes']
         if (not isinstance(name, str) or not re.fullmatch(r'(?:png-[a-f0-9]{64}\.png|jpeg-[a-f0-9]{64}\.jpg)', name) or
@@ -562,26 +671,45 @@ def _validate_outputs(stream, destination, records):
         if len(existing) != 1 or existing[0].stat().st_size != amount:
             raise CheckpointError('PHOTO_CHECKPOINT_OUTPUT_MISSING')
         output = existing[0]; known.add(output.name)
-        logical, ranges, digest, pieces = 0, [], hashlib.sha256(),[]
+        alternates = record.get('AlternateExtents', [])
+        if not isinstance(alternates, list) or len(alternates) >= MAX_SOURCE_MAPS:
+            raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+        pieces, seen_maps = [], set()
         with output.open('rb') as candidate:
-            for extent in record['Extents']:
-                if not isinstance(extent, dict) or set(extent) != {'ImageOffset','LogicalOffset','Length'}:
+            for index, extents in enumerate([record['Extents'], *alternates]):
+                if not isinstance(extents, list) or not 1 <= len(extents) <= 100000:
                     raise CheckpointError('PHOTO_CHECKPOINT_MAPPING_INVALID')
-                at, position, length = extent['ImageOffset'], extent['LogicalOffset'], extent['Length']
-                if any(type(value) is not int for value in (at, position, length)) or position != logical or at < 0 or length <= 0 or length > amount-logical or at > size-length:
+                if index:
+                    alias_bytes += amount
+                    alias_extents += len(extents)
+                    if alias_bytes > MAX_ALIAS_BYTES or alias_extents > MAX_ALIAS_EXTENTS:
+                        raise CheckpointError('PHOTO_CHECKPOINT_ALIASES_INVALID')
+                logical, ranges, digest = 0, [], hashlib.sha256()
+                candidate.seek(0)
+                for extent in extents:
+                    if not isinstance(extent, dict) or set(extent) != {'ImageOffset','LogicalOffset','Length'}:
+                        raise CheckpointError('PHOTO_CHECKPOINT_MAPPING_INVALID')
+                    at, position, length = extent['ImageOffset'], extent['LogicalOffset'], extent['Length']
+                    if any(type(value) is not int for value in (at, position, length)) or position != logical or at < 0 or length <= 0 or length > amount-logical or at > size-length:
+                        raise CheckpointError('PHOTO_CHECKPOINT_MAPPING_INVALID')
+                    ranges.append((at, at+length)); logical += length
+                    stream.seek(at)
+                    remaining = length
+                    while remaining:
+                        raw = stream.read(min(1048576, remaining))
+                        other = candidate.read(len(raw))
+                        if not raw or raw != other:
+                            raise CheckpointError('PHOTO_CHECKPOINT_OUTPUT_CHANGED')
+                        digest.update(raw)
+                        if not index:
+                            pieces.append(raw)
+                        remaining -= len(raw)
+                ranges.sort()
+                key = _extent_key(extents)
+                if (logical != amount or any(a[1] > b[0] for a,b in zip(ranges, ranges[1:])) or
+                        digest.hexdigest() != sha or key in seen_maps):
                     raise CheckpointError('PHOTO_CHECKPOINT_MAPPING_INVALID')
-                ranges.append((at, at+length)); logical += length
-                stream.seek(at)
-                remaining = length
-                while remaining:
-                    raw = stream.read(min(1048576, remaining))
-                    other = candidate.read(len(raw))
-                    if not raw or raw != other:
-                        raise CheckpointError('PHOTO_CHECKPOINT_OUTPUT_CHANGED')
-                    digest.update(raw);pieces.append(raw); remaining -= len(raw)
-        ranges.sort()
-        if logical != amount or any(a[1] > b[0] for a,b in zip(ranges, ranges[1:])) or digest.hexdigest() != sha:
-            raise CheckpointError('PHOTO_CHECKPOINT_MAPPING_INVALID')
+                seen_maps.add(key)
         if not _cached_image_valid(b''.join(pieces),name,record['Status']):
             raise CheckpointError('PHOTO_CHECKPOINT_IMAGE_INVALID')
         hashes.add(sha); total += amount
@@ -684,11 +812,18 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
             # budget before the first uncompleted candidate is visited.
             assembler.started = time.monotonic()
             committed_records = len(records)
+            record_positions = {record['Sha256']: index for index, record in enumerate(records)}
+            pending_aliases = {}
+            alias_bytes = sum(record['Bytes'] * len(record.get('AlternateExtents', [])) for record in records)
+            alias_extents = sum(len(mapping) for record in records for mapping in record.get('AlternateExtents', []))
             def save(phase_name, include_index=False):
                 nonlocal committed_records
                 value = dict(Phase=phase_name,Index=_snapshot(assembler) if include_index else None,
-                    Cursor=dict(cursor),Files=records[committed_records:],Skipped=dict(assembler.skipped),
+                    Cursor=dict(cursor),Files=copy.deepcopy(records[committed_records:]),Skipped=dict(assembler.skipped),
                     VerifiedBytes=verified_prior+assembler.verified,DecodedBytes=decoded_prior+assembler.decoded)
+                if pending_aliases:
+                    value['AliasUpdates'] = [dict(Sha256=sha, **copy.deepcopy(update))
+                        for sha, update in sorted(pending_aliases.items())]
                 try:
                     journal.commit(value)
                 except checkpoint.CheckpointError as error:
@@ -696,6 +831,7 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                         raise LimitReached('checkpoint_storage_limit') from None
                     raise
                 committed_records = len(records)
+                pending_aliases.clear()
             if anchor is None:
                 save('index',True)
             def completed(kind, value):
@@ -714,6 +850,24 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                     payload = b"".join(part for _, part in recipe)
                     sha = hashlib.sha256(payload).hexdigest()
                     if sha in hashes:
+                        position = record_positions[sha]
+                        prior = records[position]
+                        if _weaken_evidence(prior, candidate_status, note) and position < committed_records:
+                            update = pending_aliases.setdefault(sha, dict(AddedExtents=[]))
+                            update.update(Status=prior['Status'], Note=prior['Note'])
+                        mapping = _recipe_extents(recipe)
+                        key = _extent_key(mapping)
+                        known_maps = [prior['Extents'], *prior.get('AlternateExtents', [])]
+                        if any(_extent_key(known) == key for known in known_maps):
+                            continue
+                        if (len(known_maps) >= MAX_SOURCE_MAPS or alias_bytes + len(payload) > MAX_ALIAS_BYTES or
+                                alias_extents + len(mapping) > MAX_ALIAS_EXTENTS):
+                            raise LimitReached('source_aliases_limit')
+                        prior.setdefault('AlternateExtents', []).append(mapping)
+                        alias_bytes += len(payload)
+                        alias_extents += len(mapping)
+                        if position < committed_records:
+                            pending_aliases.setdefault(sha, dict(AddedExtents=[]))['AddedExtents'].append(mapping)
                         continue
                     fragmented = any(at + len(part) != recipe[index + 1][0]
                                      for index, (at, part) in enumerate(recipe[:-1]))
@@ -725,10 +879,8 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                     partial = destination / (filename + ".partial")
                     with partial.open("xb") as target:
                         target.write(payload); target.flush(); os.fsync(target.fileno())
-                    logical, extents = 0, []
-                    for at, part in recipe:
-                        extents.append(dict(ImageOffset=at, LogicalOffset=logical, Length=len(part)))
-                        logical += len(part)
+                    extents = _recipe_extents(recipe)
+                    record_positions[sha] = len(records)
                     records.append(dict(Path=filename, Sha256=sha, Bytes=len(payload),
                                         Status=candidate_status, Extents=extents,
                                         Note=note))
@@ -753,6 +905,14 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                     save('complete')
                 except LimitReached as error:
                     status = 'limited';assembler.skipped[str(error)] += 1
+            elif assembler.index_position == assembler.size and (pending_aliases or len(records) > committed_records):
+                # The full source hash is now checked. Keep validated new maps
+                # and weaker evidence durable even if another branch hit a
+                # limit; the cursor remains before the uncompleted candidate.
+                try:
+                    save('candidates')
+                except LimitReached as error:
+                    assembler.skipped[str(error)] += 1
             for row in records:
                 partial, final = destination / (row['Path']+'.partial'),destination / row['Path']
                 # The complete source digest has now been checked. A finished

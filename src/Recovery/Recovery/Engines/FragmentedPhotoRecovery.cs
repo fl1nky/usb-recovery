@@ -16,7 +16,7 @@ namespace UsbRecovery
     public static class FragmentedPhotoRecovery
     {
         public sealed class Extent { public long ImageOffset,LogicalOffset,Length; }
-        public sealed class Candidate { public string Path,Sha256,Status,Note;public long Bytes;public List<Extent> Extents=new List<Extent>(); }
+        public sealed class Candidate { public string Path,Sha256,Status,Note;public long Bytes;public List<Extent> Extents=new List<Extent>();public List<List<Extent>> AlternateExtents=new List<List<Extent>>(); }
         public sealed class Report { public int Schema,Candidates,ReusedCandidates;public string Status,SourceSha256;public bool SourceUnchanged,ResumedFromCheckpoint;public long OutputBytes,VerifiedBytes,ResumedIndexBytes;public Dictionary<string,int> Skipped=new Dictionary<string,int>();public List<Candidate> Files=new List<Candidate>(); }
         public static int Recover(string image,string directory,CancellationToken cancel,Action<long,long> progress)
         {return Recover(image,directory,cancel,progress,null,null);}
@@ -43,7 +43,7 @@ namespace UsbRecovery
             if(report==null||report.Schema!=1||report.Files==null||report.Files.Count>1000||report.Candidates!=report.Files.Count)throw new IOException("Неверный отчёт сборки фотографий.");
             if(!report.SourceUnchanged||report.SourceSha256==null||report.SourceSha256.Length!=64||!report.SourceSha256.All(Uri.IsHexDigit)||!String.Equals(report.SourceSha256,sourceSha,StringComparison.OrdinalIgnoreCase))throw new IOException("Отчёт фотографий не подтверждает неизменность этого исходного образа. Существующие результаты сохранены.");
             if(!(report.Status=="complete"||report.Status=="limited")||(result.Status=="complete")!=(report.Status=="complete")||report.Status=="complete"&&File.Exists(RecoveryCatalog.SafeFile(directory,"fragmented-photos/job.incomplete")))throw new IOException("Состояние отчёта фотографий противоречит завершению обработки.");
-            long outputBytes=0;var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            long outputBytes=0,alternateBytes=0;int alternateExtents=0;var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach(var candidate in report.Files){
                 if(candidate==null||candidate.Sha256==null||candidate.Sha256.Length!=64||!candidate.Sha256.All(Uri.IsHexDigit)||candidate.Bytes<=0||candidate.Bytes>64L*1024*1024||candidate.Extents==null||candidate.Extents.Count<2||candidate.Extents.Count>100000)throw new IOException("Неверные размеры или контрольная сумма кандидата фотографии.");
                 if(!new[]{"png_crc_zlib_reassembled_candidate","jpeg_gap_structural_candidate","jpeg_gap_ambiguous_candidate","jpeg_restart_structural_candidate","jpeg_progressive_structural_candidate","progressive_partial_precision_candidate"}.Contains(candidate.Status))throw new IOException("Неизвестное состояние кандидата фотографии.");
@@ -53,6 +53,7 @@ namespace UsbRecovery
                 candidate.Path="fragmented-photos/"+candidate.Path;
                 string file=RecoveryCatalog.SafeFile(directory,candidate.Path);
                 if(!File.Exists(file)||new FileInfo(file).Length!=candidate.Bytes)throw new IOException("Кандидат фотографии отсутствует или изменён после извлечения.");
+                AccountAlternates(candidate,ref alternateBytes,ref alternateExtents);
                 VerifyMapping(sourceGuard,file,candidate,cancel);
                 outputBytes+=candidate.Bytes;if(outputBytes>512L*1024*1024)throw new IOException("Превышен лимит кандидатов фотографий.");
             }
@@ -65,21 +66,47 @@ namespace UsbRecovery
         }
         static void VerifyMapping(FileStream source,string file,Candidate candidate,CancellationToken cancel)
         {
-            long logical=0,priorEnd=-1;
-            foreach(var extent in candidate.Extents){if(extent==null||extent.LogicalOffset!=logical||extent.ImageOffset<0||extent.Length<=0||extent.Length>candidate.Bytes-logical||extent.ImageOffset>source.Length-extent.Length)throw new IOException("Неверная карта исходных участков фотографии.");logical+=extent.Length;}
-            foreach(var extent in candidate.Extents.OrderBy(x=>x.ImageOffset)){if(extent.ImageOffset<priorEnd)throw new IOException("Участки исходной фотографии пересекаются.");priorEnd=extent.ImageOffset+extent.Length;}
-            if(logical!=candidate.Bytes)throw new IOException("Карта исходных участков фотографии неполна.");
+            cancel.ThrowIfCancellationRequested();
+            if(candidate==null||candidate.Bytes<=0||candidate.Bytes>64L*1024*1024||candidate.Sha256==null||candidate.Sha256.Length!=64||!candidate.Sha256.All(Uri.IsHexDigit)||candidate.Extents==null||candidate.Extents.Count<2||candidate.Extents.Count>100000)throw new IOException("Неверная карта или размер кандидата фотографии.");
+            long alternateBytes=0;int alternateExtents=0;AccountAlternates(candidate,ref alternateBytes,ref alternateExtents);
+            var maps=new List<List<Extent>>{candidate.Extents};
+            if(candidate.AlternateExtents!=null)maps.AddRange(candidate.AlternateExtents);
+            var keys=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var map in maps){
+                cancel.ThrowIfCancellationRequested();long logical=0,priorEnd=-1;
+                foreach(var extent in map){cancel.ThrowIfCancellationRequested();if(extent==null||extent.LogicalOffset!=logical||extent.ImageOffset<0||extent.Length<=0||extent.Length>candidate.Bytes-logical||extent.ImageOffset>source.Length-extent.Length)throw new IOException("Неверная карта исходных участков фотографии.");logical+=extent.Length;}
+                foreach(var extent in map.OrderBy(x=>x.ImageOffset)){cancel.ThrowIfCancellationRequested();if(extent.ImageOffset<priorEnd)throw new IOException("Участки исходной фотографии пересекаются.");priorEnd=extent.ImageOffset+extent.Length;}
+                if(logical!=candidate.Bytes)throw new IOException("Карта исходных участков фотографии неполна.");
+                string key=FileEvidence.CanonicalRangesKey(map.Select(extent=>new FileExtent{Offset=extent.ImageOffset,Length=extent.Length}));
+                if(!keys.Add(key))throw new IOException("Карта размещения фотографии повторяется, в том числе после объединения смежных участков.");
+            }
             using(var output=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read)){
                 cancel.ThrowIfCancellationRequested();if(output.Length!=candidate.Bytes)throw new IOException("Размер кандидата фотографии изменён после извлечения.");
-                using(var hash=SHA256.Create()){string actual=BitConverter.ToString(hash.ComputeHash(output)).Replace("-","").ToLowerInvariant();if(!String.Equals(actual,candidate.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("Контрольная сумма кандидата фотографии не совпадает с отчётом.");}output.Position=0;
                 byte[] left=new byte[65536],right=new byte[65536];
-                foreach(var extent in candidate.Extents){source.Position=extent.ImageOffset;long remaining=extent.Length;
-                    while(remaining>0){cancel.ThrowIfCancellationRequested();int count=(int)Math.Min(left.Length,remaining);ReadExact(source,left,count);ReadExact(output,right,count);for(int i=0;i<count;i++)if(left[i]!=right[i])throw new IOException("Сохранённая фотография не совпадает с указанными исходными участками.");remaining-=count;}
+                using(var hash=SHA256.Create()){
+                    int count;while((count=output.Read(left,0,left.Length))>0){cancel.ThrowIfCancellationRequested();hash.TransformBlock(left,0,count,left,0);}
+                    hash.TransformFinalBlock(new byte[0],0,0);string actual=BitConverter.ToString(hash.Hash).Replace("-","").ToLowerInvariant();
+                    if(!String.Equals(actual,candidate.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("Контрольная сумма кандидата фотографии не совпадает с отчётом.");
                 }
+                foreach(var map in maps){
+                    cancel.ThrowIfCancellationRequested();output.Position=0;
+                    foreach(var extent in map){source.Position=extent.ImageOffset;long remaining=extent.Length;
+                        while(remaining>0){cancel.ThrowIfCancellationRequested();int count=(int)Math.Min(left.Length,remaining);ReadExact(source,left,count,cancel);ReadExact(output,right,count,cancel);for(int i=0;i<count;i++)if(left[i]!=right[i])throw new IOException("Сохранённая фотография не совпадает с указанными исходными участками.");remaining-=count;}
+                    }
+                }
+                cancel.ThrowIfCancellationRequested();
             }
         }
-        static void ReadExact(Stream stream,byte[] bytes,int count)
-        {int done=0;while(done<count){int read=stream.Read(bytes,done,count-done);if(read==0)throw new IOException("Данные фотографии или образа обрезаны.");done+=read;}}
+        static void AccountAlternates(Candidate candidate,ref long bytes,ref int extents)
+        {
+            if(candidate==null||candidate.Bytes<=0||bytes<0||bytes>512L*1024*1024||extents<0||extents>100000)throw new IOException("Неверный объём проверки карт фотографии.");
+            var maps=candidate.AlternateExtents;if(maps==null)throw new IOException("Неверная коллекция дополнительных размещений фотографии.");if(maps.Count==0)return;
+            if(maps.Count>511||candidate.Bytes>(512L*1024*1024-bytes)/maps.Count)throw new IOException("Превышен лимит дополнительных размещений фотографий.");
+            int count=0;foreach(var map in maps){if(map==null||map.Count<1||map.Count>100000-extents-count)throw new IOException("Превышен лимит участков дополнительных размещений фотографий.");count+=map.Count;}
+            bytes+=candidate.Bytes*maps.Count;extents+=count;
+        }
+        static void ReadExact(Stream stream,byte[] bytes,int count,CancellationToken cancel)
+        {int done=0;while(done<count){cancel.ThrowIfCancellationRequested();int read=stream.Read(bytes,done,count-done);if(read==0)throw new IOException("Данные фотографии или образа обрезаны.");done+=read;}}
         public static string ErrorText(string code)
         {
             if(code=="PHOTO_CHECKPOINT_BINDING_MISMATCH")return "Источник, параметры или версия обработки отличаются от сохранённой точки. Начни новый поиск в отдельной папке.";

@@ -8,6 +8,7 @@ $ApplicationDirectory=$taskLayout.Portable
 if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'}
 if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
 & (Join-Path $taskLayout.Tests 'FixtureCacheTests.ps1') -Python312 $Python312
+& (Join-Path $taskLayout.Tests 'OfflineEvidenceTests.ps1') -ProjectRoot $taskLayout.Root
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_jpeg_two_gap_portable_fixtures.py') (Join-Path $taskLayout.Root '.build\jpeg-two-gap-portable-fixtures')
@@ -16,6 +17,8 @@ if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.
 if($LASTEXITCODE-ne0){throw 'Independent photo fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'prepare_photo_telegram_fixtures.py')
 if($LASTEXITCODE-ne0){throw 'Independent PNG/Telegram profile fixture preparation or SHA binding failed.'}
+& $Python312 (Join-Path $taskLayout.Tests 'prepare_png_two_gap_fixtures.py')
+if($LASTEXITCODE-ne0){throw 'Independent PNG two-gap fixture preparation or SHA binding failed.'}
 $taskDocumentGenerator=Join-Path $taskLayout.Tests 'build_telegram_document_portable_fixtures.py'
 $taskDocumentTarget=Join-Path $taskLayout.Root '.build\telegram-document-fixtures-current'
 if(Test-Path -LiteralPath (Join-Path $taskDocumentTarget 'manifest.json') -PathType Leaf){

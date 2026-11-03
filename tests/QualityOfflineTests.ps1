@@ -11,7 +11,7 @@ $taskSourceProofs=@{}
 $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular image files only; actual packaged managed recovery modules. No user profiles or physical devices.' $PSCommandPath
 try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
-    $taskNames=@('LongPathRecoveryTests','ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','JpegTwoGapPortableTests','PngIdatGapPortableTests','PhotoCatalogTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','RefsRecoveryTests','RaidControllerRecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests','TelegramRecoveryProvenanceUiTests','TelegramRecoveryPortableTests','TelegramRollbackPortableTests','TelegramMediaCachePortableTests','TelegramMediaCacheProfilePortableTests','TelegramDocumentEmptyPortableTests','ArchiveTextPortableTests','FragmentedMediaUnitRecoveryTests','FragmentedMediaScaleTests')
+    $taskNames=@('LongPathRecoveryTests','ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','JpegTwoGapPortableTests','PngIdatGapPortableTests','PngTwoGapPortableTests','PhotoSourceAliasTests','PhotoCatalogTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','RefsRecoveryTests','RaidControllerRecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests','TelegramRecoveryProvenanceUiTests','TelegramRecoveryPortableTests','TelegramRollbackPortableTests','TelegramMediaCachePortableTests','TelegramMediaCacheProfilePortableTests','TelegramDocumentEmptyPortableTests','ArchiveTextPortableTests','FragmentedMediaUnitRecoveryTests','FragmentedMediaScaleTests')
     foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests','RaidRecoveryTests','StorageUiTests','StoragePipelineTests','HelperMemoryTests','AtomicJsonSaveTests','ExportTempCollisionTests','StorageWorkflowTests','CaptureProvenanceTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
@@ -39,19 +39,15 @@ try {
         if($taskName-eq'RefsRecoveryTests'){$taskInput=Join-Path $taskProject '.build\refs-fixtures-current';$taskExtraArguments=@((Join-Path $taskProject ('.build\refs-offline-'+[Guid]::NewGuid().ToString('N'))))}
         if($taskName-eq'RaidControllerRecoveryTests'){$taskInput=$taskProject;$taskExtraArguments=@((Join-Path $taskProject '.build\raid-controller-fixtures-current'),(Join-Path $taskProject ('.build\raid-ctrl-'+[Guid]::NewGuid().ToString('N'))))}
         $taskStartedUtc=[DateTime]::UtcNow.ToString('o')
-        & $taskHarness $taskInput @taskExtraArguments *> $taskLog
-        if($LASTEXITCODE-ne 0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Packaged quality test failed: '+$taskName)}
+        $taskNativeExit=Invoke-RecoveryOfflineHarness $taskResult $taskName $taskHarness (@($taskInput)+$taskExtraArguments) $taskLog $taskSourceProofs[$taskName]
+        if($taskNativeExit-ne 0){Get-Content -LiteralPath $taskLog -Tail 8;throw ('Packaged quality test failed: '+$taskName+'; exit '+$taskNativeExit)}
         $taskSummary=Get-Content -LiteralPath $taskLog -Tail 1
         Write-Output $taskSummary
         Add-RecoveryTestEvidence $taskResult $taskName $taskLog $taskHarness $taskSourceProofs[$taskName] $taskStartedUtc
     }
     $taskResult.status='passed'
-} finally {
+} catch {$taskResult.failure=[string]$_;$taskResult.status='failed'} finally {
     $env:PATH=$taskOldPath
-    Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue|Remove-NetFirewallRule
-    $taskResult.rules_removed=@(Get-NetFirewallRule -Group $taskGroup -ErrorAction SilentlyContinue).Count-eq 0
-    Complete-RecoveryOfflineEvidence $taskResult
-    foreach($taskHarness in $taskHarnesses){foreach($taskFile in @($taskHarness,($taskHarness+'.config'))){if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile}}}
-    $taskResult|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $PSScriptRoot 'QualityOffline-validation.json') -Encoding UTF8
+    Complete-RecoveryOfflineRun $taskResult $taskGroup $taskHarnesses (Join-Path $PSScriptRoot 'QualityOffline-validation.json')
 }
-if($taskResult.status-ne'passed'){throw 'Packaged evidence did not bind unchanged tested binaries.'}
+if($taskResult.status-ne'passed'){throw ('Packaged quality validation failed: '+$taskResult.failure+'; cleanup: '+($taskResult.cleanup_errors-join'; '))}

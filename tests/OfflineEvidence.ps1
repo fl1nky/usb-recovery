@@ -24,7 +24,7 @@ function New-RecoveryOfflineEvidence([string]$ApplicationDirectory,[string]$Scop
         dependencies=$taskEvidenceDependencies
         runner=[ordered]@{path=[IO.Path]::GetFileName($Runner);sha256=(Get-RecoveryEvidenceHash $Runner)}
         evidence_helper_sha256=(Get-RecoveryEvidenceHash (Join-Path $PSScriptRoot 'OfflineEvidence.ps1'))
-        tests=@();scope=$Scope
+        tests=@();scope=$Scope;failure=$null;harness_invocations=@();cleanup_errors=@();cleanup_confirmed=$false
     }
 }
 function New-RecoveryTestSources([string[]]$Paths) {
@@ -57,4 +57,87 @@ function Complete-RecoveryOfflineEvidence($Report) {
     if((Get-RecoveryEvidenceHash (Join-Path $PSScriptRoot $Report.runner.path))-ne $Report.runner.sha256){$Report.status='failed'}
     if((Get-RecoveryEvidenceHash (Join-Path $PSScriptRoot 'OfflineEvidence.ps1'))-ne $Report.evidence_helper_sha256){$Report.status='failed'}
     if(-not $Report.rules_removed -or $Report.python_on_path-ne $false -or $Report.outbound_rules-le 0){$Report.status='failed'}
+}
+
+function Invoke-RecoveryOfflineHarness($Report,[string]$Name,[string]$Program,[string[]]$Arguments,[string]$Log,$Sources) {
+    # Capture both streams before testing the exit code. Windows PowerShell can
+    # turn redirected native stderr into a terminating error and lose the log.
+    $taskProcess=New-Object Diagnostics.Process
+    $taskStarted=[DateTime]::UtcNow.ToString('o')
+    $taskExit=$null
+    $taskInvocationFailure=$null
+    $taskRecordingErrors=@()
+    $taskReportRow=$null
+    try {
+        if(@($Arguments|Where-Object {$_-match '["\r\n]' -or $_.EndsWith('\')}).Count){throw 'Unsupported offline harness argument.'}
+        $taskInfo=New-Object Diagnostics.ProcessStartInfo
+        $taskInfo.FileName=$Program;$taskInfo.UseShellExecute=$false;$taskInfo.CreateNoWindow=$true
+        $taskInfo.RedirectStandardOutput=$true;$taskInfo.RedirectStandardError=$true
+        $taskInfo.Arguments=(@($Arguments|ForEach-Object {'"'+$_+'"'})-join' ')
+        $taskInfo.WorkingDirectory=Split-Path -Parent $Program
+        $taskProcess.StartInfo=$taskInfo
+        if(-not$taskProcess.Start()){throw 'Offline harness did not start.'}
+        $taskOut=$taskProcess.StandardOutput.ReadToEndAsync();$taskErr=$taskProcess.StandardError.ReadToEndAsync()
+        $taskProcess.WaitForExit()
+        $taskExit=$taskProcess.ExitCode
+        $taskStdout=$taskOut.GetAwaiter().GetResult();$taskStderr=$taskErr.GetAwaiter().GetResult()
+        $taskText=if($taskStderr){"[stderr]`r`n"+$taskStderr+"`r`n"}else{''}
+        if($taskStdout){$taskText+=$taskStdout;if(-not$taskStdout.EndsWith("`n")){$taskText+="`r`n"}}
+        [IO.File]::WriteAllText($Log,$taskText,(New-Object Text.UTF8Encoding($false)))
+        return $taskExit
+    } catch {
+        $taskInvocationFailure=[string]$_
+        if($null-ne$taskExit-and$taskExit-ne 0){throw ('Offline harness '+$Name+' failed; exit '+$taskExit+'; diagnostic recording: '+$taskInvocationFailure)}
+        throw
+    } finally {
+        try {
+            $taskReportRow=[ordered]@{name=$Name;exit_code=$taskExit;started_utc=$taskStarted;completed_utc=[DateTime]::UtcNow.ToString('o');sources=@($Sources);invocation_error=$taskInvocationFailure;metadata_errors=@()}
+            foreach($taskPair in @(@('harness_sha256',$Program),@('harness_config_sha256',($Program+'.config')),@('log_sha256',$Log))){
+                try {$taskReportRow[$taskPair[0]]=if(Test-Path -LiteralPath $taskPair[1] -PathType Leaf){Get-RecoveryEvidenceHash $taskPair[1]}else{$null}}
+                catch {$taskReportRow[$taskPair[0]]=$null;$taskRecordingErrors+=($taskPair[0]+': '+[string]$_)}
+            }
+            $taskReportRow.log=[IO.Path]::GetFileName($Log)
+            $Report.harness_invocations+= $taskReportRow
+        } finally {
+            try {$taskProcess.Dispose()}catch{$taskRecordingErrors+=('process disposal: '+[string]$_)}
+            if($null-ne$taskReportRow){$taskReportRow.metadata_errors=$taskRecordingErrors}
+        }
+        if($taskRecordingErrors.Count-and$null-eq$taskInvocationFailure){
+            throw ('Offline harness '+$Name+' diagnostics failed; exit '+$taskExit+'; '+($taskRecordingErrors-join'; '))
+        }
+    }
+}
+
+function Remove-RecoveryOfflineRules([string]$Group) {
+    # Only the exact random group created by this run may be removed.
+    foreach($taskRule in @(Get-NetFirewallRule -ErrorAction Stop|Where-Object {$_.Group-ceq$Group})){
+        try {Remove-NetFirewallRule -Name $taskRule.Name -ErrorAction Stop}
+        catch {
+            # A stale CIM object is harmless only if a fresh query confirms the
+            # same named rule is already absent; permission failures stay errors.
+            $taskCimMissing=$_.Exception-is[Microsoft.Management.Infrastructure.CimException]-and[int]$_.Exception.NativeErrorCode-eq 6
+            $taskQueryMissing=$_.Exception-is[Microsoft.PowerShell.Cmdletization.Cim.CimJobException]-and
+                $_.CategoryInfo.Category-eq[Management.Automation.ErrorCategory]::ObjectNotFound-and
+                $_.FullyQualifiedErrorId-ceq'CmdletizationQuery_NotFound_InstanceID,Remove-NetFirewallRule'
+            if(-not($taskCimMissing-or$taskQueryMissing)){throw}
+            if(@(Get-NetFirewallRule -ErrorAction Stop|Where-Object {$_.Name-ceq$taskRule.Name}).Count){throw}
+        }
+    }
+    if(@(Get-NetFirewallRule -ErrorAction Stop|Where-Object {$_.Group-ceq$Group}).Count){throw 'Offline firewall cleanup incomplete.'}
+    return $true
+}
+
+function Complete-RecoveryOfflineRun($Report,[string]$Group,[string[]]$Harnesses,[string]$EvidencePath) {
+    $taskErrors=@()
+    try {$Report.rules_removed=Remove-RecoveryOfflineRules $Group}
+    catch {$Report.rules_removed=$false;$Report.status='failed';$taskErrors+=('firewall: '+[string]$_)}
+    try {Complete-RecoveryOfflineEvidence $Report}
+    catch {$Report.status='failed';$taskErrors+=('evidence: '+[string]$_)}
+    foreach($taskHarness in $Harnesses){foreach($taskFile in @($taskHarness,($taskHarness+'.config'))){
+        try {if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile -ErrorAction Stop}}
+        catch {$Report.status='failed';$taskErrors+=('created harness: '+[string]$_)}
+    }}
+    $Report.cleanup_errors=$taskErrors
+    $Report.cleanup_confirmed=($taskErrors.Count-eq 0-and$Report.rules_removed-eq $true)
+    $Report|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $EvidencePath -Encoding UTF8
 }
