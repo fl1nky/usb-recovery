@@ -178,6 +178,7 @@ namespace UsbRecovery
                 var proof=new EvidenceEntry{Path=path,Kind="reassembled_media_candidate",VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=size,VerificationStatus=status,Note=Value(row,"Note")};
                 BindSource(proof,mediaReport,localSession,manifest=="fragmented-media.json");
                 var sourceRecord=Read(root,RecoverySession.FileName);long sourceBytes=sourceRecord==null?-1:Number(sourceRecord,"SourceBytes",-1);object raw;
+                if(sourceRecord==null&&proof.SourceScopeVerified&&proof.SourceBytes.HasValue)sourceBytes=proof.SourceBytes.Value;
                 List<FileExtent> primary=new List<FileExtent>();
                 proof.MappingComplete=row.TryGetValue("Extents",out raw)&&ReadMapping(raw,size,sourceBytes,out primary,manifest=="fragmented-photo-search.json"?100000:Int32.MaxValue);
                 if(proof.MappingComplete){

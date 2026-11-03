@@ -15,9 +15,14 @@ if($LASTEXITCODE-ne0){throw 'Owned archive and fragmented ZIP fixture preparatio
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 $taskCompactGenerator=Join-Path $taskLayout.Tests 'prepare_stz2_media_fixtures.py'
 $taskCompactTarget=Join-Path $taskLayout.Root '.build\video-stz2-fixtures-current'
-$taskCompactArguments=if(Test-Path -LiteralPath $taskCompactTarget){@('--verify',$taskCompactTarget)}else{@($taskCompactTarget)}
+if(Test-Path -LiteralPath $taskCompactTarget){$taskCompactArguments=@('--verify',$taskCompactTarget)}else{$taskCompactArguments=@($taskCompactTarget)}
 & $Python312 $taskCompactGenerator @taskCompactArguments
 if($LASTEXITCODE-ne0){throw 'Compact sample-size video fixtures or independent oracle SHA binding failed.'}
+$taskFmp4Generator=Join-Path $taskLayout.Tests 'prepare_fmp4_media_fixtures.py'
+$taskFmp4Target=Join-Path $taskLayout.Root '.build\fmp4-fixtures-current'
+if(Test-Path -LiteralPath $taskFmp4Target){$taskFmp4Arguments=@('--verify',$taskFmp4Target)}else{$taskFmp4Arguments=@($taskFmp4Target)}
+& $Python312 $taskFmp4Generator @taskFmp4Arguments
+if($LASTEXITCODE-ne0){throw 'Indexed native fMP4 fixture or source/oracle SHA binding failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_jpeg_two_gap_portable_fixtures.py') (Join-Path $taskLayout.Root '.build\jpeg-two-gap-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')

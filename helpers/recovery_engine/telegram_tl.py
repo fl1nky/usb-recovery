@@ -273,12 +273,52 @@ def _photo(reader: _Reader):
             "constructor": f"0x{constructor:08x}"}
 
 
-def _media(reader: _Reader):
+def _document_reference(reader: _Reader):
+    """Read a plain current descriptor, without treating metadata as file bytes.
+
+    Pinned TL_document 0x8fd4c4d8 stores size as int64. Optional thumbnail and
+    video-thumbnail vectors need their own readers. In this profile only zero
+    attributes or one filename attribute is understood. Consume and validate
+    names/MIME/references, but do not publish them as text, paths or content.
+    """
+    constructor = reader.u32()
+    if constructor == 0x36F8C871:
+        return {"type": "empty", "id": reader.i64()}
+    if constructor != 0x8FD4C4D8:
+        raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT")
+    _flags(reader.u32(), 0)
+    document_id = reader.i64()
+    reader.i64()  # access_hash: never return it or perform a lookup
+    reader.data_string()  # opaque file_reference, not embedded attachment bytes
+    _nonnegative(reader.i32())  # document date is not the message date
+    reader.string()  # declared MIME, never interpreted as executable content
+    _nonnegative(reader.i64())  # declared size: validate, never allocate it
+    _nonnegative(reader.i32())  # dc_id; no network access
+
+    def filename():
+        if reader.u32() != 0x15590068:
+            raise TelegramTlError("TL_UNSUPPORTED_DOCUMENT_ATTRIBUTE")
+        reader.string()  # metadata only; never open or resolve this name
+
+    reader.vector(filename, 1)
+    return {"type": "descriptor", "id": document_id,
+            "constructor": f"0x{constructor:08x}"}
+
+
+def _media(reader: _Reader, *, allow_current_document=False):
     constructor = reader.u32()
     if constructor == 0x3DED6320:
         return {"type": "empty"}
     if constructor == 0x9F84F49E:
         return {"type": "unsupported", "attachment_available": False}
+    if constructor == 0x52D8CCD9 and allow_current_document:
+        # Current media in the independently serialized layer232 outer profile.
+        # Other outer profiles, reply media, booleans and optional nested fields
+        # retain their existing unsupported status until separately validated.
+        if reader.u32() != 1:
+            raise TelegramTlError("TL_UNSUPPORTED_FLAGS")
+        return {"type": "document", "constructor": f"0x{constructor:08x}",
+                "document": _document_reference(reader)}
     if constructor == 0x7C4414D3:
         # Legacy Document media, pinned TLRPC.java:7687-7717. Only its
         # DocumentEmpty payload is understood; do not skip unknown documents.
@@ -480,7 +520,7 @@ def parse_message(blob: bytes | bytearray | memoryview, *, allow_trailing=False)
     result["date"] = _nonnegative(reader.i32())
     result["text"] = reader.string()
     if flags & 512:
-        result["media"] = _media(reader)
+        result["media"] = _media(reader, allow_current_document=constructor == 0x7600B9D3)
     if flags & 64:
         _markup(reader)
     if flags & 128:

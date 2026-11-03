@@ -13,7 +13,12 @@
 /tests/fixtures/telegram-cache-profiles/LICENSE -text
 /tests/fixtures/telegram-document-empty/*.gz -text
 /tests/fixtures/telegram-document-empty/LICENSE -text
+/tests/fixtures/telegram-document-descriptor/*.gz -text
+/tests/fixtures/telegram-document-descriptor/LICENSE -text
+/tests/fixtures/telegram-document-descriptor/manifest.json -text
+/tests/fixtures/telegram-document-descriptor-portable/** -text
 /tests/fixtures/video-stz2/** -text
+/tests/fixtures/video-fmp4/** -text
 /tests/fixtures/telegram-document-empty/manifest.json -text whitespace=cr-at-eol
 /tests/fixtures/telegram-cache-profiles/manifest.json -text whitespace=cr-at-eol
 /tests/benchmarks/evidence-photo-telegram-comparison-20261103/** -text whitespace=cr-at-eol

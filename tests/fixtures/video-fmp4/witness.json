@@ -1,0 +1,372 @@
+{
+  "schema": 1,
+  "status": "NATIVE_WRITER_AND_DECODER_ORACLE_PASS_ACTUAL_RECOVERY_NOT_RUN",
+  "scope": "Owned12frame AVC fMP4, noBframes,3intact self-relative moof+mdat pairs physically permuted; not arbitrary fMP4 recovery.",
+  "original": {
+    "path": "original.mp4",
+    "bytes": 19774,
+    "sha256": "9b977c560afa2b120d4b85373494ce9bcdd13328ce299dd5b726eda9c31dcbd8"
+  },
+  "source_image": {
+    "path": "image.dd",
+    "bytes": 2097152,
+    "sha256": "a270ed13657d4e346814fa40ec1de01d60380ac6f026f52dd206bde905610d1f"
+  },
+  "generator_sha256": "8f85897c7913271ed6a180d1a9117e0fe5a3de532ec2e06ae2013a36ca9bde31",
+  "ffmpeg_sha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "ffprobe_sha256": "f0d36ecbbdd3bcfac3efa078c96c7271c2e68b3810595552ac3b7f17e9a65c52",
+  "decoded_frames": 12,
+  "canonical_framemd5_sha256": "cde0c6f13cb74aa5adbbe3258c5bf314eb850922aefe3b06f22f77b71e1e1c6e",
+  "packet_oracle_sha256": "36b223ca6aed9a87d3cf015f9dea389900f548038cac3131328ec2739191376a",
+  "init": {
+    "track_id": 1,
+    "timescale": 12288,
+    "init_media_duration": 0,
+    "codec": "avc1",
+    "nal_length_bytes": 4,
+    "avcc_sha256": "f7422a4e357dedb4d29df129974cde0c4c1d7b8fb2ff374bdf441bacc9d24797",
+    "empty_init_sample_tables": {
+      "stts": 0,
+      "stsc": 0,
+      "stco": 0,
+      "stsz": 0
+    },
+    "trex": {
+      "track_id": 1,
+      "sample_description_index": 1,
+      "default_duration": 0,
+      "default_size": 0,
+      "default_flags": 0
+    }
+  },
+  "fragments": [
+    {
+      "mfhd_sequence": 1,
+      "track_id": 1,
+      "tfhd_flags": 131128,
+      "tfdt_version": 1,
+      "base_decode_time": 0,
+      "end_decode_time": 8192,
+      "trun_version": 0,
+      "trun_flags": 517,
+      "data_offset_from_moof": 128,
+      "moof_offset": 741,
+      "moof_bytes": 120,
+      "mdat_offset": 861,
+      "mdat_bytes": 6400,
+      "samples": [
+        {
+          "offset": 869,
+          "bytes": 2977,
+          "dts": 0,
+          "pts": 0,
+          "duration": 2048,
+          "flags": 33554432,
+          "sha256": "19d98756aa753f602430b822fcbec4ce8aa2062900f7808abb0ee86e17100dca"
+        },
+        {
+          "offset": 3846,
+          "bytes": 1164,
+          "dts": 2048,
+          "pts": 2048,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "4315d3429bf86b6a71a0dd4f132e642c9462f906105e703e2a8f49ff3e75cc29"
+        },
+        {
+          "offset": 5010,
+          "bytes": 1189,
+          "dts": 4096,
+          "pts": 4096,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "67c70737df06ef24aff96f37151f93c3a187b4a02dd25806032103ba4385bc1b"
+        },
+        {
+          "offset": 6199,
+          "bytes": 1062,
+          "dts": 6144,
+          "pts": 6144,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "e13d345fe41ae1d00dfb6f22f1b9e8d8896c4a39f4bede9691f2e7f77060c552"
+        }
+      ]
+    },
+    {
+      "mfhd_sequence": 2,
+      "track_id": 1,
+      "tfhd_flags": 131128,
+      "tfdt_version": 1,
+      "base_decode_time": 8192,
+      "end_decode_time": 16384,
+      "trun_version": 0,
+      "trun_flags": 517,
+      "data_offset_from_moof": 128,
+      "moof_offset": 7261,
+      "moof_bytes": 120,
+      "mdat_offset": 7381,
+      "mdat_bytes": 6132,
+      "samples": [
+        {
+          "offset": 7389,
+          "bytes": 2933,
+          "dts": 8192,
+          "pts": 8192,
+          "duration": 2048,
+          "flags": 33554432,
+          "sha256": "efd7db20261a9464d3fcf20eec1607503b82a93927a8135f67cfcb3412eafa9a"
+        },
+        {
+          "offset": 10322,
+          "bytes": 1079,
+          "dts": 10240,
+          "pts": 10240,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "a176c52dbf498cf348fb1ed7d2a4ffa056d49b27e7e8a7f017be9375210038e8"
+        },
+        {
+          "offset": 11401,
+          "bytes": 1291,
+          "dts": 12288,
+          "pts": 12288,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "ad0425a1ebb86c4cdc8f55444441e2fcec63314f1db350967145a181241faa39"
+        },
+        {
+          "offset": 12692,
+          "bytes": 821,
+          "dts": 14336,
+          "pts": 14336,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "abae0909904abb0cbf66eed17ed9c1a3899783123071478192918a5860b45d5c"
+        }
+      ]
+    },
+    {
+      "mfhd_sequence": 3,
+      "track_id": 1,
+      "tfhd_flags": 131128,
+      "tfdt_version": 1,
+      "base_decode_time": 16384,
+      "end_decode_time": 24576,
+      "trun_version": 0,
+      "trun_flags": 517,
+      "data_offset_from_moof": 128,
+      "moof_offset": 13513,
+      "moof_bytes": 120,
+      "mdat_offset": 13633,
+      "mdat_bytes": 6036,
+      "samples": [
+        {
+          "offset": 13641,
+          "bytes": 3196,
+          "dts": 16384,
+          "pts": 16384,
+          "duration": 2048,
+          "flags": 33554432,
+          "sha256": "cd8b81f2a6595fcc5336ba3947a8679b6f02b6805b6f81ed6f7faa76a0ab93eb"
+        },
+        {
+          "offset": 16837,
+          "bytes": 977,
+          "dts": 18432,
+          "pts": 18432,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "3fd6b3f3e6c5aaef15004e9225322a8245f98d044280fd9b8a9d9b1fb8e48768"
+        },
+        {
+          "offset": 17814,
+          "bytes": 1105,
+          "dts": 20480,
+          "pts": 20480,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "ee59b1a81abf899017cdcefae1ae5d15a81c7ccfe31f33e3d85e18e1990a8f53"
+        },
+        {
+          "offset": 18919,
+          "bytes": 750,
+          "dts": 22528,
+          "pts": 22528,
+          "duration": 2048,
+          "flags": 16842752,
+          "sha256": "80ee10fa24bba6e41fb4d89bee386deef0b5a122ea929bc989498dd7ea779ab4"
+        }
+      ]
+    }
+  ],
+  "mfra": {
+    "track_id": 1,
+    "tfra_version": 1,
+    "entries": [
+      {
+        "time": 0,
+        "moof_offset": 741,
+        "traf_number": 1,
+        "trun_number": 1,
+        "sample_number": 1
+      },
+      {
+        "time": 8192,
+        "moof_offset": 7261,
+        "traf_number": 1,
+        "trun_number": 1,
+        "sample_number": 1
+      },
+      {
+        "time": 16384,
+        "moof_offset": 13513,
+        "traf_number": 1,
+        "trun_number": 1,
+        "sample_number": 1
+      }
+    ],
+    "mfro_size": 105
+  },
+  "physical_extents": [
+    {
+      "logical_offset": 0,
+      "source_offset": 32768,
+      "bytes": 28,
+      "kind": "ftyp",
+      "sha256": "c1e9f6829f6e8e490b28221ba03ea2acd13e604a430103a3984c31528726f50e",
+      "part_file": "parts/ftyp.bin"
+    },
+    {
+      "logical_offset": 28,
+      "source_offset": 1048576,
+      "bytes": 713,
+      "kind": "init_moov",
+      "sha256": "2beb6a569448c83b80bc371cd5b9daa0cb3c3705ebe042ea9e31f9bcae5787f2",
+      "part_file": "parts/init_moov.bin"
+    },
+    {
+      "logical_offset": 741,
+      "source_offset": 1572864,
+      "bytes": 6520,
+      "kind": "fragment_1_moof_mdat",
+      "sha256": "b27b4cf3ee51436e847e70a6136b79fb4f2546652ee2658e51decadb686adfa4",
+      "part_file": "parts/fragment_1_moof_mdat.bin"
+    },
+    {
+      "logical_offset": 7261,
+      "source_offset": 262144,
+      "bytes": 6252,
+      "kind": "fragment_2_moof_mdat",
+      "sha256": "1387c45c7252c5be27eb8a1d78def061455f71632bd1c1be9f571a7bb215738b",
+      "part_file": "parts/fragment_2_moof_mdat.bin"
+    },
+    {
+      "logical_offset": 13513,
+      "source_offset": 786432,
+      "bytes": 6156,
+      "kind": "fragment_3_moof_mdat",
+      "sha256": "604d697a75900ecbb9ec6d00b41de32bab8251c548b01e657edb6a9c9c1bdcdf",
+      "part_file": "parts/fragment_3_moof_mdat.bin"
+    },
+    {
+      "logical_offset": 19669,
+      "source_offset": 1966080,
+      "bytes": 105,
+      "kind": "mfra",
+      "sha256": "c429a01711ea8cc144c8159c5f44565c130491ff5a60cb9ccb4af120c40b1c5a",
+      "part_file": "parts/mfra.bin"
+    }
+  ],
+  "top_level_atom_extents": [
+    {
+      "kind": "ftyp",
+      "logical_offset": 0,
+      "source_offset": 32768,
+      "bytes": 28,
+      "sha256": "c1e9f6829f6e8e490b28221ba03ea2acd13e604a430103a3984c31528726f50e"
+    },
+    {
+      "kind": "moov",
+      "logical_offset": 28,
+      "source_offset": 1048576,
+      "bytes": 713,
+      "sha256": "2beb6a569448c83b80bc371cd5b9daa0cb3c3705ebe042ea9e31f9bcae5787f2"
+    },
+    {
+      "kind": "moof",
+      "logical_offset": 741,
+      "source_offset": 1572864,
+      "bytes": 120,
+      "sha256": "3b9b75de15811640d93390604ae4a57782f7f08d1fb8c73b5bf5856160952b9a"
+    },
+    {
+      "kind": "mdat",
+      "logical_offset": 861,
+      "source_offset": 1572984,
+      "bytes": 6400,
+      "sha256": "2f1def39a7c8cc24fc32867c9873ac495ebb4b0bc72598d7515551f3a1a91880"
+    },
+    {
+      "kind": "moof",
+      "logical_offset": 7261,
+      "source_offset": 262144,
+      "bytes": 120,
+      "sha256": "31dc7dfee213a16cfc43fc5f766dab35b024af8cef4c35050de88808642f77dc"
+    },
+    {
+      "kind": "mdat",
+      "logical_offset": 7381,
+      "source_offset": 262264,
+      "bytes": 6132,
+      "sha256": "ad45289aeab26363ae017c3be1426dd32e158d74027e3269c8d5815519177384"
+    },
+    {
+      "kind": "moof",
+      "logical_offset": 13513,
+      "source_offset": 786432,
+      "bytes": 120,
+      "sha256": "227da46bb2b6ba610dd8e28c07252abe6121cd3f1455978714d3eaf2f6ba446e"
+    },
+    {
+      "kind": "mdat",
+      "logical_offset": 13633,
+      "source_offset": 786552,
+      "bytes": 6036,
+      "sha256": "1604ef9cdf50821de71492b8857521bb2f2767ac7ca08a6730bc69a1bead8a7d"
+    },
+    {
+      "kind": "mfra",
+      "logical_offset": 19669,
+      "source_offset": 1966080,
+      "bytes": 105,
+      "sha256": "c429a01711ea8cc144c8159c5f44565c130491ff5a60cb9ccb4af120c40b1c5a"
+    }
+  ],
+  "all_original_bytes_survive": true,
+  "original_not_contiguous_in_image": true,
+  "logical_sequence": [
+    1,
+    2,
+    3
+  ],
+  "physical_fragment_order": [
+    2,
+    3,
+    1
+  ],
+  "parsemovie_source_sha256": "c070c3e77e7446bf3be63d04412d2edf9d75c8c565e9f234fff95710e1ac3023",
+  "source_rejection_code": "fragmented_mp4_unsupported",
+  "source_gate": "Current ParseMovie rejects mvex before classic sample-table parsing; no actual engine call made here.",
+  "actual_baseline": "NOT_RUN",
+  "actual_recovered_count": null,
+  "ownership_uncertainty": "Plain mfhd/track ids,tfdt times,trun sizes and mfra offsets constrain placement/order but do not authenticate stream ownership. No claim of uniqueness against foreign compatible fragments or missing-tail completion.",
+  "primary_reference": {
+    "url": "https://www.w3.org/TR/2024/NOTE-mse-byte-stream-format-isobmff-20240723/",
+    "sections": [
+      3,
+      4
+    ],
+    "paraphrase": "Initialization carries ftyp/moov with mvex and empty tables. Media uses moof/mdat with relative addressing, decode time and complete sample coverage."
+  }
+}

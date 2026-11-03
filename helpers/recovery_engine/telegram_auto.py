@@ -952,10 +952,11 @@ class Analyzer:
         """
         if media.get("type") == "document":
             document = media.get("document", {})
-            if document.get("type") != "empty":
+            if document.get("type") not in ("empty", "descriptor"):
                 return {}, []
-            # DocumentEmpty contains no file bytes, MIME or filename. Its
-            # optional opaque signed ID is observed metadata, including zero.
+            # Neither an Empty reference nor a parsed descriptor contains the
+            # original file. Only the observed opaque signed ID is published;
+            # the declared filename/MIME/size never become text or attachments.
             document_id = document.get("id")
             return {"media_kind": "document",
                     "media_id": str(document_id) if document_id is not None else None,

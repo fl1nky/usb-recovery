@@ -1,0 +1,837 @@
+{
+  "schema": 1,
+  "scope": "Owned native SQLite only; no recovery run, no devices",
+  "telegram_commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "oracle_manifest_sha256": "8b2d3c7b6fe1f259607ef18987bcd51625412aad9a59c747f72980b212f712f7",
+  "generator_sha256": "5271f29ccb6770ffd67b5373c06dd028d36f2dbae55a543cbdd93fdbe84b65cc",
+  "source_factory_sha256": "bef894bb21c46198ef3617c1f974db40dce52fae9f2051a7e50e73368697c4da",
+  "original_sqlite_factory_sha256": "3936357e1a2dee4e4fe9bd7d7c422b35f6cea0724dc7a0df7da93b396b2da205",
+  "sqlite_version": "3.53.1",
+  "archive": {
+    "path": "native-cases.zip",
+    "bytes": 51740,
+    "sha256": "b49b62b0c45eca231eb4da8c9bdd00d156c2ac5ed210f1f1dc1a29ded6fd7d49"
+  },
+  "cases": [
+    {
+      "name": "descriptor-empty-attributes",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-empty-attributes/cache4.db",
+      "oracle_name": "descriptor-empty-attributes",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-filename",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-filename/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-size64",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-size64/cache4.db",
+      "oracle_name": "descriptor-size64",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-size-zero",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-size-zero/cache4.db",
+      "oracle_name": "descriptor-size-zero",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-size-int64-max",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-size-int64-max/cache4.db",
+      "oracle_name": "descriptor-size-int64-max",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-id-zero",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-id-zero/cache4.db",
+      "oracle_name": "descriptor-id-zero",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-id-negative",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-id-negative/cache4.db",
+      "oracle_name": "descriptor-id-negative",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-id-int64-min",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-id-int64-min/cache4.db",
+      "oracle_name": "descriptor-id-int64-min",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-id-int64-max",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-id-int64-max/cache4.db",
+      "oracle_name": "descriptor-id-int64-max",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-file-reference-empty",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-file-reference-empty/cache4.db",
+      "oracle_name": "descriptor-file-reference-empty",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-file-reference-254",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-file-reference-254/cache4.db",
+      "oracle_name": "descriptor-file-reference-254",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-outgoing",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-outgoing/cache4.db",
+      "oracle_name": "descriptor-outgoing",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-empty-text",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-empty-text/cache4.db",
+      "oracle_name": "descriptor-empty-text",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-padding-one",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-padding-one/cache4.db",
+      "oracle_name": "descriptor-padding-one",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-padding-two",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-padding-two/cache4.db",
+      "oracle_name": "descriptor-padding-two",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-padding-three",
+      "category": "current",
+      "variant": "current",
+      "database": "current/descriptor-padding-three/cache4.db",
+      "oracle_name": "descriptor-padding-three",
+      "control_name": null
+    },
+    {
+      "name": "current-empty-id-positive",
+      "category": "current",
+      "variant": "current",
+      "database": "current/current-empty-id-positive/cache4.db",
+      "oracle_name": "current-empty-id-positive",
+      "control_name": null
+    },
+    {
+      "name": "current-empty-id-zero",
+      "category": "current",
+      "variant": "current",
+      "database": "current/current-empty-id-zero/cache4.db",
+      "oracle_name": "current-empty-id-zero",
+      "control_name": null
+    },
+    {
+      "name": "current-empty-id-negative",
+      "category": "current",
+      "variant": "current",
+      "database": "current/current-empty-id-negative/cache4.db",
+      "oracle_name": "current-empty-id-negative",
+      "control_name": null
+    },
+    {
+      "name": "legacy-empty-two-text-slots",
+      "category": "current",
+      "variant": "current",
+      "database": "current/legacy-empty-two-text-slots/cache4.db",
+      "oracle_name": "legacy-empty-two-text-slots",
+      "control_name": null
+    },
+    {
+      "name": "legacy-empty-caption-only",
+      "category": "current",
+      "variant": "current",
+      "database": "current/legacy-empty-caption-only/cache4.db",
+      "oracle_name": "legacy-empty-caption-only",
+      "control_name": null
+    },
+    {
+      "name": "reject-document-flags-bit0",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-document-flags-bit0/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-document-flags-bit0"
+    },
+    {
+      "name": "reject-document-flags-bit1",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-document-flags-bit1/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-document-flags-bit1"
+    },
+    {
+      "name": "reject-document-flags-bit7",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-document-flags-bit7/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-document-flags-bit7"
+    },
+    {
+      "name": "reject-document-flags-bit31",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-document-flags-bit31/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-document-flags-bit31"
+    },
+    {
+      "name": "reject-media-flags-bit2",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit2/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit2"
+    },
+    {
+      "name": "reject-media-flags-bit3",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit3/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit3"
+    },
+    {
+      "name": "reject-media-flags-bit4",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit4/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit4"
+    },
+    {
+      "name": "reject-media-flags-bit5",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit5/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit5"
+    },
+    {
+      "name": "reject-media-flags-bit6",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit6/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit6"
+    },
+    {
+      "name": "reject-media-flags-bit7",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit7/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit7"
+    },
+    {
+      "name": "reject-media-flags-bit8",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit8/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit8"
+    },
+    {
+      "name": "reject-media-flags-bit9",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit9/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit9"
+    },
+    {
+      "name": "reject-media-flags-bit10",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit10/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit10"
+    },
+    {
+      "name": "reject-media-flags-bit11",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit11/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit11"
+    },
+    {
+      "name": "reject-media-flags-bit12",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit12/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit12"
+    },
+    {
+      "name": "reject-media-flags-bit31",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-flags-bit31/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-flags-bit31"
+    },
+    {
+      "name": "reject-media-missing-document",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-media-missing-document/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-media-missing-document"
+    },
+    {
+      "name": "reject-unknown-document",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-unknown-document/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-unknown-document"
+    },
+    {
+      "name": "reject-unknown-attribute",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-unknown-attribute/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-unknown-attribute"
+    },
+    {
+      "name": "reject-unknown-attribute-vector-tag",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-unknown-attribute-vector-tag/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-unknown-attribute-vector-tag"
+    },
+    {
+      "name": "reject-attribute-count-minus-one",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-attribute-count-minus-one/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-attribute-count-minus-one"
+    },
+    {
+      "name": "reject-attribute-count-two-truncated",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-attribute-count-two-truncated/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-attribute-count-two-truncated"
+    },
+    {
+      "name": "reject-duplicate-filename-attribute",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-duplicate-filename-attribute/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-duplicate-filename-attribute"
+    },
+    {
+      "name": "reject-invalid-utf8-message-text",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-invalid-utf8-message-text/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-invalid-utf8-message-text"
+    },
+    {
+      "name": "reject-invalid-utf8-mime-type",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-invalid-utf8-mime-type/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-invalid-utf8-mime-type"
+    },
+    {
+      "name": "reject-invalid-utf8-filename",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-invalid-utf8-filename/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-invalid-utf8-filename"
+    },
+    {
+      "name": "reject-padding-mime-type",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-padding-mime-type/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-padding-mime-type"
+    },
+    {
+      "name": "reject-padding-attach-path",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-padding-attach-path/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-padding-attach-path"
+    },
+    {
+      "name": "reject-padding-file-reference",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-padding-file-reference/cache4.db",
+      "oracle_name": "descriptor-file-reference-empty",
+      "control_name": "reject-padding-file-reference"
+    },
+    {
+      "name": "reject-truncated-at-119",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-truncated-at-119/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-truncated-at-119"
+    },
+    {
+      "name": "reject-truncated-at-130",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-truncated-at-130/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-truncated-at-130"
+    },
+    {
+      "name": "reject-truncated-at-155",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-truncated-at-155/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-truncated-at-155"
+    },
+    {
+      "name": "reject-truncated-at-167",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-truncated-at-167/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-truncated-at-167"
+    },
+    {
+      "name": "reject-truncated-at-207",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-truncated-at-207/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-truncated-at-207"
+    },
+    {
+      "name": "reject-extra-tail",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-extra-tail/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-extra-tail"
+    },
+    {
+      "name": "reject-extra-before-attach-path",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-extra-before-attach-path/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-extra-before-attach-path"
+    },
+    {
+      "name": "reject-outer-constructor",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-outer-constructor/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-outer-constructor"
+    },
+    {
+      "name": "reject-legacy-empty-tag-only-full-document",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-legacy-empty-tag-only-full-document/cache4.db",
+      "oracle_name": "legacy-empty-two-text-slots",
+      "control_name": "reject-legacy-empty-tag-only-full-document"
+    },
+    {
+      "name": "reject-sql-mid-42",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-sql-mid-42/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-sql-mid-42"
+    },
+    {
+      "name": "reject-sql-date-1790000001",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-sql-date-1790000001/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-sql-date-1790000001"
+    },
+    {
+      "name": "reject-sql-uid-1111",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-sql-uid-1111/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-sql-uid-1111"
+    },
+    {
+      "name": "reject-sql-uid-330712481792",
+      "category": "controls",
+      "variant": "current",
+      "database": "controls/reject-sql-uid-330712481792/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": "reject-sql-uid-330712481792"
+    },
+    {
+      "name": "descriptor-filename",
+      "category": "history",
+      "variant": "history",
+      "database": "history/descriptor-filename/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": null
+    },
+    {
+      "name": "descriptor-filename",
+      "category": "residual",
+      "variant": "residual",
+      "database": "residual/descriptor-filename/cache4.db",
+      "oracle_name": "descriptor-filename",
+      "control_name": null
+    },
+    {
+      "name": "versions",
+      "category": "versions",
+      "variant": "versions",
+      "database": "versions/cache4.db",
+      "oracle_names": [
+        "descriptor-id-zero",
+        "descriptor-id-negative"
+      ]
+    }
+  ],
+  "files": {
+    "current/descriptor-empty-attributes/cache4.db": {
+      "bytes": 12288,
+      "sha256": "85a897d22e575775cc506a466f809ecf915ca7e0d1a140ea624b3740ddf8ce63"
+    },
+    "current/descriptor-filename/cache4.db": {
+      "bytes": 12288,
+      "sha256": "563c06b21b9b06f6706238db06cd0516d0cb369eade3d2200a4e7da249167a3a"
+    },
+    "current/descriptor-size64/cache4.db": {
+      "bytes": 12288,
+      "sha256": "0b69786e4bee8a40f5ed43a882605cc8661d2b751cbd4ccdd2150314271f5258"
+    },
+    "current/descriptor-size-zero/cache4.db": {
+      "bytes": 12288,
+      "sha256": "37026a4bce1a9d01abc4232a43c8b6816f1f0af0444ed847965258b546cb3a15"
+    },
+    "current/descriptor-size-int64-max/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d00e812a5aa5774607943cc993ca02306875cd54b63c986b9634e514e62ddded"
+    },
+    "current/descriptor-id-zero/cache4.db": {
+      "bytes": 12288,
+      "sha256": "562d910fb7476ece0b4aa6036cfa29105f6069cd74e81862daccf4ef967794a5"
+    },
+    "current/descriptor-id-negative/cache4.db": {
+      "bytes": 12288,
+      "sha256": "338ca567f6a48f251cc66d35746fb92bc472f5c1715f3a5cab488d70a8909fc2"
+    },
+    "current/descriptor-id-int64-min/cache4.db": {
+      "bytes": 12288,
+      "sha256": "155ce18a2a3c8ef497866d969d883786c599c3fb7315b296e282dae82e9aba90"
+    },
+    "current/descriptor-id-int64-max/cache4.db": {
+      "bytes": 12288,
+      "sha256": "997f096cea7c2fe430b6844aa823f723036b761e7452c18b2636c5da0167a50b"
+    },
+    "current/descriptor-file-reference-empty/cache4.db": {
+      "bytes": 12288,
+      "sha256": "aff19d938cdc347eaa76e8de382a1b16b7f7d189d383f76372bad9fe951957c5"
+    },
+    "current/descriptor-file-reference-254/cache4.db": {
+      "bytes": 12288,
+      "sha256": "2f63c9f272e7a3f71817b63e37031238a98de877fbf6b5c973d25e2c32f20609"
+    },
+    "current/descriptor-outgoing/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d0df3a9f380c8336c59002b8d1ab82e90ec419f9dd94ddb20e6b60188ceafac8"
+    },
+    "current/descriptor-empty-text/cache4.db": {
+      "bytes": 12288,
+      "sha256": "bf764b2001158358055463fcda9e6ad39e9fa81d68eeb2ca97ab42212a127da0"
+    },
+    "current/descriptor-padding-one/cache4.db": {
+      "bytes": 12288,
+      "sha256": "c4c7d880ffad02cf5b94d8a26e1bae7c5c15d98b812d31610bafcf4b55351aa1"
+    },
+    "current/descriptor-padding-two/cache4.db": {
+      "bytes": 12288,
+      "sha256": "e33fbccbac20cb8a124412f1908e2a4b7b87474bf339616e8efc0879b2f1de41"
+    },
+    "current/descriptor-padding-three/cache4.db": {
+      "bytes": 12288,
+      "sha256": "3752d1bd1a73fbba0366ecb85656c1aa15113ff6bbf9c11b8f55398cf5744f6f"
+    },
+    "current/current-empty-id-positive/cache4.db": {
+      "bytes": 12288,
+      "sha256": "44e7d9c493148304bd7560218b923c73423a81726d4a95df973f4ee5f833c518"
+    },
+    "current/current-empty-id-zero/cache4.db": {
+      "bytes": 12288,
+      "sha256": "4a88cac3d9bae9a4dfe40ea59e7cf8b3f03b367b0c90e2e99118f06c06e0c7b5"
+    },
+    "current/current-empty-id-negative/cache4.db": {
+      "bytes": 12288,
+      "sha256": "302c809844841b1e9a9a8795e7b31296da2ce6d00f9d0afb3438d22f19fcdd79"
+    },
+    "current/legacy-empty-two-text-slots/cache4.db": {
+      "bytes": 12288,
+      "sha256": "b991483d44093be602c65683bf335cd6f93257ffefc54729669d5746e4c9327d"
+    },
+    "current/legacy-empty-caption-only/cache4.db": {
+      "bytes": 12288,
+      "sha256": "eb8ba2f3653eebea80a18728d4266dbd247397d2cf0d3df43b273bf77676d396"
+    },
+    "controls/reject-document-flags-bit0/cache4.db": {
+      "bytes": 12288,
+      "sha256": "efc4da1551e4451a7714d1dbf9383aed8307c6c36bef87591657b06f350e563d"
+    },
+    "controls/reject-document-flags-bit1/cache4.db": {
+      "bytes": 12288,
+      "sha256": "dbec1ba04f08d58498cff0d6c4c6facbb068015dbcbf2bee510ac40ab3d74f4e"
+    },
+    "controls/reject-document-flags-bit7/cache4.db": {
+      "bytes": 12288,
+      "sha256": "3f3e44208649a5ed5ac918e4a35cb5016d08252ad26d27092fe7b3982567b872"
+    },
+    "controls/reject-document-flags-bit31/cache4.db": {
+      "bytes": 12288,
+      "sha256": "31639e778e96b8e1d3dce1836722fba882c29ccc2d9d78ca77110de6aa7a6699"
+    },
+    "controls/reject-media-flags-bit2/cache4.db": {
+      "bytes": 12288,
+      "sha256": "1ed0749bb801012cded5b5f0aa3c0ab6f36fca8168b12b52bce7d318803a4061"
+    },
+    "controls/reject-media-flags-bit3/cache4.db": {
+      "bytes": 12288,
+      "sha256": "38c96e2bf735d465f50b9a9d02bd4480389345fb59bf9f4fbfc774d2ac229773"
+    },
+    "controls/reject-media-flags-bit4/cache4.db": {
+      "bytes": 12288,
+      "sha256": "98ead432bb88c589aeefebac2396b3a41611b74ad0c28e33e904b08ec3697619"
+    },
+    "controls/reject-media-flags-bit5/cache4.db": {
+      "bytes": 12288,
+      "sha256": "52a0e44447c249f0616ac14fa39dd8e1223fca2a0f5f917d4f675bf61aa98e09"
+    },
+    "controls/reject-media-flags-bit6/cache4.db": {
+      "bytes": 12288,
+      "sha256": "8f42952eb0aae9f6a54d3dc12a64036e17d000fdae47b5ac9449e636213bb748"
+    },
+    "controls/reject-media-flags-bit7/cache4.db": {
+      "bytes": 12288,
+      "sha256": "21ee0b6e464fc88847b1698c4412feebb0b62d4445ee1aac91cde4eadcdc1b58"
+    },
+    "controls/reject-media-flags-bit8/cache4.db": {
+      "bytes": 12288,
+      "sha256": "6805eec8ccb0baa6a1f746da7a173c84573046edeb2adab01557fc7e5f6ade9b"
+    },
+    "controls/reject-media-flags-bit9/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d3d055631b967b70459b96c5f204a7038afab25131254620b973bb2197681413"
+    },
+    "controls/reject-media-flags-bit10/cache4.db": {
+      "bytes": 12288,
+      "sha256": "b4697bf5e4239c351d46fa13ff85f1afea54fd492a2e1c6123d1b01e3e0b5e38"
+    },
+    "controls/reject-media-flags-bit11/cache4.db": {
+      "bytes": 12288,
+      "sha256": "3008fffcb4003c1bfb8a1a8b3ab76d59ff6810d92760c32f69bd1acb51dd11e0"
+    },
+    "controls/reject-media-flags-bit12/cache4.db": {
+      "bytes": 12288,
+      "sha256": "a99ecce00dd2e77ff208d4dc266dbba0f4e9073172af007d573ade2811060a34"
+    },
+    "controls/reject-media-flags-bit31/cache4.db": {
+      "bytes": 12288,
+      "sha256": "3f03db5029d83ea3bde54f3afee63b422cb8c888c4ce4e8385b8d60b86a5165f"
+    },
+    "controls/reject-media-missing-document/cache4.db": {
+      "bytes": 12288,
+      "sha256": "34d7c111b4de6b72b972f98211cdcfe98635b0b23f022bd5ce0af79314bf39e8"
+    },
+    "controls/reject-unknown-document/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d4683d658beac593545e174a7b83766faef92907675ca9561e92d662c197ceeb"
+    },
+    "controls/reject-unknown-attribute/cache4.db": {
+      "bytes": 12288,
+      "sha256": "8eea31475cb858c97f3dc79e33cd16f97d472c690f5c0876d27d91556c4dc64d"
+    },
+    "controls/reject-unknown-attribute-vector-tag/cache4.db": {
+      "bytes": 12288,
+      "sha256": "f470f35decaf959c0627a0909a6703eedf21ed4b15867296d930b01ad4bf3045"
+    },
+    "controls/reject-attribute-count-minus-one/cache4.db": {
+      "bytes": 12288,
+      "sha256": "a67b3ab7b4cc2606005ee7786b65bb7dfcc36d65c97d154d13d2b39610f8f7a7"
+    },
+    "controls/reject-attribute-count-two-truncated/cache4.db": {
+      "bytes": 12288,
+      "sha256": "e34ee2d1a3057b78583a5dc3bfc9565fd81953cf4b791242d52f9cf940ce4faa"
+    },
+    "controls/reject-duplicate-filename-attribute/cache4.db": {
+      "bytes": 12288,
+      "sha256": "86b479efe15ffa3aef09ffadccb27da90150a77495d97bf0860bc2816dd06726"
+    },
+    "controls/reject-invalid-utf8-message-text/cache4.db": {
+      "bytes": 12288,
+      "sha256": "ac46412883dcb287220ee3a0f46e2017025ed1dfa53bf9346e1310ad08331efd"
+    },
+    "controls/reject-invalid-utf8-mime-type/cache4.db": {
+      "bytes": 12288,
+      "sha256": "cda43a8012f8130abd95ddea74aeb3669d6b6b9939b6e0858e0c59825f4d2f87"
+    },
+    "controls/reject-invalid-utf8-filename/cache4.db": {
+      "bytes": 12288,
+      "sha256": "1f16d38f1f5a6da1b392ee34666c6cd7d46f0083f10e4a5e935a81cda997c2e5"
+    },
+    "controls/reject-padding-mime-type/cache4.db": {
+      "bytes": 12288,
+      "sha256": "e8a162f3832bcfec12d0bea7ae609007805a826c73a812ea89702b4ece14fdf2"
+    },
+    "controls/reject-padding-attach-path/cache4.db": {
+      "bytes": 12288,
+      "sha256": "1fd529877e11ebfe38b94f1f27fd531968c67f2304c5191bd7546421ee20c173"
+    },
+    "controls/reject-padding-file-reference/cache4.db": {
+      "bytes": 12288,
+      "sha256": "183c1a68bb8d58a66b2277d29154d2a8fff8103b38136ad1232c985610f38109"
+    },
+    "controls/reject-truncated-at-119/cache4.db": {
+      "bytes": 12288,
+      "sha256": "01ef240b192cfd22558a44577f4c5ba29767ff07d5696a0a2c6b1a4c05d6fc70"
+    },
+    "controls/reject-truncated-at-130/cache4.db": {
+      "bytes": 12288,
+      "sha256": "39502bede3e2328356b1f0b7b821e4d5fe7d18e934b4f9a48f787e376242c92e"
+    },
+    "controls/reject-truncated-at-155/cache4.db": {
+      "bytes": 12288,
+      "sha256": "8146e5574bb68f6770dc2d3f1d62144bea6f25cb371baf31229b296fbd05628f"
+    },
+    "controls/reject-truncated-at-167/cache4.db": {
+      "bytes": 12288,
+      "sha256": "c3630d7c4e1de3b0aafa060e2bd0669a53991c82b43c4968db19ab5f8e029f89"
+    },
+    "controls/reject-truncated-at-207/cache4.db": {
+      "bytes": 12288,
+      "sha256": "b6315a8b4a05ff4e26a9b0f345f467dfec78fd0ae14bc82acd31b709067bb9e9"
+    },
+    "controls/reject-extra-tail/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d7dad10f9b5821f33968df63df070c7a78a42ad89c6690443dc1b6f0c22f6e24"
+    },
+    "controls/reject-extra-before-attach-path/cache4.db": {
+      "bytes": 12288,
+      "sha256": "d8185c6c03d9be0092352184634ff7f6961ea2211574d3b5ef4b81e531589945"
+    },
+    "controls/reject-outer-constructor/cache4.db": {
+      "bytes": 12288,
+      "sha256": "cf571fa91eac51c313ae44307318d8dd21114df7e6be74a1f68f40fc4091daa6"
+    },
+    "controls/reject-legacy-empty-tag-only-full-document/cache4.db": {
+      "bytes": 12288,
+      "sha256": "c71049fe30864c103dc2590f6abca0314a093a6fa9be9808098e3cca9b36a8e6"
+    },
+    "controls/reject-sql-mid-42/cache4.db": {
+      "bytes": 12288,
+      "sha256": "b047a689623e402f83c18bcc1a3f5e12af1cfaa61a0aa1ff5fc24e05cb45d43e"
+    },
+    "controls/reject-sql-date-1790000001/cache4.db": {
+      "bytes": 12288,
+      "sha256": "e5ef6123b2b2474f3c260cac4e617310c9f1af4704dc4fd4c6f1101892b98b7c"
+    },
+    "controls/reject-sql-uid-1111/cache4.db": {
+      "bytes": 12288,
+      "sha256": "3983e3376a906af6b8a6f3173670e8907b1976ff7e9057a3d23dcb5887298aef"
+    },
+    "controls/reject-sql-uid-330712481792/cache4.db": {
+      "bytes": 12288,
+      "sha256": "27a1c5ab84c38a515efb2f8fc73d36be99e290eb950d011df4d6de9e39212118"
+    },
+    "history/descriptor-filename/cache4.db": {
+      "bytes": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    "history/descriptor-filename/cache4.db-wal": {
+      "bytes": 28872,
+      "sha256": "0ac9c1b4daf3e547fc7e47047e152675ed0828c689144384d04075c55980f2c3"
+    },
+    "history/descriptor-filename/cache4.db-shm": {
+      "bytes": 32768,
+      "sha256": "533f313ac40d8f5c96f81aaff933a66cfba23ed5c54eb0e7301ecea1f39b4e5b"
+    },
+    "residual/descriptor-filename/cache4.db": {
+      "bytes": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    "residual/descriptor-filename/cache4.db-wal": {
+      "bytes": 28872,
+      "sha256": "275dbdfc78610e380876a60e6a170caa85567ab65885092153fa047feb9ad143"
+    },
+    "residual/descriptor-filename/cache4.db-shm": {
+      "bytes": 32768,
+      "sha256": "c068ed10490ada6477f5dcf740985db59f1ca56ffc27b1425d3b185ed812488f"
+    },
+    "versions/cache4.db": {
+      "bytes": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    "versions/cache4.db-wal": {
+      "bytes": 24752,
+      "sha256": "bd45ebd097d69dc053bd333ca7ceaba77068f7985fd300124a282cf94b0fa7a0"
+    },
+    "versions/cache4.db-shm": {
+      "bytes": 32768,
+      "sha256": "5580c784490125a0fde52f06aa7dfb4aaf1117148c6a732783e1b5e9c7f6c568"
+    }
+  }
+}

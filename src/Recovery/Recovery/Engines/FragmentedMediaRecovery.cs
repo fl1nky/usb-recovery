@@ -42,6 +42,7 @@ namespace UsbRecovery
             public string AudioSearch;
             public bool PayloadAuthenticated=false,DeletionConfirmed=false;
             public List<Extent> Extents=new List<Extent>();
+            public List<List<Extent>> AlternateExtents=new List<List<Extent>>();
             public string Note="Surviving sample tables and unique syntax-valid chunk bytes agree. This is not a decoded-video or ownership/authenticity guarantee. Original name and deletion state are unknown; inspect the candidate.";
         }
         public sealed class Report
@@ -51,9 +52,12 @@ namespace UsbRecovery
             public int PayloadProbes;
             public long InputBytes,OutputBytes,VerifiedBytes,SourceReadBytes;
             public string Status="incomplete";
+            public bool Fmp4Incomplete;
+            internal string BoundSourceSha256;
+            internal bool BoundSourceUnchanged;
             public Dictionary<string,int> Skipped=new Dictionary<string,int>(StringComparer.Ordinal);
             public List<Result> Files=new List<Result>();
-            public string Scope="Classic self-contained MP4/MOV, one mdat, exactly one stsz or 4/8/16-bit stz2 sample-size table per track, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Source-backed unit descriptors and streamed assignment hashes/output avoid a whole-file buffer; AVC validation range-reads NAL headers, AAC and supported HEVC/JPEG reads remain sample-bounded. Unit capacity <=256MiB from 4096 cells/65536-byte units, with 8192 samples and 8192 assignment states, estimated32MiB mapping metadata and the shared512MiB verification budget; whole-chunk recovery remains a fallback up to its existing file bound. Codec indexes are built lazily; bounded AVC header reuse avoids repeated source reads, legacy payload probes are capped at16 times MaxCandidates, and source-read bytes are separately reported. Metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
+            public string Scope="Classic self-contained MP4/MOV, one mdat, exactly one stsz or 4/8/16-bit stz2 sample-size table per track, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Source-backed unit descriptors and streamed assignment hashes/output avoid a whole-file buffer; AVC validation range-reads NAL headers, AAC and supported HEVC/JPEG reads remain sample-bounded. Unit capacity <=256MiB from 4096 cells/65536-byte units, with 8192 samples and 8192 assignment states, estimated32MiB mapping metadata and the shared512MiB verification budget; whole-chunk recovery remains a fallback up to its existing file bound. Codec indexes are built lazily; bounded AVC header reuse avoids repeated source reads, legacy payload probes are capped at16 times MaxCandidates, and source-read bytes are separately reported. Metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio and invented padding/missing bytes are unsupported by the classic path. A separate indexed native fMP4 profile requires empty single-track AVC init tables, one traf/trun per intact moof+mdat, mfhd sequences1..N, first decode/index time0, continuous tfdt, composition offsets0, data offset exactly moof bytes plus mdat header and one surviving mfra/tfra entry per selected pair; it preserves full identical source maps and rejects distinct complete byte results. Other fMP4 profiles, missing index/init, arbitrary unit splits, encrypted/multitrack fragments and opaque ownership/tail completeness are unsupported. Native source hash metadata is checked under the ordinary-file read lock; it is structural provenance, not cryptographic authentication of a supplied report. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
         }
         sealed class Reject:Exception {public string Code;public bool VideoOnly;public Reject(string code){Code=code;}}
         sealed class Budget:Exception {}
@@ -67,6 +71,9 @@ namespace UsbRecovery
         {
             public FileStream Input;public Report Report;public Limits Limits;public CancellationToken Cancel;
             public List<Atom> Ftyp=new List<Atom>(),Moov=new List<Atom>(),Mdat=new List<Atom>(),Free=new List<Atom>();
+            public List<Atom> Moof=new List<Atom>(),Mfra=new List<Atom>();
+            public int Fmp4States,Fmp4MapExtents,Fmp4SampleClaims;
+            public long Fmp4ReplayBytes;
             public List<long> Jpeg=new List<long>(),Avc=new List<long>(),Hevc=new List<long>();
             public List<long> AacStarts;
             public Dictionary<string,List<Payload>> Cache=new Dictionary<string,List<Payload>>(StringComparer.Ordinal);
@@ -431,7 +438,11 @@ namespace UsbRecovery
         static void Publish(string path,Report report)
         {
             string temporary=Path.Combine(Path.GetDirectoryName(path),".media-report-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
-            try{byte[] b=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=32*1024*1024}.Serialize(report));using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}File.Move(temporary,path);owned=false;}finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
+            try{
+                var json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};object value=report;
+                if(report.BoundSourceSha256!=null){var row=json.Deserialize<Dictionary<string,object>>(json.Serialize(report));row["SourceSha256"]=report.BoundSourceSha256;row["SourceUnchanged"]=report.BoundSourceUnchanged;value=row;}
+                byte[] b=new UTF8Encoding(false).GetBytes(json.Serialize(value));using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}File.Move(temporary,path);owned=false;
+            }finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
         }
         public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress){return Recover(image,runDirectory,cancel,progress,new Limits());}
         public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress,Limits limits)
@@ -442,17 +453,24 @@ namespace UsbRecovery
             try{
                 using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
                     report.InputBytes=input.Length;var c=new Context{Input=input,Report=report,Limits=limits,Cancel=cancel};Scan(c,progress);
+                    if(c.Moov.Any(IsFmp4Init)){ScanFragmentAtoms(c);report.BoundSourceSha256=FragmentSourceHash(c);}
+                    var nativeInitIdentities=new HashSet<string>(StringComparer.Ordinal);
                     foreach(var atom in c.Moov){cancel.ThrowIfCancellationRequested();try{
-                        Movie movie=null;Reject parseError=null;try{movie=ParseMovie(atom);}catch(Reject error){parseError=error;}
-                        report.Movies++;Result result;
+                        Movie movie=null;Reject parseError=null;Result result;report.Movies++;
+                        if(IsFmp4Init(atom)){if(!nativeInitIdentities.Add(Sha(atom.Raw))){Skip(report,"duplicate_fmp4_init");continue;}result=AssembleFmp4(c,atom,folder);}
+                        else {
+                        try{movie=ParseMovie(atom);}catch(Reject error){parseError=error;}
                         if(movie==null){try{result=AssembleRepairedUnits(c,atom,folder);}catch(Reject repair){if(repair.Code=="moov_unit_missing"||repair.Code=="moov_unit_limit"||repair.Code=="unit_mapping_missing")throw parseError;throw;}}
                         else if(movie.Chunks.Last().Logical+movie.Chunks.Last().Bytes>16*1024*1024){try{result=AssembleUnits(c,movie,folder);}catch(Reject unit){if(unit.Code!="unit_mapping_missing"&&unit.Code!="unit_file_limit"&&unit.Code!="unit_sample_limit")throw;result=Assemble(c,movie,folder);}}
                         else try{result=Assemble(c,movie,folder);}catch(Reject error){if(!UnitFallbackCode(error.Code)&&!error.VideoOnly)throw;try{result=AssembleUnits(c,movie,folder);}catch(Reject unit){if(unit.Code=="unit_mapping_missing"||unit.Code=="unit_file_limit"||unit.Code=="unit_sample_limit")throw error;throw;}}
+                        }
                         report.Files.Add(result);report.OutputBytes+=result.Bytes;report.SourceRangeCount+=result.Extents.Count;report.SourceAlternativeCount+=(int)result.Extents.Sum(e=>(long)e.EquivalentOffsets.Count);report.Candidates++;report.Recovered++;
                     }catch(Reject error){Skip(report,error.Code);}}
+                    if(report.BoundSourceSha256!=null){report.BoundSourceUnchanged=report.BoundSourceSha256==FragmentSourceHash(c);if(!report.BoundSourceUnchanged)throw new IOException("MEDIA_SOURCE_CHANGED");}
+                    if(report.Fmp4Incomplete)throw new Fmp4IncompleteException();
                 }
                 report.Status="complete";return report.Candidates;
-            }catch(OperationCanceledException){report.Status="cancelled";throw;}catch(Budget){report.Status="limited";throw new IOException("MEDIA_SEARCH_LIMIT_REACHED");}catch{report.Status="failed";throw;}finally{Publish(reportPath,report);}
+            }catch(OperationCanceledException){report.Status="cancelled";throw;}catch(Budget){report.Status="limited";throw new IOException("MEDIA_SEARCH_LIMIT_REACHED");}catch(Fmp4IncompleteException){report.Status="partial";throw;}catch{report.Status="failed";throw;}finally{Publish(reportPath,report);}
         }
     }
 }

@@ -90,7 +90,10 @@
 !/tests/fixtures/raid-controller/
 !/tests/fixtures/telegram-cache-profiles/
 !/tests/fixtures/telegram-document-empty/
+!/tests/fixtures/telegram-document-descriptor/
+!/tests/fixtures/telegram-document-descriptor-portable/
 !/tests/fixtures/video-stz2/
+!/tests/fixtures/video-fmp4/
 
 !/tests/fixtures/aac-lc/
 

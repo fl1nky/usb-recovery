@@ -116,17 +116,21 @@ def audit():
                       "SqliteHistoryTests.py", "SQLiteRollbackTests.py", "SQLiteRollbackAuditTests.py", "TelegramRollbackTests.py",
                       "build_telegram_rollback_fixtures.py", "audit_telegram_rollback_fixtures.py", "audit_telegram_rollback_overflow.py", "TelegramRollbackContextTests.py", "TelegramRollbackContextAuditTests.py", "build_telegram_rollback_context_fixtures.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py",
                       "build_telegram_media_fixtures.py", "TelegramMediaCacheTests.py", "build_telegram_media_cache_fixtures.py", "TelegramMediaCacheProfileTests.py", "build_telegram_media_cache_profile_fixtures.py", "PngIdatGapRecoveryTests.py", "build_png_idat_gap_fixtures.py", "Oct30IndependentReviewTests.py", "ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py','build_telegram_wal_tail_fixtures.py','build_telegram_overflow_fixtures.py')
+    required_tests += ("TelegramDocumentEmptyTests.py", "build_telegram_document_empty_fixtures.py",
+                       "TelegramDocumentDescriptorTests.py", "build_telegram_document_descriptor_fixtures.py",
+                       "telegram_document_descriptor_fixture_generator.py", "build_telegram_descriptor_portable_corpus.py")
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
-    fixture_source = ROOT / "tests/fixtures/telegram-cache-profiles"
-    fixture_rebuild = helper / "rebuild/tests/fixtures/telegram-cache-profiles"
-    fixture_files = {path.relative_to(fixture_source).as_posix() for path in fixture_source.rglob("*") if path.is_file()}
-    require(fixture_files == {path.relative_to(fixture_rebuild).as_posix() for path in fixture_rebuild.rglob("*") if path.is_file()},
-            "official Telegram rebuild oracle file set mismatch")
-    for relative in sorted(fixture_files):
-        require(sha(safe(fixture_source, relative)) == sha(safe(fixture_rebuild, relative)),
-                "official Telegram rebuild oracle missing or stale: " + relative)
+    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor"):
+        fixture_source = ROOT / "tests/fixtures" / fixture
+        fixture_rebuild = helper / "rebuild/tests/fixtures" / fixture
+        fixture_files = {path.relative_to(fixture_source).as_posix() for path in fixture_source.rglob("*") if path.is_file()}
+        require(fixture_files == {path.relative_to(fixture_rebuild).as_posix() for path in fixture_rebuild.rglob("*") if path.is_file()},
+                "official Telegram rebuild oracle file set mismatch: " + fixture)
+        for relative in sorted(fixture_files):
+            require(sha(safe(fixture_source, relative)) == sha(safe(fixture_rebuild, relative)),
+                    "official Telegram rebuild oracle missing or stale: " + fixture + "/" + relative)
     for name in ("build-helper.ps1", "ProjectPaths.ps1"):
         require(sha(ROOT / "scripts" / name) == sha(helper / "rebuild/scripts" / name),
                 "rebuild runner mismatch: " + name)

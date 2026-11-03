@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "status": "VERIFIED_COMPLETE_NATIVE_WITNESS_AND_EXTERNAL_ROOT_MISS",
+  "producer_native_oracle": {
+    "frames": 12,
+    "fragments": 3,
+    "coarse_disjoint_ranges": 6,
+    "atom_ranges": 9,
+    "exact_original_replay": true,
+    "actual_recovery_executed_by_producer": false
+  },
+  "source_snapshot_sha256": "c070c3e77e7446bf3be63d04412d2edf9d75c8c565e9f234fff95710e1ac3023",
+  "protected_bytes_unchanged": true,
+  "external_root_baselines": [
+    {
+      "run": "01",
+      "sha256": "8ca636b53cc30d215bc81a2c54dd3354086d08670f31356498936999f946f9dc",
+      "same_image": true,
+      "runtime_sha256": "54849740ca26a4496a16bb1c9f8cdd987af1700e22d2c4c4021907982f160061",
+      "count": 0,
+      "producer": "root",
+      "case_count": 1,
+      "actual_managed_report_found": true,
+      "preferred": false,
+      "scope_label_caveat": true
+    },
+    {
+      "run": "02",
+      "sha256": "e382e319d096cb5929551dedac6e5a8cf841dbf1d607c2d93d3768be4535aea8",
+      "same_image": true,
+      "runtime_sha256": "54849740ca26a4496a16bb1c9f8cdd987af1700e22d2c4c4021907982f160061",
+      "count": 0,
+      "producer": "root",
+      "case_count": 1,
+      "actual_managed_report_found": true,
+      "preferred": true,
+      "scope_label_caveat": false
+    }
+  ],
+  "baseline_repeats_are_one_case": true,
+  "ownership_and_tail_completeness_not_authenticated": true,
+  "actual_recovery_build_helper_app_qa_calls_by_verifier": 0,
+  "scope": "One own AVC/noB/nativefMP4layout; no broaderformat/paid/device/foreign-fragment uniqueness assertion."
+}

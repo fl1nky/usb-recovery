@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "native_cases": 1,
+  "scope": "One independently written/decoded native AVC fMP4; synthetic mutations live only in source tests.",
+  "source_commit": "33f001cca52b7a8b68f4994e151bc45e93cbe75c",
+  "original_assessment_manifest_sha256": "462f52aa8bce51f0b5a99c679af0b1d179933a4460c575152c1d5fbae456abf3",
+  "witness_sha256": "a412e3c6c957dfab92027d22eb9e3e6cacee8cf8cda63a38e25433bbcb4b4207",
+  "original_sha256": "9b977c560afa2b120d4b85373494ce9bcdd13328ce299dd5b726eda9c31dcbd8",
+  "source_image_sha256": "a270ed13657d4e346814fa40ec1de01d60380ac6f026f52dd206bde905610d1f",
+  "canonical_framemd5_sha256": "cde0c6f13cb74aa5adbbe3258c5bf314eb850922aefe3b06f22f77b71e1e1c6e",
+  "files": [
+    {
+      "source": "image.dd.gz",
+      "source_bytes": 23366,
+      "source_sha256": "5392f4602c45bc5bc4396cc196c314f5d5d429021b0c125a299f78ecda8a8501",
+      "payload": "image.dd",
+      "bytes": 2097152,
+      "sha256": "a270ed13657d4e346814fa40ec1de01d60380ac6f026f52dd206bde905610d1f",
+      "gzip": true
+    },
+    {
+      "source": "original.framemd5",
+      "source_bytes": 1172,
+      "source_sha256": "4a1db14ae4c1e2a3d4a0fff6b916daaa2e1e90764ca7e583a267784c3b4a9841",
+      "payload": "original.framemd5",
+      "bytes": 1172,
+      "sha256": "4a1db14ae4c1e2a3d4a0fff6b916daaa2e1e90764ca7e583a267784c3b4a9841",
+      "gzip": false
+    },
+    {
+      "source": "original.mp4",
+      "source_bytes": 19774,
+      "source_sha256": "9b977c560afa2b120d4b85373494ce9bcdd13328ce299dd5b726eda9c31dcbd8",
+      "payload": "original.mp4",
+      "bytes": 19774,
+      "sha256": "9b977c560afa2b120d4b85373494ce9bcdd13328ce299dd5b726eda9c31dcbd8",
+      "gzip": false
+    },
+    {
+      "source": "packets.json",
+      "source_bytes": 3545,
+      "source_sha256": "36b223ca6aed9a87d3cf015f9dea389900f548038cac3131328ec2739191376a",
+      "payload": "packets.json",
+      "bytes": 3545,
+      "sha256": "36b223ca6aed9a87d3cf015f9dea389900f548038cac3131328ec2739191376a",
+      "gzip": false
+    },
+    {
+      "source": "provenance/build_witness.py",
+      "source_bytes": 16183,
+      "source_sha256": "8f85897c7913271ed6a180d1a9117e0fe5a3de532ec2e06ae2013a36ca9bde31",
+      "payload": "provenance/build_witness.py",
+      "bytes": 16183,
+      "sha256": "8f85897c7913271ed6a180d1a9117e0fe5a3de532ec2e06ae2013a36ca9bde31",
+      "gzip": false
+    },
+    {
+      "source": "provenance/commands.json",
+      "source_bytes": 3424,
+      "source_sha256": "aff7637a55b6ec6ae05156c6ddb9303783b23b4f23d6aa6b29705f4cf6679d93",
+      "payload": "provenance/commands.json",
+      "bytes": 3424,
+      "sha256": "aff7637a55b6ec6ae05156c6ddb9303783b23b4f23d6aa6b29705f4cf6679d93",
+      "gzip": false
+    },
+    {
+      "source": "provenance/manifest.json",
+      "source_bytes": 4177,
+      "source_sha256": "462f52aa8bce51f0b5a99c679af0b1d179933a4460c575152c1d5fbae456abf3",
+      "payload": "provenance/manifest.json",
+      "bytes": 4177,
+      "sha256": "462f52aa8bce51f0b5a99c679af0b1d179933a4460c575152c1d5fbae456abf3",
+      "gzip": false
+    },
+    {
+      "source": "provenance/verification.json",
+      "source_bytes": 1600,
+      "source_sha256": "0de1f7382ab237cf3fe74419f861fc8c75d5ab7380de1ef591537cacc694dc86",
+      "payload": "provenance/verification.json",
+      "bytes": 1600,
+      "sha256": "0de1f7382ab237cf3fe74419f861fc8c75d5ab7380de1ef591537cacc694dc86",
+      "gzip": false
+    },
+    {
+      "source": "streams.json",
+      "source_bytes": 2079,
+      "source_sha256": "e5399d1a1550b583ed7f088a43727e25b025ee438b59dd5e016f134428267e85",
+      "payload": "streams.json",
+      "bytes": 2079,
+      "sha256": "e5399d1a1550b583ed7f088a43727e25b025ee438b59dd5e016f134428267e85",
+      "gzip": false
+    },
+    {
+      "source": "witness.json",
+      "source_bytes": 11254,
+      "source_sha256": "a412e3c6c957dfab92027d22eb9e3e6cacee8cf8cda63a38e25433bbcb4b4207",
+      "payload": "witness.json",
+      "bytes": 11254,
+      "sha256": "a412e3c6c957dfab92027d22eb9e3e6cacee8cf8cda63a38e25433bbcb4b4207",
+      "gzip": false
+    }
+  ]
+}
