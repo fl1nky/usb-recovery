@@ -84,7 +84,7 @@ namespace UsbRecovery
             if(state.SourceBytes!=new FileInfo(image).Length||!String.Equals(state.SourcePath,Path.GetFullPath(image),StringComparison.OrdinalIgnoreCase))throw new IOException("Источник сессии изменился.");
             string map=RecoveryCatalog.SafeFile(root,"source-read-errors.json");if((state.ReadMapSha256!=null)!=File.Exists(map)||(File.Exists(map)&&!String.Equals(state.ReadMapSha256,RecoveryCore.HashFile(map,cancel,(a,b)=>{}),StringComparison.OrdinalIgnoreCase)))throw new IOException("Карта пропусков изменилась после поиска. Выполни новый анализ образа.");
             string sourceMap=image+".read-errors.json";if((state.SourceReadMapSha256!=null)!=File.Exists(sourceMap)||File.Exists(sourceMap)&&!String.Equals(state.SourceReadMapSha256,RecoveryCore.HashFile(sourceMap,cancel,(a,b)=>{}),StringComparison.OrdinalIgnoreCase))throw new IOException("Карта пропусков рядом с образом изменилась. Создай новый поиск.");
-            if(new JavaScriptSerializer().Serialize(options)!=new JavaScriptSerializer().Serialize(state.Options))throw new IOException("Параметры сессии изменились. Для других методов нужен новый поиск.");
+            if(OptionSignature(options)!=OptionSignature(state.Options))throw new IOException("Параметры сессии изменились. Для других методов нужен новый поиск.");
             var session=new RecoverySession(root,state);int checkedFiles=0;
             foreach(var stage in state.Stages.Where(x=>x.CheckpointPath!=null))session.VerifyCheckpoint(stage,cancel);
             foreach(string key in Keys)if(!state.Stages.Any(s=>s.Key==key)&&Paths(root,key).Any())throw new IOException("В папке появились результаты незаписанного этапа. Создай новый поиск, чтобы не смешивать данные.");
@@ -147,7 +147,23 @@ namespace UsbRecovery
         }
         public void Fail(string key,string status,string message){lock(gate){var stage=State.Stages.FirstOrDefault(x=>x.Key==key);if(stage!=null){stage.Status=status;stage.Message=message;}Save();}}
         public void Status(string value){lock(gate){State.Status=value;Save();}}
-        void Save(){lock(gate){State.UpdatedUtc=DateTime.UtcNow.ToString("o");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(root,FileName),State);}}
+        public bool TryFail(string key,string status,string message)
+        {try{Fail(key,status,message);return true;}catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}}
+        public bool TryStatus(string value)
+        {try{Status(value);return true;}catch(IOException){return false;}catch(UnauthorizedAccessException){return false;}}
+        static string OptionSignature(RecoveryOptions options)
+        {
+            var json=new JavaScriptSerializer();return Canonical(json.DeserializeObject(json.Serialize(options)),json);
+        }
+        static string Canonical(object value,JavaScriptSerializer json)
+        {
+            var row=value as IDictionary<string,object>;
+            if(row!=null)return "{"+String.Join(",",row.OrderBy(pair=>pair.Key,StringComparer.Ordinal).Select(pair=>json.Serialize(pair.Key)+":"+Canonical(pair.Value,json)))+"}";
+            var sequence=value as System.Collections.IEnumerable;
+            if(value!=null&&!(value is string)&&sequence!=null)return "["+String.Join(",",sequence.Cast<object>().Select(item=>Canonical(item,json)))+"]";
+            return json.Serialize(value);
+        }
+        void Save(){lock(gate){State.UpdatedUtc=DateTime.UtcNow.ToString("o");RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root,FileName),State,64*1024*1024);}}
         static IEnumerable<string> Paths(string root,string key)
         {
             string[] names=key=="partitions"?new[]{"partition-search.json"}:key=="fat"?new[]{"filesystem"}:key=="ntfs"?new[]{"ntfs"}:key=="ext4"?new[]{"ext4"}:key=="refs"?new[]{"refs"}:key=="ntfs-records"?new[]{"metadata-rescue"}:key=="photos"?new[]{"extra-photos","extra-photo-search.json"}:key=="containers"?new[]{"containers","container-search.json"}:key=="archive-members"?new[]{"salvage-content","archive-salvage.json"}:key=="fragmented-zip"?new[]{"fragmented-archives","fragmented-zip.json"}:key=="fragmented-photos"?new[]{"fragmented-photos","fragmented-photos.state","fragmented-photos.index","fragmented-photo-search.json"}:key=="fragmented-media"?new[]{"fragmented-media","fragmented-media.json"}:key=="user-signatures"?new[]{"user-signatures","user-signatures.json"}:key=="text"?new[]{"text-fragments","text-search.json"}:new[]{"photorec.log","photorec.ses"};

@@ -31,6 +31,7 @@ namespace UsbRecovery
         public string Archive;
         public long DiscoveredSources, ReadableSources, EncryptedSources, BlockedSources;
         public long HistoryMessages, NotificationRecords, FragmentRecords, NativeRecords, PreviousRecords, DeletedSupportedRecords, StructuredFragmentRecords;
+        public long DraftRecords, ScheduledRecords;
         public string[] Warnings;
         public string Image;
         public long Files,Bytes;
@@ -114,6 +115,7 @@ namespace UsbRecovery
                         if (!SafeCode(code)) code = "HELPER_FAILED";
                         object notices; var values = record.TryGetValue("warnings", out notices) ? notices is string?null:notices as IEnumerable : null;
                         result = new HelperResult { Status = state, Code = code, Messages = Count(record, "messages"), DeletedSupportedRecords = Count(record,"deleted_supported_records"), StructuredFragmentRecords = Count(record,"structured_fragment_records"), Media = Count(record, "media"), Archive = Value(record, "archive"), FragmentRecords = Count(record, "fragment_records"), HistoryMessages = Count(record, "history_messages"), NativeRecords = Count(record, "native_records"), PreviousRecords = Count(record, "previous_records"), NotificationRecords = Count(record, "notification_records"), DiscoveredSources = Count(record, "discovered_sources"), ReadableSources = Count(record, "readable_sources"), EncryptedSources = Count(record, "encrypted_sources"), BlockedSources = Count(record, "blocked_sources"), Warnings = values == null ? new string[0] : System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Cast<object>(values), Convert.ToString)) };
+                        result.DraftRecords=Count(record,"draft_records");result.ScheduledRecords=Count(record,"scheduled_records");
                         result.Image=Value(record,"image");result.Files=Count(record,"files");result.Bytes=Count(record,"bytes");var volumes=new List<StorageVolumeInfo>();object volumeRows;
                         if(record.TryGetValue("volumes",out volumeRows)&&volumeRows is IEnumerable&&!(volumeRows is string))foreach(var raw in (IEnumerable)volumeRows){var row=raw as Dictionary<string,object>;if(row==null||volumes.Count>=256)continue;long offset,length;if(!Int64.TryParse(Value(row,"offset_bytes"),out offset)||!Int64.TryParse(Value(row,"length_bytes"),out length)||offset<0)continue;string kind=Value(row,"kind");if((kind=="APFS"||kind=="BitLocker")&&length>0&&offset<=Int64.MaxValue-length)volumes.Add(new StorageVolumeInfo{Kind=kind,Name=Value(row,"name"),Identifier=Value(row,"identifier"),OffsetBytes=offset,LengthBytes=length});}
                         result.Volumes=volumes.ToArray();
@@ -157,7 +159,7 @@ namespace UsbRecovery
         }
         static string Value(Dictionary<string, object> record, string key) { object value; return record.TryGetValue(key, out value) ? Convert.ToString(value) : ""; }
         static long Count(Dictionary<string, object> record, string key) { long value; return Int64.TryParse(Value(record, key), out value) && value >= 0 ? value : 0; }
-        static bool SafeCode(string code) { if(code!=null&&System.Text.RegularExpressions.Regex.IsMatch(code,@"\APHOTO_CHECKPOINT_[A-Z_]{1,44}\z"))return true;return new HashSet<string>(new[] { "OK", "COMPLETE", "PARTIAL", "PARTIAL_DATA", "SOURCE_UNAVAILABLE", "AUTH_FAILED", "AUTHENTICATION_FAILED", "DECRYPTION_FAILED", "WRONG_KEY", "UNSUPPORTED_VERSION", "UNSUPPORTED_FORMAT", "SECRET_REQUIRED", "KEY_REQUIRED", "PASSWORD_REQUIRED", "INVALID_SOURCE", "SOURCE_ERROR", "CANCELLED", "HELPER_FAILED", "DEPENDENCY_MISSING", "NO_DATA", "NO_READABLE_TELEGRAM_HISTORY", "REGEX_INVALID", "REGEX_TIMEOUT", "INVALID_REQUEST", "IO_ERROR" }, StringComparer.Ordinal).Contains(code ?? ""); }
+        static bool SafeCode(string code) { if(code!=null&&System.Text.RegularExpressions.Regex.IsMatch(code,@"\APHOTO_CHECKPOINT_[A-Z_]{1,44}\z"))return true;return new HashSet<string>(new[] { "OK", "COMPLETE", "PARTIAL", "PARTIAL_DATA", "SOURCE_UNAVAILABLE", "AUTH_FAILED", "AUTHENTICATION_FAILED", "DECRYPTION_FAILED", "WRONG_KEY", "UNSUPPORTED_VERSION", "UNSUPPORTED_FORMAT", "SECRET_REQUIRED", "KEY_REQUIRED", "PASSWORD_REQUIRED", "INVALID_SOURCE", "SOURCE_ERROR", "CANCELLED", "HELPER_FAILED", "DEPENDENCY_MISSING", "NO_DATA", "NO_READABLE_TELEGRAM_HISTORY", "LOCAL_DRAFTS_OR_SCHEDULED_AVAILABLE", "REGEX_INVALID", "REGEX_TIMEOUT", "INVALID_REQUEST", "IO_ERROR" }, StringComparer.Ordinal).Contains(code ?? ""); }
     }
 
     // Closing the job also terminates native importers started by the Python worker.

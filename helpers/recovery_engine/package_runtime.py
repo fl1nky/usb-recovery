@@ -70,6 +70,10 @@ if "--skip-rebuild-bundle" not in sys.argv:
         shutil.copytree(ROOT / "tests/fixtures" / name, rebuild / "tests/fixtures" / name, dirs_exist_ok=True)
     for name in ("PngStreamingIndexTests.py", "PngStreamingNativeTests.py", "PngStreamingProtocolTests.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    for name in ("TelegramPlatformTests.py", "build_telegram_platform_fixtures.py", "telegram_platform_fixture_producer.py", "JpegStreamingCheckpointTests.py", "JpegLargeStreamingTests.py", "build_large_jpeg_fixtures.py", "prepare_bframe_media_fixtures.py"):
+        shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    for name in ("fixtures/telegram-platforms", "telegram_platforms_oracle", "fixtures/video-bframes"):
+        shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"
         "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"

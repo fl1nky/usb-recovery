@@ -47,3 +47,8 @@
 /tests/PngContextAuditTests.py text eol=crlf
 # Preserve the trusted scorer bytes referenced by immutable comparison reports.
 /tests/benchmarks/score_media_results.py text eol=crlf
+
+/tests/fixtures/document-media-preview/** -text whitespace=cr-at-eol
+/tests/fixtures/telegram-platforms/** -text whitespace=cr-at-eol
+/tests/telegram_platforms_oracle/** -text whitespace=cr-at-eol
+/tests/fixtures/video-bframes/** -text whitespace=cr-at-eol

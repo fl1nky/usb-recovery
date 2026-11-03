@@ -1,0 +1,402 @@
+{
+  "schema": 1,
+  "fixture_kind": "native_qt5_java_sqlite_inputs_not_recovery_acceptance",
+  "qt_version": "5.15.2",
+  "sqlite_version": "3.53.1",
+  "upstream": {
+    "android": "4de548e79fed27f1a66fbdff84223321838fe925",
+    "ios_original": "f41e9695b5d92e94105afc073a2bbd6a15a1d33c",
+    "ios_official_import": "1423d5381fcdaaef85565755b087fbed6a4ed97d",
+    "desktop": "a8de5f928ba68197195e6e752293af39d4db8e6c"
+  },
+  "schema_statements": {
+    "android": "CREATE TABLE scheduled_messages_v2(mid INTEGER, uid INTEGER, send_state INTEGER, date INTEGER, data BLOB, ttl INTEGER, replydata BLOB, reply_to_message_id INTEGER, PRIMARY KEY(mid, uid))",
+    "ios": "CREATE TABLE IF NOT EXISTS messages_v29 (mid INTEGER PRIMARY KEY, cid INTEGER, localMid INTEGER, message TEXT, media BLOB, from_id INTEGER, to_id INTEGER, outgoing INTEGER, unread INTEGER, dstate INTEGER, date INTEGER, flags INTEGER, seq_in INTEGER, seq_out INTEGER)",
+    "ios_service": "CREATE TABLE IF NOT EXISTS service_v29 (key INTEGER PRIMARY KEY, value BLOB)"
+  },
+  "expected": {
+    "android": [
+      {
+        "mid": 5101,
+        "uid": 909,
+        "date": 1794001000,
+        "text": "Scheduled native пирог 🥧\n第二行",
+        "blob_sha256": "4c45309dabb99d07812796247707ebf726597fddcccbbbe0db9f6fc722aa8e50"
+      },
+      {
+        "mid": 5102,
+        "uid": 909,
+        "date": 1794001001,
+        "text": "Scheduled alternate text",
+        "blob_sha256": "fc69727bf86e2d9d6356121de983e66a34c44cc6faabb2d3bf2b419483b3e72a"
+      },
+      {
+        "mid": 5103,
+        "uid": 909,
+        "date": 1794001002,
+        "text": "",
+        "blob_sha256": "8ebdb80987372bf0ab8d3985d430cd5aac7dc3ab27ac05a30c840d3c81c82597"
+      }
+    ],
+    "ios": [
+      {
+        "mid": 6101,
+        "cid": 909,
+        "author": 77,
+        "date": 1794002000,
+        "text": "iOS native исторический пирог 🥧"
+      },
+      {
+        "mid": 6102,
+        "cid": 909,
+        "author": 77,
+        "date": 1794002001,
+        "text": "iOS native exact second line\n第二行"
+      }
+    ],
+    "desktop": [
+      {
+        "case": "desktop-tag3",
+        "tag": "0xffffffffffffff03",
+        "texts": [
+          "Desktop native черновик 🥧\n第二行",
+          "Desktop native черновик 🥧\n第二行 topic"
+        ]
+      },
+      {
+        "case": "desktop-tag5",
+        "tag": "0xffffffffffffff05",
+        "texts": [
+          "Desktop native черновик 🥧\n第二行",
+          "Desktop native черновик 🥧\n第二行 topic"
+        ]
+      },
+      {
+        "case": "desktop-tag6",
+        "tag": "0xffffffffffffff06",
+        "texts": [
+          "Desktop native черновик 🥧\n第二行",
+          "Desktop native черновик 🥧\n第二行 topic"
+        ]
+      }
+    ]
+  },
+  "sources": [
+    {
+      "path": "controls/android-unknown-tl/cache4.db",
+      "bytes": 12288,
+      "sha256": "a1ae9165db915ec322079a77f03113b14a29d4a3f188ddc72af909e24467ad2f"
+    },
+    {
+      "path": "controls/android-wrong-keys/cache4.db",
+      "bytes": 12288,
+      "sha256": "e265193cacb05349469a39244027a1411b06cbff499272657fe7432e0b319657"
+    },
+    {
+      "path": "controls/android-wrong-schema/cache4.db",
+      "bytes": 12288,
+      "sha256": "633b80794806fcc4fc8a886f01f5be50dc318d0fe6ddb833e5391eb71c8ebac0"
+    },
+    {
+      "path": "controls/desktop-bad-checksum/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "260369abc6820d6165ad8d5453580edef4f463e86d5d73423459efdba9f98f1f"
+    },
+    {
+      "path": "controls/desktop-bad-checksum/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-bad-checksum/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-bad-checksum/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-ciphertext-integrity/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "463f206ff44c79cf7bf6574bcfc341ebba79d3f7c4c47417b0e9b0d06f4e215a"
+    },
+    {
+      "path": "controls/desktop-ciphertext-integrity/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-ciphertext-integrity/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-ciphertext-integrity/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-cloud-key/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 332,
+      "sha256": "e68c63ce82944739e71a923fc132767a11872beb658f4481e37ff7ca390e3c62"
+    },
+    {
+      "path": "controls/desktop-cloud-key/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-cloud-key/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-cloud-key/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-duplicate-key/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "a4a16dfe079440eec3b768a68ff66c9046ffea1eaf0b147a54214b71f2d0718e"
+    },
+    {
+      "path": "controls/desktop-duplicate-key/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-duplicate-key/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-duplicate-key/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-modern-key-wrap/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "5fc4ee6aa982997817b5087482909f760b4a4f65af92806e4062e88bcf936fb7"
+    },
+    {
+      "path": "controls/desktop-modern-key-wrap/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-modern-key-wrap/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-modern-key-wrap/key_datas",
+      "bytes": 416,
+      "sha256": "7680494f4d92a480d7c8443d395ba97278c21690aa3983f4fed67c1600c3d2da"
+    },
+    {
+      "path": "controls/desktop-truncated-final/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "b42c31a8bca5e067eb9a4da2674610b890835b12ea89391a0096cf5bf05b595f"
+    },
+    {
+      "path": "controls/desktop-truncated-final/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-truncated-final/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-truncated-final/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-unknown-tag/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 556,
+      "sha256": "52175f3aa3a21f06b03bb3b3ba1dba449fd15862576dfa12fdba6dc0a454df78"
+    },
+    {
+      "path": "controls/desktop-unknown-tag/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-unknown-tag/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-unknown-tag/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/desktop-unknown-version/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "7645d39b2ebbfb46615ce60792aa691faee5af44a81f1875e4d6230ef7172426"
+    },
+    {
+      "path": "controls/desktop-unknown-version/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "controls/desktop-unknown-version/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "controls/desktop-unknown-version/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "controls/ios-secret-id/tgdata.db",
+      "bytes": 12288,
+      "sha256": "1231dafe7531a4c86681ef9913b1beff175139a1beadc464a96db2b0ace5f941"
+    },
+    {
+      "path": "controls/ios-unconfirmed-author/tgdata.db",
+      "bytes": 12288,
+      "sha256": "7afca8f34a1674ba0aa35065c4d86484701579b012b950583f838e5cbd33133c"
+    },
+    {
+      "path": "controls/ios-wrong-schema/tgdata.db",
+      "bytes": 12288,
+      "sha256": "654a0150b388a100066fca1b9af4dd65ac383f1a0b594b5aed03221ee37425b3"
+    },
+    {
+      "path": "controls/ios-wrong-version/tgdata.db",
+      "bytes": 12288,
+      "sha256": "4e1128cce094bc548b320c689eba9c78d95465d214190c3af452f4e14a54e289"
+    },
+    {
+      "path": "positive/android/cache4.db",
+      "bytes": 12288,
+      "sha256": "1bd18d6bd5d4f8ccaa5b98c2f4cfbd834e8a75c8bff6ca2caff41a450df603cf"
+    },
+    {
+      "path": "positive/desktop-empty-passcode/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "5fc4ee6aa982997817b5087482909f760b4a4f65af92806e4062e88bcf936fb7"
+    },
+    {
+      "path": "positive/desktop-empty-passcode/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "positive/desktop-empty-passcode/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "positive/desktop-empty-passcode/key_datas",
+      "bytes": 389,
+      "sha256": "e55e69eca8aa9bbeee92864393d8c59bc4646e2e45a8b3016822ea80c3560f23"
+    },
+    {
+      "path": "positive/desktop-tag3/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 300,
+      "sha256": "ec21faebaaaa543d677859989ff90e4ad0e0cd219bbea3193bbdddd6b96f51ec"
+    },
+    {
+      "path": "positive/desktop-tag3/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "positive/desktop-tag3/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "positive/desktop-tag3/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "positive/desktop-tag5/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 556,
+      "sha256": "16f331d95779cc411fc2fb9bb9e1da74da8bac5a17c0140197d41b164881d65b"
+    },
+    {
+      "path": "positive/desktop-tag5/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "positive/desktop-tag5/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "positive/desktop-tag5/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "positive/desktop-tag6/0123456789ABCDEF/ABCDEF0123456789s",
+      "bytes": 588,
+      "sha256": "5fc4ee6aa982997817b5087482909f760b4a4f65af92806e4062e88bcf936fb7"
+    },
+    {
+      "path": "positive/desktop-tag6/0123456789ABCDEF/maps",
+      "bytes": 23,
+      "sha256": "3231489fe7b460dbf3b33f9d34da5c13c45f8ef76490d5d4b29b2842930f50d6"
+    },
+    {
+      "path": "positive/desktop-tag6/0123456789ABCDEFs",
+      "bytes": 24,
+      "sha256": "bfd403d67a28042b56d4653ed582c0faed90753aae06922ee5b5a7329ff2d00b"
+    },
+    {
+      "path": "positive/desktop-tag6/key_datas",
+      "bytes": 389,
+      "sha256": "68d9930ba17df2dfd11c2fc14f5bf261999b101cdef99407e4e4018c8de41f98"
+    },
+    {
+      "path": "positive/ios/tgdata.db",
+      "bytes": 12288,
+      "sha256": "aa1225f486f18314a5265dca1086d287a8fba5264c4d24be1e4bbf6850300fa7"
+    },
+    {
+      "path": "wal/android/native.db",
+      "bytes": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    {
+      "path": "wal/android/native.db-shm",
+      "bytes": 32768,
+      "sha256": "5fae0e8a457ad358a48336f1249ddb072fb067665d950c6c2829c5b02e97bfd9"
+    },
+    {
+      "path": "wal/android/native.db-wal",
+      "bytes": 28872,
+      "sha256": "5dedfa9261e822adf3fe466cd0ed129a7214411f860524e7e515dd5774c93cbf"
+    },
+    {
+      "path": "wal/ios/native.db",
+      "bytes": 4096,
+      "sha256": "0ab48b25cba617ed3a4acca0161813b314c095ef63544bb4af60769eb1012977"
+    },
+    {
+      "path": "wal/ios/native.db-shm",
+      "bytes": 32768,
+      "sha256": "88ade3661f36c04be6aae4f9026a36c0bae2280898e16247fdfd5a0e59925030"
+    },
+    {
+      "path": "wal/ios/native.db-wal",
+      "bytes": 28872,
+      "sha256": "8066c374f94df3d3dd0c6cc92e570998c78471e6faab1d48d099a603939b5264"
+    }
+  ],
+  "archive_sha256": "6c12c3ed6e98626953c7a9cc9ec302e13fda19f087c7c7e851e205ec2983a28c"
+}

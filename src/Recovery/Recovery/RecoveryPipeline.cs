@@ -55,6 +55,7 @@ namespace UsbRecovery
                     }
                 }
                 using(var runLock=RecoverySession.AcquireRunLock(directory)){
+                var ioHealth=new RecoveryIoHealth(image,guard,runLock);ioHealth.Check(cancel);
                 if(!resume){
                     RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"search-options.json"),options);
                     string capture=Path.Combine(Path.GetDirectoryName(image),"capture.json"),errors=image+".read-errors.json";
@@ -107,16 +108,28 @@ namespace UsbRecovery
                     if(options.CustomSignatures)methods.Add(new Work{Key="user-signatures",Name="Свои типы файлов",Run=()=>UserSignatureRecovery.Recover(image,directory,options.CustomRules,cancel,(done,total)=>{observe("running",done,total,-1);progress("Свои типы: "+done*100/Math.Max(1,total)+"%");})});
                     if(options.TextFragments)methods.Add(new Work{Key="text",Name="Текстовые остатки по ключевым словам",Run=()=>RawTextSearch.Recover(image,directory,options.TextQuery,cancel,(done,total)=>{observe("running",done,total,-1);progress("Текст: "+done*100/Math.Max(1,total)+"%");})});
                     foreach(var method in methods){
-                        cancel.ThrowIfCancellationRequested();currentKey=method.Key;currentTitle=method.Name;observe("running",0,0,-1);var prior=session.Completed(method.Key);
+                        cancel.ThrowIfCancellationRequested();ioHealth.Check(cancel);currentKey=method.Key;currentTitle=method.Name;observe("running",0,0,-1);var prior=session.Completed(method.Key);
+                        if(prior!=null){
+                            try{RecoveryStageCompletion.RequireComplete(directory,method.Key);}
+                            catch(IOException error){session.Fail(method.Key,"incomplete",error.Message);warnings=true;prior=null;progress(method.Name+": прежний проход был ограничен. Сохранённые файлы останутся в истории попыток, метод выполнится повторно.");}
+                        }
                         if(prior!=null){
                             if(method.Key=="partitions"){var report=new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Deserialize<PartitionReport>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"partition-search.json")));if(report==null||report.candidates==null)throw new IOException("Не удалось восстановить проверенный список разделов.");bootCandidates=report.candidates;}
                             observe("reused",0,0,prior.Candidates);reused++;if(method.Key!="partitions")completed++;warnings|=prior.Warnings;stages.Add(new{method=method.Name,status="reused",candidates=prior.Candidates});progress(method.Name+": проверенный результат этапа сохранён, повторный проход не нужен.");continue;
                         }
                         bool continuePhoto=method.Key=="fragmented-photos"&&session.PhotoCheckpoint()!=null;
                         session.Begin(method.Key,continuePhoto);progress(method.Name+(continuePhoto?": продолжение с сохранённой точки…":"…"));
-                        try{int count=method.Run();observe("complete",0,0,count);session.Finish(method.Key,count,warnings,cancel);if(method.Key!="partitions")completed++;stages.Add(new{method=method.Name,status="complete",candidates=count});progress(method.Name+": сохранено кандидатов "+count+".");}
-                        catch(OperationCanceledException){observe("cancelled",0,0,-1);session.Fail(method.Key,"cancelled",null);throw;}
-                        catch(IOException error){observe("incomplete",0,0,-1);warnings=true;session.Fail(method.Key,"incomplete",error.Message);stages.Add(new{method=method.Name,status="incomplete",message=error.Message});progress(method.Name+": "+error.Message+" Другие способы продолжатся.");}
+                        try{int count=method.Run();ioHealth.Check(cancel);RecoveryStageCompletion.RequireComplete(directory,method.Key);session.Finish(method.Key,count,warnings,cancel);observe("complete",0,0,count);if(method.Key!="partitions")completed++;stages.Add(new{method=method.Name,status="complete",candidates=count});progress(method.Name+": сохранено кандидатов "+count+".");}
+                        catch(OperationCanceledException){observe("cancelled",0,0,-1);session.TryFail(method.Key,"cancelled",null);throw;}
+                        catch(RecoveryIoUnavailableException error){observe("incomplete",0,0,-1);session.TryFail(method.Key,"incomplete",error.Message);throw;}
+                        catch(UnauthorizedAccessException error){
+                            if(cancel.IsCancellationRequested){observe("cancelled",0,0,-1);session.TryFail(method.Key,"cancelled",null);throw new OperationCanceledException(cancel);}
+                            observe("incomplete",0,0,-1);session.TryFail(method.Key,"incomplete",error.Message);throw;
+                        }
+                        catch(IOException error){observe("incomplete",0,0,-1);warnings=true;
+                            try{ioHealth.Check(cancel);}catch(RecoveryIoUnavailableException unavailable){session.TryFail(method.Key,"incomplete",unavailable.Message);throw;}
+                            if(!session.TryFail(method.Key,"incomplete",error.Message))throw;
+                            stages.Add(new{method=method.Name,status="incomplete",message=error.Message});progress(method.Name+": "+error.Message+" Другие способы продолжатся.");}
                         RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status="running",options=options,stages=stages});
                     }
                     cancel.ThrowIfCancellationRequested();if(completed==0)throw new IOException("Ни один способ поиска не завершился. Посмотри scan-stages.json и журналы в папке результатов.");
@@ -124,11 +137,13 @@ namespace UsbRecovery
                     if(Directory.Exists(RecoveryCatalog.SafeFile(directory,"attempt-history")))warnings=true;
                     string status=warnings?"finished_with_warnings":"finished";RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status=status,options=options,utc=DateTime.UtcNow.ToString("o"),candidates=candidates,uniqueFiles=files.Items.Count,resumedStages=reused,stages=stages});session.Status(status);
                     currentKey="finished";currentTitle="Поиск завершён";observe("complete",0,0,candidates);return new ScanResult{Candidates=candidates,UniqueFiles=files.Items.Count,Gallery=gallery,FileCatalog=Path.Combine(directory,"files-index.json"),HasWarnings=warnings,ResumedStages=reused};
-                }catch(OperationCanceledException){session.Status("cancelled");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status="cancelled",options=options,stages=stages});throw;}
-                catch{session.Status("error");RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status="error",options=options,stages=stages});throw;}
+                }catch(OperationCanceledException){session.TryStatus("cancelled");TrySaveStopped(directory,"cancelled",options,stages);throw;}
+                catch{session.TryStatus("error");TrySaveStopped(directory,"error",options,stages);throw;}
                 }
             }
         }
+        static void TrySaveStopped(string directory,string status,RecoveryOptions options,object stages)
+        {try{RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"scan-stages.json"),new{status=status,options=options,stages=stages});}catch(IOException){}catch(UnauthorizedAccessException){}}
         static Dictionary<string,object> MatchingCapture(string path,string sha256,long bytes)
         {
             try {

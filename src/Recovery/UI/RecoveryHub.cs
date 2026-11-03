@@ -87,15 +87,16 @@ namespace UsbRecovery
             if (archive.IsBusy || telegramAnalysis != null) return;
             telegramAnalysis = new CancellationTokenSource(); var token = telegramAnalysis.Token;
             string selectedSource = archive.AnalysisSource, fragmentQuery = archive.FragmentQuery; bool useRegex = archive.UseRegex;
+            var secrets=archive.TakeDesktopSecrets();
             archive.SetAnalysisBusy(true, "Проверка локальных папок Telegram…");
             try {
                 string output = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory), "Recovery-Results", "Telegram-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0, 8));
-                var result = await Task.Run(() => TelegramAnalysisService.AnalyzeSelected(output, selectedSource, fragmentQuery, useRegex, token, message => PostAnalysis(message)));
+                var result = await Task.Run(() => TelegramAnalysisService.AnalyzeSelected(output, selectedSource, fragmentQuery, useRegex, secrets, token, message => PostAnalysis(message)));
                 if (result.Status == "error") archive.ShowAnalysisError(result.Code == "REGEX_INVALID" ? "Ошибка в регулярном выражении. Исправь запрос или выключи Regex." : result.Code == "REGEX_TIMEOUT" ? "Регулярное выражение слишком сложное. Сократи его или выключи Regex." : "Анализ не завершён. " + TelegramAnalysisService.Summary(result));
                 else archive.CompleteAnalysis(result.Archive, TelegramAnalysisService.Summary(result));
             } catch (OperationCanceledException) { archive.ShowAnalysisError("Анализ остановлен. Исходные файлы не изменены."); }
             catch { archive.ShowAnalysisError("Не удалось завершить анализ. Проверь место на диске и доступ к локальным папкам."); }
-            finally { telegramAnalysis.Dispose(); telegramAnalysis = null; }
+            finally { foreach(var key in secrets.Keys.ToArray())secrets[key]="";secrets.Clear();telegramAnalysis.Dispose(); telegramAnalysis = null; }
         }
         void PostAnalysis(string message) { if (!IsDisposed && IsHandleCreated) BeginInvoke(new Action(() => { if (telegramAnalysis != null) archive.SetAnalysisBusy(true, message); })); }
     }

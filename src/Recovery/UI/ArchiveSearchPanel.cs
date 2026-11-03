@@ -304,6 +304,32 @@ namespace UsbRecovery
         }
     }
 
+    internal sealed class TelegramDesktopAccessForm : Form
+    {
+        readonly TextBox passcode=new TextBox();
+        readonly CheckBox unprotected=new CheckBox();
+        public TelegramDesktopAccessForm(string current)
+        {
+            Text="Локальный код Telegram Desktop";ClientSize=new Size(440,236);FormBorderStyle=FormBorderStyle.FixedDialog;
+            MaximizeBox=MinimizeBox=false;ShowInTaskbar=false;StartPosition=FormStartPosition.CenterParent;Font=new Font("Segoe UI",10F);
+            var layout=new TableLayoutPanel{Dock=DockStyle.Fill,Padding=new Padding(18),ColumnCount=1,RowCount=5};Controls.Add(layout);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute,52));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,35));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute,35));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,36));
+            layout.Controls.Add(new Label{Text="Укажи известный локальный код приложения Desktop для чтения сохранившихся черновиков.",AutoSize=true,MaximumSize=new Size(400,0)},0,0);
+            passcode.Name="telegram-desktop-passcode";passcode.UseSystemPasswordChar=true;passcode.MaxLength=4096;passcode.Dock=DockStyle.Fill;layout.Controls.Add(passcode,0,1);
+            unprotected.Name="telegram-desktop-unprotected";unprotected.Text="В выбранном Desktop нет локального кода";unprotected.AutoSize=true;layout.Controls.Add(unprotected,0,2);
+            layout.Controls.Add(new Label{Text="Код действует только для этого анализа и не сохраняется.",AutoSize=true,MaximumSize=new Size(400,0),ForeColor=Color.DimGray},0,3);
+            var actions=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.RightToLeft,WrapContents=false};
+            var accept=new Button{Text="Применить",DialogResult=DialogResult.OK,AutoSize=true};var cancel=new Button{Text="Отмена",DialogResult=DialogResult.Cancel,AutoSize=true};
+            actions.Controls.Add(accept);actions.Controls.Add(cancel);layout.Controls.Add(actions,0,4);AcceptButton=accept;CancelButton=cancel;
+            passcode.TextChanged+=delegate{if(passcode.TextLength>0)unprotected.Checked=false;};
+            unprotected.CheckedChanged+=delegate{if(unprotected.Checked)passcode.Clear();passcode.Enabled=!unprotected.Checked;};
+            if(current!=null){if(current.Length==0)unprotected.Checked=true;else passcode.Text=current;}
+            Disposed+=delegate{passcode.Clear();};
+        }
+        internal string KnownPasscode { get { return unprotected.Checked?"":passcode.TextLength>0?passcode.Text:null; } }
+    }
+
     public sealed class ArchiveSearchPanel : UserControl
     {
         readonly TextBox archive = new TextBox(), query = new TextBox(), body = new TextBox(), provenance = new TextBox();
@@ -315,7 +341,8 @@ namespace UsbRecovery
         readonly Panel analysisState=new Panel();
         TableLayoutPanel contentLayout;
         readonly CheckBox regexMode = new CheckBox();
-        readonly Button analysisSource = new Button();
+        readonly Button analysisSource = new Button(), desktopAccess = new Button();
+        string desktopKnownPasscode;
         readonly DataGridView grid = new DataGridView();
         CancellationTokenSource cancellation;
         ArchiveSearchResult current;
@@ -339,12 +366,13 @@ namespace UsbRecovery
             heading.RowStyles.Add(new RowStyle(SizeType.Absolute, 40)); heading.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             heading.Controls.Add(new Label { Text = "Telegram", Font = new Font("Segoe UI", 20F, FontStyle.Bold), AutoSize = true, Margin = new Padding(0) }, 0, 0);
             heading.Controls.Add(new Label { Text = "Локальные данные и последние доступные переписки", AutoSize = true, Tag = "muted", Margin = new Padding(0, 4, 0, 0) }, 0, 1); layout.Controls.Add(heading, 0, 0);
-            var folders = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 4, Margin = new Padding(0, 0, 0, 10) };
-            folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 158)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            var folders = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 5, Margin = new Padding(0, 0, 0, 10) };
+            folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 158)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 132)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150));folders.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,132)); folders.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             Configure(analyze, "Анализировать", delegate { if (IsBusy) return; var handler = AnalyzeRequested; if (handler != null) handler(this, EventArgs.Empty); }); analyze.Tag = "primary"; analyze.Name = "telegram-analyze"; folders.Controls.Add(analyze, 0, 0);
             Configure(analysisSource, "Источник…", delegate { ChooseAnalysisSource(); }); analysisSource.Name = "telegram-source"; folders.Controls.Add(analysisSource, 1, 0);
             Configure(choose, "Открыть архив", delegate { ChooseArchive(); }); folders.Controls.Add(choose, 2, 0);
-            archive.ReadOnly = true; archive.Dock = DockStyle.Fill; archive.Font = new Font("Consolas", 9F); archive.Margin = new Padding(8, 5, 0, 0); archive.Name = "telegram-archive"; folders.Controls.Add(archive, 3, 0); layout.Controls.Add(folders, 0, 1);
+            Configure(desktopAccess,"Код Desktop…",delegate{using(var dialog=new TelegramDesktopAccessForm(desktopKnownPasscode)){if(dialog.ShowDialog(this)==DialogResult.OK){desktopKnownPasscode=dialog.KnownPasscode;desktopAccess.Text=desktopKnownPasscode==null?"Код Desktop…":"Код выбран";}}});desktopAccess.Name="telegram-desktop-access";folders.Controls.Add(desktopAccess,3,0);
+            archive.ReadOnly = true; archive.Dock = DockStyle.Fill; archive.Font = new Font("Consolas", 9F); archive.Margin = new Padding(8, 5, 0, 0); archive.Name = "telegram-archive"; folders.Controls.Add(archive, 4, 0); layout.Controls.Add(folders, 0, 1);
             analysisStatus.Multiline = true; analysisStatus.ReadOnly = true; analysisStatus.Dock = DockStyle.Fill; analysisStatus.ScrollBars = ScrollBars.Vertical; analysisStatus.Name = "telegram-analysis-status"; analysisStatus.Tag = "muted"; analysisStatus.Margin = new Padding(0, 3, 0, 8);
             analysisStatus.Text = "Нажми «Анализировать»: программа найдёт доступные локальные данные Telegram. Закрытый кэш будет отмечен отдельно.";analysisState.Dock=DockStyle.Fill;analysisState.Margin=Padding.Empty;analysisActivity.Dock=DockStyle.Fill;analysisActivity.Name="telegram-activity";analysisActivity.Visible=false;analysisState.Controls.Add(analysisStatus);analysisState.Controls.Add(analysisActivity);layout.Controls.Add(analysisState, 0, 2);
             var filters = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = true, ColumnCount = 3, RowCount = 3, Margin = new Padding(0) };
@@ -373,7 +401,7 @@ namespace UsbRecovery
             attachments.DropDownStyle = ComboBoxStyle.DropDownList; attachments.Dock = DockStyle.Fill; actions.Controls.Add(attachments, 2, 0); Configure(openAttachment, "Вложение", delegate { OpenAttachment(); }); actions.Controls.Add(openAttachment, 3, 0);Configure(fullText,"Полный текст",delegate{OpenFullText();});fullText.Name="telegram-full-text";fullText.Enabled=false;actions.Controls.Add(fullText,4,0);selected.Controls.Add(actions, 0, 0);
             body.Multiline = true; body.ReadOnly = true; body.HideSelection = false; body.ScrollBars = ScrollBars.Vertical; body.Dock = DockStyle.Fill; body.BackColor = Color.White; selected.Controls.Add(body, 0, 1); layout.Controls.Add(selected, 0, 6);
             provenance.Multiline = true; provenance.ReadOnly = true; provenance.ScrollBars = ScrollBars.Vertical; provenance.Dock = DockStyle.Fill; provenance.BackColor = Color.FromArgb(246, 246, 246); provenance.BorderStyle = BorderStyle.None; provenance.Margin = new Padding(0, 8, 0, 0); layout.Controls.Add(provenance, 0, 7);
-            copy.Enabled = openAttachment.Enabled = false; Disposed += delegate { if (cancellation != null) cancellation.Cancel(); };
+            copy.Enabled = openAttachment.Enabled = false; Disposed += delegate { desktopKnownPasscode=null;if (cancellation != null) cancellation.Cancel(); };
             UiTheme.ApplyTree(this); analysisStatus.BackColor = UiTheme.Background; analysisStatus.ForeColor = UiTheme.Muted; analysisStatus.BorderStyle = BorderStyle.None;
         }
 
@@ -405,6 +433,12 @@ namespace UsbRecovery
         public void SelectArchive(string path) { if (File.Exists(path)) path = Path.GetDirectoryName(path); archive.Text = path ?? ""; if (busy) { rerun = true; if (cancellation != null) cancellation.Cancel(); } else if (IsHandleCreated) StartSearch(0); }
         protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); if (!String.IsNullOrEmpty(archive.Text)) BeginInvoke(new Action(() => StartSearch(0))); }
         public void FocusQuery() { query.Focus(); }
+        public Dictionary<string,string> TakeDesktopSecrets()
+        {
+            var result=new Dictionary<string,string>();
+            if(desktopKnownPasscode!=null)result["telegram_desktop_passcode"]=desktopKnownPasscode;
+            desktopKnownPasscode=null;desktopAccess.Text="Код Desktop…";return result;
+        }
         public void SetAnalysisSource(string path) { if (IsBusy) return; AnalysisSource = path; analysisSource.Text = String.IsNullOrEmpty(path) ? "Источник…" : "Источник выбран"; analysisStatus.Text = String.IsNullOrEmpty(path) ? "Автопоиск в локальных папках Telegram." : "Рекурсивный анализ: " + path + ". Поддерживаемые записи базы и текстовые остатки показываются отдельно."; }
         void ChooseAnalysisSource()
         {
@@ -460,7 +494,7 @@ namespace UsbRecovery
             finally { busy = false; if (cancellation != null) { cancellation.Dispose(); cancellation = null; } if (!IsDisposed) { SetBusy(false); if (rerun) { rerun = false; BeginInvoke(new Action(() => StartSearch(0))); } } }
         }
 
-        void SetBusy(bool value) { analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset >= 0 && pageOffset <= ArchiveSearchService.LatestWindowLimit - 2 * ArchiveSearchService.PageSize && pageOffset + ArchiveSearchService.PageSize < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
+        void SetBusy(bool value) { desktopAccess.Enabled = analysisSource.Enabled = regexMode.Enabled = choose.Enabled = analyze.Enabled = search.Enabled = query.Enabled = evidence.Enabled = !value; cancelButton.Enabled = value; previous.Enabled = !value && current != null && pageOffset > 0; next.Enabled = !value && current != null && pageOffset >= 0 && pageOffset <= ArchiveSearchService.LatestWindowLimit - 2 * ArchiveSearchService.PageSize && pageOffset + ArchiveSearchService.PageSize < current.total;var selected=grid.SelectedRows.Count==0?null:grid.SelectedRows[0].Tag as ArchiveMessage;fullText.Enabled=!value&&selected!=null&&selected.text_truncated&&!String.IsNullOrEmpty(selected.archive_record_key); }
         void ClearResults() { current = null; currentSearch = null; pageOffset = 0; grid.Rows.Clear(); ShowMessage(); }
         static string Known(string preferred, object fallback, string unknown)
         {
@@ -487,13 +521,16 @@ namespace UsbRecovery
         static string MessageCategory(ArchiveMessage message)
         {
             if(message.recovery_status=="imported_recovery_claim")return "Заявлено в архиве";
+            if(message.record_kind=="telegram_desktop_draft")return "Черновик Desktop";
+            if(message.record_kind=="telegram_android_scheduled"||message.record_kind=="telegram_android_scheduled_caption")return message.evidence_kind=="previous"?"Запланировано · прежняя версия":"Запланировано Android";
+            if(message.record_kind=="telegram_ios29_message")return message.evidence_kind=="previous"?"iOS 29 · прежняя версия":"iOS · прежний формат 29";
             bool caption=message.text_field=="media.legacy_caption"||SupplementalCaption(message.record_kind);
             if(CacheRecord(message.record_kind))return caption?(message.evidence_kind=="previous"?"Кэш · предыдущая подпись":"Кэш · подпись к фото"):(message.evidence_kind=="previous"?"Кэш · предыдущая версия":"Кэш Telegram");
             if(caption)return message.recovery_status=="deleted_supported_by_evidence"?"Подпись к вложению · остаток записи":message.evidence_kind=="previous"?"Подпись к вложению · предыдущая версия":"Подпись к вложению";
             return message.recovery_status=="deleted_supported_by_evidence"?"Остаток записи":message.record_kind=="notification"?"Уведомление":Category(message.evidence_kind);
         }
         static bool CacheRecord(string kind){return kind=="telegram_media_cache"||kind=="telegram_media_cache_caption";}
-        static bool SupplementalCaption(string kind){return kind=="tl_message_caption"||kind=="sqlite_deleted_caption"||kind=="telegram_media_cache_caption";}
+        static bool SupplementalCaption(string kind){return kind=="tl_message_caption"||kind=="sqlite_deleted_caption"||kind=="telegram_media_cache_caption"||kind=="telegram_android_scheduled_caption";}
         static string TextFieldLabel(string field){return field=="message"?"основной текст":field=="media.legacy_caption"?"подпись к вложению":"неизвестно";}
         static int CodePointIndex(string text,long points)
         {
@@ -539,6 +576,9 @@ namespace UsbRecovery
             if(!String.IsNullOrEmpty(message.container_source_file))details.AppendLine("\r\nАрхив-источник: "+message.container_source_file+" · SHA256: "+message.container_sha256);
             if (message.date_ambiguous == true || message.timezone_unknown == true) details.AppendLine("\r\nДата или часовой пояс требуют уточнения по исходному экспорту.");
             if (message.record_kind == "notification") details.AppendLine("\r\nСохранённый текст уведомления: может содержать только часть сообщения. Полная переписка в источнике может отсутствовать.");
+            if(message.record_kind=="telegram_desktop_draft")details.AppendLine("\r\nЛокальный черновик Telegram Desktop: неотправленный текст. Это не история переписки и не удалённое сообщение. Автор, дата создания и ID отправленного сообщения неизвестны; ID ответа внутри черновика не присваивается самому черновику.");
+            if(message.record_kind=="telegram_android_scheduled"||message.record_kind=="telegram_android_scheduled_caption")details.AppendLine("\r\nЗапланированная запись Telegram Android. Дата означает время планируемой отправки; отправка и факт удаления не подтверждены.");
+            if(message.record_kind=="telegram_ios29_message")details.AppendLine("\r\nИсторическая локальная база Telegram iOS, схема 29. Прочитан исходный текст SQLite; вложения не декодированы. Это не поддержка современных баз Postbox.");
             if (message.record_kind == "tl_message"||message.record_kind=="tl_message_caption") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
             if(CacheRecord(message.record_kind)){
                 details.AppendLine("\r\nМедиакэш Telegram: сохранившаяся подпись и ссылка на фотографию. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.");

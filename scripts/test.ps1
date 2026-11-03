@@ -166,6 +166,15 @@ if(-not(Test-Path -LiteralPath (Join-Path $taskScaleFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_media_scale_fixtures.py') --destination $taskScaleFixtures --ffmpeg $taskScaleEncoder[0].FullName
  if($LASTEXITCODE-ne0){throw 'Large-video fixture generation failed.'}
 }
+$taskLargeJpegTarget=Join-Path $taskLayout.Root '.build\jpeg-large-portable-fixtures'
+if(-not(Test-Path -LiteralPath (Join-Path $taskLargeJpegTarget 'manifest.json'))){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_large_jpeg_fixtures.py') $taskLargeJpegTarget
+ if($LASTEXITCODE-ne0){throw 'Independent large JPEG fixture preparation failed.'}
+}
+$taskBframeTarget=Join-Path $taskLayout.Root '.build\video-bframes-fixtures'
+if(Test-Path -LiteralPath $taskBframeTarget){$taskBframeArguments=@('--verify',$taskBframeTarget)}else{$taskBframeArguments=@($taskBframeTarget)}
+& $Python312 (Join-Path $taskLayout.Tests 'prepare_bframe_media_fixtures.py') @taskBframeArguments
+if($LASTEXITCODE-ne0){throw 'Native B-frame fixture preparation or pinned hashes failed.'}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $taskBaseline=Join-Path $taskLayout.App 'CommercialComparisonHarness.exe'
 try {

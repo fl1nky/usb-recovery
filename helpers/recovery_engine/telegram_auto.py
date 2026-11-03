@@ -1,7 +1,8 @@
 """Bounded, offline discovery of readable Telegram exports and local archives.
 
-Desktop tdata is an encrypted client cache, not an exported chat database. This
-module never reads key_data, auth/session material or tries to unlock that cache.
+Desktop tdata is an encrypted client cache, not an exported chat database. A
+supplied known local passcode/key can open only the supported native drafts;
+encrypted account information is never decrypted. No passcode is guessed.
 Only recognized readable records and images enter the published archive. Every
 parser runs against a verified temporary copy; original files remain untouched.
 """
@@ -32,7 +33,11 @@ MAX_NATIVE_THUMBNAILS = 10_000
 MAX_NATIVE_THUMBNAIL_BYTES = 512 * 1024 * 1024
 CACHE_RECORD_KINDS = frozenset(("telegram_media_cache", "telegram_media_cache_caption"))
 NATIVE_RECORD_KINDS = CACHE_RECORD_KINDS | frozenset((
-    "tl_message", "tl_message_caption", "sqlite_deleted_record", "sqlite_deleted_caption"))
+    "tl_message", "tl_message_caption", "sqlite_deleted_record", "sqlite_deleted_caption",
+    "telegram_android_scheduled", "telegram_android_scheduled_caption",
+    "telegram_ios29_message", "telegram_desktop_draft"))
+NON_HISTORY_RECORD_KINDS = frozenset(("notification", "telegram_desktop_draft",
+    "telegram_android_scheduled", "telegram_android_scheduled_caption"))
 
 
 def _native_text_parts(value, *, keep_empty_media=False):
@@ -58,7 +63,8 @@ def _native_text_parts(value, *, keep_empty_media=False):
         yield "", "message", False
 
 
-# These native Desktop files may contain account secrets. Never open or copy.
+# These files stay closed during discovery. The separate, explicitly supplied
+# known-passcode path reads only the key_data wrap, never account-info plaintext.
 NATIVE_PRIVATE = {"key_data", "key_datas", "key_data0", "key_data1", "settings",
                   "settingss", "settings0", "settings1", "map", "maps", "map0", "map1"}
 SKIP_DIRECTORIES = {".git", "node_modules", "__pycache__", "licenses", "rebuild"}
@@ -277,6 +283,21 @@ class Analyzer:
         self.recover_deleted = request.get("options", {}).get("recover_deleted", True) is True
         self.deleted_current_verified = True
         self.stop = False
+        # Values arrive only in the helper's stdin request, never arguments,
+        # acquisition metadata, published records or logs. Missing differs
+        # from an explicitly supplied empty known no-passcode state.
+        secrets = request.get("secrets", {})
+        self.desktop_passcode = secrets.get("telegram_desktop_passcode") if isinstance(secrets, dict) else None
+        self.desktop_key = None
+        supplied_key = secrets.get("telegram_desktop_local_key") if isinstance(secrets, dict) else None
+        if supplied_key is not None:
+            if not isinstance(supplied_key, str) or not re.fullmatch(r"[0-9a-fA-F]{512}", supplied_key):
+                raise AutoError("TELEGRAM_DESKTOP_KEY_INVALID")
+            self.desktop_key = bytes.fromhex(supplied_key)
+        if self.desktop_passcode is not None and (not isinstance(self.desktop_passcode, str) or
+                len(self.desktop_passcode.encode("utf-8")) > 4096):
+            raise AutoError("TELEGRAM_DESKTOP_PASSCODE_INVALID")
+        self.desktop_keys = {}
         from text_match import Matcher, MatchError
         try:
             self.fragment_matcher = Matcher(request.get("options", {}).get("fragment_query", ""), request.get("options", {}).get("query_mode", "literal"))
@@ -630,6 +651,9 @@ class Analyzer:
                 raise AutoError("TELEGRAM_SQLITE_INVALID")
             tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             legacy_messages = "messages" in tables and _legacy_messages_schema(connection)
+            from telegram_platforms import exact_schema, SCHEDULED_COLUMNS, ios_schema
+            scheduled = "scheduled_messages_v2" in tables and exact_schema(connection, "scheduled_messages_v2", SCHEDULED_COLUMNS)
+            ios29 = "messages_v29" in tables and ios_schema(connection)
             self.last_native_database = legacy_messages or bool({"messages_v2", "messages_topics", "unread_push_messages"} & tables)
             if "messages" in tables:
                 cols = {row[1] for row in connection.execute("PRAGMA table_info(messages)")}
@@ -697,12 +721,20 @@ class Analyzer:
                 self.native_messages(connection, native_tables, original)
                 if not self.history_snapshot and not getattr(self, "rollback_snapshot", None) and getattr(self, "recover_deleted", True) and self.deleted_current_verified:
                     self.deleted_records(copied, connection, original)
+            if scheduled:
+                self.native_messages(connection, {"scheduled_messages_v2"}, original)
+            elif "scheduled_messages_v2" in tables:
+                self.remark("TELEGRAM_SCHEDULED_SCHEMA_UNSUPPORTED", original)
+            if ios29:
+                self.ios29_messages(connection, original)
+            elif "messages_v29" in tables:
+                self.remark("TELEGRAM_IOS29_SCHEMA_UNSUPPORTED", original)
             # Media-only DBs qualify only through complete checked rows. Their
             # schema name never activates generic TL/freeblock inference.
             cache_records = 0
             if "media_v4" in tables and not getattr(self, "rollback_snapshot", None):
                 cache_records = self.native_media_cache(connection, original)
-            if native_tables or cache_records:
+            if native_tables or cache_records or scheduled or ios29:
                 return True
             if {"dialogs", "unread_push_messages"} & tables:
                 return True
@@ -714,6 +746,7 @@ class Analyzer:
     def native_text_messages(self, value, evidence, record_kind, *, keep_empty_media=False, **fields):
         """Publish independently labelled text slots from an already checked row."""
         secondary_kind = {"tl_message": "tl_message_caption",
+                          "telegram_android_scheduled": "telegram_android_scheduled_caption",
                           "sqlite_deleted_record": "sqlite_deleted_caption",
                           "telegram_media_cache": "telegram_media_cache_caption"}[record_kind]
         published = 0
@@ -726,6 +759,92 @@ class Analyzer:
                          record_kind=secondary_kind if secondary else record_kind, **fields)
             published += 1
         return published
+
+    def ios29_messages(self, connection, original):
+        from telegram_platforms import ios_messages, PlatformError
+        label = self.worker.source_label or str(original)
+        identity = "telegram-ios29:" + hashlib.sha256(os.path.normcase(os.path.abspath(label)).encode("utf-8")).hexdigest()
+        report = {}
+        accepted = 0
+        try:
+            for row in ios_messages(connection, MAX_MESSAGES, cancel=lambda: self.stop, report=report):
+                self.message(row["text"], "backup", _native_row_verified=True,
+                    record_kind="telegram_ios29_message", chat_id=row["cid"], message_id=row["mid"],
+                    sender_id="user:" + str(row["author"]) if row["author"] is not None else None, sender_name=None,
+                    timestamp=dt.datetime.fromtimestamp(row["date"], dt.timezone.utc).isoformat() if row["date"] else None,
+                    source_record=f"messages_v29(cid={row['cid']},mid={row['mid']})",
+                    identity_scope=identity, application_confirmed=True, text_field="message",
+                    completeness="ios_legacy_schema29_plaintext_only_media_not_decoded",
+                    deleted=None, deletion_interpretation="unknown",
+                    recovery_status="historical_ios29_snapshot" if self.history_snapshot else "ios29_snapshot_record")
+                accepted += 1
+                if len(self.worker.messages) >= MAX_MESSAGES:
+                    self.stop = True
+                    self.remark("TELEGRAM_MESSAGE_LIMIT", original)
+                    break
+        except PlatformError as error:
+            self.remark(error.code, original)
+        self.worker.remark("TELEGRAM_IOS29_RECORDS_CHECKED", original, records=accepted, **report)
+
+    def desktop_key_for(self, source):
+        """Read only a supplied known-passcode wrap; never account auth info."""
+        from telegram_platforms import unwrap_key_data, PlatformError, MAX_NATIVE_FILE
+        if self.desktop_key is not None:
+            return self.desktop_key
+        if self.desktop_passcode is None:
+            raise AutoError("TELEGRAM_DESKTOP_KNOWN_PASSCODE_REQUIRED")
+        for folder in (source.parent, source.parent.parent):
+            cache_id = str(folder).casefold()
+            if cache_id in self.desktop_keys:
+                return self.desktop_keys[cache_id]
+            # Official safe-file order: modern s, otherwise newest 0/1.
+            modern = folder / "key_datas"
+            old = [p for p in (folder / "key_data0", folder / "key_data1") if p.is_file()]
+            candidates = [modern] if modern.is_file() else sorted(old, key=lambda p: p.stat().st_mtime_ns, reverse=True)
+            if not candidates and (folder / "key_data").is_file():
+                candidates = [folder / "key_data"]
+            if not candidates:
+                continue
+            for keyfile in candidates:
+                if keyfile.stat().st_size > MAX_NATIVE_FILE:
+                    raise AutoError("TELEGRAM_DESKTOP_SOURCE_LIMIT")
+                token = hashlib.sha256(str(keyfile).encode()).hexdigest()[:24]
+                copied = self.copy(keyfile, self.worker.work / "key-wrap-input" / token / keyfile.name)
+                try:
+                    key = unwrap_key_data(copied.read_bytes(), self.desktop_passcode)
+                except PlatformError as error:
+                    # Wrong secret/integrity is terminal, never retry with a
+                    # different secret or silently try an empty passcode.
+                    raise AutoError(error.code) from None
+                self.desktop_keys[cache_id] = key
+                return key
+        raise AutoError("TELEGRAM_DESKTOP_KEY_DATA_NOT_FOUND")
+
+    def desktop_drafts(self, copied, original):
+        from telegram_platforms import desktop_drafts, tdf_payload, PlatformError, MAX_NATIVE_FILE
+        if copied.stat().st_size > MAX_NATIVE_FILE:
+            raise AutoError("TELEGRAM_DESKTOP_SOURCE_LIMIT")
+        try:
+            raw = copied.read_bytes()
+            tdf_payload(raw)
+            key = self.desktop_key_for(original)
+            records = desktop_drafts(raw, key)
+        except PlatformError as error:
+            raise AutoError(error.code) from None
+        identity = "telegram-desktop-drafts:" + hashlib.sha256(os.path.normcase(os.path.abspath(original.parent)).encode("utf-8")).hexdigest()
+        for row in records:
+            if self.stop or len(self.worker.messages) >= MAX_MESSAGES:
+                self.stop = True
+                self.remark("TELEGRAM_MESSAGE_LIMIT", original)
+                break
+            self.message(row["text"], "backup", _native_row_verified=True,
+                record_kind="telegram_desktop_draft", chat_id=row["peer"],
+                message_id=None, sender_id=None, sender_name=None, timestamp=None,
+                source_record=f"desktop_draft(tag={row['tag']},key={row['draft_key']},index={row['index']},version={row['version']})",
+                identity_scope=identity, application_confirmed=True, text_field="message",
+                completeness="unsent_local_draft_not_message_history_or_deleted_message",
+                recovery_status="unsent_local_draft", deletion_interpretation="unknown", deleted=None)
+        self.worker.remark("TELEGRAM_DESKTOP_DRAFTS_CHECKED", original, records=len(records))
 
     def native_media_cache(self, connection, original):
         """Read photo captions, retaining cache provenance and unknown deletion."""
@@ -789,7 +908,7 @@ class Analyzer:
         if getattr(self, "rollback_snapshot", None):
             identity = "telegram-rollback:" + self.rollback_snapshot["rollback_journal_sha256"]
         rejected, accepted, errors = 0, 0, {}
-        for table in ("messages_v2", "messages_topics", "messages"):
+        for table in ("messages_v2", "messages_topics", "messages", "scheduled_messages_v2"):
             if table not in tables:
                 continue
             columns = {row[1] for row in connection.execute("PRAGMA table_info(" + table + ")")}
@@ -833,11 +952,13 @@ class Analyzer:
                     timestamp = dt.datetime.fromtimestamp(date, dt.timezone.utc).isoformat() if date else None
                     record = f"{table}(uid={uid},mid={mid}" + (f",topic_id={row[4]}" if topic else "") + ")"
                     media_fields, attachments = self.native_media(media, record, original)
-                    self.native_text_messages(value, "backup", "tl_message", keep_empty_media=True,
+                    scheduled = table == "scheduled_messages_v2"
+                    self.native_text_messages(value, "backup", "telegram_android_scheduled" if scheduled else "tl_message", keep_empty_media=True,
                         chat_id=uid, message_id=value["id"],
                         sender_id=(sender["kind"] + ":" + str(sender["id"])) if sender else None,
                         sender_name=None, timestamp=timestamp, source_record=record,
-                        identity_scope=identity, completeness=value["validation"],
+                        identity_scope=identity, completeness="scheduled_message_intended_send_time_not_sent_history;" + value["validation"] if scheduled else value["validation"],
+                        **({"recovery_status": "scheduled_record", "deletion_interpretation": "unknown", "deleted": None} if scheduled else {}),
                         native_constructor=value["constructor"], native_layer=value["layer"], application_confirmed=True,
                         native_tl_body_sha256=hashlib.sha256(data[:value["tl_bytes"]]).hexdigest(),
                         attachments=attachments, **media_fields, **({"sqlite_stored_mid": mid} if table == "messages" else {}))
@@ -1375,7 +1496,13 @@ class Analyzer:
         standalone_wal = self.scan_fragments and lower.endswith("-wal") and (kind == "dump" or not Path(str(source)[:-4]).is_file())
         if stem in NATIVE_PRIVATE or lower.endswith(("-shm", ".partial")) or lower.endswith("-wal") and not standalone_wal:
             return
-        if re.fullmatch(r"[0-9a-f]{16}[s01]?", stem):
+        desktop_enabled = self.desktop_key is not None or self.desktop_passcode is not None
+        # Root-level hex files contain account authorization, whereas draft
+        # artifacts live inside the account's hex directory. Leave root auth
+        # files closed even when the supplied passcode is correct.
+        native_hex = re.fullmatch(r"[0-9a-f]{16}[s01]?", stem)
+        account_directory = re.fullmatch(r"[0-9a-f]{16}", source.parent.name.casefold())
+        if native_hex and (not desktop_enabled or not account_directory):
             self.counts["encrypted_sources"] += 1
             self.remark("ENCRYPTED_CACHE_UNSUPPORTED", source)
             return
@@ -1397,10 +1524,16 @@ class Analyzer:
                 return
             with source.open("rb") as f:
                 head = f.read(4096)
-            if head.startswith(b"TDF$"):
+            desktop = head.startswith(b"TDF$")
+            if desktop:
                 self.counts["encrypted_sources"] += 1
-                self.remark("ENCRYPTED_CACHE_UNSUPPORTED", source, size=size)
-                return
+                if not desktop_enabled:
+                    self.remark("TELEGRAM_DESKTOP_KNOWN_PASSCODE_REQUIRED", source, size=size)
+                    return
+                from telegram_platforms import MAX_NATIVE_FILE
+                if size > MAX_NATIVE_FILE:
+                    self.remark("TELEGRAM_DESKTOP_SOURCE_LIMIT", source)
+                    return
             sqlite = head.startswith(b"SQLite format 3\x00")
             journal = lower.endswith("-journal") or head.startswith(bytes.fromhex("d9d505f920a163d7"))
             heap = head.startswith(b"JAVA PROFILE ")
@@ -1412,7 +1545,7 @@ class Analyzer:
             # Plain media containers within Telegram's own file cache are also
             # inspected for embedded images. Unknown app/account blobs aren't.
             container = kind in {"telegram_files", "desktop_cache"} and (lower.endswith((".cache", ".bin", ".dat")) or not source.suffix) and (b"\xff\xd8\xff" in head or b"\x89PNG\r\n\x1a\n" in head or b"RIFF" in head)
-            if not any((sqlite, journal, heap, jsonl, markup, json_candidate, image, container, dump)):
+            if not any((desktop, sqlite, journal, heap, jsonl, markup, json_candidate, image, container, dump)):
                 return
             token = hashlib.sha256(str(source).encode()).hexdigest()[:24]
             copied = self.copy(source, self.worker.work / "input" / token / source.name)
@@ -1422,7 +1555,9 @@ class Analyzer:
             self.counts["readable_sources"] += 1
             self.worker.sources.append({"source": str(source), "sha256": self.worker.snapshot, "size": size,
                                         "status": "copied_input", "source_id": self.worker.current_origin["Id"]})
-            if sqlite:
+            if desktop:
+                self.desktop_drafts(copied, source)
+            elif sqlite:
                 # Published JSONL already contains the same canonical archive,
                 # choose it once to avoid importing duplicate unknown-ID HTML.
                 self.copy_sqlite_sidecars(source, copied)
@@ -1551,10 +1686,13 @@ class Analyzer:
                     break
             self.worker.messages.sort(key=lambda m: (_timestamp(m.get("timestamp")) is None, -(_timestamp(m.get("timestamp")) or 0)))
             # Distinguish available exports from saved notification previews.
-            history = [m for m in self.worker.messages if m.get("record_kind") != "notification" and m.get("evidence_kind") != "fragment"]
+            history = [m for m in self.worker.messages if m.get("record_kind") not in NON_HISTORY_RECORD_KINDS and m.get("evidence_kind") != "fragment"]
             self.notifications = sum(m.get("record_kind") == "notification" for m in self.worker.messages)
             self.fragments = sum(m.get("evidence_kind") == "fragment" for m in self.worker.messages)
-            if not history:
+            drafts = sum(m.get("record_kind") == "telegram_desktop_draft" for m in self.worker.messages)
+            scheduled = sum(m.get("record_kind") in ("telegram_android_scheduled", "telegram_android_scheduled_caption") for m in self.worker.messages)
+            local_nonhistory = drafts + scheduled
+            if not history and not local_nonhistory:
                 self.remark("NO_READABLE_TELEGRAM_HISTORY")
             self.worker.publish()
             (self.output / "acquisition.json").write_text(json.dumps({"protocol": 1, "kind": "telegram_automatic", "Files": self.copy_records}, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1562,8 +1700,9 @@ class Analyzer:
             latest = dated[0]["timestamp"] if dated else None
             notes = [x.get("code") for x in self.worker.sources if "code" in x]
             self.warnings = list(dict.fromkeys([*self.warnings, *notes]))
-            summary = {"status": "partial" if self.warnings else "complete", "code": "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
+            summary = {"status": "partial" if self.warnings else "complete", "code": "LOCAL_DRAFTS_OR_SCHEDULED_AVAILABLE" if local_nonhistory and not history else "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
                        "messages": len(self.worker.messages), "history_messages": len(history), "notification_records": self.notifications, "fragment_records": self.fragments,
+                       "draft_records": drafts, "scheduled_records": scheduled,
                        "native_records": sum(m.get("record_kind") in NATIVE_RECORD_KINDS for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),

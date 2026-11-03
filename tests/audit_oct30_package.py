@@ -103,7 +103,7 @@ def audit():
     archive = CArchiveReader(str(helper / "recovery-helper.exe"))
     pyz = archive.open_embedded_archive("PYZ.pyz")
     embedded = []
-    for name in ("engine", "telegram_auto", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "png_sector_index", "png_streaming", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
+    for name in ("engine", "telegram_auto", "telegram_platforms", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "png_sector_index", "png_streaming", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
         code = marshal.loads(archive.extract(name)) if name == "engine" else pyz.extract(name)
         source = ROOT / "helpers/recovery_engine" / (name + ".py")
         reference = compile(source.read_bytes(), str(source), "exec", optimize=0)
@@ -119,10 +119,12 @@ def audit():
     required_tests += ("TelegramDocumentEmptyTests.py", "build_telegram_document_empty_fixtures.py",
                        "TelegramDocumentDescriptorTests.py", "build_telegram_document_descriptor_fixtures.py",
                        "telegram_document_descriptor_fixture_generator.py", "build_telegram_descriptor_portable_corpus.py")
+    required_tests += ("TelegramPlatformTests.py", "build_telegram_platform_fixtures.py", "telegram_platform_fixture_producer.py", "JpegStreamingCheckpointTests.py", "JpegLargeStreamingTests.py", "build_large_jpeg_fixtures.py", "prepare_bframe_media_fixtures.py")
+    require(sha(ROOT / "tests/telegram_platforms_oracle/NativeScheduledOracle.java") == sha(helper / "rebuild/tests/telegram_platforms_oracle/NativeScheduledOracle.java"), "native platform producer missing or stale")
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
-    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor"):
+    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "video-bframes"):
         fixture_source = ROOT / "tests/fixtures" / fixture
         fixture_rebuild = helper / "rebuild/tests/fixtures" / fixture
         fixture_files = {path.relative_to(fixture_source).as_posix() for path in fixture_source.rglob("*") if path.is_file()}

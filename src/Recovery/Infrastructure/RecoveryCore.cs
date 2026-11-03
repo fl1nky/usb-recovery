@@ -251,10 +251,17 @@ namespace UsbRecovery
         }
 
         public static void SaveJson(string path, object data)
+        {SaveJsonBounded(path,data,256*1024*1024);}
+        public static void SaveJsonBounded(string path,object data,int maximumBytes)
         {
+            if(maximumBytes<=0||maximumBytes>256*1024*1024)throw new ArgumentOutOfRangeException("maximumBytes");
+            byte[] bytes;
+            try{bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=maximumBytes}.Serialize(data));}
+            catch(InvalidOperationException error){throw new IOException("Сохранённые данные превышают допустимый размер. Предыдущая точка продолжения сохранена.",error);}
+            if(bytes.Length>maximumBytes)throw new IOException("Сохранённые данные превышают допустимый размер. Предыдущая точка продолжения сохранена.");
             string temporary=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)),".r"+Guid.NewGuid().ToString("N").Substring(0,12)+".partial");
+            bool failed=false;
             try {
-                byte[] bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=256*1024*1024}.Serialize(data));
                 using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}
                 for(int attempt=0;;attempt++){
                     try{if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);break;}
@@ -266,7 +273,8 @@ namespace UsbRecovery
                         Thread.Sleep(25<<attempt);
                     }
                 }
-            } finally {if(File.Exists(temporary))File.Delete(temporary);}
+            }catch{failed=true;throw;}
+            finally{try{if(File.Exists(temporary))File.Delete(temporary);}catch(IOException){if(!failed)throw;}catch(UnauthorizedAccessException){if(!failed)throw;}}
         }
 
         public static string HashFile(string path, CancellationToken cancel, Action<long, long> progress)

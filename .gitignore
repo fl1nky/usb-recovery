@@ -97,6 +97,11 @@
 !/tests/fixtures/telegram-media-only/
 !/tests/fixtures/video-stz2/
 !/tests/fixtures/video-fmp4/
+!/tests/fixtures/document-media-preview/
+/tests/fixtures/document-media-preview/*
+!/tests/fixtures/document-media-preview/avc-aac.mp4
+!/tests/fixtures/document-media-preview/manifest.json
+!/tests/fixtures/document-media-preview/README.md
 
 !/tests/fixtures/aac-lc/
 
@@ -108,3 +113,8 @@
 
 !/tests/fixtures/media-units/
 !/tests/fixtures/media-units/**
+
+!/tests/fixtures/telegram-platforms/
+!/tests/telegram_platforms_oracle/
+!/tests/telegram_platforms_oracle/NativeScheduledOracle.java
+!/tests/fixtures/video-bframes/

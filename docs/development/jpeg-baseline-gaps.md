@@ -1,58 +1,64 @@
 # Baseline JPEG sector gaps
 
-Baseline Huffman JPEG without restart markers uses a bounded minimum-gap
-hypothesis. Contiguous strict-valid files stay with normal carving. All one-gap
-paths are checked first; two-gap paths are considered only when no one-gap
-result exists. This does not establish uniqueness across arbitrary layouts.
+Baseline Huffman JPEG without restart markers has a paged one-gap hypothesis
+up to the ordinary 64 MiB photo limit. Both source runs and their split/jump
+must be sector aligned; the tail must contain an intact EOI. The first run has
+no 8 KiB restriction. Source ranges must be disjoint. Every byte comes from
+the read-only source; no map, expected SHA, pixel similarity or filler value
+is supplied to recovery.
 
-The first cut must be a 512-byte source boundary in the first 8 KiB. An optional
-middle run starts on a source boundary and has 512..8192 bytes in whole sectors.
-The final run starts on a boundary and ends at a surviving EOI. The complete
-file is at most 128 KiB. Physical ranges must be disjoint; bytes are never
-synthesized. The search reads source bytes without reference maps, expected
-hashes, pixel similarity or assumptions about filler values.
+All eligible one-gap alternatives are exhausted before a unique byte result
+is published. A second valid byte result yields two explicit
+`jpeg_gap_ambiguous_candidate` witnesses, with unknown original ownership.
+Search may stop once ambiguity is proved; further content/maps are then not
+exhaustive. Byte-identical one-gap source aliases are retained as full maps,
+bounded by the ordinary alias/output budgets. The additional two-gap fallback
+still covers files up to 128 KiB and first/middle runs up to 8 KiB. Arbitrary
+multi-gap JPEG recovery is not implemented.
 
-Huffman checkpoints retain a complete-block boundary before a cut, including
-the partial byte and component/table phase. Completion requires the exact MCU
-count, legal symbols/runs, one-bit padding, EOI and image decoding. Cached
-suffix counts distinguish an exact count from a lower bound: exceeding one
-prefix's remaining count must not invalidate a different prefix. Identical
-source windows share parsing while retaining their physical occurrences for
-disjoint-range checks.
+The parser checks baseline Huffman categories/runs, the exact MCU/block count,
+stuffed bytes, one-bit padding and EOI before native Pillow decoding. Decoder
+success alone never selects an original. A grammar-derived minimum block-bit
+cost prunes only impossible block counts, independently of image appearance.
+Suffix memo entries are exact counts or proved-invalid suffixes. A path that
+merely exceeds one prefix's required count cannot poison later suffix states.
 
-Two different valid byte results reject a unique-result claim. At most two
-content witnesses per JPEG start are saved as `jpeg_gap_ambiguous_candidate`.
-Search stops after proving ambiguity; further content alternatives and physical
-aliases are not exhaustively enumerated. Extents show one reproducible mapping,
-not the original placement. An otherwise unique byte result with multiple
-physical mappings also records `jpeg_gap_source_mapping_ambiguous`. Neither
-case authenticates ownership, original bytes or deletion.
+Source views use sixteen 256 KiB pages. Prefix checkpoints advance once through
+successive cuts. Suffix parsing uses a bounded LRU index; at most 20,000 exact
+memo entries are carried into the next anchored journal state. Prefix/join/end
+cursors, active suffix bit/block state and withheld candidate/map descriptors
+are also durable. A failed candidate read leaves the cursor on that candidate.
+Nothing is emitted before complete bounded coverage or proved ambiguity.
 
-Limits include 20,000 sector starts, `max_states` distinct middle windows,
-`max_states * 8` middle checkpoints, `max_states * 256` completion attempts and
-`max_states * 16384` suffix steps. Tail/window/transition pools each have a
-32 MiB bound; suffix cache and pending-path pools each have a conservative
-96 MiB entry bound. FIFO eviction discards only cached work. Existing 120-second,
-verified-byte and output budgets remain effective. Exceeding a search bound
-leaves the job incomplete and does not advance that JPEG start.
+The existing source SHA, executing-code/runtime/options binding, 8 MiB journal
+generation and 256 MiB journal chain checks remain effective. A slice retains
+work within one JPEG head; source or code changes reject its checkpoint. The
+120-second work interval, 512 MiB verified-byte budget and bounded prefix,
+join, suffix and alias states still produce an incomplete job when exhausted.
+Large random-noise layouts can remain expensive; finite bounds do not promise
+recovery of every damaged or fragmented photo.
 
-Cancellation is polled through the existing read/time boundary and throttled
-progress callback. Durable resume remains at a whole JPEG-start boundary,
-bound to source bytes, options and executing-code/runtime fingerprints; it does
-not serialize partial Huffman work. Both ambiguous witnesses are retained and
-revalidated on resume. C# mapping validation and file/photo catalogs preserve
-the ambiguity status after decoding and byte-identical-copy grouping.
+`JpegStreamingCheckpointTests.py` checks a read failure after a complete
+entropy match and full byte-identical source-map preservation.
+`JpegLargeStreamingTests.py` uses pinned Pillow 12.3 native encodings: an
+independent 6,803,878-byte original split after 6,802,432 bytes, changed-content
+late alternatives, missing EOI, overwritten source bytes, repeated short
+slices/cancellation and large restart/progressive controls. Its default run
+is offline and Git-independent. `--baseline` adds an optional paired developer
+comparison against immutable commit 5684800. Existing baseline/progressive,
+two-gap, photo-checkpoint and source-alias regressions remain required.
 
-Source controls are `JpegTwoGapRecoveryTests.py` and
-`JpegAmbiguityProvenanceTests.cs`. Actual packaged acceptance additionally uses
-`JpegTwoGapPortableTests.cs`: exact independent gray bytes, two unknown-original
-RGB witnesses, both physical gaps, mapping replay, decoder/dedup uncertainty,
-acknowledged cancellation and pipeline resume. A five-minute watchdog is a test
-failure, not a recovery result. Foreign unrecorded stage output remains rejected.
+The separate native 16 MiB scattered-source controls currently recover zero
+files: the 6.8 MiB restart reference reaches `jpeg_search_incomplete`, and the
+6.9 MiB progressive reference reaches `jpeg_progressive_memory_search_incomplete`.
+These are retained failed capabilities, not successful large restart/progressive
+recoveries. The proved extension is the nonrestart one-gap profile above.
 
-The integrated portable gate passed 56 Quality suites / 27,454 assertions,
-4 Telegram suites / 137 assertions and 1 USB suite / 16 assertions, with Python
-absent from PATH and temporary outbound rules removed. The JPEG suite contributes
-110 actual checks; the gallery adds 37. Real devices are separately deferred.
-The difficult 45,234-byte raw-scattered-baseline original was not recovered:
-the two valid 44,722-byte witnesses remain explicitly ambiguous.
+Portable acceptance uses `JpegVideoExpansionPortableTests.cs`, after generating
+`.build/jpeg-large-portable-fixtures` with `build_large_jpeg_fixtures.py` and
+preparing `.build/video-bframes-fixtures` with `prepare_bframe_media_fixtures.py`.
+It must run against the freshly rebuilt application and helper.
+
+These are synthetic source checks. Fresh helper/app builds, portable acceptance,
+publication and real devices are separate evidence. Historical accepted releases
+and their failure/ambiguity reports are unchanged.

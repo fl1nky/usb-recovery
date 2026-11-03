@@ -8,6 +8,14 @@ namespace UsbRecovery
         [System.STAThread]
         public static void Main(string[] args)
         {
+            if(args!=null&&args.Length>0&&args[0]=="--document-preview-worker"){
+                System.Environment.ExitCode=DocumentPreviewWorker.RunConsole(args);
+                return;
+            }
+            if(args!=null&&args.Length>0&&args[0]=="--local-media-preview-worker"){
+                System.Environment.ExitCode=LocalMediaPreviewWorker.RunConsole(args);
+                return;
+            }
             if(args!=null&&args.Length>0&&args[0]=="--media-decode-worker"){
                 System.Environment.ExitCode=MediaDecodeWorker.RunConsole(args);
                 return;

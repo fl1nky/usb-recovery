@@ -132,7 +132,7 @@ public static class TelegramRecoveryProvenanceUiTests
                 message.record_kind="tl_message";message.text_field=null;
                 Check((bool)validRollback.Invoke(null,new object[]{message}),"legacy complete TL rollback record without a field label remains valid");
                 string summary=TelegramAnalysisService.Summary(new HelperResult{Status="complete",Messages=2,HistoryMessages=2,ReadableSources=1});
-                Check(summary.Contains("Найдено записей Telegram: 2")&&!summary.Contains("Найдено сообщений"),"summary counts records rather than inventing independent chat-message count");
+                Check(summary.Contains("Записей истории Telegram: 2")&&!summary.Contains("Найдено сообщений"),"summary counts history records rather than inventing independent chat-message count");
             }
             Console.WriteLine("PASS TelegramRecoveryProvenanceUi: "+checks+" checks; real DTO decoding and controlled WinForms presentation of WAL-prefix uncertainty and mapped overflow candidates. Owned synthetic metadata only.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}

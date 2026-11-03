@@ -63,6 +63,12 @@ def huffman(counts, values):
             at += 1
             code += 1
         code <<= 1
+    fast = [None] * 256
+    for (length, code), value in table.items():
+        if length <= 8:
+            for prefix in range(code << (8-length), (code+1) << (8-length)):
+                fast[prefix] = value, length
+    table['fast8'] = fast
     return table
 
 
@@ -171,7 +177,7 @@ class Bits:
 
     def get(self, count):
         result = 0
-        for _ in range(count):
+        while count:
             if not self.remaining:
                 if self.at >= len(self.raw):
                     raise InvalidJpeg("jpeg_entropy_truncated")
@@ -184,11 +190,24 @@ class Bits:
                         raise InvalidJpeg("jpeg_entropy_marker")
                     self.at += 1
                 self.remaining = 8
-            self.remaining -= 1
-            result = (result << 1) | ((self.value >> self.remaining) & 1)
+            amount = min(count, self.remaining)
+            self.remaining -= amount
+            count -= amount
+            result = (result << amount) | ((self.value >> self.remaining) & ((1 << amount)-1))
         return result
 
     def symbol(self, table):
+        fast = table.get('fast8')
+        if fast is not None:
+            saved = self.at,self.value,self.remaining
+            try:
+                result = fast[self.get(8)]
+            except InvalidJpeg:
+                result = None
+            self.at,self.value,self.remaining = saved
+            if result is not None:
+                self.get(result[1])
+                return result[0]
         code = 0
         for length in range(1, 17):
             code = (code << 1) | self.get(1)
@@ -622,6 +641,321 @@ def baseline_gap_paths(assembler, frame, markers):
                         if completes(joined, continued, tail[:-2], offset, window, cache):
                             collect([(start, first), (physical, middle), (at, tail)],
                                     solutions, next(possible, None) is not None)
+    return list(solutions.values())
+
+
+class SourceWindow:
+    """Bounded view over a source range; entropy never retains the whole image."""
+    PAGE = 256 * 1024
+
+    def __init__(self, assembler, start, length, pages=None):
+        self.assembler, self.start, self.length = assembler, start, length
+        self.pages = pages if pages is not None else OrderedDict()
+        self.current_page, self.current_raw = -1, b''
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            low, high, step = key.indices(self.length)
+            if step != 1 or high - low > 1024:
+                raise InvalidJpeg("jpeg_stream_slice_bounds")
+            return bytes(self[n] for n in range(low, high))
+        if not 0 <= key < self.length:
+            raise IndexError(key)
+        absolute = self.start + key
+        page = absolute // self.PAGE * self.PAGE
+        if page == self.current_page:
+            return self.current_raw[absolute-page]
+        if page not in self.pages:
+            if len(self.pages) >= 16:
+                self.pages.popitem(last=False)
+            self.pages[page] = self.assembler.read(page, min(self.PAGE, self.assembler.size - page))
+        self.pages.move_to_end(page)
+        self.current_page, self.current_raw = page, self.pages[page]
+        return self.current_raw[absolute - page]
+
+
+class JoinedWindow:
+    def __init__(self, carry, tail):
+        self.carry, self.tail = carry, tail
+
+    def __len__(self):
+        return len(self.carry) + len(self.tail)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            low, high, step = key.indices(len(self))
+            if step != 1 or high - low > 1024:
+                raise InvalidJpeg("jpeg_stream_slice_bounds")
+            return bytes(self[n] for n in range(low, high))
+        return self.carry[key] if key < len(self.carry) else self.tail[key - len(self.carry)]
+
+
+def minimum_block_bits(blocks):
+    """A grammar lower bound, independent of pixels or observed filler bytes."""
+    result = 1 << 30
+    for dc, ac in blocks:
+        dc_cost = min(key[0] + value for key,value in dc.items()
+                      if isinstance(key,tuple) and value <= 11)
+        costs = [1 << 30] * 65
+        costs[64] = 0
+        for coefficient in range(63, 0, -1):
+            for key, symbol in ac.items():
+                if not isinstance(key, tuple):
+                    continue
+                length, _ = key
+                if symbol == 0:
+                    costs[coefficient] = min(costs[coefficient], length)
+                elif symbol == 0xf0 and coefficient + 16 <= 64:
+                    costs[coefficient] = min(costs[coefficient], length + costs[coefficient+16])
+                else:
+                    run, size = symbol >> 4, symbol & 15
+                    if 0 < size <= 10 and coefficient + run < 64:
+                        costs[coefficient] = min(costs[coefficient], length+size+costs[coefficient+run+1])
+        result = min(result, dc_cost + costs[1])
+    return result
+
+
+def snapshot_stream_state(assembler):
+    import copy
+    state = copy.deepcopy(assembler.jpeg_stream_state)
+    if state is not None and assembler.jpeg_stream_cache is not None:
+        # A bounded suffix cache avoids redecoding the same surviving tail on
+        # every short retry. It is anchored by the ordinary source/code journal.
+        state['Memo'] = [list(key)+[value] for key,value in
+                         list(assembler.jpeg_stream_cache.items())[-20000:]]
+    return state
+
+
+def validate_stream_state(state, assembler):
+    """An anchored journal still needs bounded, typed source/entropy cursors."""
+    if state is None:
+        return
+    from recovery_checkpoint import CheckpointError
+    try:
+        required = {'Start','Phase','Prefixes','NextCut','Saved','End','Prefix','Physical','Active','Solutions'}
+        if set(state) - {'Memo','MemoEnd','Aliases'} != required:
+            raise ValueError()
+        if state['Phase'] not in {'prefix','join','complete'}:
+            raise ValueError()
+        for name in ('Start','NextCut','End','Prefix','Physical'):
+            if type(state[name]) is not int or not 0 <= state[name] <= max(assembler.size, MAX_MARKERS):
+                raise ValueError()
+        def checkpoint(value):
+            return (isinstance(value, list) and len(value) == 4 and
+                    all(type(n) is int and 0 <= n <= MAX_FILE * 8 for n in value) and
+                    value[1] <= 255 and value[2] <= 8)
+        if state['Saved'] is not None and not checkpoint(state['Saved']):
+            raise ValueError()
+        if not isinstance(state['Prefixes'], list) or len(state['Prefixes']) > assembler.max_states * 8:
+            raise ValueError()
+        previous = state['Start']
+        for cut, saved in state['Prefixes']:
+            if type(cut) is not int or not previous < cut <= assembler.size or cut % 512 or not checkpoint(saved):
+                raise ValueError()
+            previous = cut
+        active = state['Active']
+        if active is not None and (not isinstance(active, list) or len(active) != 6 or
+                                  not checkpoint(active[:3] + [active[5]]) or
+                                  any(type(n) is not int or not 0 <= n <= MAX_FILE * 8 for n in active)):
+            raise ValueError()
+        if not isinstance(state['Solutions'], list) or len(state['Solutions']) > 2:
+            raise ValueError()
+        aliases = state.get('Aliases',[])
+        if not isinstance(aliases,list) or len(aliases)>511:
+            raise ValueError()
+        for solution in state['Solutions']+aliases:
+            if len(solution) != 3 or not re.fullmatch('[0-9a-f]{64}', solution[2]):
+                raise ValueError()
+            for at, length in solution[:2]:
+                if type(at) is not int or type(length) is not int or not 0 < length <= MAX_FILE or not 0 <= at <= assembler.size-length:
+                    raise ValueError()
+        memo = state.get('Memo', [])
+        if (not isinstance(memo,list) or len(memo)>20000 or
+                type(state.get('MemoEnd',0)) is not int or not 0<=state.get('MemoEnd',0)<=MAX_MARKERS):
+            raise ValueError()
+        for row in memo:
+            if (not isinstance(row,list) or len(row)!=5 or
+                    any(type(n) is not int or not 0<=n<=MAX_FILE*8 for n in row[:4]) or
+                    row[1]>255 or row[2]>8 or row[3]>10 or
+                    row[4] is not None and (type(row[4]) is not int or not 0<=row[4]<=MAX_FILE*8)):
+                raise ValueError()
+    except (ValueError, TypeError, KeyError):
+        raise CheckpointError('PHOTO_CHECKPOINT_JPEG_SEARCH_STATE_INVALID') from None
+
+
+def baseline_stream_paths(assembler, frame, markers):
+    """Exhaust a one-gap hypothesis up to the ordinary 64 MiB file bound.
+
+    Prefix checkpoints advance once through the source, sector by sector.
+    Suffix states share a bounded LRU entropy index. Reads use a 4 MiB page
+    cache, rather than a buffer per tail or a prefix/tail Cartesian byte copy.
+    Work exhaustion publishes nothing and leaves the durable JPEG cursor at
+    its previous candidate boundary. This is deliberately not a two-gap claim.
+    """
+    start, prefix = frame["prefix"]
+    scan, blocks = frame["scan"], frame["blocks"]
+    total = frame["mcus"] * len(blocks)
+    ends = sorted({end for _, end, marker in markers if marker == 0xd9})
+    if not ends:
+        return []
+    block_minimum = minimum_block_bits(blocks)
+    pages = OrderedDict()
+    state = assembler.jpeg_stream_state
+    if state is None or state['Start'] != start:
+        state = dict(Start=start, Phase='prefix', Prefixes=[], NextCut=(scan + 511)//512*512,
+                     Saved=None, End=0, Prefix=0, Physical=0, Active=None, Solutions=[],Aliases=[])
+        assembler.jpeg_stream_state = state
+        assembler.jpeg_stream_cache = None
+    assembler.jpeg_stream_aliases = state.setdefault('Aliases',[])
+    prefixes, saved = state['Prefixes'], state['Saved']
+    last, persisted = time.monotonic(), time.monotonic()
+
+    def boundary():
+        nonlocal last, persisted
+        assembler.read(0, 0)
+        if time.monotonic() - last >= .25:
+            assembler.progress(assembler.size, assembler.size)
+            last = time.monotonic()
+        if assembler.jpeg_checkpoint and time.monotonic() - persisted >= 10:
+            assembler.jpeg_checkpoint()
+            persisted = time.monotonic()
+
+    # Invalid syntax cannot become valid by appending later physical bytes.
+    if state['Phase'] == 'prefix':
+        for cut in range(state['NextCut'], min(start + MAX_FILE, assembler.size) + 1, 512):
+            boundary()
+            window = SourceWindow(assembler, scan, cut - scan, pages)
+            try:
+                saved = prefix_checkpoint(window, blocks, frame["mcus"], saved)
+            except InvalidJpeg:
+                break
+            prefixes.append([cut, list(saved)])
+            state.update(NextCut=cut+512, Saved=list(saved))
+            if len(prefixes) >= assembler.max_states * 8:
+                raise InvalidJpeg("jpeg_stream_prefix_search_incomplete")
+        state['Phase'] = 'join'
+    if not prefixes:
+        return []
+
+    work, attempts, solutions = 0, 0, {}
+    for first, tail, expected in state['Solutions']:
+        parts = [(at, assembler.read(at, length)) for at, length in (first, tail)]
+        if hashlib.sha256(parts[0][1]+parts[1][1]).hexdigest() != expected:
+            raise InvalidJpeg('jpeg_stream_retained_candidate_invalid')
+        solutions[bytes.fromhex(expected)] = parts
+    if len(solutions) > 1:
+        error = InvalidJpeg('jpeg_gap_ambiguous')
+        error.recipes = list(solutions.values())
+        raise error
+    cache_limit = min(200000, assembler.max_states * 64)
+    for end_index in range(state['End'], len(ends)):
+        end = ends[end_index]
+        low = (max(0, end - MAX_FILE) + 511) // 512 * 512
+        if end - low < 3:
+            continue
+        window = SourceWindow(assembler, low, end - low - 2, pages)
+        cache = OrderedDict((tuple(row[:4]),row[4]) for row in state.get('Memo',[])) if state.get('MemoEnd')==end_index else OrderedDict()
+        assembler.jpeg_stream_cache = cache
+        state['MemoEnd'] = end_index
+
+        def suffix(at, value, remaining, phase, required):
+            nonlocal work
+            bits = Bits(window)
+            bits.at, bits.value, bits.remaining = at, value, remaining
+            prior_count = 0
+            if state['Active'] is not None:
+                bits.at,bits.value,bits.remaining,phase,prior_count,_ = state['Active']
+            pending, result = [], None
+            while True:
+                key = bits.at, bits.value if bits.remaining else 0, bits.remaining, phase
+                if key in cache:
+                    result = cache[key]
+                    cache.move_to_end(key)
+                    break
+                if bits.finish():
+                    result = 0
+                    break
+                pending.append(key)
+                work += 1
+                if len(pending) > cache_limit or work > assembler.max_states * 16384:
+                    raise InvalidJpeg("jpeg_stream_entropy_search_incomplete")
+                if work % 128 == 0:
+                    # No speculative candidate: this is only a parser cursor.
+                    state['Active'] = [bits.at,bits.value,bits.remaining,phase,prior_count+len(pending)-1,0]
+                    boundary()
+                try:
+                    block(bits, *blocks[phase])
+                except InvalidJpeg:
+                    break
+                phase = (phase + 1) % len(blocks)
+            for key in reversed(pending):
+                result = None if result is None else result + 1
+                if len(cache) >= cache_limit:
+                    cache.popitem(last=False)
+                cache[key] = result
+            return None if result is None else prior_count + result
+
+        for prefix_index in range(state['Prefix'], len(prefixes)):
+            cut, checkpoint = prefixes[prefix_index]
+            first_length = cut - start
+            saved_at, value, remaining, ordinal = checkpoint
+            carry = assembler.read(scan + saved_at, cut - scan - saved_at)
+            for physical in range(max(low, state['Physical']), end - 2, 512):
+                tail_length = end - physical
+                if (physical == cut or first_length + tail_length > MAX_FILE or
+                        physical < cut and start < end or
+                        (total-ordinal)*block_minimum > (len(carry)+tail_length-2)*8+remaining):
+                    continue
+                attempts += 1
+                if attempts > assembler.max_states * 256:
+                    raise InvalidJpeg("jpeg_stream_join_search_incomplete")
+                state.update(End=end_index, Prefix=prefix_index, Physical=physical)
+                if attempts % 128 == 0:
+                    boundary()
+                tail = SourceWindow(assembler, physical, tail_length - 2, pages)
+                bits = Bits(JoinedWindow(carry, tail))
+                bits.value, bits.remaining = value, remaining
+                try:
+                    block(bits, *blocks[ordinal % len(blocks)])
+                except InvalidJpeg:
+                    state.update(Physical=physical+512, Active=None)
+                    continue
+                if bits.at < len(carry):
+                    raise InvalidJpeg("jpeg_stream_checkpoint_invalid")
+                count = suffix(physical - low + bits.at - len(carry), bits.value,
+                               bits.remaining, (ordinal + 1) % len(blocks), total - ordinal - 1)
+                if count is None or ordinal + count + 1 != total:
+                    state.update(Physical=physical+512, Active=None)
+                    continue
+                # Materialize only a fully grammar-verified bounded candidate.
+                parts = [(start, assembler.read(start, first_length)),
+                         (physical, assembler.read(physical, tail_length))]
+                payload = parts[0][1] + parts[1][1]
+                if not assembler.decode(payload, "JPEG"):
+                    state.update(Physical=physical+512, Active=None)
+                    continue
+                digest = hashlib.sha256(payload).digest()
+                if digest in solutions and solutions[digest] != parts:
+                    assembler.skipped["jpeg_gap_source_mapping_ambiguous"] = 1
+                    alias = [[at,len(raw)] for at,raw in parts]+[digest.hex()]
+                    if alias not in state['Aliases']:
+                        if len(state['Aliases'])>=511:
+                            raise InvalidJpeg('jpeg_stream_alias_search_incomplete')
+                        state['Aliases'].append(alias)
+                solutions.setdefault(digest, parts)
+                state['Solutions'] = [[[at,len(raw)] for at,raw in recipe]+[key.hex()]
+                                      for key,recipe in solutions.items()]
+                state.update(Physical=physical+512, Active=None)
+                if len(solutions) > 1:
+                    error = InvalidJpeg("jpeg_gap_ambiguous")
+                    error.recipes = list(solutions.values())
+                    raise error
+            state.update(Prefix=prefix_index+1, Physical=0, Active=None)
+        state.update(End=end_index+1, Prefix=0, Physical=0, Active=None)
+    state['Phase'] = 'complete'
     return list(solutions.values())
 
 
@@ -1122,9 +1456,19 @@ def recover_jpegs(assembler):
                 continue
             baseline_markers = [marker for marker in markers if marker[2] == 0xd9 or 0xd0 <= marker[2] <= 0xd7]
             if not frame["interval"]:
-                for recipe in baseline_gap_paths(assembler, frame, baseline_markers):
+                recipes = baseline_stream_paths(assembler, frame, baseline_markers)
+                if not recipes:
+                    recipes = baseline_gap_paths(assembler, frame, baseline_markers)
+                for recipe in recipes:
                     yield (recipe, "jpeg_gap_structural_candidate",
-                           "Exact baseline Huffman MCU count, one-bit padding, EOI and JPEG decoding agree for a unique minimum-gap byte result within a bounded one/two-gap search. Source jumps and cuts are 512-byte aligned; the first and optional middle run are at most 8 KiB, and the file at most 128 KiB. Reported extents are one replayable mapping; jpeg_gap_source_mapping_ambiguous means original physical placement is unknown. Structural candidate only: original ownership, payload integrity and deletion are not authenticated.")
+                           "Exact baseline Huffman MCU count, one-bit padding, EOI and JPEG decoding agree for a unique minimum-gap byte result within a bounded search. The paged one-gap search supports files up to 64 MiB with no 8 KiB first-run restriction; the additional two-gap hypothesis remains bounded to 128 KiB with first/middle runs up to 8 KiB. Source jumps and cuts are 512-byte aligned. Reported extents are one replayable mapping; jpeg_gap_source_mapping_ambiguous means original physical placement is unknown. Structural candidate only: original ownership, payload integrity and deletion are not authenticated.")
+                if recipes and assembler.jpeg_stream_aliases:
+                    for first,tail,digest in assembler.jpeg_stream_aliases:
+                        recipe = [(at,assembler.read(at,length)) for at,length in (first,tail)]
+                        if hashlib.sha256(b''.join(raw for _,raw in recipe)).hexdigest()!=digest:
+                            raise InvalidJpeg('jpeg_stream_retained_candidate_invalid')
+                        yield (recipe,'jpeg_gap_structural_candidate',
+                               'Byte-identical source alias from the complete bounded one-gap search; physical placement and original ownership are unknown and not authenticated.')
                 continue
             recipes = restart_paths(assembler, frame, baseline_markers)
             for recipe in recipes:

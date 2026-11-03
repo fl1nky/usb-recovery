@@ -23,7 +23,7 @@ namespace UsbRecovery
         }
         sealed class FragmentUnit
         {
-            public Atom Moof;public long Bytes,Time,End;public uint Sequence;public int[] Sizes;
+            public Atom Moof;public long Bytes,Time,End,IndexTime;public uint Sequence;public int[] Sizes;
         }
         sealed class FragmentIndex
         {
@@ -114,15 +114,20 @@ namespace UsbRecovery
             if(atom.Bytes>c.Input.Length-atom.Offset-8)throw new Reject("fmp4_pair_truncated");Atom mdat=AtomAt(c,atom.Offset+atom.Bytes);
             if(mdat.Type!="mdat"||mdat.Bytes>c.Input.Length-mdat.Offset||offset!=atom.Bytes+mdat.Header)throw new Reject("fmp4_relative_data_offset");
             if(count>MaximumSamples-c.Fmp4SampleClaims)throw new Budget();c.Fmp4SampleClaims+=count;
-            var sizes=new int[count];long cursor=mdat.Offset+mdat.Header,end=time;
+            var sizes=new int[count];long cursor=mdat.Offset+mdat.Header,end=time,indexTime=time;
             for(int n=0;n<count;n++){
                 c.Cancel.ThrowIfCancellationRequested();uint d=duration,s=size,f=n==0?firstFlags:sampleFlags,cts=0;
                 if((flags&0x100)!=0)d=Fragment32(raw,ref p,trun.End);if((flags&0x200)!=0)s=Fragment32(raw,ref p,trun.End);if((flags&0x400)!=0)f=Fragment32(raw,ref p,trun.End);if((flags&0x800)!=0)cts=Fragment32(raw,ref p,trun.End);
-                if(d==0||s==0||s>MaximumSampleBytes||cts!=0||(f&0xf0000000)!=0||n==0&&(f&0x10000)!=0||s>mdat.Offset+mdat.Bytes-cursor||end>Int64.MaxValue-d)throw new Reject("fmp4_sample_geometry_invalid");
+                // trun v0 CTS is unsigned; v1 is signed. tfra identifies the
+                // first sample's presentation time, tfdt remains decode time.
+                // FFmpeg movenc.c mov_add_tfra_entries uses dts + cts.
+                long composition=version==1?unchecked((int)cts):(long)cts;
+                if(d==0||s==0||s>MaximumSampleBytes||(f&0xf0000000)!=0||n==0&&(f&0x10000)!=0||s>mdat.Offset+mdat.Bytes-cursor||end>Int64.MaxValue-d||composition< -end||composition>Int64.MaxValue-end)throw new Reject("fmp4_sample_geometry_invalid");
+                if(n==0)indexTime=end+composition;
                 sizes[n]=(int)s;if(!AvcPhysicalValid(c,cursor,sizes[n]))throw new Reject("fmp4_avc_framing_invalid");cursor+=s;end+=d;
             }
             if(p!=trun.End||cursor!=mdat.Offset+mdat.Bytes)throw new Reject("fmp4_mdat_coverage_invalid");
-            return new FragmentUnit{Moof=atom,Bytes=atom.Bytes+mdat.Bytes,Time=time,End=end,Sequence=sequence,Sizes=sizes};
+            return new FragmentUnit{Moof=atom,Bytes=atom.Bytes+mdat.Bytes,Time=time,End=end,IndexTime=indexTime,Sequence=sequence,Sizes=sizes};
         }
         static FragmentIndex ParseFragmentIndex(Atom atom,uint track)
         {
@@ -139,7 +144,7 @@ namespace UsbRecovery
             for(int n=0;n<count;n++){
                 result.Times[n]=version==1?Fragment64(raw,ref p,tfra.End):Fragment32(raw,ref p,tfra.End);result.Offsets[n]=version==1?Fragment64(raw,ref p,tfra.End):Fragment32(raw,ref p,tfra.End);
                 foreach(int shift in new[]{4,2,0}){int bytes=(int)(lengths>>shift&3)+1;if(p>tfra.End-bytes)throw new Reject("fmp4_tfra_truncated");uint value=0;for(int i=0;i<bytes;i++)value=value<<8|raw[p++];if(value!=1)throw new Reject("fmp4_index_subsample_unsupported");}
-                if(result.Offsets[n]<1||result.Offsets[n]>MaximumFileBytes||n==0&&result.Times[n]!=0||n>0&&(result.Times[n]<=result.Times[n-1]||result.Offsets[n]<=result.Offsets[n-1]))throw new Reject("fmp4_index_order_invalid");
+                if(result.Offsets[n]<1||result.Offsets[n]>MaximumFileBytes||n>0&&(result.Times[n]<=result.Times[n-1]||result.Offsets[n]<=result.Offsets[n-1]))throw new Reject("fmp4_index_order_invalid");
             }
             if(p!=tfra.End)throw new Reject("fmp4_index_length_invalid");return result;
         }
@@ -173,7 +178,7 @@ namespace UsbRecovery
             foreach(var atom in c.Moof){FragmentWork(c);try{units.Add(ParseFragmentUnit(c,atom,init));}catch(Reject error){Skip(c.Report,error.Code);}}
             if(c.Mfra.Count==0){c.Report.Fmp4Incomplete=true;throw new Reject("fmp4_index_or_init_layout_unavailable");}
             var unitIndex=new Dictionary<Tuple<uint,long>,List<FragmentUnit>>();
-            foreach(var unit in units){FragmentWork(c);var key=Tuple.Create(unit.Sequence,unit.Time);List<FragmentUnit> values;if(!unitIndex.TryGetValue(key,out values)){values=new List<FragmentUnit>();unitIndex.Add(key,values);}values.Add(unit);}
+            foreach(var unit in units){FragmentWork(c);var key=Tuple.Create(unit.Sequence,unit.IndexTime);List<FragmentUnit> values;if(!unitIndex.TryGetValue(key,out values)){values=new List<FragmentUnit>();unitIndex.Add(key,values);}values.Add(unit);}
             var ftypIndex=new Dictionary<long,List<Atom>>();
             foreach(var atom in c.Ftyp){FragmentWork(c);List<Atom> values;if(!ftypIndex.TryGetValue(atom.Bytes,out values)){values=new List<Atom>();ftypIndex.Add(atom.Bytes,values);}values.Add(atom);}
             var initSources=new List<Atom>();foreach(var atom in c.Moov){FragmentWork(c);if(atom.Raw.Length==moov.Raw.Length&&atom.Raw.SequenceEqual(moov.Raw))initSources.Add(atom);}
@@ -185,7 +190,7 @@ namespace UsbRecovery
                 var options=new List<FragmentUnit>[index.Times.Length];bool absent=false;
                 for(int n=0;n<options.Length;n++){
                     FragmentWork(c);options[n]=new List<FragmentUnit>();List<FragmentUnit> values;
-                    if(unitIndex.TryGetValue(Tuple.Create((uint)(n+1),index.Times[n]),out values))foreach(var unit in values){FragmentWork(c);if(n+1==options.Length||unit.End==index.Times[n+1]&&unit.Bytes==index.Offsets[n+1]-index.Offsets[n])options[n].Add(unit);}
+                    if(unitIndex.TryGetValue(Tuple.Create((uint)(n+1),index.Times[n]),out values))foreach(var unit in values){FragmentWork(c);if((n!=0||unit.Time==0)&&(n+1==options.Length||unit.Bytes==index.Offsets[n+1]-index.Offsets[n]))options[n].Add(unit);}
                     if(options[n].Count==0){absent=true;break;}
                 }
                 if(absent){missing=true;continue;}List<Atom> ftypSources;if(!ftypIndex.TryGetValue(index.Offsets[0]-moov.Bytes,out ftypSources))continue;

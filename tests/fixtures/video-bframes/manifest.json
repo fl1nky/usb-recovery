@@ -1,0 +1,127 @@
+{
+  "Schema": 1,
+  "Generator": "pinned-ffmpeg-native-bframes-v1",
+  "FfmpegSha256": "3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec",
+  "FfprobeSha256": "f0d36ecbbdd3bcfac3efa078c96c7271c2e68b3810595552ac3b7f17e9a65c52",
+  "Scope": "Own12frame AVC fMP4 with Bframes; trunv0 unsigned and trunv1 negative composition times; three intact permuted moof+mdat pairs. Source-only native writer/decoder proof, no device or portable claim.",
+  "Files": [
+    {
+      "Path": "unsigned.mp4",
+      "Bytes": 19403,
+      "Sha256": "63c12df98ea9faa05a108267161833c6b6c20ff5c86a89e49f8be4cec8710596"
+    },
+    {
+      "Path": "unsigned.dd.gz",
+      "Bytes": 22902,
+      "Sha256": "a48bce094a319c772675d430480e00cf90c79f95f207f04f4735480c48e27f55"
+    },
+    {
+      "Path": "unsigned.framemd5",
+      "Bytes": 959,
+      "Sha256": "e9e9b12f8a2789458590f58ea1a15991d059c29023c1b5ee7a73e12bd1134124"
+    },
+    {
+      "Path": "signed.mp4",
+      "Bytes": 19399,
+      "Sha256": "29d95e76cc789467b8281f09eb4ae87f8a796c270b72361429690fcf57719f9b"
+    },
+    {
+      "Path": "signed.dd.gz",
+      "Bytes": 22897,
+      "Sha256": "c806a4fee726cba8bff40a2d4486abef4a995715b31294bc04e77e3ff79cd9bc"
+    },
+    {
+      "Path": "signed.framemd5",
+      "Bytes": 959,
+      "Sha256": "e9e9b12f8a2789458590f58ea1a15991d059c29023c1b5ee7a73e12bd1134124"
+    }
+  ],
+  "Cases": [
+    {
+      "Name": "unsigned",
+      "Image": "unsigned.dd.gz",
+      "ExpandedImage": "unsigned.dd",
+      "Original": "unsigned.mp4",
+      "OriginalSha256": "63c12df98ea9faa05a108267161833c6b6c20ff5c86a89e49f8be4cec8710596",
+      "OriginalBytes": 19403,
+      "SourceSha256": "10906e271dab41035d77d2e7f12ec07b3d32489189b017e8912ba64c17095003",
+      "SourceBytes": 2097152,
+      "FrameSha256": "e9e9b12f8a2789458590f58ea1a15991d059c29023c1b5ee7a73e12bd1134124",
+      "Extents": [
+        {
+          "ImageOffset": 32768,
+          "LogicalOffset": 0,
+          "Length": 28
+        },
+        {
+          "ImageOffset": 1048576,
+          "LogicalOffset": 28,
+          "Length": 713
+        },
+        {
+          "ImageOffset": 1572864,
+          "LogicalOffset": 741,
+          "Length": 6264
+        },
+        {
+          "ImageOffset": 262144,
+          "LogicalOffset": 7005,
+          "Length": 6083
+        },
+        {
+          "ImageOffset": 786432,
+          "LogicalOffset": 13088,
+          "Length": 6210
+        },
+        {
+          "ImageOffset": 1966080,
+          "LogicalOffset": 19298,
+          "Length": 105
+        }
+      ]
+    },
+    {
+      "Name": "signed",
+      "Image": "signed.dd.gz",
+      "ExpandedImage": "signed.dd",
+      "Original": "signed.mp4",
+      "OriginalSha256": "29d95e76cc789467b8281f09eb4ae87f8a796c270b72361429690fcf57719f9b",
+      "OriginalBytes": 19399,
+      "SourceSha256": "04b1e4ea4883d1a311120dfa4c4f95e8c7a07ce8c45dba0c2f245a80fb51c09d",
+      "SourceBytes": 2097152,
+      "FrameSha256": "e9e9b12f8a2789458590f58ea1a15991d059c29023c1b5ee7a73e12bd1134124",
+      "Extents": [
+        {
+          "ImageOffset": 32768,
+          "LogicalOffset": 0,
+          "Length": 24
+        },
+        {
+          "ImageOffset": 1048576,
+          "LogicalOffset": 24,
+          "Length": 713
+        },
+        {
+          "ImageOffset": 1572864,
+          "LogicalOffset": 737,
+          "Length": 6264
+        },
+        {
+          "ImageOffset": 262144,
+          "LogicalOffset": 7001,
+          "Length": 6083
+        },
+        {
+          "ImageOffset": 786432,
+          "LogicalOffset": 13084,
+          "Length": 6210
+        },
+        {
+          "ImageOffset": 1966080,
+          "LogicalOffset": 19294,
+          "Length": 105
+        }
+      ]
+    }
+  ]
+}

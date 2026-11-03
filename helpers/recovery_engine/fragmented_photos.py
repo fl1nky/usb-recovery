@@ -110,6 +110,9 @@ class PhotoAssembler:
         self.png_cursor = 0
         self.unsupported_idat = 0
         self.historical_skipped = Counter()
+        self.jpeg_stream_state, self.jpeg_checkpoint = None, None
+        self.jpeg_stream_cache = None
+        self.jpeg_stream_aliases = []
 
     def notify(self, phase, done, total):
         if not self.streaming_png:
@@ -129,7 +132,8 @@ class PhotoAssembler:
     def active_incomplete(self):
         pending = {key for key, value in self.skipped.items()
                    if key.endswith(('_limit', '_incomplete')) and
-                   (not self.streaming_png or value > self.historical_skipped.get(key, 0))}
+                   (not self.streaming_png and not key.startswith('jpeg_stream_') or
+                    value > self.historical_skipped.get(key, 0))}
         if self.streaming_png and self.unsupported_idat:
             pending.add('png_idat_size_incomplete')
         return sorted(pending)
@@ -590,7 +594,7 @@ def _restore(assembler, journal):
     keys = {'Schema','Binding','Sequence','Previous','Phase','Index','Cursor','Files','Skipped','VerifiedBytes','DecodedBytes'}
     for state in journal.chain:
         expected_keys = keys | ({'PngSearch'} if assembler.streaming_png else set())
-        if (set(state) not in (expected_keys, expected_keys | {'AliasUpdates'}) or
+        if (set(state) - {'AliasUpdates','JpegSearch'} != expected_keys or
                 not isinstance(state['Phase'],str) or state['Phase'] not in {'index','candidates','complete'}):
             raise CheckpointError('PHOTO_CHECKPOINT_STRUCTURE_INVALID')
         incoming = state['Index']
@@ -649,6 +653,9 @@ def _restore(assembler, journal):
             png_state = incoming_png
         if index is None:
             raise CheckpointError('PHOTO_CHECKPOINT_INDEX_INVALID')
+        from jpeg_fragments import validate_stream_state
+        validate_stream_state(state.get('JpegSearch'), assembler)
+        assembler.jpeg_stream_state = copy.deepcopy(state.get('JpegSearch'))
         next_cursor = state['Cursor']
         if not isinstance(next_cursor, dict) or set(next_cursor) != {'Png','Jpeg'}:
             raise CheckpointError('PHOTO_CHECKPOINT_CURSOR_INVALID')
@@ -725,6 +732,7 @@ def _restore(assembler, journal):
     for name in ('starts','jpeg_starts','ihdr','plte','idat','iend'):
         setattr(assembler, name, list(index[name]))
     assembler.skipped.update(skipped)
+    assembler.historical_skipped.update(skipped)
     if assembler.streaming_png:
         assembler.unsupported_idat = index['UnsupportedIdat']
         assembler.sector_index.restore(sector_meta)
@@ -734,7 +742,6 @@ def _restore(assembler, journal):
             if png_state['Phase'] != 'complete' and cursor['Png'] > png_state['StartedAtPng']:
                 raise CheckpointError('PHOTO_CHECKPOINT_PNG_SEARCH_CURSOR_INVALID')
         assembler.png_search_state = png_state
-        assembler.historical_skipped.update(skipped)
     return records, cursor, verified, decoded, phase
 
 
@@ -921,7 +928,8 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 nonlocal committed_records
                 value = dict(Phase=phase_name,Index=_snapshot(assembler) if include_index else None,
                     Cursor=dict(cursor),Files=copy.deepcopy(records[committed_records:]),Skipped=dict(assembler.skipped),
-                    VerifiedBytes=verified_prior+assembler.verified,DecodedBytes=decoded_prior+assembler.decoded)
+                    VerifiedBytes=verified_prior+assembler.verified,DecodedBytes=decoded_prior+assembler.decoded,
+                    JpegSearch=jpeg_fragments.snapshot_stream_state(assembler))
                 if streaming:
                     value['PngSearch'] = (assembler.png_search.snapshot() if assembler.png_search is not None else
                                           copy.deepcopy(assembler.png_search_state))
@@ -940,9 +948,12 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 save('index',True)
             if streaming:
                 assembler.png_checkpoint = lambda: save('candidates')
+            assembler.jpeg_checkpoint = lambda: save('candidates')
             def completed(kind, value):
                 if assembler.active_incomplete():
                     raise LimitReached('candidate_search_incomplete')
+                if kind == 'Jpeg':
+                    assembler.jpeg_stream_state = None
                 cursor[kind] = value
                 save('candidates')
             try:
@@ -997,6 +1008,10 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
             except LimitReached as error:
                 status = "limited"
                 assembler.skipped[str(error)] += 1
+            except BaseException:
+                if assembler.jpeg_stream_state is not None:
+                    save('candidates')
+                raise
             after = os.fstat(stream.fileno())
             stream.seek(0)
             final_sha256 = hashlib.file_digest(stream, "sha256").hexdigest()
@@ -1014,7 +1029,8 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 except LimitReached as error:
                     status = 'limited';assembler.skipped[str(error)] += 1
             elif assembler.index_position == assembler.size and (pending_aliases or len(records) > committed_records or
-                                                                 streaming and assembler.png_search is not None):
+                                                                 streaming and assembler.png_search is not None or
+                                                                 assembler.jpeg_stream_state is not None):
                 # The full source hash is now checked. Keep validated new maps
                 # and weaker evidence durable even if another branch hit a
                 # limit; the cursor remains before the uncompleted candidate.
