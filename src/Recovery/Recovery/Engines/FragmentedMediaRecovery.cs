@@ -53,7 +53,7 @@ namespace UsbRecovery
             public string Status="incomplete";
             public Dictionary<string,int> Skipped=new Dictionary<string,int>(StringComparer.Ordinal);
             public List<Result> Files=new List<Result>();
-            public string Scope="Classic self-contained MP4/MOV, one mdat, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Source-backed unit descriptors and streamed assignment hashes/output avoid a whole-file buffer; AVC validation range-reads NAL headers, AAC and supported HEVC/JPEG reads remain sample-bounded. Unit capacity <=256MiB from 4096 cells/65536-byte units, with 8192 samples and 8192 assignment states, estimated32MiB mapping metadata and the shared512MiB verification budget; whole-chunk recovery remains a fallback up to its existing file bound. Codec indexes are built lazily; bounded AVC header reuse avoids repeated source reads, legacy payload probes are capped at16 times MaxCandidates, and source-read bytes are separately reported. Metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
+            public string Scope="Classic self-contained MP4/MOV, one mdat, exactly one stsz or 4/8/16-bit stz2 sample-size table per track, densely packed non-overlapping chunks; surviving ftyp/moov, optional one free/wide. AVC four-byte NAL lengths, single-layer Main/Main10 HEVC with supplied parameter sets and 1/2/4-byte lengths, or JPEG video, plus AAC-LC mono/stereo. HEVC parameter/slice headers are checked; AVC checks NAL framing/types. Entropy, reference pictures and PCM are not decoded/authenticated. Whole-chunk search uses bracketing geometry or strict AAC syntax at sector/video/container offsets. A separate fallback joins sample-internal splits only in 512..65536-byte logical allocation-unit hypotheses, each unit independently anchored by metadata/sample structure, physical origins sector-congruent with ftyp. It requires complete cross-join syntax, full non-overlapping source coverage and one byte result across all bounded assignments. Source-backed unit descriptors and streamed assignment hashes/output avoid a whole-file buffer; AVC validation range-reads NAL headers, AAC and supported HEVC/JPEG reads remain sample-bounded. Unit capacity <=256MiB from 4096 cells/65536-byte units, with 8192 samples and 8192 assignment states, estimated32MiB mapping metadata and the shared512MiB verification budget; whole-chunk recovery remains a fallback up to its existing file bound. Codec indexes are built lazily; bounded AVC header reuse avoids repeated source reads, legacy payload probes are capped at16 times MaxCandidates, and source-read bytes are separately reported. Metadata repair <=64KiB/eight fragments/64 variants/one million probes. Metadata alternatives undergo whole-file checks before publication. Unanchored opaque interiors, arbitrary nonaligned permutations, HE-AAC/other audio, moof, invented padding/missing bytes are unsupported. Distinct valid complete byte results are ambiguous. Exhausted search reports limited, never successful uniqueness.";
         }
         sealed class Reject:Exception {public string Code;public bool VideoOnly;public Reject(string code){Code=code;}}
         sealed class Budget:Exception {}
@@ -115,6 +115,33 @@ namespace UsbRecovery
         static void FullBox(byte[] raw,Box b,int payload){if(b.End-b.Data<payload+4||U32(raw,b.Data)!=0)throw new Reject("full_box_version_or_size");}
         static int Count(uint n,int maximum){if(n<1||n>maximum)throw new Reject("table_count_limit");return (int)n;}
         static void Exact(Box b,int dataBytes){if(b.End-b.Data!=dataBytes)throw new Reject("table_length");}
+        static int[] SampleSizes(byte[] raw,List<Box> stbl)
+        {
+            var tables=stbl.Where(b=>b.Type=="stsz"||b.Type=="stz2").ToArray();
+            if(tables.Length!=1)throw new Reject("sample_sizes_missing_or_duplicate");
+            Box table=tables[0];FullBox(raw,table,8);
+            int count=Count(U32(raw,table.Data+8),MaximumSamples),bits=32;uint fixedSize=0;
+            if(table.Type=="stsz")fixedSize=U32(raw,table.Data+4);
+            else{
+                if(raw[table.Data+4]!=0||raw[table.Data+5]!=0||raw[table.Data+6]!=0)throw new Reject("compact_sample_sizes_reserved");
+                bits=raw[table.Data+7];if(bits!=4&&bits!=8&&bits!=16)throw new Reject("compact_sample_sizes_field_size");
+            }
+            // Count is bounded before arithmetic/allocation. For an odd 4-bit
+            // count only the last high nibble is a sample; preserve, but do not
+            // interpret, its unused low nibble.
+            Exact(table,fixedSize!=0?12:12+(count*bits+7)/8);
+            var sizes=new int[count];
+            for(int n=0;n<count;n++){
+                uint size;
+                if(fixedSize!=0)size=fixedSize;
+                else if(bits==4)size=(uint)(raw[table.Data+12+n/2]>>(n%2==0?4:0)&15);
+                else if(bits==8)size=raw[table.Data+12+n];
+                else if(bits==16){int at=table.Data+12+n*2;size=(uint)(raw[at]<<8|raw[at+1]);}
+                else size=U32(raw,table.Data+12+n*4);
+                if(size<1||size>MaximumSampleBytes)throw new Reject("sample_size_limit");sizes[n]=(int)size;
+            }
+            return sizes;
+        }
         static Movie ParseMovie(Atom a)
         {
             byte[] raw=a.Raw;var top=Boxes(raw,a.Header,raw.Length);One(top,"mvhd");if(top.Any(b=>b.Type=="mvex"))throw new Reject("fragmented_mp4_unsupported");
@@ -123,8 +150,7 @@ namespace UsbRecovery
                 var t=Children(raw,track);One(t,"tkhd");var mdia=Children(raw,One(t,"mdia"));One(mdia,"mdhd");Box hdlr=One(mdia,"hdlr");FullBox(raw,hdlr,8);string handler=Type(raw,hdlr.Data+8);if(handler!="vide"&&handler!="soun")throw new Reject("track_type_unsupported");
                 var minf=Children(raw,One(mdia,"minf"));var dinf=Children(raw,One(minf,"dinf"));Box dref=One(dinf,"dref");FullBox(raw,dref,4);if(U32(raw,dref.Data+4)!=1)throw new Reject("data_references_unsupported");
                 var refs=Boxes(raw,dref.Data+8,dref.End);Box reference=One(refs,"url ");if(refs.Count!=1||reference.End-reference.Data!=4||U32(raw,reference.Data)!=1)throw new Reject("external_media_unsupported");
-                var stbl=Children(raw,One(minf,"stbl"));Box stsd=One(stbl,"stsd"),stsc=One(stbl,"stsc"),stsz=One(stbl,"stsz"),stts=One(stbl,"stts");
-                if(stbl.Any(b=>b.Type=="stz2"))throw new Reject("compact_sample_sizes_unsupported");
+                var stbl=Children(raw,One(minf,"stbl"));Box stsd=One(stbl,"stsd"),stsc=One(stbl,"stsc"),stts=One(stbl,"stts");
                 FullBox(raw,stsd,4);if(U32(raw,stsd.Data+4)!=1)throw new Reject("sample_descriptions_unsupported");var descriptions=Boxes(raw,stsd.Data+8,stsd.End);if(descriptions.Count!=1)throw new Reject("sample_descriptions_unsupported");Box description=descriptions[0];string codec=description.Type;
                 if(handler=="vide"&&codec!="avc1"&&codec!="avc3"&&codec!="hvc1"&&codec!="hev1"&&codec!="jpeg"&&codec!="mjpg"||handler=="soun"&&codec!="mp4a")throw new Reject("codec_unsupported");
                 int channels=0,audioFrequency=0;if(codec=="mp4a")channels=AudioConfig(raw,description,out audioFrequency);else if(description.End-description.Data<78||raw[description.Data+6]!=0||raw[description.Data+7]!=1)throw new Reject("sample_description_invalid");
@@ -136,7 +162,7 @@ namespace UsbRecovery
                     var extensions=Boxes(raw,description.Data+78,description.End);Box hvcc=One(extensions,"hvcC");byte[] config=new byte[hvcc.End-hvcc.Data];Buffer.BlockCopy(raw,hvcc.Data,config,0,config.Length);
                     string code;if(!HevcSampleValidator.TryParseConfiguration(config,codec,raw[description.Data+24]<<8|raw[description.Data+25],raw[description.Data+26]<<8|raw[description.Data+27],out hevc,out code))throw new Reject(code??"hevc_configuration_invalid");
                 }
-                FullBox(raw,stsz,8);int sampleCount=Count(U32(raw,stsz.Data+8),MaximumSamples);if(hevc!=null&&hevc.SinglePictureOnly&&sampleCount!=1)throw new Reject("hevc_single_picture_sample_count");uint fixedSize=U32(raw,stsz.Data+4);Exact(stsz,fixedSize==0?12+sampleCount*4:12);var sizes=new int[sampleCount];for(int n=0;n<sampleCount;n++){uint size=fixedSize==0?U32(raw,stsz.Data+12+n*4):fixedSize;if(size<1||size>MaximumSampleBytes)throw new Reject("sample_size_limit");sizes[n]=(int)size;}
+                var sizes=SampleSizes(raw,stbl);int sampleCount=sizes.Length;if(hevc!=null&&hevc.SinglePictureOnly&&sampleCount!=1)throw new Reject("hevc_single_picture_sample_count");
                 FullBox(raw,stts,4);int times=Count(U32(raw,stts.Data+4),MaximumSamples);Exact(stts,8+times*8);long timed=0;for(int n=0;n<times;n++){uint count=U32(raw,stts.Data+8+n*8),delta=U32(raw,stts.Data+12+n*8);if(count==0||delta==0)throw new Reject("timing_invalid");timed+=count;}if(timed!=sampleCount)throw new Reject("timing_sample_count");
                 var offsets=stbl.Where(b=>b.Type=="stco"||b.Type=="co64").ToArray();if(offsets.Length!=1)throw new Reject("chunk_offsets_missing_or_duplicate");Box stco=offsets[0];FullBox(raw,stco,4);int chunks=Count(U32(raw,stco.Data+4),MaximumChunks);int width=stco.Type=="co64"?8:4;Exact(stco,8+chunks*width);
                 FullBox(raw,stsc,4);int runs=Count(U32(raw,stsc.Data+4),MaximumChunks);Exact(stsc,8+runs*12);var first=new int[runs];var per=new int[runs];

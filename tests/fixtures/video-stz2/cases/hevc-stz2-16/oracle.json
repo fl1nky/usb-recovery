@@ -1,0 +1,79 @@
+{
+  "name": "hevc-stz2-16",
+  "codec": "hevc",
+  "role": "candidate-gap",
+  "image": "cases\\hevc-stz2-16\\image.dd",
+  "image_bytes": 1048576,
+  "image_sha256": "499fd2af9931c7c133b54e9307a96a5664a0a04b969ccd1b22fa8ea8857b4771",
+  "original": "originals\\hevc-stz2-16.mp4",
+  "original_bytes": 17113,
+  "original_sha256": "685ae0800bc520dab2a66727e9da27453db5d437c254dd77258e8b97ba04cc19",
+  "decoded_frames_sha256": "33c86e2a9411d3943f78c5a7e48b4bdf29bf3b6fcb87c6ec9c0172176d0c0f38",
+  "decoded_frame_count": 12,
+  "table": {
+    "box": "stz2",
+    "field_size": 16,
+    "box_start": 16988,
+    "box_bytes": 44,
+    "sample_sizes": [
+      2029,
+      1699,
+      770,
+      652,
+      2704,
+      613,
+      564,
+      1490,
+      899,
+      535,
+      1151,
+      618
+    ],
+    "first_sample": 44,
+    "sample_count": 12
+  },
+  "physical_extents": [
+    {
+      "logical_offset": 0,
+      "source_offset": 4096,
+      "length": 28,
+      "kind": "ftyp",
+      "sha256": "eca37c7c34a073810c6a56f60a5c2f441296baeec0c500ed6c05e3b67e4c3a70"
+    },
+    {
+      "logical_offset": 28,
+      "source_offset": 131072,
+      "length": 8,
+      "kind": "free",
+      "sha256": "682c8224fbe33872b9478aa45480091d833f099209d319a3f3216c7db13979ef"
+    },
+    {
+      "logical_offset": 36,
+      "source_offset": 196608,
+      "length": 8,
+      "kind": "mdat_header",
+      "sha256": "55073a834309153493a1611c3fbd8c89c9607066358e0d0693808b9eb7cfd074"
+    },
+    {
+      "logical_offset": 44,
+      "source_offset": 262144,
+      "length": 13724,
+      "kind": "sample_chunk",
+      "sha256": "8dc518755c5dbe3614373dc7ebaa60e57e7fb0d22af56ada02d6be58a5bb4d0a"
+    },
+    {
+      "logical_offset": 13768,
+      "source_offset": 65536,
+      "length": 3345,
+      "kind": "moov",
+      "sha256": "fad549b33ac938d52b6e3e3d948dc7a3d169d0680be934f7b1dd0d224f9df7fb"
+    }
+  ],
+  "sector_superset_candidates": [
+    262144
+  ],
+  "superset_gate": "all declared sample/NAL lengths + basic AVC/HEVC NAL header and VCL presence; no entropy assumptions",
+  "uniqueness_scope": "one whole sample-chunk placement among all absolute512 starts; does not assert arbitrary byte splits or entropy authentication",
+  "actual_recovery": "NOT_RUN",
+  "actual_candidates": null
+}

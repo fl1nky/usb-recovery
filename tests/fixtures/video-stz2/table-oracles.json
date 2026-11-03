@@ -1,0 +1,224 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "native_video_cases_added": 0,
+  "positive_packing_controls": 7,
+  "negative_policy_controls": 12,
+  "note": "Not executed by production parser; not extra decoded video/recovery cases.",
+  "sources": [
+    {
+      "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/n8.0/libavformat/mov.c",
+      "observed": "mov_read_stsz, lines3194-3275: field width, packed bit reader and rounded byte count; LGPL2.1-or-later"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/axiomatic-systems/Bento4/master/Source/C%2B%2B/Core/Ap4Stz2Atom.cpp",
+      "observed": "lines83-123: widths4/8/16, ceiling payload bytes, high nibble first, count-bounded read; GPL2-or-later"
+    }
+  ],
+  "padding_limit": "Readers ignore unused low nibble for odd4-bit count. Writer zero filling does not prove a mandatory rejection rule.",
+  "strict_policy_limit": "Version/flags/reserved/exact-length/count/sample-zero rejection are proposed recovery guards, not independently asserted decoder failures.",
+  "controls": [
+    {
+      "name": "4-even",
+      "path": "table-only\\4-even.bin",
+      "bytes": 22,
+      "sha256": "d36eef525bdc1bef074a63dfff6061d0373399bbfc80c8a2e05e0dd1196ed116",
+      "expected_sizes": [
+        1,
+        15,
+        2,
+        14
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "4-odd",
+      "path": "table-only\\4-odd.bin",
+      "bytes": 22,
+      "sha256": "89e2a50895f0cc9817fb6df8220ec03e3bb7b9070a1e1ffdd4c28be6e3df9648",
+      "expected_sizes": [
+        1,
+        2,
+        15
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "8-even",
+      "path": "table-only\\8-even.bin",
+      "bytes": 24,
+      "sha256": "c2feee675f6f0cb8817ac6084d9bff76e459778248f2349ceafc0c0f43bc470f",
+      "expected_sizes": [
+        1,
+        255,
+        13,
+        254
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "8-odd",
+      "path": "table-only\\8-odd.bin",
+      "bytes": 23,
+      "sha256": "3a33314e8458bf6f617117c808b221d92762929390a7f917a915e4fb5fdaa1eb",
+      "expected_sizes": [
+        1,
+        128,
+        255
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "16-even",
+      "path": "table-only\\16-even.bin",
+      "bytes": 28,
+      "sha256": "d25d4f6486a4a909b9df51f53380b1ee84b26b21ea6f73f47a46f4cca1dd0a14",
+      "expected_sizes": [
+        1,
+        65535,
+        256,
+        32768
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "16-odd",
+      "path": "table-only\\16-odd.bin",
+      "bytes": 26,
+      "sha256": "9b77d0546e9ccec0bab7533359539f7d8d6a9d2f8011701b9b2778857ec0bbba",
+      "expected_sizes": [
+        1,
+        256,
+        65535
+      ],
+      "role": "packing",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "4-odd-unused-low-nibble-nonzero",
+      "path": "table-only\\4-odd-unused-low-nibble-nonzero.bin",
+      "bytes": 22,
+      "sha256": "083873e5531577d17af22ec4311b957b88e0727cb794a921d104b4e1accf9b60",
+      "expected_sizes": [
+        1,
+        2,
+        15
+      ],
+      "role": "unused nibble ignored; no normative zero-padding assertion",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-field-0",
+      "path": "table-only\\reject-field-0.bin",
+      "bytes": 23,
+      "sha256": "151b67c996d7e8092bd95a65c26c9f7d26d65a6fd910f7c2ed4ca1de92711bb7",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-field-12",
+      "path": "table-only\\reject-field-12.bin",
+      "bytes": 23,
+      "sha256": "7d69b668b003b354bb1309fddcf156f39689eae5737886d641d6960df1705544",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-field-32",
+      "path": "table-only\\reject-field-32.bin",
+      "bytes": 23,
+      "sha256": "9e9ce013c5889081863092dffbb040ea4f4cf4f22a988f9bfb06d54e07940107",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-version",
+      "path": "table-only\\reject-version.bin",
+      "bytes": 23,
+      "sha256": "2605582c51cd075e341793c1152893d03befa7bb246df336e9372dd9b77cb535",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-flags",
+      "path": "table-only\\reject-flags.bin",
+      "bytes": 23,
+      "sha256": "8894eddee45eb8c37b02a29b04b50a18b7e3a08e50662b038100c4f2c51f1069",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-reserved",
+      "path": "table-only\\reject-reserved.bin",
+      "bytes": 23,
+      "sha256": "bb7635c5eea0bfa37eaae979664081617d27b106ed48709a45b0b74a6a0fe1cd",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-zero-sample",
+      "path": "table-only\\reject-zero-sample.bin",
+      "bytes": 23,
+      "sha256": "bbc2d6a62af43026ef349351cac96d21f9e57c7b3c09bb6e95b68f938d278444",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-short-header",
+      "path": "table-only\\reject-short-header.bin",
+      "bytes": 19,
+      "sha256": "b66eb0314be722df5af25d87fb75cf575e3231faa65f41ce0910b97dcbe4a381",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-missing-table-byte",
+      "path": "table-only\\reject-missing-table-byte.bin",
+      "bytes": 22,
+      "sha256": "274f97aa2131ea9dc9ae7210a3f6bc5fd8940417e484831c6e730f84ead573ed",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-extra-table-byte",
+      "path": "table-only\\reject-extra-table-byte.bin",
+      "bytes": 24,
+      "sha256": "a6c06bb78cd4599c00b85c1d73f40192d364e1a760d6ef0be9481e68c7080bdb",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-count-0",
+      "path": "table-only\\reject-count-0.bin",
+      "bytes": 23,
+      "sha256": "244e88d9d21b4bc00bb8c24e7943c3d2fdbbbedf07ee91910cedc55bad33b92e",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    },
+    {
+      "name": "reject-count-8193",
+      "path": "table-only\\reject-count-8193.bin",
+      "bytes": 23,
+      "sha256": "93cc8e43f3f36bcec111b169e42276c486d1b64ca2dbca62b174b0065747638d",
+      "expected_sizes": null,
+      "role": "proposed strict recovery control",
+      "native_video_decode": "NOT_APPLICABLE_TABLE_ONLY"
+    }
+  ]
+}

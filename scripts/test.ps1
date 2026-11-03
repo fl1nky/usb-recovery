@@ -9,8 +9,15 @@ if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scr
 if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
 & (Join-Path $taskLayout.Tests 'FixtureCacheTests.ps1') -Python312 $Python312
 & (Join-Path $taskLayout.Tests 'OfflineEvidenceTests.ps1') -ProjectRoot $taskLayout.Root
+& $Python312 (Join-Path $taskLayout.Tests 'prepare_archive_regression_fixtures.py')
+if($LASTEXITCODE-ne0){throw 'Owned archive and fragmented ZIP fixture preparation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
+$taskCompactGenerator=Join-Path $taskLayout.Tests 'prepare_stz2_media_fixtures.py'
+$taskCompactTarget=Join-Path $taskLayout.Root '.build\video-stz2-fixtures-current'
+$taskCompactArguments=if(Test-Path -LiteralPath $taskCompactTarget){@('--verify',$taskCompactTarget)}else{@($taskCompactTarget)}
+& $Python312 $taskCompactGenerator @taskCompactArguments
+if($LASTEXITCODE-ne0){throw 'Compact sample-size video fixtures or independent oracle SHA binding failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_jpeg_two_gap_portable_fixtures.py') (Join-Path $taskLayout.Root '.build\jpeg-two-gap-portable-fixtures')
 if($LASTEXITCODE-ne0){throw 'Independent two-gap JPEG fixture generation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_photo_fixtures.py') (Join-Path $taskLayout.Root '.build\photo-portable-fixtures')
@@ -166,6 +173,8 @@ try {
 foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflineTests.ps1'){
  & (Join-Path $taskLayout.Tests $name) -ApplicationDirectory $ApplicationDirectory
 }
+& $Python312 (Join-Path $taskLayout.Tests 'prepare_archive_regression_fixtures.py') --verify
+if($LASTEXITCODE-ne0){throw 'Immutable archive fixture inputs changed during packaged recovery tests.'}
 & (Join-Path $taskLayout.Tests 'ArchiveTextUiTests.ps1')
 & (Join-Path $taskLayout.Tests 'ArchiveTextProtocolAuditTests.ps1')
 & (Join-Path $taskLayout.Tests 'TelegramRollbackUiTests.ps1')

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "scope": "whole declared chunk framing superset at EVERY possible byte start, not arbitrary internal cuts",
+  "actual_recovery": "NOT_RUN",
+  "decoder_oracle": "prior native FFmpeg frames+packets, not executed here",
+  "runtime_source_hashes_unchanged": true,
+  "cases": [
+    {
+      "case": "avc-stsz-control",
+      "image_sha256": "72fa0c2682918179529f5d0797f69a85e765deae056fb40fde7c250ac7fd7c1e",
+      "original_sha256": "5c0cb3048ab0e4e216e15b01d350f9d9b55be0054e49ba6c3e28a8294ea0c89e",
+      "whole_chunk_start_candidates_all_byte_offsets": [
+        262144
+      ],
+      "all_candidate_offsets_checked": 1032683,
+      "elapsed_seconds": 0.297
+    },
+    {
+      "case": "avc-stz2-16",
+      "image_sha256": "f29fd356d7bc1f6b36804d34ee5ef1ca5582a4fd17c3c7c31eba9baba2265aba",
+      "original_sha256": "70106863682cc8dc20420f60742162f661fcf4f7b0a4a1d00b60cbcede944059",
+      "whole_chunk_start_candidates_all_byte_offsets": [
+        262144
+      ],
+      "all_candidate_offsets_checked": 1032683,
+      "elapsed_seconds": 0.281
+    },
+    {
+      "case": "hevc-stsz-control",
+      "image_sha256": "fb43ed1e57fd1f7788694106f6a8f85d84b6bdec7219cdbfab7a3055e93fcfc0",
+      "original_sha256": "4b7751ddeb9b877953c1614eac6f76c0b92fa0bf08740e86b4c7d337d5a1bec5",
+      "whole_chunk_start_candidates_all_byte_offsets": [
+        262144
+      ],
+      "all_candidate_offsets_checked": 1034853,
+      "elapsed_seconds": 0.25
+    },
+    {
+      "case": "hevc-stz2-16",
+      "image_sha256": "499fd2af9931c7c133b54e9307a96a5664a0a04b969ccd1b22fa8ea8857b4771",
+      "original_sha256": "685ae0800bc520dab2a66727e9da27453db5d437c254dd77258e8b97ba04cc19",
+      "whole_chunk_start_candidates_all_byte_offsets": [
+        262144
+      ],
+      "all_candidate_offsets_checked": 1034853,
+      "elapsed_seconds": 0.266
+    }
+  ]
+}
