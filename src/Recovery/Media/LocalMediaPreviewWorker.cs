@@ -24,15 +24,25 @@ namespace UsbRecovery
     {
         readonly Process process=new Process();readonly ProcessJob job=new ProcessJob(768L*1024*1024);readonly object gate=new object();Task outgoing=Task.FromResult(0);
         readonly System.Threading.Timer watchdog;readonly Stopwatch wall=Stopwatch.StartNew();long last;bool opened;int disposed,terminal;
+        volatile LocalMediaPreviewState lastState;
         public event Action<LocalMediaPreviewState> Changed;
-        public LocalMediaPreviewState LastState {get;private set;}
+        public LocalMediaPreviewState LastState {get{return lastState;}}
         public int ProcessId {get;private set;}
         public LocalMediaPreviewSession(IntPtr parent,string source,long bytes,string sha)
+            : this(parent,source,bytes,sha,null)
+        {
+        }
+        internal LocalMediaPreviewSession(IntPtr parent,string source,long bytes,string sha,LocalMediaPreviewState resume)
         {
             process.StartInfo=new ProcessStartInfo(typeof(Program).Assembly.Location,"--local-media-preview-worker"){UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=new UTF8Encoding(false,true)};
             try{
                 process.Start();ProcessId=process.Id;job.Attach(process);last=Stopwatch.GetTimestamp();
-                byte[] input=new UTF8Encoding(false).GetBytes(DocumentPreviewWorker.Json().Serialize(new LocalMediaPreviewWorker.Request{Parent=parent.ToInt64(),Source=source,Bytes=bytes,Sha256=sha})+"\n");
+                var request=new LocalMediaPreviewWorker.Request{Parent=parent.ToInt64(),Source=source,Bytes=bytes,Sha256=sha};
+                if(resume!=null){
+                    request.Position=Math.Min(resume.Position,resume.Duration);
+                    request.Volume=resume.Volume;
+                }
+                byte[] input=new UTF8Encoding(false).GetBytes(DocumentPreviewWorker.Json().Serialize(request)+"\n");
                 process.StandardInput.BaseStream.Write(input,0,input.Length);process.StandardInput.BaseStream.Flush();
                 Task.Run(()=>{try{byte[] buffer=new byte[4096];while(process.StandardError.BaseStream.Read(buffer,0,buffer.Length)>0){} }catch{} });
                 Task.Run(()=>{
@@ -53,7 +63,7 @@ namespace UsbRecovery
                 },null,1000,1000);
             }catch{job.Stop();job.Dispose();process.Dispose();throw new IOException("VIDEO_WORKER_FAILED");}
         }
-        void Notify(LocalMediaPreviewState state){if(Volatile.Read(ref disposed)!=0||Volatile.Read(ref terminal)!=0)return;if(state.State=="error")Interlocked.Exchange(ref terminal,1);LastState=state;var handler=Changed;if(handler!=null)try{handler(state);}catch{} }
+        void Notify(LocalMediaPreviewState state){if(Volatile.Read(ref disposed)!=0||Volatile.Read(ref terminal)!=0)return;if(state.State=="error")Interlocked.Exchange(ref terminal,1);lastState=state;var handler=Changed;if(handler!=null)try{handler(state);}catch{} }
         public void Command(string name,double value=0)
         {
             if(Volatile.Read(ref disposed)!=0)return;
@@ -67,7 +77,13 @@ namespace UsbRecovery
     }
     public static class LocalMediaPreviewWorker
     {
-        public sealed class Request {public int Protocol=1;public long Parent;public string Source,Sha256;public long Bytes;}
+        public sealed class Request
+        {
+            public int Protocol=1;
+            public long Parent,Bytes;
+            public string Source,Sha256;
+            public double Position,Volume=.6;
+        }
         public sealed class Command {public string Action;public double Value;}
         [DllImport("user32.dll")] static extern IntPtr SetParent(IntPtr child,IntPtr parent);
         [DllImport("user32.dll",EntryPoint="GetWindowLong")] static extern int GetStyle(IntPtr window,int index);
@@ -137,14 +153,18 @@ namespace UsbRecovery
                 var controls=new TableLayoutPanel{Dock=DockStyle.Bottom,Height=92,ColumnCount=3,RowCount=3,Padding=new Padding(4)};controls.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,65));controls.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));controls.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,60));for(int i=0;i<3;i++)controls.RowStyles.Add(new RowStyle(SizeType.Percent,33.33F));
                 play.Text="▶";play.Dock=DockStyle.Fill;play.Enabled=false;play.Click+=delegate{Toggle();};controls.Controls.Add(play,0,0);clock.Dock=DockStyle.Fill;clock.TextAlign=ContentAlignment.MiddleLeft;controls.Controls.Add(clock,1,0);controls.SetColumnSpan(clock,2);
                 seek.Dock=DockStyle.Fill;seek.AutoSize=false;seek.TickStyle=TickStyle.None;seek.Maximum=10000;seek.Enabled=false;seek.MouseDown+=delegate{dragging=true;};seek.MouseUp+=delegate{dragging=false;Seek(seek.Value/10000.0*duration);};seek.KeyUp+=delegate{Seek(seek.Value/10000.0*duration);};controls.Controls.Add(seek,0,1);controls.SetColumnSpan(seek,3);
-                controls.Controls.Add(new Label{Text="Звук",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft},0,2);volume.Dock=DockStyle.Fill;volume.AutoSize=false;volume.TickStyle=TickStyle.None;volume.Maximum=100;volume.Value=60;volume.ValueChanged+=delegate{if(!update)media.Volume=volume.Value/100.0;};controls.Controls.Add(volume,1,2);var stop=new Button{Text="■",Dock=DockStyle.Fill};stop.Click+=delegate{media.Pause();media.Position=TimeSpan.Zero;playing=false;ended=false;Publish();};controls.Controls.Add(stop,2,2);Controls.Add(controls);
-                media.LoadedBehavior=System.Windows.Controls.MediaState.Manual;media.UnloadedBehavior=System.Windows.Controls.MediaState.Manual;media.Stretch=Stretch.Uniform;media.ScrubbingEnabled=true;media.Volume=.6;
+                controls.Controls.Add(new Label{Text="Звук",Dock=DockStyle.Fill,TextAlign=ContentAlignment.MiddleLeft},0,2);volume.Dock=DockStyle.Fill;volume.AutoSize=false;volume.TickStyle=TickStyle.None;volume.Maximum=100;volume.Value=(int)Math.Round(request.Volume*100);volume.ValueChanged+=delegate{if(!update)media.Volume=volume.Value/100.0;};controls.Controls.Add(volume,1,2);var stop=new Button{Text="■",Dock=DockStyle.Fill};stop.Click+=delegate{media.Pause();media.Position=TimeSpan.Zero;playing=false;ended=false;Publish();};controls.Controls.Add(stop,2,2);Controls.Add(controls);
+                media.LoadedBehavior=System.Windows.Controls.MediaState.Manual;media.UnloadedBehavior=System.Windows.Controls.MediaState.Manual;media.Stretch=Stretch.Uniform;media.ScrubbingEnabled=true;media.Volume=request.Volume;
                 media.MediaOpened+=delegate{
                     if(!media.NaturalDuration.HasTimeSpan||media.NaturalDuration.TimeSpan.TotalSeconds<=0||media.NaturalDuration.TimeSpan.TotalDays>7){Fail("VIDEO_DURATION_UNAVAILABLE");return;}
                     duration=media.NaturalDuration.TimeSpan.TotalSeconds;if(media.NaturalVideoWidth>32768||media.NaturalVideoHeight>32768||(long)media.NaturalVideoWidth*media.NaturalVideoHeight>64000000){Fail("VIDEO_PIXEL_LIMIT");return;}
                     rotation=orientation.Degrees;
                     if((rotation==90||rotation==270)&&orientation.Width!=orientation.Height&&media.NaturalVideoWidth==orientation.Height&&media.NaturalVideoHeight==orientation.Width)rotation=0;
-                    if(rotation!=0)media.LayoutTransform=new RotateTransform(rotation);opened=true;playing=false;ended=false;code="VIDEO_READY";play.Enabled=seek.Enabled=true;media.Pause();media.Position=TimeSpan.Zero;Publish();
+                    if(rotation!=0)media.LayoutTransform=new RotateTransform(rotation);
+                    opened=true;playing=false;ended=false;code="VIDEO_READY";play.Enabled=seek.Enabled=true;
+                    media.Pause();
+                    media.Position=TimeSpan.FromSeconds(Math.Min(duration,request.Position));
+                    Publish();
                 };
                 media.MediaEnded+=delegate{media.Pause();playing=false;ended=true;code="VIDEO_ENDED";Publish();};
                 media.MediaFailed+=delegate{Fail("VIDEO_UNREADABLE_OR_CODEC_UNAVAILABLE");};
@@ -174,6 +194,9 @@ namespace UsbRecovery
                 if(args==null||args.Length!=1||args[0]!="--local-media-preview-worker")throw new IOException("VIDEO_REQUEST_INVALID");
                 var input=new StreamReader(Console.OpenStandardInput(),new UTF8Encoding(false,true));var request=DocumentPreviewWorker.Json().Deserialize<Request>(DocumentPreviewWorker.Line(input,16384));
                 if(request==null||request.Protocol!=1||request.Parent==0||!IsWindow(new IntPtr(request.Parent))||!Supports(Path.GetExtension(request.Source)))throw new IOException("VIDEO_REQUEST_INVALID");
+                if(double.IsNaN(request.Position)||request.Position<0||request.Position>604800||
+                    double.IsNaN(request.Volume)||request.Volume<0||request.Volume>1)
+                    throw new IOException("VIDEO_REQUEST_INVALID");
                 Emit(new LocalMediaPreviewState{State="verifying",Code="VIDEO_VERIFYING"});
                 using(var source=DocumentPreviewWorker.VerifiedSource(request.Source,request.Bytes,request.Sha256,64L*1024*1024*1024,CancellationToken.None)){
                     var orientation=Inspect(source,Path.GetExtension(request.Source).ToLowerInvariant());

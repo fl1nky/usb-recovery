@@ -211,6 +211,10 @@ public static class DocumentMediaPreviewTests
         string root=Path.Combine(work,"catalog");Directory.CreateDirectory(root);File.Copy(pdf,Path.Combine(root,"multipage.pdf"));File.Copy(video,Path.Combine(root,"local-video.mp4"));File.WriteAllText(Path.Combine(root,"note.txt"),"Synthetic plain text retained.");using(var image=new Bitmap(40,30)){using(var g=Graphics.FromImage(image))g.Clear(Color.Gold);image.Save(Path.Combine(root,"photo.png"),System.Drawing.Imaging.ImageFormat.Png);}
         var index=new RecoveryFileIndex{Candidates=4};foreach(string path in Directory.GetFiles(root)){string relative=Path.GetFileName(path);index.Items.Add(new RecoveredItem{Name=relative,Path=relative,Extension=Path.GetExtension(path),Category=RecoveryCatalog.Category(Path.GetExtension(path)),Bytes=new FileInfo(path).Length,Sha256=Hash(path),Method="Controlled local fixture",Note="Synthetic fixture. Rendering does not establish original integrity."});}RecoveryCore.SaveJson(Path.Combine(root,"files-index.json"),index);return root;
     }
+    static bool VideoPausedAt(LocalMediaPreviewState state,double position,double volume)
+    {
+        return state!=null&&state.State=="paused"&&Math.Abs(state.Position-position)<.18&&Math.Abs(state.Volume-volume)<.02;
+    }
     static void Integration(string root)
     {
         using(var form=new RecoveryFilesForm(root)){
@@ -220,14 +224,51 @@ public static class DocumentMediaPreviewTests
                 if(name.EndsWith(".pdf"))Until(()=>Field<int>(preview,"pages")==3,10000,"catalog selects actual multipage PDF preview");else if(name.EndsWith(".txt"))Until(()=>Field<TextBox>(form,"previewText").Text.Contains("Synthetic plain text"),3000,"existing plain-text preview preserved");else if(name.EndsWith(".png"))Until(()=>Field<PictureBox>(form,"previewImage").Image!=null,3000,"existing photo preview preserved");else Until(()=>Field<LocalMediaPreviewSession>(preview,"video")!=null&&Field<LocalMediaPreviewSession>(preview,"video").LastState!=null&&Field<LocalMediaPreviewSession>(preview,"video").LastState.State=="paused",12000,"catalog selects embedded local video preview");
             }
             Check(Field<RowStyle>(form,"previewFooterRow").Height==0,"media preview uses one status area and keeps viewport space");
-            bool popupReady=false,popupTimedOut=false;int popupPid=0;var popupClock=Stopwatch.StartNew();
+            var embedded=Field<LocalMediaPreviewSession>(preview,"video");
+            double duration=embedded.LastState.Duration;
+            embedded.Command("seek",duration*.28);
+            embedded.Command("volume",.23);
+            Until(()=>VideoPausedAt(embedded.LastState,duration*.28,.23),4000,"embedded video is paused at a nonzero position and custom volume");
+            var beforePopup=embedded.LastState;
+
+            Exception popupFailure=null;
+            LocalMediaPreviewState beforeReturn=null;
+            int popupPid=0;
+            var popupClock=Stopwatch.StartNew();
             using(var closePopup=new System.Windows.Forms.Timer{Interval=100}){
                 closePopup.Tick+=delegate{
-                    var popup=Application.OpenForms.Cast<Form>().FirstOrDefault(x=>x!=form&&x.Text.EndsWith("— просмотр"));if(popup==null)return;var panel=popup.Controls.OfType<DocumentMediaPreviewPanel>().Single();var session=Field<LocalMediaPreviewSession>(panel,"video");
-                    if(session!=null&&session.LastState!=null&&session.LastState.State=="paused"){popupPid=session.ProcessId;popupReady=true;popup.Close();}else if(popupClock.ElapsedMilliseconds>15000){popupTimedOut=true;popup.Close();}
-                };closePopup.Start();Field<Button>(preview,"expand").PerformClick();closePopup.Stop();
+                    var popup=Application.OpenForms.Cast<Form>().FirstOrDefault(x=>x!=form);
+                    if(popup==null)return;
+                    try{
+                        popup.Location=form.Location;
+                        if(popupClock.ElapsedMilliseconds>15000)throw new TimeoutException(popupPid==0
+                            ? "separate video viewer did not open paused at the embedded position and volume"
+                            : "separate video viewer did not apply its new paused position and volume");
+                        var panel=popup.Controls.OfType<DocumentMediaPreviewPanel>().Single();
+                        var session=Field<LocalMediaPreviewSession>(panel,"video");
+                        var state=session==null?null:session.LastState;
+                        if(popupPid==0){
+                            if(!VideoPausedAt(state,beforePopup.Position,beforePopup.Volume))return;
+                            popupPid=session.ProcessId;
+                            session.Command("seek",duration*.72);
+                            session.Command("volume",.79);
+                        }else if(VideoPausedAt(state,duration*.72,.79)){
+                            beforeReturn=state;
+                            popup.Close();
+                        }
+                    }catch(Exception error){popupFailure=error;popup.Close();}
+                };
+                closePopup.Start();
+                Field<Button>(preview,"expand").PerformClick();
+                closePopup.Stop();
             }
-            Check(popupReady&&!popupTimedOut,"separate viewer opens actual native media and closes cleanly");Until(()=>{try{using(var process=Process.GetProcessById(popupPid))return process.HasExited;}catch(ArgumentException){return true;}},3000,"separate viewer closes its own decoder");Until(()=>Field<LocalMediaPreviewSession>(preview,"video")!=null&&Field<LocalMediaPreviewSession>(preview,"video").LastState!=null&&Field<LocalMediaPreviewSession>(preview,"video").LastState.State=="paused",10000,"embedded preview returns paused after separate window closes");
+            if(popupFailure!=null)throw new InvalidOperationException("Separate native video viewer check failed",popupFailure);
+            Check(beforeReturn!=null,"separate viewer opens actual native media, preserves and updates paused playback, and closes cleanly");
+            Until(()=>{try{using(var process=Process.GetProcessById(popupPid))return process.HasExited;}catch(ArgumentException){return true;}},3000,"separate viewer closes its own decoder");
+            Until(()=>{
+                var resumed=Field<LocalMediaPreviewSession>(preview,"video");
+                return resumed!=null&&resumed!=embedded&&VideoPausedAt(resumed.LastState,beforeReturn.Position,beforeReturn.Volume);
+            },10000,"embedded preview returns paused at the separate viewer's changed position and volume");
             Field<CheckBox>(form,"hexMode").Checked=true;Until(()=>Field<TextBox>(form,"previewText").Text.StartsWith("00000000"),3000,"HEX override works for video");Check(Field<LocalMediaPreviewSession>(preview,"video")==null,"HEX switch closes native video decoder");Field<CheckBox>(form,"hexMode").Checked=false;Pump(100);form.Close();Pump(400);Check(Field<LocalMediaPreviewSession>(preview,"video")==null,"catalog close disposes embedded media worker");
         }
     }

@@ -25,17 +25,32 @@ namespace UsbRecovery
         public static bool Supports(string path){string ext=Path.GetExtension(path).ToLowerInvariant();return ext==".pdf"||LocalMediaPreviewWorker.Supports(ext);}
         public void ShowFile(string path,long length,string hash)
         {
-            ShowFile(path,length,hash,null);
+            ShowFile(path,length,hash,null,null);
         }
-        void ShowFile(string path,long length,string hash,DocumentMediaPreviewPanel pdfView)
+        void ShowFile(string path,long length,string hash,DocumentMediaPreviewPanel pdfView,LocalMediaPreviewState videoView)
         {
             Stop();source=path;bytes=length;sha=hash;pdf=Path.GetExtension(path).Equals(".pdf",StringComparison.OrdinalIgnoreCase);
             SetPdfView(pdfView);
             foreach(Control control in new Control[]{previous,next,pageInput,pageLabel,zoom,fit,rotate})control.Visible=pdf;expand.Visible=!fullscreen;Visible=true;image.Visible=pdf;
-            if(pdf)RenderPage();else{
-                Message("Проверка SHA256 и открытие локального видео…");try{
-                    video=new LocalMediaPreviewSession(viewport.Handle,path,length,hash);int current=generation;video.Changed+=delegate(LocalMediaPreviewState state){try{if(!IsDisposed&&IsHandleCreated)BeginInvoke(new Action(()=>{if(!IsDisposed&&current==generation)Message(LocalMediaPreviewWorker.Message(state.Code));}));}catch(InvalidOperationException){} };if(video.LastState!=null)Message(LocalMediaPreviewWorker.Message(video.LastState.Code));
-                }catch(IOException){Message("Не удалось запустить изолированный просмотр видео.");}
+            if(pdf){
+                RenderPage();
+                return;
+            }
+            Message("Проверка SHA256 и открытие локального видео…");
+            try{
+                video=new LocalMediaPreviewSession(viewport.Handle,path,length,hash,videoView);
+                int current=generation;
+                video.Changed+=delegate(LocalMediaPreviewState state){
+                    try{
+                        if(!IsDisposed&&IsHandleCreated)BeginInvoke(new Action(()=>{
+                            if(!IsDisposed&&current==generation)Message(LocalMediaPreviewWorker.Message(state.Code));
+                        }));
+                    }catch(InvalidOperationException){}
+                };
+                var currentState=video.LastState;
+                if(currentState!=null)Message(LocalMediaPreviewWorker.Message(currentState.Code));
+            }catch(IOException){
+                Message("Не удалось запустить изолированный просмотр видео.");
             }
         }
         public void Stop()
@@ -108,11 +123,18 @@ namespace UsbRecovery
             int width=Math.Max(1,(int)Math.Round(display.Width*factor)),height=Math.Max(1,(int)Math.Round(display.Height*factor));var old=image.Image;image.Image=display;image.Size=new Size(width,height);image.Location=new Point(Math.Max(0,(viewport.ClientSize.Width-width)/2),Math.Max(0,(viewport.ClientSize.Height-height)/2));viewport.AutoScrollMinSize=new Size(width,height);if(old!=null)old.Dispose();
             }finally{arranging=false;}
         }
+        LocalMediaPreviewState ReadyVideoState()
+        {
+            var state=video==null?null:video.LastState;
+            if(state==null||(state.State!="paused"&&state.State!="playing"&&state.State!="ended"))return null;
+            return state;
+        }
         void OpenWindow()
         {
             if(source==null)return;string path=source,digest=sha;long length=bytes;
             bool isPdf=pdf;
             int openedGeneration=generation;
+            var videoView=ReadyVideoState();
             // Stop the embedded decoder before creating a second window, so the
             // same selection never plays two audio streams at once.
             if(video!=null){video.Dispose();video=null;}
@@ -120,7 +142,7 @@ namespace UsbRecovery
                 window.Controls.Add(panel);
                 window.Shown+=delegate{
                     var view=isPdf&&generation==openedGeneration&&source==path?this:null;
-                    panel.ShowFile(path,length,digest,view);
+                    panel.ShowFile(path,length,digest,view,videoView);
                 };
                 window.FormClosing+=delegate{
                     try{
@@ -129,12 +151,14 @@ namespace UsbRecovery
                             SetPdfView(panel);
                             if(samePage)ShowRaster();else RenderPage();
                         }
+                        if(!isPdf)videoView=panel.ReadyVideoState()??videoView;
                     }finally{panel.Stop();}
                 };
                 window.KeyDown+=delegate(object sender,KeyEventArgs e){if(e.KeyCode==Keys.Escape){window.Close();e.Handled=true;}};
                 window.ShowDialog(FindForm());
             }
-            if(!IsDisposed&&source==path&&!pdf)ShowFile(path,length,digest);
+            if(!isPdf&&!IsDisposed&&source==path&&generation==openedGeneration)
+                ShowFile(path,length,digest,null,videoView);
         }
         protected override bool ProcessCmdKey(ref System.Windows.Forms.Message message,Keys keyData)
         {
