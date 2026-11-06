@@ -25,7 +25,12 @@ namespace UsbRecovery
         public static bool Supports(string path){string ext=Path.GetExtension(path).ToLowerInvariant();return ext==".pdf"||LocalMediaPreviewWorker.Supports(ext);}
         public void ShowFile(string path,long length,string hash)
         {
-            Stop();source=path;bytes=length;sha=hash;pdf=Path.GetExtension(path).Equals(".pdf",StringComparison.OrdinalIgnoreCase);page=0;pages=0;rotation=0;fitPage=true;zoomFactor=1;
+            ShowFile(path,length,hash,null);
+        }
+        void ShowFile(string path,long length,string hash,DocumentMediaPreviewPanel pdfView)
+        {
+            Stop();source=path;bytes=length;sha=hash;pdf=Path.GetExtension(path).Equals(".pdf",StringComparison.OrdinalIgnoreCase);
+            SetPdfView(pdfView);
             foreach(Control control in new Control[]{previous,next,pageInput,pageLabel,zoom,fit,rotate})control.Visible=pdf;expand.Visible=!fullscreen;Visible=true;image.Visible=pdf;
             if(pdf)RenderPage();else{
                 Message("Проверка SHA256 и открытие локального видео…");try{
@@ -35,9 +40,47 @@ namespace UsbRecovery
         }
         public void Stop()
         {
-            generation++;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();cancellation=null;}if(video!=null){video.Dispose();video=null;}if(image.Image!=null){image.Image.Dispose();image.Image=null;}if(raster!=null){raster.Dispose();raster=null;}source=null;
+            generation++;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();cancellation=null;}if(video!=null){video.Dispose();video=null;}if(image.Image!=null){image.Image.Dispose();image.Image=null;}if(raster!=null){raster.Dispose();raster=null;}source=null;pdf=false;
         }
-        void Navigate(int value){if(!pdf||value<0||pages>0&&value>=pages)return;page=value;RenderPage();}
+        void SetPdfView(DocumentMediaPreviewPanel view)
+        {
+            page=0;
+            pages=0;
+            rotation=0;
+            fitPage=true;
+            zoomFactor=1;
+            int zoomIndex=3;
+            if(view!=null){
+                page=view.page;
+                pages=view.pages;
+                rotation=view.rotation;
+                fitPage=view.fitPage;
+                zoomFactor=view.zoomFactor;
+                zoomIndex=view.zoom.SelectedIndex;
+            }
+            changing=true;
+            try{zoom.SelectedIndex=zoomIndex;}
+            finally{changing=false;}
+            UpdatePdfControls();
+        }
+        void UpdatePdfControls()
+        {
+            changing=true;
+            try{
+                pageInput.Maximum=Math.Max(1,pages);
+                pageInput.Value=page+1;
+            }finally{changing=false;}
+            pageLabel.Text=pages>0?"/ "+pages:"";
+            previous.Enabled=page>0;
+            next.Enabled=page+1<pages;
+            pageInput.Enabled=pages>0;
+        }
+        void Navigate(int value)
+        {
+            if(!pdf||source==null||value<0||value>=pages)return;
+            page=value;
+            RenderPage();
+        }
         async void RenderPage()
         {
             int current=++generation;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();}cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;previous.Enabled=next.Enabled=pageInput.Enabled=false;
@@ -54,7 +97,7 @@ namespace UsbRecovery
                 byte[] png=Convert.FromBase64String(result.Png);
                 if(png.Length<24||png[0]!=137||png[1]!=80||png[2]!=78||png[3]!=71||Read32(png,16)!=result.Width||Read32(png,20)!=result.Height)throw new IOException();
                 using(var memory=new MemoryStream(png,false))using(var original=Image.FromStream(memory,true,true))raster=new Bitmap(original);
-                pages=result.Pages;changing=true;pageInput.Maximum=pages;pageInput.Value=page+1;changing=false;pageLabel.Text="/ "+pages;previous.Enabled=page>0;next.Enabled=page+1<pages;pageInput.Enabled=true;ShowRaster();Message("Страница "+(page+1)+" из "+pages+" · SHA256 совпал. Отрисовка не доказывает исходную полноту.");
+                pages=result.Pages;UpdatePdfControls();ShowRaster();Message("Страница "+(page+1)+" из "+pages+" · SHA256 совпал. Отрисовка не доказывает исходную полноту.");
             }catch{Message("Не удалось прочитать отрисованную страницу. Кандидат сохранён.");}
         }
         static int Read32(byte[] data,int at){return (data[at]<<24)|(data[at+1]<<16)|(data[at+2]<<8)|data[at+3];}
@@ -68,11 +111,28 @@ namespace UsbRecovery
         void OpenWindow()
         {
             if(source==null)return;string path=source,digest=sha;long length=bytes;
+            bool isPdf=pdf;
+            int openedGeneration=generation;
             // Stop the embedded decoder before creating a second window, so the
             // same selection never plays two audio streams at once.
             if(video!=null){video.Dispose();video=null;}
             using(var window=new Form{Text=Path.GetFileName(path)+" — просмотр",ClientSize=new Size(1060,800),MinimumSize=new Size(640,480),StartPosition=FormStartPosition.CenterParent,KeyPreview=true})using(var panel=new DocumentMediaPreviewPanel{fullscreen=true}){
-                window.Controls.Add(panel);window.Shown+=delegate{panel.ShowFile(path,length,digest);};window.FormClosing+=delegate{panel.Stop();};window.KeyDown+=delegate(object sender,KeyEventArgs e){if(e.KeyCode==Keys.Escape){window.Close();e.Handled=true;}};window.ShowDialog(FindForm());
+                window.Controls.Add(panel);
+                window.Shown+=delegate{
+                    var view=isPdf&&generation==openedGeneration&&source==path?this:null;
+                    panel.ShowFile(path,length,digest,view);
+                };
+                window.FormClosing+=delegate{
+                    try{
+                        if(isPdf&&panel.raster!=null&&!IsDisposed&&generation==openedGeneration&&source==path){
+                            bool samePage=page==panel.page&&raster!=null;
+                            SetPdfView(panel);
+                            if(samePage)ShowRaster();else RenderPage();
+                        }
+                    }finally{panel.Stop();}
+                };
+                window.KeyDown+=delegate(object sender,KeyEventArgs e){if(e.KeyCode==Keys.Escape){window.Close();e.Handled=true;}};
+                window.ShowDialog(FindForm());
             }
             if(!IsDisposed&&source==path&&!pdf)ShowFile(path,length,digest);
         }

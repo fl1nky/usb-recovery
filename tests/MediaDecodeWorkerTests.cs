@@ -31,7 +31,10 @@ public static class MediaDecodeWorkerTests
     {
         if(mode=="grandchild"){Thread.Sleep(20000);return 4;}
         if(mode=="no-read"){Thread.Sleep(20000);return 4;}
-        string request=Console.ReadLine();
+        // Match the worker pipe framing even when the test host uses UTF-8.
+        string request;
+        using(var input=new StreamReader(Console.OpenStandardInput(),new UTF8Encoding(true,true),false,4096))
+            request=input.ReadLine();
         if(mode=="hang"){File.WriteAllText(request,Process.GetCurrentProcess().Id.ToString());Thread.Sleep(20000);return 4;}
         if(mode=="tree"){
             using(var child=Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,"--fake-grandchild"){UseShellExecute=false,CreateNoWindow=true})){

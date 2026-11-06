@@ -60,7 +60,9 @@ namespace UsbRecovery
         public static int RunConsole(string[] arguments)
         {
             int result=2;var thread=new Thread(delegate(){
-                try{using(var input=new StreamReader(Console.OpenStandardInput(),new UTF8Encoding(false,true),false,4096))using(var output=new StreamWriter(Console.OpenStandardOutput(),new UTF8Encoding(false),4096)){
+                // .NET can prepend a UTF-8 BOM to the redirected input pipe.
+                // Strip that preamble without detecting or accepting other encodings.
+                try{using(var input=new StreamReader(Console.OpenStandardInput(),new UTF8Encoding(true,true),false,4096))using(var output=new StreamWriter(Console.OpenStandardOutput(),new UTF8Encoding(false),4096)){
                     MediaFoundationValidator.DecodeReport report;try{
                         if(arguments==null||arguments.Length!=1||arguments[0]!="--media-decode-worker")throw new ProtocolFailure();int total=0;string line=ReadLine(input,MaximumRequest,ref total);if(input.Read()!=-1)throw new ProtocolFailure();string source;var limits=Request(line,out source);
                         var clock=Stopwatch.StartNew();long last=-1000;string phase=null;int stream=-2,events=0;

@@ -52,14 +52,126 @@ public static class DocumentMediaPreviewTests
         using(var cancel=new CancellationTokenSource()){cancel.Cancel();bool caught=false;try{Render(pdf,0,null,cancel.Token);}catch(OperationCanceledException){caught=true;}Check(caught,"pre-cancelled render does not launch decoder");}
         using(var cancel=new CancellationTokenSource()){cancel.CancelAfter(20);bool caught=false;var clock=Stopwatch.StartNew();try{Render(pdf,0,null,cancel.Token);}catch(OperationCanceledException){caught=true;}Check(caught&&clock.ElapsedMilliseconds<3000,"in-flight renderer cancellation terminates job promptly");}
     }
+    static void PreviewKey(DocumentMediaPreviewPanel panel,Keys key)
+    {
+        var method=typeof(DocumentMediaPreviewPanel).GetMethod("ProcessCmdKey",BindingFlags.Instance|BindingFlags.NonPublic);
+        var message=Message.Create(panel.Handle,0x0100,(IntPtr)(int)key,IntPtr.Zero);
+        method.Invoke(panel,new object[]{message,key});
+    }
+    static bool ShowsPdfPage(DocumentMediaPreviewPanel panel,int page)
+    {
+        var displayed=Field<PictureBox>(panel,"image").Image as Bitmap;
+        if(displayed==null||Field<int>(panel,"page")!=page)return false;
+        Color pixel=displayed.GetPixel(displayed.Width/2,displayed.Height/2);
+        Color expected=new[]{Color.Red,Color.Lime,Color.Blue}[page];
+        return Math.Abs(pixel.R-expected.R)<5&&Math.Abs(pixel.G-expected.G)<5&&Math.Abs(pixel.B-expected.B)<5;
+    }
+    static void PdfViewer(Form owner,DocumentMediaPreviewPanel embedded,Func<DocumentMediaPreviewPanel,bool> interact)
+    {
+        Exception failure=null;
+        bool escapeHandled=false;
+        var clock=Stopwatch.StartNew();
+        using(var timer=new System.Windows.Forms.Timer{Interval=40}){
+            timer.Tick+=delegate{
+                var window=Application.OpenForms.Cast<Form>().FirstOrDefault(x=>x!=owner);
+                if(window==null)return;
+                try{
+                    window.Location=owner.Location;
+                    if(clock.ElapsedMilliseconds>12000)throw new TimeoutException("PDF viewer did not finish or close");
+                    if(escapeHandled||!interact(window.Controls.OfType<DocumentMediaPreviewPanel>().Single()))return;
+                    var key=new KeyEventArgs(Keys.Escape);
+                    typeof(Form).GetMethod("OnKeyDown",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(window,new object[]{key});
+                    escapeHandled=key.Handled;
+                    if(!escapeHandled)throw new InvalidOperationException("PDF viewer did not handle Escape");
+                }catch(Exception error){failure=error;window.Close();}
+            };
+            timer.Start();
+            Field<Button>(embedded,"expand").PerformClick();
+            timer.Stop();
+        }
+        if(failure!=null)throw new InvalidOperationException("PDF modal viewer check failed",failure);
+        Check(escapeHandled,"Escape closes the separate PDF viewer");
+    }
     static void UiCases(string pdf)
     {
-        using(var form=new Form{ClientSize=new Size(700,600),ShowInTaskbar=false,StartPosition=FormStartPosition.Manual,Location=new Point(-12000,-12000)})using(var panel=new DocumentMediaPreviewPanel()){
-            panel.MessageChanged+=message=>Console.WriteLine("UI "+message);form.Controls.Add(panel);form.Show();panel.ShowFile(pdf,new FileInfo(pdf).Length,Hash(pdf));Until(()=>Field<int>(panel,"pages")==3,10000,"actual preview UI receives rendered page; status="+Field<Label>(panel,"status").Text);
-            var image=Field<PictureBox>(panel,"image");var initial=image.Size;Field<Button>(panel,"next").PerformClick();Until(()=>Field<int>(panel,"page")==1&&Field<Image>(panel,"raster")!=null&&image.Image!=null,10000,"next-page UI renders selected page");
-            using(var displayed=new Bitmap(image.Image))Check(displayed.GetPixel(displayed.Width/2,displayed.Height/2).G>250,"UI displays second-page green pixels");
-            Field<Button>(panel,"rotate").PerformClick();Check(image.Width>image.Height,"PDF rotation swaps display aspect");Field<ComboBox>(panel,"zoom").SelectedItem="200%";Check(image.Width>initial.Width,"PDF zoom changes actual display dimensions");Field<Button>(panel,"fit").PerformClick();Check(image.Width<700&&image.Height<600,"fit-page view stays in viewport");
-            for(int i=0;i<8;i++)panel.ShowFile(pdf,new FileInfo(pdf).Length,Hash(pdf));panel.Stop();Pump(800);Check(Field<Image>(panel,"raster")==null,"rapid reselection then Stop cannot show stale worker results");form.Close();
+        using(var form=new Form{ClientSize=new Size(700,600),ShowInTaskbar=false,StartPosition=FormStartPosition.Manual,Location=new Point(-12000,-12000)})
+        using(var panel=new DocumentMediaPreviewPanel()){
+            int messages=0;
+            panel.MessageChanged+=message=>{messages++;Console.WriteLine("UI "+message);};
+            form.Controls.Add(panel);
+            form.Show();
+
+            long bytes=new FileInfo(pdf).Length;
+            string digest=Hash(pdf);
+            var image=Field<PictureBox>(panel,"image");
+            var zoom=Field<ComboBox>(panel,"zoom");
+            panel.ShowFile(pdf,bytes,digest);
+            PreviewKey(panel,Keys.PageDown);
+            Check(Field<int>(panel,"page")==0,"PageDown during initial PDF loading leaves the first page selected");
+            Until(()=>ShowsPdfPage(panel,0),10000,"first PDF page still renders after early PageDown");
+            object defaultZoom=zoom.SelectedItem;
+            Size initial=image.Size;
+
+            Field<Button>(panel,"next").PerformClick();
+            Until(()=>ShowsPdfPage(panel,1),10000,"next-page UI renders actual green second page");
+            Field<Button>(panel,"rotate").PerformClick();
+            Check(image.Width>image.Height,"PDF rotation swaps display aspect");
+            zoom.SelectedItem="200%";
+            Check(image.Width>initial.Width,"PDF zoom changes actual display dimensions");
+            Size openedSize=image.Size;
+
+            bool edited=false;
+            Size returnedSize=Size.Empty;
+            PdfViewer(form,panel,popup=>{
+                if(!edited){
+                    if(Field<PictureBox>(popup,"image").Image==null)return false;
+                    Check(ShowsPdfPage(popup,1)&&Field<int>(popup,"rotation")==90&&
+                        Equals(Field<ComboBox>(popup,"zoom").SelectedItem,"200%")&&Field<PictureBox>(popup,"image").Size==openedSize,
+                        "separate PDF shows the embedded page, rotation and explicit zoom");
+                    Field<Button>(popup,"rotate").PerformClick();
+                    Field<ComboBox>(popup,"zoom").SelectedItem="150%";
+                    PreviewKey(popup,Keys.PageDown);
+                    edited=true;
+                    return false;
+                }
+                if(!ShowsPdfPage(popup,2))return false;
+                returnedSize=Field<PictureBox>(popup,"image").Size;
+                return true;
+            });
+            Until(()=>ShowsPdfPage(panel,2),10000,"closing the PDF viewer returns its rendered blue third page");
+            Check(Field<int>(panel,"rotation")==180&&Equals(zoom.SelectedItem,"150%")&&image.Size==returnedSize,
+                "closing the PDF viewer returns its changed rotation and zoom");
+
+            PdfViewer(form,panel,popup=>{
+                if(!ShowsPdfPage(popup,2))return false;
+                Field<Button>(popup,"rotate").PerformClick();
+                Field<ComboBox>(popup,"zoom").SelectedItem="75%";
+                PreviewKey(popup,Keys.PageUp);
+                return true;
+            });
+            Pump(400);
+            Check(ShowsPdfPage(panel,2)&&Field<int>(panel,"rotation")==180&&Equals(zoom.SelectedItem,"150%")&&image.Size==returnedSize,
+                "Escape during a new PDF page render retains the embedded page and settings");
+
+            string alternate=Path.Combine(work,"another.pdf");
+            File.Copy(pdf,alternate);
+            panel.ShowFile(alternate,bytes,digest);
+            Check(Equals(zoom.SelectedItem,defaultZoom),"changing PDF resets the zoom selector to its default");
+            Until(()=>ShowsPdfPage(panel,0),10000,"new PDF selection renders its first page");
+            Size fitted=image.Size;
+            zoom.SelectedItem="150%";
+            Check(image.Width>fitted.Width,"the previous PDF's zoom can be selected again in a new file");
+            Field<Button>(panel,"fit").PerformClick();
+            Check(image.Width<700&&image.Height<600,"fit-page view stays in viewport");
+
+            for(int i=0;i<8;i++)panel.ShowFile(pdf,bytes,digest);
+            panel.Stop();
+            int stoppedMessages=messages;
+            PreviewKey(panel,Keys.PageDown);
+            Pump(800);
+            Check(Field<Image>(panel,"raster")==null,"rapid reselection then Stop cannot show stale worker results");
+            Check(messages==stoppedMessages,"PageDown after Stop does not start a PDF worker");
+            form.Close();
         }
         Pump(400);
     }
