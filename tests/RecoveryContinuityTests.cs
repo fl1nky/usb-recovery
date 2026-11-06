@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -37,7 +37,7 @@ public static class RecoveryContinuityTests
     }
     static void CompletionContracts()
     {
-        foreach(var item in new[]{new{Key="refs",File="refs/report.json"},new{Key="partitions",File="partition-search.json"},new{Key="fragmented-media",File="fragmented-media.json"}}){
+        foreach(var item in new[]{new{Key="refs",File="refs/report.json"},new{Key="apfs",File="apfs/report.json"},new{Key="partitions",File="partition-search.json"},new{Key="fragmented-media",File="fragmented-media.json"}}){
             string root=Folder("completion-"+item.Key),file=Path.Combine(root,item.File.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(file));
             foreach(string state in new[]{"limited","partial","running","cancelled","incomplete"}){
                 RecoveryCore.SaveJson(file,new{status=state});bool rejected=false;try{RecoveryStageCompletion.RequireComplete(root,item.Key);}catch(IOException){rejected=true;}Check(rejected,"unfinished "+item.Key+" status "+state+" is never reusable completion");}
@@ -50,7 +50,7 @@ public static class RecoveryContinuityTests
         // These are the public method output contracts, not fabricated recovered files.
         var scopes=new Dictionary<string,string>{
             {"partitions","partition-search.json"},{"fat","filesystem/unit.bin"},{"ntfs","ntfs/unit.bin"},
-            {"ext4","ext4/unit.bin"},{"refs","refs/unit.bin"},{"ntfs-records","metadata-rescue/unit.bin"},
+            {"ext4","ext4/unit.bin"},{"refs","refs/unit.bin"},{"apfs","apfs/unit.bin"},{"ntfs-records","metadata-rescue/unit.bin"},
             {"photorec","files.1/unit.bin"},{"photos","extra-photos/unit.bin"},{"containers","containers/unit.bin"},
             {"archive-members","salvage-content/unit.bin"},{"fragmented-zip","fragmented-archives/unit.bin"},
             {"fragmented-photos","fragmented-photos/unit.bin"},{"fragmented-media","fragmented-media/unit.bin"},
@@ -98,7 +98,7 @@ public static class RecoveryContinuityTests
         try{work=Path.Combine(Path.GetFullPath(args[0]),".build","recovery-continuity-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);
             string source=Path.Combine(work,"source.dd");byte[] data=new byte[8*1024*1024];for(int at=4096;at<data.Length;at+=1024*1024){byte[] text=System.Text.Encoding.UTF8.GetBytes("needle owned synthetic recoverable text fragment\n");Array.Copy(text,0,data,at,text.Length);}File.WriteAllBytes(source,data);string before=Hash(source);
             BoundedAtomicState();Availability(source);CompletionContracts();AllMethodBoundaries(source);LegacyLimitedCompletion(source);ActualCancelAndResume(source,false);ActualCancelAndResume(source,true);Check(Hash(source)==before,"all controlled workflows preserve source bytes");
-            Console.WriteLine("PASS RecoveryContinuity: "+checks+" checks;15 method boundaries, immutable completed reuse and interrupted-output retention, explicit source/output lease failures, bounded atomic state, actual text cancellation with failed persistence and successful resume. Synthetic ordinary files/closed handles only; no physical-device claim.");return 0;
+            Console.WriteLine("PASS RecoveryContinuity: "+checks+" checks;16 method boundaries, immutable completed reuse and interrupted-output retention, explicit source/output lease failures, bounded atomic state, actual text cancellation with failed persistence and successful resume. Synthetic ordinary files/closed handles only; no physical-device claim.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }
