@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -84,6 +84,13 @@ namespace UsbRecovery
                         int found=RefsRecovery.Recover(image,directory,cancel,progress,options.LostPartitions?bootCandidates:null);
                         var report=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<RefsRecovery.Report>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"refs/report.json")));
                         if(report==null||(report.Status!="complete"&&report.Status!="limited"))throw new IOException("refs: проход не завершён; найденные кандидаты сохранены.");
+                        return found;
+                    }});
+                    if(options.ApfsMetadata)methods.Add(new Work{Key="apfs",Name="Записи и метаданные APFS",Run=()=>{
+                        if(FileEvidence.HasUnreadSource(directory,image))throw new IOException("apfs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
+                        int found=ApfsRecovery.Recover(image,directory,cancel,progress,options.LostPartitions&&bootCandidates!=null?bootCandidates.Select(b=>b.Offset):null);
+                        var report=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<ApfsRecovery.Report>(File.ReadAllText(RecoveryCatalog.SafeFile(directory,"apfs/report.json")));
+                        if(report==null||(report.Status!="complete"&&report.Status!="limited"))throw new IOException("apfs: проход не завершён; найденные кандидаты сохранены.");
                         return found;
                     }});
                     if(options.LostPartitions)methods.Add(new Work{Key="partitions",Name="Поиск потерянных разделов по всему образу",Run=()=>{

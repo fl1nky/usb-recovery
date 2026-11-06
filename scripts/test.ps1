@@ -1,4 +1,4 @@
-﻿param([string]$Python312='')
+param([string]$Python312='')
 $ErrorActionPreference='Stop'
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
@@ -134,6 +134,9 @@ Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Py
 $taskRaidCtrlFixtures=Join-Path $taskLayout.Root '.build\raid-controller-fixtures-current'
 $taskRaidCtrlSource=Join-Path $taskLayout.Tests 'fixtures\raid-controller'
 Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'raid_controller_fixture_generator.py') -Source $taskRaidCtrlSource -Destination $taskRaidCtrlFixtures -GeneratorArguments @('--extract',$taskRaidCtrlSource,$taskRaidCtrlFixtures)
+$taskApfsFixtures=Join-Path $taskLayout.Root '.build\apfs-fixtures-current'
+$taskApfsSource=Join-Path $taskLayout.Tests 'fixtures\apfs-salvage'
+Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'apfs_salvage_fixture_generator.py') -Source $taskApfsSource -Destination $taskApfsFixtures -GeneratorArguments @('--extract',$taskApfsSource,'--destination',$taskApfsFixtures)
 $taskHeapFixtures=Join-Path $taskLayout.Root '.build\telegram-heap-portable-fixtures'
 if(-not(Test-Path -LiteralPath (Join-Path $taskHeapFixtures 'manifest.json'))){
  & $Python312 (Join-Path $taskLayout.Tests 'build_telegram_heap_fixtures.py') $taskHeapFixtures
@@ -181,8 +184,14 @@ try {
  & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ ("/win32manifest:"+(Join-Path $taskLayout.Source 'app.manifest')) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+(Join-Path $taskLayout.App 'USB-Recovery.exe')) ("/out:"+$taskBaseline) (Join-Path $taskLayout.Tests 'CommercialComparisonBaseline.cs') (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
  if($LASTEXITCODE-ne0){throw 'Comparison regression build failed.'}
  Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe.config') -Destination ($taskBaseline+'.config')
- & $taskBaseline $taskLayout.Root 'CommercialComparison-after.json'
- if($LASTEXITCODE-ne0){throw 'Comparison regression failed.'}
+ $taskPreviousCompatLayer=$env:__COMPAT_LAYER
+ try {
+  $env:__COMPAT_LAYER='RunAsInvoker'
+  & $taskBaseline $taskLayout.Root 'CommercialComparison-after.json'
+  if($LASTEXITCODE-ne0){throw 'Comparison regression failed.'}
+ } finally {
+  $env:__COMPAT_LAYER=$taskPreviousCompatLayer
+ }
 } finally {foreach($taskFile in @($taskBaseline,($taskBaseline+'.config'))){if(Test-Path -LiteralPath $taskFile){Remove-Item -LiteralPath $taskFile}}}
 foreach($name in 'QualityOfflineTests.ps1','TelegramOfflineTests.ps1','UsbOfflineTests.ps1'){
  & (Join-Path $taskLayout.Tests $name) -ApplicationDirectory $ApplicationDirectory

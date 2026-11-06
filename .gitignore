@@ -88,6 +88,7 @@
 !/tests/fixtures/ext4/
 !/tests/fixtures/refs/
 !/tests/fixtures/raid-controller/
+!/tests/fixtures/apfs-salvage/
 !/tests/fixtures/telegram-cache-profiles/
 !/tests/fixtures/telegram-document-empty/
 !/tests/fixtures/telegram-document-descriptor/

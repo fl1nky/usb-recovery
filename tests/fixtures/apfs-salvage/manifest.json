@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "provenance": "Pure Python synthetic APFS container fixtures with live and unreferenced salvage test cases.",
+  "cases": [
+    {
+      "name": "apfs-live-only",
+      "image": "apfs-live-only.dd",
+      "sha256": "ddfddd6625654bef1455586bd4416d4105ce714d4bc45d82705e4aeb5539a6d5",
+      "volume_name": "LiveVolume",
+      "live_files": [
+        {
+          "path": "hello.txt",
+          "size": 24,
+          "sha256": "ac28c005f747b72f45bea6d729cafd602a157dcfe9552a642ccdf77d8c228625"
+        },
+        {
+          "path": "notes.md",
+          "size": 43,
+          "sha256": "5fa5f1f72a1398940363c46683c8726287749b35adde44e5c1a76a549282d582"
+        }
+      ],
+      "salvaged_files": [],
+      "archive": "apfs-live-only.dd.gz",
+      "archive_sha256": "b3d9e2a4b1942a0b0028b90b96d0e4ffcba9be5addf1d357421542d903b1fd09"
+    },
+    {
+      "name": "apfs-deleted-single",
+      "image": "apfs-deleted-single.dd",
+      "sha256": "ae4517877b05f2636935fda13c09aa57146678816281397f8a1bb142ab40ea63",
+      "volume_name": "SingleDeletedVolume",
+      "live_files": [
+        {
+          "path": "live.txt",
+          "size": 26,
+          "sha256": "a3ecc617f6c593518a45be401653bfb8622ceb9fe38092d856263c692c7771d5"
+        }
+      ],
+      "salvaged_files": [
+        {
+          "path": "secret_deleted.txt",
+          "size": 60,
+          "sha256": "9b5fbbad376df4fb4297bf00389ba6e2b582c24225f3b82b2efafc8045ce8697",
+          "inode": 20
+        }
+      ],
+      "archive": "apfs-deleted-single.dd.gz",
+      "archive_sha256": "8249ae5d281fe2b4a4f81f4fccd2c82737f867c62c47e01e5802692c630793e1"
+    },
+    {
+      "name": "apfs-deleted-fragmented",
+      "image": "apfs-deleted-fragmented.dd",
+      "sha256": "b5d26dd91dba46cff31d8131f24c5011345ca5bb72a1652be21c9c5d396f0f4f",
+      "volume_name": "FragDeletedVolume",
+      "live_files": [
+        {
+          "path": "live.txt",
+          "size": 22,
+          "sha256": "7b172ae3e9dd986c349d94b912ef0981e56da6ff8121b89d6e21c4c3d8d141ea"
+        }
+      ],
+      "salvaged_files": [
+        {
+          "path": "discontiguous_deleted.bin",
+          "size": 6144,
+          "sha256": "48e83d63c1654aa39bbd9f22b29d127cc42100e5e6e67d3473f9d6c0ac71a8c8",
+          "inode": 30
+        }
+      ],
+      "archive": "apfs-deleted-fragmented.dd.gz",
+      "archive_sha256": "cd37051368d0fde66215e587cec72c1ecbe05370b485366a374193f6866ddcaa"
+    },
+    {
+      "name": "apfs-deleted-orphan",
+      "image": "apfs-deleted-orphan.dd",
+      "sha256": "7c1e546de761696cb9772f10a35fc8d68bfcd06381eb59b65d94120907141cb9",
+      "volume_name": "OrphanVolume",
+      "live_files": [
+        {
+          "path": "anchor.txt",
+          "size": 15,
+          "sha256": "d607dbe235fe974f314ab04327348e9739fb4a55a06db4e7b777c25c1919edc1"
+        }
+      ],
+      "salvaged_files": [
+        {
+          "path": "orphan_report.pdf",
+          "size": 69,
+          "sha256": "978f9f7a0ebf6951f03489173298f28d230fe7d2d05d76c84c60db7fd7394ba1",
+          "inode": 40,
+          "is_orphan": true
+        }
+      ],
+      "archive": "apfs-deleted-orphan.dd.gz",
+      "archive_sha256": "be621a21b54c6acb44503dcdecf435363ad5478653d22a81eb802ced5974ff77"
+    },
+    {
+      "name": "apfs-deleted-subfolder",
+      "image": "apfs-deleted-subfolder.dd",
+      "sha256": "615e2907fbc2c4ad93d961b55ae8baaceff05abb146e7d0da112d6833c646808",
+      "volume_name": "SubfolderVolume",
+      "live_files": [
+        {
+          "path": "top.txt",
+          "size": 23,
+          "sha256": "7eec4ac61817d7dd148d5c0c0606adb9205c0cb1f1caccb0b59533941522b78f"
+        }
+      ],
+      "salvaged_files": [
+        {
+          "path": "OldProject/design.txt",
+          "size": 44,
+          "sha256": "a9303762c029bd57e0d1c0f2d0d1cf66b89502d4bb5c9d9fe838073a5a4d27a8",
+          "inode": 51
+        }
+      ],
+      "archive": "apfs-deleted-subfolder.dd.gz",
+      "archive_sha256": "cae8d3ebca7f700f3bf34c8e58a88064e8c6a473568bd5b8560c545a0cd263bb"
+    },
+    {
+      "name": "apfs-checksum-corrupt",
+      "image": "apfs-checksum-corrupt.dd",
+      "sha256": "bc960004cf7cdd49d6b93d16bd0678739e93e9bb86c6e6b78c4e611de2288bd4",
+      "volume_name": "CorruptTestVolume",
+      "live_files": [
+        {
+          "path": "good.txt",
+          "size": 16,
+          "sha256": "e03b363d51b83ff2160459388fb98fe7c821e8d1110036409624833eea7d0aed"
+        }
+      ],
+      "salvaged_files": [],
+      "corrupted_block": 8,
+      "archive": "apfs-checksum-corrupt.dd.gz",
+      "archive_sha256": "d8d7db382059a503d679cbe72b3cbd22e666f4f55f9698ccfda72f272a078601"
+    }
+  ]
+}
