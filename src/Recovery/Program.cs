@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace UsbRecovery
@@ -18,6 +18,10 @@ namespace UsbRecovery
             }
             if(args!=null&&args.Length>0&&args[0]=="--media-decode-worker"){
                 System.Environment.ExitCode=MediaDecodeWorker.RunConsole(args);
+                return;
+            }
+            if(CommandLineHandler.IsCliCommand(args)){
+                System.Environment.ExitCode=CommandLineHandler.Run(args);
                 return;
             }
             Application.EnableVisualStyles();

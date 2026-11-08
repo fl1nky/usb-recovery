@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Python312 = '',
     [switch]$SkipTests,
     [switch]$SkipRebuildBundle
@@ -31,7 +31,7 @@ if(Test-Path -LiteralPath $storageSources){foreach($item in (Get-Content -Litera
 & $envPython -m pip install --no-index --find-links $wheelRoot --require-hashes -r (Join-Path $taskRoot 'helpers\recovery_engine\requirements-wheel-lock.txt')
 if ($LASTEXITCODE -ne 0) { throw 'Could not install the fixed local dependencies.' }
 foreach ($vendorName in @('iphone-backup-decrypt')) {
-    & $envPython -m pip install --no-index --no-deps --no-build-isolation (Join-Path $taskRoot "vendor\$vendorName")
+    & $envPython -m pip install --no-cache-dir --no-index --no-deps --no-build-isolation (Join-Path $taskRoot "vendor\$vendorName")
     if ($LASTEXITCODE -ne 0) { throw "Could not install pinned source: $vendorName" }
 }
 Push-Location $taskRoot

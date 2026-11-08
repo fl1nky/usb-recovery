@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Application
+        shell: powershell
+        run: |
+          .\scripts\build-app.ps1
+
+      - name: Package Portable Distribution
+        shell: powershell
+        run: |
+          .\scripts\package.ps1
+
+      - name: Run Quality Offline Tests
+        shell: powershell
+        run: |
+          $env:__COMPAT_LAYER = 'RunAsInvoker'
+          .\tests\QualityOfflineTests.ps1 -ApplicationDirectory dist\USB-Recovery

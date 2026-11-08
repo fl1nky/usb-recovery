@@ -139,7 +139,7 @@ class PhotoAssembler:
         return sorted(pending)
 
     def read(self, offset, length):
-        if time.monotonic() - self.started > 120:
+        if time.monotonic() - self.started > 300:
             raise LimitReached("time_budget")
         if offset < 0 or length < 0 or length > MAX_FILE or offset > self.size - length:
             return b""
@@ -173,7 +173,7 @@ class PhotoAssembler:
             if commit and position > saved:
                 commit(); saved, saved_at = position,time.monotonic()
         while True:
-            if time.monotonic() - self.started > 120:
+            if time.monotonic() - self.started > 300:
                 checkpoint_prefix()
                 raise LimitReached("index_time_budget")
             counts = [len(values) for values in lists]

@@ -1,6 +1,10 @@
 # Source repository: recovered data, generated runtimes and build caches stay local
 /*
+!/LICENSE
 !/README.md
+!/README.ru.md
+!/CONTRIBUTING.md
+!/.github/
 !/build.ps1
 !/src/
 !/scripts/

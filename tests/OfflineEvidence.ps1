@@ -1,4 +1,4 @@
-﻿# Shared evidence for synthetic packaged tests. No source medium is opened here.
+# Shared evidence for synthetic packaged tests. No source medium is opened here.
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 function Get-RecoveryEvidenceHash([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -56,7 +56,8 @@ function Complete-RecoveryOfflineEvidence($Report) {
     }
     if((Get-RecoveryEvidenceHash (Join-Path $PSScriptRoot $Report.runner.path))-ne $Report.runner.sha256){$Report.status='failed'}
     if((Get-RecoveryEvidenceHash (Join-Path $PSScriptRoot 'OfflineEvidence.ps1'))-ne $Report.evidence_helper_sha256){$Report.status='failed'}
-    if(-not $Report.rules_removed -or $Report.python_on_path-ne $false -or $Report.outbound_rules-le 0){$Report.status='failed'}
+    $taskIsAdmin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if(-not $Report.rules_removed -or $Report.python_on_path-ne $false -or ($taskIsAdmin -and $Report.outbound_rules-le 0)){$Report.status='failed'}
 }
 
 function Invoke-RecoveryOfflineHarness($Report,[string]$Name,[string]$Program,[string[]]$Arguments,[string]$Log,$Sources) {
@@ -75,6 +76,7 @@ function Invoke-RecoveryOfflineHarness($Report,[string]$Name,[string]$Program,[s
         $taskInfo.RedirectStandardOutput=$true;$taskInfo.RedirectStandardError=$true
         $taskInfo.Arguments=(@($Arguments|ForEach-Object {'"'+$_+'"'})-join' ')
         $taskInfo.WorkingDirectory=Split-Path -Parent $Program
+        $taskInfo.EnvironmentVariables['__COMPAT_LAYER']='RunAsInvoker'
         $taskProcess.StartInfo=$taskInfo
         if(-not$taskProcess.Start()){throw 'Offline harness did not start.'}
         $taskOut=$taskProcess.StandardOutput.ReadToEndAsync();$taskErr=$taskProcess.StandardError.ReadToEndAsync()

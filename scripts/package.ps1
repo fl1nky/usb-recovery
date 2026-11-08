@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference='Stop'
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
 $taskRoot=$taskLayout.Root
@@ -26,6 +26,8 @@ New-Item -ItemType Directory -Path $taskStage -Force|Out-Null
 Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe') -Destination (Join-Path $taskStage 'USB-Recovery.exe')
 Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe.config') -Destination (Join-Path $taskStage 'USB-Recovery.exe.config')
 Copy-Item -LiteralPath (Join-Path $taskRoot 'README.md') -Destination (Join-Path $taskStage 'README.md')
+if(Test-Path -LiteralPath (Join-Path $taskRoot 'README.ru.md')){Copy-Item -LiteralPath (Join-Path $taskRoot 'README.ru.md') -Destination (Join-Path $taskStage 'README.ru.md')}
+if(Test-Path -LiteralPath (Join-Path $taskRoot 'LICENSE')){Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination (Join-Path $taskStage 'LICENSE')}
 Copy-RecoveryTree (Join-Path $taskRoot 'docs') (Join-Path $taskStage 'docs')
 $taskSource=Join-Path $taskStage 'source'
 foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-backup-decrypt','docs'){
@@ -33,6 +35,8 @@ foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-ba
 }
 Copy-Item -LiteralPath (Join-Path $taskRoot 'build.ps1') -Destination (Join-Path $taskSource 'build.ps1')
 Copy-Item -LiteralPath (Join-Path $taskRoot 'README.md') -Destination (Join-Path $taskSource 'README.md')
+if(Test-Path -LiteralPath (Join-Path $taskRoot 'README.ru.md')){Copy-Item -LiteralPath (Join-Path $taskRoot 'README.ru.md') -Destination (Join-Path $taskSource 'README.ru.md')}
+if(Test-Path -LiteralPath (Join-Path $taskRoot 'LICENSE')){Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination (Join-Path $taskSource 'LICENSE')}
 New-Item -ItemType Directory -Path (Join-Path $taskSource 'tests') -Force|Out-Null
 foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
  if($file.Extension-in'.cs','.py','.ps1'-or$file.Name-match'(result\.txt|-validation\.json)$'-or$file.Name-in'CommercialComparison-after.json','CommercialComparison-baseline.json','October30-package-audit.json'){

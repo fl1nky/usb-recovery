@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
+param([Parameter(Mandatory=$true)][string]$ApplicationDirectory)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'OfflineEvidence.ps1')
 $taskApp=[IO.Path]::GetFullPath($ApplicationDirectory)
@@ -13,7 +13,7 @@ try {
     if(@(Get-NetFirewallProfile|Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
     $taskNames=@('LongPathRecoveryTests','ContentQualityTests','ArchiveSalvageTests','MetadataRescueTests','NewEngineIntegrationTests','ResumableCaptureTests','RecoverySessionTests','FolderProvenanceTests','FolderExportTests','FragmentedZipRecoveryTests','ApplicationPathsTests','FragmentedMediaRecoveryTests','Stz2MediaRecoveryTests','Fmp4RecoveryTests','MediaWorkflowTests','FragmentedPhotoPortableTests','JpegTwoGapPortableTests','PngIdatGapPortableTests','PngTwoGapPortableTests','PngStreamingPortableTests','PhotoSourceAliasTests','PhotoCatalogTests','ProgressivePhotoPortableTests','AndroidHeapPortableTests','Ext4RecoveryTests','RefsRecoveryTests','RaidControllerRecoveryTests','ApfsRecoveryTests','Ext4WorkflowTests','RaidMetadataProbeTests','RaidMetadataAuditTests','RaidMetadataUiAuditTests','Ext4IntegrationAuditTests','PhotoCheckpointSessionTests','CandidateIntegrityPreservationTests','HelperCheckpointProtocolTests','RecoveryRunLockTests','AacLcValidatorTests','AacSyntaxAuditTests','FragmentedAacRecoveryTests','HevcSampleValidatorTests','HevcRecoveryTests','PhotoCheckpointPortableTests','PhotoCheckpointParentAuditTests','TelegramRecoveryProvenanceUiTests','TelegramRecoveryPortableTests','TelegramRollbackPortableTests','TelegramMediaCachePortableTests','TelegramMediaCacheProfilePortableTests','TelegramDocumentEmptyPortableTests','TelegramDocumentDescriptorPortableTests','TelegramDocumentAttributesPortableTests','TelegramMediaOnlyPortableTests','ArchiveTextPortableTests','FragmentedMediaUnitRecoveryTests','FragmentedMediaScaleTests')
     foreach($taskOptional in 'UserSignatureRecoveryTests','SignatureUiIntegrationTests','RecoveryMotionTests','RecoveryResultsVisualTests','RecoveryStageProgressTests','RaidRecoveryTests','StorageUiTests','StoragePipelineTests','HelperMemoryTests','AtomicJsonSaveTests','ExportTempCollisionTests','StorageWorkflowTests','CaptureProvenanceTests'){if(Test-Path -LiteralPath (Join-Path $PSScriptRoot ($taskOptional+'.cs'))){$taskNames+=$taskOptional}}
-    $taskNames+=@('RecoveryContinuityTests','DocumentMediaPreviewTests','TelegramPlatformPortableTests','JpegVideoExpansionPortableTests')
+    $taskNames+=@('RecoveryContinuityTests','DocumentMediaPreviewTests','TelegramPlatformPortableTests','JpegVideoExpansionPortableTests','CommandLineTests','LocalizationTests')
     foreach($taskName in $taskNames) {
         $taskHarness=Join-Path $taskApp ($taskName+'-OfflineHarness.exe')
         $taskSources=@((Join-Path $PSScriptRoot ($taskName+'.cs')),(Join-Path $PSScriptRoot 'FrameworkTarget.cs'))
@@ -25,7 +25,8 @@ try {
         Initialize-RecoveryHarnessRuntime $taskHarness $taskApp
     }
     $taskPrograms=@($taskHarnesses)+@(Join-Path $taskApp 'USB-Recovery.exe')+@(Join-Path $taskApp 'tools\recovery-helper\recovery-helper.exe')
-    foreach($taskProgram in $taskPrograms){New-NetFirewallRule -DisplayName 'Recovery quality temporary offline test' -Name ($taskGroup+'-'+$taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True|Out-Null;$taskResult.outbound_rules++}
+    $isAdmin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if($isAdmin){foreach($taskProgram in $taskPrograms){New-NetFirewallRule -DisplayName 'Recovery quality temporary offline test' -Name ($taskGroup+'-'+$taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True|Out-Null;$taskResult.outbound_rules++}}
     $env:PATH=Join-Path $env:WINDIR 'System32'
     $taskResult.python_on_path=[bool](Get-Command python.exe -ErrorAction SilentlyContinue)
     if($taskResult.python_on_path){throw 'Python unexpectedly on restricted PATH.'}
