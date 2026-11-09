@@ -34,6 +34,10 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "gallery" }), "gallery is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "serve" }), "serve is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "salvage-office" }), "salvage-office is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "salvage-raw" }), "salvage-raw is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "btrfs-scout" }), "btrfs-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "xfs-scout" }), "xfs-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "zfs-scout" }), "zfs-scout is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -58,6 +62,14 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "serve", Path.Combine(work, "missing.raw") }) == 1, "serve missing file returns 1");
             Check(CommandLineHandler.Run(new[] { "salvage-office" }) == 1, "salvage-office without arguments returns 1");
             Check(CommandLineHandler.Run(new[] { "salvage-office", Path.Combine(work, "missing.raw") }) == 1, "salvage-office missing file returns 1");
+            Check(CommandLineHandler.Run(new[] { "salvage-raw" }) == 2, "salvage-raw without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "salvage-raw", Path.Combine(work, "missing.raw") }) == 2, "salvage-raw missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "btrfs-scout" }) == 2, "btrfs-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "btrfs-scout", Path.Combine(work, "missing.raw") }) == 2, "btrfs-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "xfs-scout" }) == 2, "xfs-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "xfs-scout", Path.Combine(work, "missing.raw") }) == 2, "xfs-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "zfs-scout" }) == 2, "zfs-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "zfs-scout", Path.Combine(work, "missing.raw") }) == 2, "zfs-scout missing file returns 2");
 
             // 4. Synthetic probe test
             string syntheticImage = Path.Combine(work, "synthetic_probe.raw");

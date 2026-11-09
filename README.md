@@ -58,6 +58,14 @@ When files are deleted from FAT, exFAT, or corrupted filesystems, cluster fragme
 - **Apple APFS**: Recovers intact filesystem hierarchies, APFS container superblocks (NXSB/APSB), object maps (OMAP), and salvages unreferenced inodes and extents from wiped volumes.
 - **Windows ReFS 3.14**: Parses ReFS metadata tables and B+ tree leaves to extract files inaccessible by standard Windows drivers.
 - **Linux ext4**: Recovers deleted inodes, traverses extent trees, and recovers uncommitted metadata from the ext4 JBD2 journal.
+- **Linux Btrfs**: Discovers primary and mirror superblocks (`_BHRfS_M`), system chunk array mappings, and parses tree leaves to reconstruct directories, file records, and inline/regular extents.
+- **Linux XFS**: Discovers Allocation Group (AG) superblocks (`XFSB`), parses core inode structures (`IN`), extracts 128-bit packed BMBT extent descriptors, and recovers shortform and block directories.
+- **OpenZFS / ZFS**: Traverses VDEV labels (0, 1, 2, 3), scans 128-slot uberblock arrays (`0x00bab10c`) to resolve the latest active Transaction Group (TXG), and carves root block pointers and dnode object sets.
+
+### 3. Professional Camera RAW Photo Recovery
+- **Canon CR2 & CR3**: Extracts full camera parameters and extracts embedded full-resolution JPEG previews even if the raw bayer payload is partially corrupted.
+- **Nikon NEF, Sony ARW, Adobe DNG, Fujifilm RAF**: Native TIFF IFD and Fuji RAF container traversal, recovering EXIF metadata (Make, Model, Lens, ISO, F-stop, Shutter, Timestamp) and preview JPEGs.
+- **Dedicated Forensic CLI**: `USB-Recovery.exe salvage-raw <path> -o <dir> --extract-previews` for high-throughput batch photo salvage.
 - **NTFS & FAT**: Deep Master File Table (MFT) record carving, $LogFile replay, and VFAT long filename stitching.
 
 ### 3. Application Artifacts & Messenger Recovery
@@ -113,6 +121,18 @@ Designed for forensic workflows, automation scripts, and headless servers:
 
 # Salvage damaged Office documents (DOCX, XLSX, PPTX, ODT) and extract plain text
 .\USB-Recovery.exe salvage-office C:\images\corrupted_evidence.raw -o C:\salvaged_office
+
+# Carve & inspect professional Camera RAW photos (CR2/CR3, NEF, ARW, DNG, RAF) and extract previews
+.\USB-Recovery.exe salvage-raw C:\images\camera_card.raw -o C:\salvaged_photos --extract-previews
+
+# Forensic Btrfs metadata scout, chunk mapping & file extent recovery
+.\USB-Recovery.exe btrfs-scout C:\images\linux_btrfs.img
+
+# Forensic XFS metadata scout, AG superblocks & BMBT extent recovery
+.\USB-Recovery.exe xfs-scout C:\images\linux_xfs.img
+
+# Forensic ZFS pool scout, uberblocks & dnode object traversal
+.\USB-Recovery.exe zfs-scout C:\images\zfs_pool.raw
 
 # Run targeted recovery scan using GNU ddrescue mapfile
 .\USB-Recovery.exe scan C:\images\evidence.raw -o C:\recovered --ddrescue-map C:\images\evidence.map

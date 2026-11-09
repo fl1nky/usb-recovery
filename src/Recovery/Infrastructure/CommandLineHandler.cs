@@ -26,7 +26,7 @@ namespace UsbRecovery
 
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
-                || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office";
+                || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout";
         }
 
         public static int Run(string[] args)
@@ -74,6 +74,18 @@ namespace UsbRecovery
                 case "salvage-office":
                     return ExecuteSalvageOffice(args);
 
+                case "salvage-raw":
+                    return ExecuteSalvageRaw(args);
+
+                case "btrfs-scout":
+                    return ExecuteBtrfsScout(args);
+
+                case "xfs-scout":
+                    return ExecuteXfsScout(args);
+
+                case "zfs-scout":
+                    return ExecuteZfsScout(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -100,6 +112,10 @@ namespace UsbRecovery
             Console.WriteLine("  scan  <image_path> -o <dir>    Execute non-interactive recovery scan on disk image");
             Console.WriteLine("  serve <image_path>             Launch interactive local Web-UI with Cluster Map & Hex Inspector (.raw, .E01)");
             Console.WriteLine("  salvage-office <file_or_image> Salvage damaged DOCX, XLSX, PPTX, ODT documents & extract text");
+            Console.WriteLine("  salvage-raw <path>             Carve & inspect camera RAW photos (CR2/CR3, NEF, ARW, DNG, RAF)");
+            Console.WriteLine("  btrfs-scout <image_path>       Forensic Btrfs metadata scout, chunk mapping & file extent recovery");
+            Console.WriteLine("  xfs-scout <image_path>         Forensic XFS metadata scout, AG superblocks & BMBT extent recovery");
+            Console.WriteLine("  zfs-scout <image_path>         Forensic ZFS pool scout, uberblocks & dnode object traversal");
             Console.WriteLine("  gallery <directory>            Generate HTML photo gallery catalog from recovered files");
             Console.WriteLine("  --version, -v                  Display version, license, and build information");
             Console.WriteLine("  --help, -h                     Display this help message");
@@ -198,6 +214,57 @@ namespace UsbRecovery
                     }
                 }
 
+                // Check for Btrfs superblocks
+                List<BtrfsScout.BtrfsSuperblock> btrfsSbs = null;
+                try
+                {
+                    using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        btrfsSbs = BtrfsScout.ProbeSuperblocks(fs);
+                    }
+                }
+                catch { }
+
+                if (btrfsSbs != null && btrfsSbs.Count > 0)
+                {
+                    Console.WriteLine("Btrfs Superblock Detected: UUID={0}, Label={1}, Generation={2}, Superblocks={3}",
+                        btrfsSbs[0].FsUuid, btrfsSbs[0].Label ?? "N/A", btrfsSbs[0].Generation, btrfsSbs.Count);
+                }
+
+                // Check for XFS superblocks
+                List<XfsScout.XfsSuperblock> xfsSbs = null;
+                try
+                {
+                    using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        xfsSbs = XfsScout.ProbeSuperblocks(fs);
+                    }
+                }
+                catch { }
+
+                if (xfsSbs != null && xfsSbs.Count > 0)
+                {
+                    Console.WriteLine("XFS Superblock Detected: UUID={0}, Label={1}, AGCount={2}, BlockSize={3}",
+                        xfsSbs[0].FsUuid, xfsSbs[0].Label ?? "N/A", xfsSbs[0].AgCount, xfsSbs[0].BlockSize);
+                }
+
+                // Check for ZFS uberblocks
+                List<ZfsScout.ZfsUberblock> zfsUbs = null;
+                try
+                {
+                    using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        zfsUbs = ZfsScout.ProbeUberblocks(fs);
+                    }
+                }
+                catch { }
+
+                if (zfsUbs != null && zfsUbs.Count > 0)
+                {
+                    Console.WriteLine("ZFS Uberblocks Detected: Count={0}, MaxTXG={1}, Timestamp={2}",
+                        zfsUbs.Count, zfsUbs[0].Txg, zfsUbs[0].TimestampUtc);
+                }
+
                 if (json)
                 {
                     var serializer = new JavaScriptSerializer();
@@ -207,7 +274,10 @@ namespace UsbRecovery
                         size = length,
                         e01 = e01Meta != null ? new { total_sectors = e01Meta.TotalSectors, chunk_size = e01Meta.ChunkSize, case_number = e01Meta.CaseNumber, examiner = e01Meta.Examiner, md5 = e01Meta.StoredMd5 } : null,
                         partitions = candidates,
-                        raid = raidReport != null && raidReport.Members != null && raidReport.Members.Count > 0 && raidReport.Members[0].Status != "not_found" ? raidReport.Members[0] : null
+                        raid = raidReport != null && raidReport.Members != null && raidReport.Members.Count > 0 && raidReport.Members[0].Status != "not_found" ? raidReport.Members[0] : null,
+                        btrfs = btrfsSbs != null && btrfsSbs.Count > 0 ? new { uuid = btrfsSbs[0].FsUuid, label = btrfsSbs[0].Label, generation = btrfsSbs[0].Generation, count = btrfsSbs.Count } : null,
+                        xfs = xfsSbs != null && xfsSbs.Count > 0 ? new { uuid = xfsSbs[0].FsUuid, label = xfsSbs[0].Label, ag_count = xfsSbs[0].AgCount, block_size = xfsSbs[0].BlockSize } : null,
+                        zfs = zfsUbs != null && zfsUbs.Count > 0 ? new { count = zfsUbs.Count, max_txg = zfsUbs[0].Txg, timestamp = zfsUbs[0].TimestampUtc.ToString("o") } : null
                     };
                     Console.WriteLine(serializer.Serialize(probeObj));
                 }
@@ -773,6 +843,380 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error salvaging Office document: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteSalvageRaw(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'salvage-raw' requires an input path (file, directory, or image).");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe salvage-raw <path> [-o <output_dir>] [--extract-previews] [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            string output = "salvaged_raw_" + DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            bool json = false;
+            bool extractPreviews = true;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string arg = args[i];
+                if ((arg == "-o" || arg == "--output") && i + 1 < args.Length)
+                {
+                    output = args[++i];
+                }
+                else if (arg == "--json")
+                {
+                    json = true;
+                }
+                else if (arg == "--no-previews")
+                {
+                    extractPreviews = false;
+                }
+                else if (arg == "--extract-previews")
+                {
+                    extractPreviews = true;
+                }
+            }
+
+            if (!File.Exists(target) && !Directory.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target path does not exist: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(output);
+                CameraRawRecovery.SalvageReport report = null;
+
+                if (Directory.Exists(target))
+                {
+                    report = CameraRawRecovery.SalvageDirectory(target, output, extractPreviews, CancellationToken.None, null);
+                }
+                else
+                {
+                    using (var fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        var meta = CameraRawRecovery.Inspect(fs);
+                        if (meta != null && meta.Format != "Unknown")
+                        {
+                            report = CameraRawRecovery.SalvageDirectory(target, output, extractPreviews, CancellationToken.None, null);
+                        }
+                        else
+                        {
+                            var carved = CameraRawRecovery.Carve(fs, CancellationToken.None, null);
+                            report = new CameraRawRecovery.SalvageReport
+                            {
+                                Status = "complete",
+                                FilesInspected = 1,
+                                RawFilesFound = carved.Count
+                            };
+
+                            string previewsDir = Path.Combine(output, "previews");
+                            if (extractPreviews && carved.Count > 0) Directory.CreateDirectory(previewsDir);
+
+                            for (int c = 0; c < carved.Count; c++)
+                            {
+                                var item = carved[c];
+                                string baseName = string.Format("carved_raw_{0:D5}_{1}", c + 1, item.Format.Replace(" ", "_"));
+                                string outRawPath = Path.Combine(output, baseName + ".raw");
+
+                                fs.Seek(item.Offset, SeekOrigin.Begin);
+                                byte[] rawChunk = new byte[item.Length];
+                                int read = fs.Read(rawChunk, 0, rawChunk.Length);
+                                File.WriteAllBytes(outRawPath, rawChunk);
+
+                                string prevPath = null;
+                                if (extractPreviews && item.PreviewBytes != null && item.PreviewBytes.Length > 0)
+                                {
+                                    string previewName = baseName + "-preview.jpg";
+                                    prevPath = Path.Combine("previews", previewName);
+                                    File.WriteAllBytes(Path.Combine(previewsDir, previewName), item.PreviewBytes);
+                                    report.PreviewsExtracted++;
+                                }
+
+                                report.Files.Add(new CameraRawRecovery.CarvedFileEntry
+                                {
+                                    SourceFile = Path.GetFileName(target),
+                                    SourceOffset = item.Offset,
+                                    FileBytes = item.Length,
+                                    Format = item.Format,
+                                    Make = item.Metadata != null ? item.Metadata.Make : null,
+                                    Model = item.Metadata != null ? item.Metadata.Model : null,
+                                    DateTimeOriginal = item.Metadata != null ? item.Metadata.DateTimeOriginal : null,
+                                    PreviewPath = prevPath,
+                                    PreviewBytes = item.PreviewBytes != null ? item.PreviewBytes.Length : 0
+                                });
+                            }
+
+                            var js = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                            File.WriteAllText(Path.Combine(output, "raw-salvage-report.json"), js.Serialize(report), new UTF8Encoding(false));
+                        }
+                    }
+                }
+
+                if (json)
+                {
+                    var js = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(report));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Professional Camera RAW Photo Recovery Engine");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", target);
+                    Console.WriteLine("  Output Directory:  {0}", output);
+                    Console.WriteLine("  RAW Photos Found:  {0}", report.RawFilesFound);
+                    Console.WriteLine("  Previews Carved:   {0}", report.PreviewsExtracted);
+                    Console.WriteLine("--------------------------------------------------------------------------------");
+                    foreach (var f in report.Files)
+                    {
+                        Console.WriteLine("  • [{0}] {1} (Make: {2}, Model: {3}, Date: {4})",
+                            f.Format, f.SourceFile, f.Make ?? "Unknown", f.Model ?? "Unknown", f.DateTimeOriginal ?? "N/A");
+                        if (!string.IsNullOrEmpty(f.PreviewPath))
+                        {
+                            Console.WriteLine("    ↳ Preview JPEG: {0} ({1:N0} bytes)", f.PreviewPath, f.PreviewBytes);
+                        }
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during Camera RAW salvage: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteBtrfsScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'btrfs-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe btrfs-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var result = BtrfsScout.Scout(fs, CancellationToken.None, null);
+
+                    if (json)
+                    {
+                        var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                        Console.WriteLine(js.Serialize(result));
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — Btrfs Forensic Metadata Scout & Tree Traversal");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:            {0}", result.Status);
+                        Console.WriteLine("  Superblocks:       {0} found", result.Superblocks.Count);
+                        foreach (var sb in result.Superblocks)
+                        {
+                            Console.WriteLine("    ↳ Superblock at 0x{0:X}: UUID={1}, Gen={2}, Label='{3}', Chunks={4}",
+                                sb.PhysicalOffset, sb.FsUuid, sb.Generation, sb.Label ?? "None", sb.SystemChunks.Count);
+                        }
+                        Console.WriteLine("  System Chunks:     {0} mappings", result.ChunkTable.Count);
+                        Console.WriteLine("  Directories:       {0}", result.DirectoriesCount);
+                        Console.WriteLine("  Files:             {0} ({1:N0} bytes recoverable)", result.FilesCount, result.TotalRecoverableBytes);
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        Console.WriteLine("  Recovered File Hierarchy:");
+                        int displayed = 0;
+                        foreach (var f in result.Files)
+                        {
+                            if (displayed++ >= 50)
+                            {
+                                Console.WriteLine("  ... and {0} more files", result.Files.Count - 50);
+                                break;
+                            }
+                            string typeStr = f.IsDirectory ? "<DIR>" : string.Format("{0,10:N0} B", f.Size);
+                            Console.WriteLine("  {0,-14} {1} [Extents: {2}]", typeStr, f.FullPath, f.Extents.Count);
+                        }
+                        Console.WriteLine("================================================================================");
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during Btrfs scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteXfsScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'xfs-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe xfs-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var result = XfsScout.Scout(fs, CancellationToken.None, null);
+
+                    if (json)
+                    {
+                        var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                        Console.WriteLine(js.Serialize(result));
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — XFS Allocation Group Metadata Scout & BMBT Traversal");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:            {0}", result.Status);
+                        Console.WriteLine("  Superblocks:       {0} found", result.Superblocks.Count);
+                        foreach (var sb in result.Superblocks)
+                        {
+                            Console.WriteLine("    ↳ AG {0} Superblock at 0x{1:X}: UUID={2}, Label='{3}', BlockSize={4}, AGBlocks={5}",
+                                sb.AllocationGroup, sb.PhysicalOffset, sb.FsUuid, sb.Label ?? "None", sb.BlockSize, sb.AgBlocks);
+                        }
+                        Console.WriteLine("  Directories:       {0}", result.DirectoriesCount);
+                        Console.WriteLine("  Files:             {0} ({1:N0} bytes recoverable)", result.FilesCount, result.TotalRecoverableBytes);
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        Console.WriteLine("  Recovered File Hierarchy:");
+                        int displayed = 0;
+                        foreach (var f in result.Files)
+                        {
+                            if (displayed++ >= 50)
+                            {
+                                Console.WriteLine("  ... and {0} more files", result.Files.Count - 50);
+                                break;
+                            }
+                            string typeStr = f.IsDirectory ? "<DIR>" : string.Format("{0,10:N0} B", f.Size);
+                            Console.WriteLine("  {0,-14} {1} [Extents: {2}]", typeStr, f.FullPath, f.Extents.Count);
+                        }
+                        Console.WriteLine("================================================================================");
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during XFS scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteZfsScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'zfs-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe zfs-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var result = ZfsScout.Scout(fs, CancellationToken.None, null);
+
+                    if (json)
+                    {
+                        var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                        Console.WriteLine(js.Serialize(result));
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — ZFS Pool Uberblock Scout & Block Pointer Traversal");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:            {0}", result.Status);
+                        Console.WriteLine("  Uberblocks Found:  {0}", result.UberblocksFound);
+                        if (result.ActiveUberblock != null)
+                        {
+                            var ub = result.ActiveUberblock;
+                            Console.WriteLine("  Active Uberblock:  TXG={0}, Label={1}, Slot={2}, Offset=0x{3:X}, Time={4}",
+                                ub.Txg, ub.VdevLabel, ub.SlotIndex, ub.PhysicalOffset, ub.TimestampUtc);
+                            if (ub.RootBlockPointer != null)
+                            {
+                                Console.WriteLine("  Root BlockPointer: DVA Sector=0x{0:X}, ByteOffset=0x{1:X}, Alloc={2} B",
+                                    ub.RootBlockPointer.DvaSectorOffset, ub.RootBlockPointer.PhysicalByteOffset, ub.RootBlockPointer.AllocatedBytes);
+                            }
+                        }
+                        Console.WriteLine("  Directories:       {0}", result.DirectoriesCount);
+                        Console.WriteLine("  Files:             {0} ({1:N0} bytes recoverable)", result.FilesCount, result.TotalRecoverableBytes);
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        Console.WriteLine("  Recovered Object Set:");
+                        int displayed = 0;
+                        foreach (var f in result.Files)
+                        {
+                            if (displayed++ >= 50)
+                            {
+                                Console.WriteLine("  ... and {0} more files", result.Files.Count - 50);
+                                break;
+                            }
+                            string typeStr = f.IsDirectory ? "<DIR>" : string.Format("{0,10:N0} B", f.FileSizeBytes);
+                            Console.WriteLine("  {0,-14} {1} [Extents: {2}]", typeStr, f.FullPath, f.BlockExtents.Count);
+                        }
+                        Console.WriteLine("================================================================================");
+                    }
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during ZFS scout: {0}", ex.Message);
                 return 1;
             }
         }

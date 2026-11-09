@@ -75,6 +75,18 @@
 # Восстановление поврежденных документов Office (DOCX, XLSX, PPTX, ODT) и извлечение текста
 .\USB-Recovery.exe salvage-office C:\images\corrupt.docx -o C:\salvaged_office
 
+# Извлечение и карвинг профессиональных RAW-фотографий (CR2/CR3, NEF, ARW, DNG, RAF) с превью
+.\USB-Recovery.exe salvage-raw C:\images\camera_card.raw -o C:\salvaged_photos --extract-previews
+
+# Форензик-анализ и сканирование файловой системы Linux Btrfs (суперблоки, чанки, экстенты)
+.\USB-Recovery.exe btrfs-scout C:\images\linux_btrfs.img
+
+# Форензик-анализ файловой системы Linux XFS (Allocation Groups, BMBT экстенты)
+.\USB-Recovery.exe xfs-scout C:\images\linux_xfs.img
+
+# Форензик-анализ пула OpenZFS / ZFS (VDEV метки, уберблоки, TXG, dnode объекты)
+.\USB-Recovery.exe zfs-scout C:\images\zfs_pool.raw
+
 # Сканирование с импортом карты плохих секторов GNU ddrescue
 .\USB-Recovery.exe scan C:\images\disk.raw -o C:\recovered --ddrescue-map C:\images\disk.map
 ```

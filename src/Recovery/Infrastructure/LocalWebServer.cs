@@ -269,6 +269,16 @@ namespace UsbRecovery
                 var raidReport = RaidMetadataProbe.Probe(new[] { imagePath }, CancellationToken.None);
                 var candidates = BootScout.Find(imagePath, CancellationToken.None, (d, t) => { });
 
+                List<BtrfsScout.BtrfsSuperblock> btrfsSbs = null;
+                try
+                {
+                    using (var fs = OpenImageStream())
+                    {
+                        btrfsSbs = BtrfsScout.ProbeSuperblocks(fs);
+                    }
+                }
+                catch { }
+
                 var partitions = new List<object>();
                 if (candidates != null)
                 {
@@ -299,6 +309,13 @@ namespace UsbRecovery
                         format = raidReport.Members[0].Format,
                         status = raidReport.Members[0].Status,
                         level = raidReport.Members[0].Level
+                    } : null,
+                    btrfs = btrfsSbs != null && btrfsSbs.Count > 0 ? new
+                    {
+                        uuid = btrfsSbs[0].FsUuid,
+                        label = btrfsSbs[0].Label,
+                        generation = btrfsSbs[0].Generation,
+                        superblocks = btrfsSbs.Count
                     } : null
                 };
                 WriteJson(res, data);
