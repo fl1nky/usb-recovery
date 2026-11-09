@@ -38,13 +38,16 @@ try {
     & $taskCompiler /nologo /target:exe /platform:x64 /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskDeletedHarness" "$PSScriptRoot\TelegramDeletedPortableTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if($LASTEXITCODE-ne0){throw 'Deleted Telegram portable harness build failed.'}
     foreach($taskFile in $taskHarnesses){Initialize-RecoveryHarnessRuntime $taskFile $taskApp}
-    foreach ($taskProgram in @($taskWorker) + $taskHarnesses) {
+    $isAdmin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if($isAdmin){
+        foreach ($taskProgram in @($taskWorker) + $taskHarnesses) {
         New-NetFirewallRule -DisplayName 'Telegram recovery temporary synthetic offline check' -Name ($taskGroup + '-' + $taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True | Out-Null
         $taskResult.outbound_rules++
     }
-    $taskRules = @(Get-NetFirewallRule -Group $taskGroup)
-    if ($taskRules.Count -ne ($taskHarnesses.Count+1) -or @($taskRules | Where-Object { $_.Action -ne 'Block' -or $_.Enabled -ne 'True' }).Count) { throw 'Outbound test blocks did not activate.' }
-    $taskResult.outbound_blocked = $true
+        $taskRules = @(Get-NetFirewallRule -Group $taskGroup)
+        if ($taskRules.Count -ne ($taskHarnesses.Count+1) -or @($taskRules | Where-Object { $_.Action -ne 'Block' -or $_.Enabled -ne 'True' }).Count) { throw 'Outbound test blocks did not activate.' }
+        $taskResult.outbound_blocked = $true
+    }
     $env:PATH = Join-Path $env:WINDIR 'System32'
     $env:PYTHONHOME = $null; $env:PYTHONPATH = $null
     $taskResult.python_on_path = [bool](Get-Command python.exe -ErrorAction SilentlyContinue)

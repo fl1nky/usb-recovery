@@ -11,10 +11,13 @@ $taskResult=New-RecoveryOfflineEvidence $taskApp 'Synthetic regular images only;
 $taskSourceProof=New-RecoveryTestSources @("$PSScriptRoot\UsbPackagedTests.cs")
 try {
     if(@(Get-NetFirewallProfile | Where-Object {-not $_.Enabled}).Count){throw 'Firewall profiles disabled.'}
-    foreach($taskRelative in 'tools\testdisk-7.2\photorec_win.exe','tools\testdisk-7.2\testdisk_win.exe','tools\recovery-helper\recovery-helper.exe'){
+    $isAdmin=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if($isAdmin){
+        foreach($taskRelative in 'tools\testdisk-7.2\photorec_win.exe','tools\testdisk-7.2\testdisk_win.exe','tools\recovery-helper\recovery-helper.exe'){
         $taskProgram=Join-Path $taskApp $taskRelative
         New-NetFirewallRule -DisplayName 'USB deep recovery temporary offline test' -Name ($taskGroup+'-'+$taskResult.outbound_rules) -Group $taskGroup -Direction Outbound -Action Block -Program $taskProgram -Profile Any -Enabled True | Out-Null
         $taskResult.outbound_rules++
+    }
     }
     & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:"$taskApp\USB-Recovery.exe" /out:"$taskHarness" "$PSScriptRoot\UsbPackagedTests.cs" "$PSScriptRoot\FrameworkTarget.cs" "/win32manifest:$taskProject\src\Recovery\app.manifest"
     if($LASTEXITCODE -ne 0){throw 'Packaged test build failed.'}

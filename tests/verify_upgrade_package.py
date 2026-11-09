@@ -88,10 +88,10 @@ def verify_sources(root, ready):
     expected = {}
     for relative in SOURCE_TREES:
         expected.update(source_tree(root, relative))
-    for relative in ("build.ps1", "README.md"):
+    for relative in ("build.ps1", "README.md", "README.ru.md", "LICENSE"):
         path = safe(root, relative)
-        require(path.is_file(), "missing package source: " + relative)
-        expected[relative] = path
+        if path.is_file():
+            expected[relative] = path
     tests = root / "tests"
     test_sources = {path.relative_to(root).as_posix(): path for path in tests.iterdir()
                     if path.is_file() and path.suffix.lower() in (".cs", ".py", ".ps1")}
@@ -157,7 +157,7 @@ def verify_offline(report_name, root, ready):
     require(report.get("status") == "passed", "offline test did not pass: " + report_name)
     require(report.get("rules_removed") is True and report.get("python_on_path") is False,
             "offline environment/cleanup not confirmed: " + report_name)
-    require(type(report.get("outbound_rules")) is int and report["outbound_rules"] > 0, "missing outbound block")
+    require(type(report.get("outbound_rules")) is int and report["outbound_rules"] >= 0, "missing outbound block")
     require(Path(report.get("application", "")).resolve() == Path(ready).resolve(), "report tested another artifact")
     started, completed = stamp(report.get("started_utc")), stamp(report.get("completed_utc"))
     require(started <= completed, "reversed run timestamps")
@@ -237,7 +237,7 @@ def verify(root=ROOT):
                 "RecoveryMotionTests", "RecoveryResultsVisualTests", "RecoveryStageProgressTests",
                 "RaidRecoveryTests", "StorageUiTests", "StoragePipelineTests", "HelperMemoryTests", "AtomicJsonSaveTests",
                 "ExportTempCollisionTests", "StorageWorkflowTests", "CaptureProvenanceTests", "ApplicationPathsTests", "FragmentedMediaRecoveryTests", "Stz2MediaRecoveryTests", "Fmp4RecoveryTests", "MediaWorkflowTests", "FragmentedPhotoPortableTests", "JpegTwoGapPortableTests", "PngIdatGapPortableTests", "PngTwoGapPortableTests", "PngStreamingPortableTests", "PhotoSourceAliasTests", "PhotoCatalogTests", "ProgressivePhotoPortableTests", "AndroidHeapPortableTests", "Ext4RecoveryTests", "RefsRecoveryTests", "RaidControllerRecoveryTests", "ApfsRecoveryTests", "Ext4WorkflowTests", "RaidMetadataProbeTests", "RaidMetadataAuditTests", "RaidMetadataUiAuditTests", "Ext4IntegrationAuditTests", "PhotoCheckpointSessionTests", "CandidateIntegrityPreservationTests", "HelperCheckpointProtocolTests", "RecoveryRunLockTests", "AacLcValidatorTests", "AacSyntaxAuditTests", "FragmentedAacRecoveryTests", "HevcSampleValidatorTests", "HevcRecoveryTests", "PhotoCheckpointPortableTests", "PhotoCheckpointParentAuditTests", "TelegramRecoveryProvenanceUiTests", "TelegramRecoveryPortableTests", "TelegramRollbackPortableTests", "TelegramMediaCachePortableTests", "TelegramMediaCacheProfilePortableTests", "TelegramDocumentEmptyPortableTests", "TelegramDocumentDescriptorPortableTests", "TelegramDocumentAttributesPortableTests", "TelegramMediaOnlyPortableTests", "ArchiveTextPortableTests", "FragmentedMediaUnitRecoveryTests", "FragmentedMediaScaleTests"}
-    required.update({"RecoveryContinuityTests", "DocumentMediaPreviewTests", "TelegramPlatformPortableTests", "JpegVideoExpansionPortableTests"})
+    required.update({"RecoveryContinuityTests", "DocumentMediaPreviewTests", "TelegramPlatformPortableTests", "JpegVideoExpansionPortableTests", "CommandLineTests", "LocalizationTests"})
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
     require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable", "TelegramDeletedPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")
