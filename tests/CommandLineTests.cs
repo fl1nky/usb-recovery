@@ -32,6 +32,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "probe" }), "probe is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "scan" }), "scan is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "gallery" }), "gallery is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "serve" }), "serve is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -52,6 +53,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "scan", Path.Combine(work, "missing.raw"), "-o", work }) == 1, "scan missing file returns 1");
             Check(CommandLineHandler.Run(new[] { "gallery" }) == 2, "gallery without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "gallery", Path.Combine(work, "missing_dir") }) == 1, "gallery missing dir returns 1");
+            Check(CommandLineHandler.Run(new[] { "serve" }) == 1, "serve without arguments returns 1");
+            Check(CommandLineHandler.Run(new[] { "serve", Path.Combine(work, "missing.raw") }) == 1, "serve missing file returns 1");
 
             // 4. Synthetic probe test
             string syntheticImage = Path.Combine(work, "synthetic_probe.raw");

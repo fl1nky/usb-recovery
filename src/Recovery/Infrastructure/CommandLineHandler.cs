@@ -26,7 +26,7 @@ namespace UsbRecovery
 
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
-                || first == "probe" || first == "scan" || first == "gallery";
+                || first == "probe" || first == "scan" || first == "gallery" || first == "serve";
         }
 
         public static int Run(string[] args)
@@ -68,6 +68,9 @@ namespace UsbRecovery
                 case "gallery":
                     return ExecuteGallery(args);
 
+                case "serve":
+                    return ExecuteServe(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -92,6 +95,7 @@ namespace UsbRecovery
             Console.WriteLine("Commands:");
             Console.WriteLine("  probe <image_path>             Inspect disk image, partition table and filesystem types");
             Console.WriteLine("  scan  <image_path> -o <dir>    Execute non-interactive recovery scan on disk image");
+            Console.WriteLine("  serve <image_path>             Launch interactive local Web-UI with Cluster Map & Hex Inspector");
             Console.WriteLine("  gallery <directory>            Generate HTML photo gallery catalog from recovered files");
             Console.WriteLine("  --version, -v                  Display version, license, and build information");
             Console.WriteLine("  --help, -h                     Display this help message");
@@ -107,6 +111,9 @@ namespace UsbRecovery
             Console.WriteLine("                                   archives: Central-directory and fragmented archive salvage (ZIP)");
             Console.WriteLine("  --fs <auto|all|ntfs|fat|ext4|refs|apfs>");
             Console.WriteLine("                                 Specific filesystem metadata parser (default: all)");
+            Console.WriteLine("  --ddrescue-map <mapfile>       Import GNU ddrescue mapfile to focus carving on rescued sectors");
+            Console.WriteLine("  -p, --port <port>              Port for local Web-UI server (default: 8080)");
+            Console.WriteLine("  --open-browser                 Automatically open web browser on startup");
             Console.WriteLine("  --checksum <sha256_file>       Path to .sha256 verification file (auto-generated if missing)");
             Console.WriteLine("  --json                         Output scan events and final summary in JSON format");
             Console.WriteLine();
@@ -201,6 +208,7 @@ namespace UsbRecovery
             string mode = "full";
             string fs = "all";
             string checksumFile = null;
+            string ddrescueMapFile = null;
             bool json = false;
 
             for (int i = 2; i < args.Length; i++)
@@ -222,6 +230,10 @@ namespace UsbRecovery
                 {
                     checksumFile = Path.GetFullPath(args[++i]);
                 }
+                else if (a == "--ddrescue-map" && i + 1 < args.Length)
+                {
+                    ddrescueMapFile = Path.GetFullPath(args[++i]);
+                }
                 else if (a == "--json")
                 {
                     json = true;
@@ -237,6 +249,21 @@ namespace UsbRecovery
             if (!Directory.Exists(outputDir))
             {
                 Directory.CreateDirectory(outputDir);
+            }
+
+            if (!string.IsNullOrEmpty(ddrescueMapFile))
+            {
+                if (!File.Exists(ddrescueMapFile))
+                {
+                    Console.Error.WriteLine("Error: ddrescue mapfile not found: {0}", ddrescueMapFile);
+                    return 1;
+                }
+                var map = DdrescueMap.Load(ddrescueMapFile);
+                if (!json)
+                {
+                    Console.WriteLine("Loaded ddrescue mapfile: {0} blocks, rescued={1:N0} bytes, bad={2:N0} bytes",
+                        map.Blocks.Count, map.TotalRescuedBytes, map.TotalBadBytes);
+                }
             }
 
             // Auto-generate or verify sha256 checksum
@@ -510,6 +537,92 @@ namespace UsbRecovery
                 var sb = new StringBuilder(64);
                 foreach (byte b in hash) sb.Append(b.ToString("x2"));
                 return sb.ToString();
+            }
+        }
+        static int ExecuteServe(string[] args)
+        {
+            if (args.Length < 2 || args[1].StartsWith("-"))
+            {
+                Console.Error.WriteLine("Error: Missing image file path for serve command.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe serve <image_path> [-p|--port <port>] [-o|--output <dir>] [--open-browser]");
+                return 1;
+            }
+
+            string image = Path.GetFullPath(args[1]);
+            if (!File.Exists(image))
+            {
+                Console.Error.WriteLine("Error: Disk image file does not exist: {0}", image);
+                return 1;
+            }
+
+            int port = 8080;
+            string output = Path.Combine(Directory.GetCurrentDirectory(), "recovered");
+            bool openBrowser = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string opt = args[i].ToLowerInvariant();
+                if ((opt == "-p" || opt == "--port") && i + 1 < args.Length)
+                {
+                    int p; if (int.TryParse(args[++i], out p) && p > 0 && p < 65536) port = p;
+                }
+                else if ((opt == "-o" || opt == "--output") && i + 1 < args.Length)
+                {
+                    output = Path.GetFullPath(args[++i]);
+                }
+                else if (opt == "--open-browser")
+                {
+                    openBrowser = true;
+                }
+            }
+
+            try
+            {
+                using (var server = new LocalWebServer(image, output, port))
+                {
+                    server.Start();
+                    string url = string.Format(System.Globalization.CultureInfo.InvariantCulture, "http://127.0.0.1:{0}/", server.Port);
+
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Forensic Web Dashboard & Interactive Cluster Map");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Local Web-UI:    {0}", url);
+                    Console.WriteLine("  Security:        100% Offline · Strictly bound to 127.0.0.1 (Loopback)");
+                    Console.WriteLine("  Target Image:    {0} ({1:N0} bytes)", Path.GetFileName(image), new FileInfo(image).Length);
+                    Console.WriteLine("  Output Folder:   {0}", output);
+                    Console.WriteLine("--------------------------------------------------------------------------------");
+                    Console.WriteLine("  Dashboard Features:");
+                    Console.WriteLine("   * Sector / Cluster Allocation Map (visual density canvas)");
+                    Console.WriteLine("   * Live Data & Hex Inspector (Data types, Windows FILETIME, Unix time, GUID)");
+                    Console.WriteLine("   * Partition Hierarchy & Storage Layout Viewer");
+                    Console.WriteLine("   * Real-time Scan Progress & Recovered File Browser");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("Press Ctrl+C or Enter in this terminal to stop the server...");
+
+                    if (openBrowser)
+                    {
+                        try { System.Diagnostics.Process.Start(url); } catch { }
+                    }
+
+                    var wait = new ManualResetEvent(false);
+                    Console.CancelKeyPress += (s, e) => { e.Cancel = true; wait.Set(); };
+                    ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try { Console.ReadLine(); } catch { }
+                        wait.Set();
+                    });
+
+                    wait.WaitOne();
+                    Console.WriteLine("Stopping USB-Recovery local web server...");
+                    server.Stop();
+                    Console.WriteLine("Server stopped.");
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error launching Web-UI server: {0}", ex.Message);
+                return 1;
             }
         }
     }

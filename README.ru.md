@@ -67,6 +67,12 @@
 
 # Сканирование с сохранением в целевую папку
 .\USB-Recovery.exe scan C:\images\disk.raw -o C:\recovered --mode full
+
+# Запуск интерактивного локального Web-UI с картой кластеров и Hex-инспектором
+.\USB-Recovery.exe serve C:\images\disk.raw --port 8080 --open-browser
+
+# Сканирование с импортом карты плохих секторов GNU ddrescue
+.\USB-Recovery.exe scan C:\images\disk.raw -o C:\recovered --ddrescue-map C:\images\disk.map
 ```
 
 ---

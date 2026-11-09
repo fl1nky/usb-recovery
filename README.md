@@ -105,6 +105,12 @@ Designed for forensic workflows, automation scripts, and headless servers:
 
 # Fast metadata-only scan for APFS or NTFS
 .\USB-Recovery.exe scan C:\images\evidence.raw -o C:\recovered --fs apfs
+
+# Launch interactive local Web-UI with Cluster Map & Hex Inspector
+.\USB-Recovery.exe serve C:\images\evidence.raw --port 8080 --open-browser
+
+# Run targeted recovery scan using GNU ddrescue mapfile
+.\USB-Recovery.exe scan C:\images\evidence.raw -o C:\recovered --ddrescue-map C:\images\evidence.map
 ```
 
 ---
