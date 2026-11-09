@@ -71,6 +71,9 @@
 # Запуск интерактивного локального Web-UI с картой кластеров и Hex-инспектором
 .\USB-Recovery.exe serve C:\images\disk.raw --port 8080 --open-browser
 
+# Восстановление поврежденных документов Office (DOCX, XLSX, PPTX, ODT) и извлечение текста
+.\USB-Recovery.exe salvage-office C:\images\corrupt.docx -o C:\salvaged_office
+
 # Сканирование с импортом карты плохих секторов GNU ddrescue
 .\USB-Recovery.exe scan C:\images\disk.raw -o C:\recovered --ddrescue-map C:\images\disk.map
 ```

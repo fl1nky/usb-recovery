@@ -33,6 +33,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "scan" }), "scan is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "gallery" }), "gallery is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "serve" }), "serve is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "salvage-office" }), "salvage-office is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -55,6 +56,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "gallery", Path.Combine(work, "missing_dir") }) == 1, "gallery missing dir returns 1");
             Check(CommandLineHandler.Run(new[] { "serve" }) == 1, "serve without arguments returns 1");
             Check(CommandLineHandler.Run(new[] { "serve", Path.Combine(work, "missing.raw") }) == 1, "serve missing file returns 1");
+            Check(CommandLineHandler.Run(new[] { "salvage-office" }) == 1, "salvage-office without arguments returns 1");
+            Check(CommandLineHandler.Run(new[] { "salvage-office", Path.Combine(work, "missing.raw") }) == 1, "salvage-office missing file returns 1");
 
             // 4. Synthetic probe test
             string syntheticImage = Path.Combine(work, "synthetic_probe.raw");
@@ -80,6 +83,17 @@ public static class CommandLineTests
 
             int probeJsonResult = CommandLineHandler.Run(new[] { "probe", syntheticImage, "--json" });
             Check(probeJsonResult == 0, "probe with --json returns 0");
+
+            // 5. salvage-office execution test
+            string syntheticDoc = Path.Combine(work, "damaged_office.raw");
+            byte[] docXml = Encoding.UTF8.GetBytes("<w:document><w:body><w:p><w:t>CLI Salvage Verified</w:t></w:p></w:body></w:document>");
+            byte[] samplePkg = OfficeXmlSalvage.BuildRepairedZipPackage(OfficeDocumentKind.WordDocx, new[] { new OfficeSalvagePart("word/document.xml", docXml, false, "application/xml") });
+            File.WriteAllBytes(syntheticDoc, samplePkg);
+            string officeOut = Path.Combine(work, "office_out");
+            Check(CommandLineHandler.Run(new[] { "salvage-office", syntheticDoc, "-o", officeOut, "--json" }) == 0, "salvage-office execution returns 0");
+            Check(File.Exists(Path.Combine(officeOut, "salvaged_document.docx")), "salvaged docx exists");
+            Check(File.Exists(Path.Combine(officeOut, "extracted_text.txt")), "extracted text exists");
+            Check(File.ReadAllText(Path.Combine(officeOut, "extracted_text.txt")).Contains("CLI Salvage Verified"), "extracted text matches");
 
             Console.WriteLine("PASS CommandLine: {0} checks; CLI options, probe, scan and version dispatch verified.", checks);
             return 0;

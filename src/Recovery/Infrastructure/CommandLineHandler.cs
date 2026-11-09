@@ -26,7 +26,7 @@ namespace UsbRecovery
 
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
-                || first == "probe" || first == "scan" || first == "gallery" || first == "serve";
+                || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office";
         }
 
         public static int Run(string[] args)
@@ -71,6 +71,9 @@ namespace UsbRecovery
                 case "serve":
                     return ExecuteServe(args);
 
+                case "salvage-office":
+                    return ExecuteSalvageOffice(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -96,6 +99,7 @@ namespace UsbRecovery
             Console.WriteLine("  probe <image_path>             Inspect disk image, partition table and filesystem types");
             Console.WriteLine("  scan  <image_path> -o <dir>    Execute non-interactive recovery scan on disk image");
             Console.WriteLine("  serve <image_path>             Launch interactive local Web-UI with Cluster Map & Hex Inspector");
+            Console.WriteLine("  salvage-office <file_or_image> Salvage damaged DOCX, XLSX, PPTX, ODT documents & extract text");
             Console.WriteLine("  gallery <directory>            Generate HTML photo gallery catalog from recovered files");
             Console.WriteLine("  --version, -v                  Display version, license, and build information");
             Console.WriteLine("  --help, -h                     Display this help message");
@@ -622,6 +626,125 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error launching Web-UI server: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteSalvageOffice(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: Missing target file or disk image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe salvage-office <file_or_image> [-o <output_dir>] [--json]");
+                return 1;
+            }
+
+            string target = Path.GetFullPath(args[1]);
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: File or disk image does not exist: {0}", target);
+                return 1;
+            }
+
+            string output = Path.Combine(Directory.GetCurrentDirectory(), "salvaged_office");
+            bool json = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string opt = args[i].ToLowerInvariant();
+                if ((opt == "-o" || opt == "--output") && i + 1 < args.Length)
+                {
+                    output = Path.GetFullPath(args[++i]);
+                }
+                else if (opt == "--json")
+                {
+                    json = true;
+                }
+            }
+
+            try
+            {
+                Directory.CreateDirectory(output);
+                OfficeSalvageResult result;
+
+                using (FileStream fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    result = OfficeXmlSalvage.SalvageFromStream(fs, 0, fs.Length);
+                }
+
+                if (result.Kind == OfficeDocumentKind.Unknown || result.PartsRecovered == 0)
+                {
+                    if (json)
+                    {
+                        Console.WriteLine("{\"status\":\"not_found\",\"parts\":0,\"message\":\"No Office or OpenDocument XML structures discovered.\"}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No Office or OpenDocument XML structures discovered in {0}.", Path.GetFileName(target));
+                    }
+                    return 0;
+                }
+
+                string ext = ".docx";
+                if (result.Kind == OfficeDocumentKind.ExcelXlsx) ext = ".xlsx";
+                else if (result.Kind == OfficeDocumentKind.PowerPointPptx) ext = ".pptx";
+                else if (result.Kind == OfficeDocumentKind.OpenDocumentText) ext = ".odt";
+                else if (result.Kind == OfficeDocumentKind.OpenDocumentSpreadsheet) ext = ".ods";
+
+                string recoveredDocPath = Path.Combine(output, "salvaged_document" + ext);
+                if (result.ReconstructedPackage != null && result.ReconstructedPackage.Length > 0)
+                {
+                    File.WriteAllBytes(recoveredDocPath, result.ReconstructedPackage);
+                }
+
+                string textFilePath = Path.Combine(output, "extracted_text.txt");
+                if (!String.IsNullOrEmpty(result.ExtractedText))
+                {
+                    File.WriteAllText(textFilePath, result.ExtractedText, Encoding.UTF8);
+                }
+
+                if (json)
+                {
+                    var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                    var dto = new Dictionary<string, object>
+                    {
+                        { "status", "salvaged" },
+                        { "kind", result.Kind.ToString() },
+                        { "type_name", result.DetectedTypeName },
+                        { "parts_recovered", result.PartsRecovered },
+                        { "xml_repaired", result.HasRepairedXml },
+                        { "package_path", recoveredDocPath },
+                        { "package_bytes", result.ReconstructedPackage != null ? result.ReconstructedPackage.Length : 0 },
+                        { "text_path", textFilePath },
+                        { "text_length", result.ExtractedText != null ? result.ExtractedText.Length : 0 },
+                        { "summary", result.PrimaryTextSummary }
+                    };
+                    Console.WriteLine(serializer.Serialize(dto));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Office Open XML & Document Salvage Engine");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Detected Document: {0}", result.DetectedTypeName);
+                    Console.WriteLine("  Surviving Parts:   {0} records recovered", result.PartsRecovered);
+                    Console.WriteLine("  XML Balancing:     {0}", result.HasRepairedXml ? "Severed tags automatically closed & repaired" : "Intact");
+                    Console.WriteLine("  Reconstructed Doc: {0} ({1:N0} bytes)", recoveredDocPath, result.ReconstructedPackage != null ? result.ReconstructedPackage.Length : 0);
+                    Console.WriteLine("  Extracted Text:    {0} ({1:N0} characters)", textFilePath, result.ExtractedText != null ? result.ExtractedText.Length : 0);
+                    if (!String.IsNullOrEmpty(result.PrimaryTextSummary))
+                    {
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        Console.WriteLine("  Document Preview:");
+                        Console.WriteLine("  {0}", result.PrimaryTextSummary);
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error salvaging Office document: {0}", ex.Message);
                 return 1;
             }
         }

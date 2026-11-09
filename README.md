@@ -109,6 +109,9 @@ Designed for forensic workflows, automation scripts, and headless servers:
 # Launch interactive local Web-UI with Cluster Map & Hex Inspector
 .\USB-Recovery.exe serve C:\images\evidence.raw --port 8080 --open-browser
 
+# Salvage damaged Office documents (DOCX, XLSX, PPTX, ODT) and extract plain text
+.\USB-Recovery.exe salvage-office C:\images\corrupted_evidence.raw -o C:\salvaged_office
+
 # Run targeted recovery scan using GNU ddrescue mapfile
 .\USB-Recovery.exe scan C:\images\evidence.raw -o C:\recovered --ddrescue-map C:\images\evidence.map
 ```
