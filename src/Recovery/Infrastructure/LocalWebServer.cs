@@ -40,7 +40,24 @@ namespace UsbRecovery
 
             if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
             {
-                this.imageSize = new FileInfo(imagePath).Length;
+                if (E01ImageReader.IsE01File(imagePath))
+                {
+                    try
+                    {
+                        using (var e01 = E01ImageReader.Open(imagePath))
+                        {
+                            this.imageSize = e01.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
+                else
+                {
+                    this.imageSize = new FileInfo(imagePath).Length;
+                }
             }
 
             listener = new HttpListener();
@@ -71,6 +88,15 @@ namespace UsbRecovery
                 Name = "USB-Recovery-WebUI"
             };
             workerThread.Start();
+        }
+
+        private Stream OpenImageStream()
+        {
+            if (E01ImageReader.IsE01File(imagePath))
+            {
+                return E01ImageReader.Open(imagePath);
+            }
+            return new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
 
         public void Stop()
@@ -304,7 +330,7 @@ namespace UsbRecovery
             var blocks = new List<object>();
 
             // Sample blocks across the range
-            using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var stream = OpenImageStream())
             {
                 byte[] sample = new byte[512];
                 for (int i = 0; i < blocksToReturn; i++)
@@ -392,7 +418,7 @@ namespace UsbRecovery
             length = (int)Math.Min(length, imageSize - offset);
 
             byte[] buffer = new byte[length];
-            using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var stream = OpenImageStream())
             {
                 stream.Position = offset;
                 int read = stream.Read(buffer, 0, length);

@@ -96,9 +96,9 @@ namespace UsbRecovery
             Console.WriteLine("Usage: USB-Recovery.exe [command] [options]");
             Console.WriteLine();
             Console.WriteLine("Commands:");
-            Console.WriteLine("  probe <image_path>             Inspect disk image, partition table and filesystem types");
+            Console.WriteLine("  probe <image_path>             Inspect disk image (.raw, .dd, .img, .E01), partition table and filesystems");
             Console.WriteLine("  scan  <image_path> -o <dir>    Execute non-interactive recovery scan on disk image");
-            Console.WriteLine("  serve <image_path>             Launch interactive local Web-UI with Cluster Map & Hex Inspector");
+            Console.WriteLine("  serve <image_path>             Launch interactive local Web-UI with Cluster Map & Hex Inspector (.raw, .E01)");
             Console.WriteLine("  salvage-office <file_or_image> Salvage damaged DOCX, XLSX, PPTX, ODT documents & extract text");
             Console.WriteLine("  gallery <directory>            Generate HTML photo gallery catalog from recovered files");
             Console.WriteLine("  --version, -v                  Display version, license, and build information");
@@ -148,7 +148,34 @@ namespace UsbRecovery
             {
                 var fileInfo = new FileInfo(image);
                 long length = fileInfo.Length;
+                E01Metadata e01Meta = null;
+                if (E01ImageReader.IsE01File(image))
+                {
+                    try
+                    {
+                        using (var e01 = E01ImageReader.Open(image))
+                        {
+                            e01Meta = e01.Metadata;
+                            length = e01.Length;
+                        }
+                    }
+                    catch { }
+                }
+
                 Console.WriteLine("Probing storage image: {0} ({1:N0} bytes, {2:F2} MB)", image, length, (double)length / (1024 * 1024));
+                if (e01Meta != null)
+                {
+                    Console.WriteLine("Expert Witness Format (.E01) Detected: Segments={0}, Sectors={1:N0}, ChunkSize={2} KiB",
+                        e01Meta.TotalSegments, e01Meta.TotalSectors, e01Meta.ChunkSize / 1024);
+                    if (!String.IsNullOrEmpty(e01Meta.CaseNumber) || !String.IsNullOrEmpty(e01Meta.Examiner))
+                    {
+                        Console.WriteLine("  Case: {0}, Evidence: {1}, Examiner: {2}", e01Meta.CaseNumber, e01Meta.EvidenceNumber, e01Meta.Examiner);
+                    }
+                    if (!String.IsNullOrEmpty(e01Meta.StoredMd5))
+                    {
+                        Console.WriteLine("  Acquisition Hash (MD5): {0}", e01Meta.StoredMd5);
+                    }
+                }
 
                 var candidates = BootScout.Find(image, CancellationToken.None, (done, total) => { });
                 Console.WriteLine("Found {0} partition candidate(s):", candidates.Count);
@@ -178,6 +205,7 @@ namespace UsbRecovery
                     {
                         image = image,
                         size = length,
+                        e01 = e01Meta != null ? new { total_sectors = e01Meta.TotalSectors, chunk_size = e01Meta.ChunkSize, case_number = e01Meta.CaseNumber, examiner = e01Meta.Examiner, md5 = e01Meta.StoredMd5 } : null,
                         partitions = candidates,
                         raid = raidReport != null && raidReport.Members != null && raidReport.Members.Count > 0 && raidReport.Members[0].Status != "not_found" ? raidReport.Members[0] : null
                     };

@@ -66,6 +66,8 @@ When files are deleted from FAT, exFAT, or corrupted filesystems, cluster fragme
 ### 4. Enterprise Storage & Encryption
 - **Software RAID**: Auto-detects Linux MD (Software RAID) and SNIA DDF v1.2 metadata, rebuilding RAID 0 (striping), RAID 1 (mirroring), and RAID 5 (distributed parity).
 - **BitLocker**: Decrypts BitLocker volumes when given a recovery key password or 48-digit numerical recovery key.
+- **Forensic Containers (E01 / Ex01)**: Native random-access stream reader for EnCase, FTK Imager, and Guymager compressed disk images, including multi-segment spans (`.E01`..`.E99`, `.EAA`..`.EZZ`) and zlib chunk decompression with zero external dependencies.
+- **GNU ddrescue Mapfiles**: Imports rescue mapfiles (`.map`) to focus recovery on healthy sectors and immediately skip known hardware errors.
 
 ### 5. Resilient Session Continuity
 Multi-terabyte drives can take hours or days to analyze. USB-Recovery maintains persistent session checkpoints: if interrupted or stopped, scanning resumes immediately from the last verified block without re-reading the entire media.
