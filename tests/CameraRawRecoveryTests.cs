@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Web.Script.Serialization;
 using UsbRecovery;
 
 public static class CameraRawRecoveryTests
@@ -45,13 +47,14 @@ public static class CameraRawRecoveryTests
             TestCanonCr3(testDir);
 
             // 7. Test Carving Stream
-            TestCarvingStream();
+            byte[] image = TestCarvingStream();
 
             // 8. Test Directory Salvage
             TestDirectorySalvage(testDir);
 
             // 9. Test CLI salvage-raw
             TestCliSalvageRaw(testDir);
+            TestCliCarvedOutputCollisions(testDir, image);
 
             Console.WriteLine("PASS CameraRawRecovery: {0} checks; Fuji RAF, Canon CR2/CR3, Nikon NEF, Sony ARW, Adobe DNG carving and EXIF extraction verified.", checks);
             return 0;
@@ -389,7 +392,7 @@ public static class CameraRawRecoveryTests
         }
     }
 
-    private static void TestCarvingStream()
+    private static byte[] TestCarvingStream()
     {
         byte[] jpeg = CreateSampleJpeg(320, 240);
         var ms = new MemoryStream();
@@ -458,18 +461,49 @@ public static class CameraRawRecoveryTests
         }
         Check(foundFuji, "Carved Fuji RAF found at exact offset");
         Check(foundCr2, "Carved Canon CR2 found at exact offset");
+        return ms.ToArray();
     }
 
     private static void TestDirectorySalvage(string testDir)
     {
         string outDir = Path.Combine(testDir, "salvaged_out");
+        string previewsDir = Path.Combine(outDir, "previews");
+        Directory.CreateDirectory(previewsDir);
+        string oldPreview = Path.Combine(previewsDir, "sample-preview.jpg");
+        string oldMetadata = Path.Combine(outDir, "sample.meta.json");
+        string oldReport = Path.Combine(outDir, "raw-salvage-report.json");
+        File.WriteAllText(oldPreview, "previous preview");
+        File.WriteAllText(oldMetadata, "previous metadata");
+        File.WriteAllText(oldReport, "previous report");
         var report = CameraRawRecovery.SalvageDirectory(testDir, outDir, true, CancellationToken.None, null);
 
         Check(report != null, "Salvage report generated");
         Check(report.Status == "complete", "Salvage report status complete");
         Check(report.RawFilesFound >= 4, "Found multiple RAW photos in directory");
         Check(report.PreviewsExtracted >= 3, "Extracted previews in directory salvage");
-        Check(File.Exists(Path.Combine(outDir, "raw-salvage-report.json")), "Report JSON written");
+        Check(File.ReadAllText(oldPreview) == "previous preview", "Previous preview is unchanged");
+        Check(File.ReadAllText(oldMetadata) == "previous metadata", "Previous metadata is unchanged");
+        Check(File.ReadAllText(oldReport) == "previous report", "Previous report is unchanged");
+        Check(File.Exists(Path.Combine(outDir, "raw-salvage-report-2.json")), "Separate report JSON written");
+        var raf = report.Files.Single(file => file.SourceFile == "sample.raf");
+        var cr2 = report.Files.Single(file => file.SourceFile == "sample.cr2");
+        Check(raf.PreviewPath != cr2.PreviewPath, "Distinct same-stem previews have separate paths");
+        Check(raf.MetadataPath != cr2.MetadataPath, "Distinct same-stem metadata has separate paths");
+        foreach (var entry in new[] { raf, cr2 })
+        {
+            using (var input = File.OpenRead(Path.Combine(testDir, entry.SourceFile)))
+            {
+                var metadata = CameraRawRecovery.Inspect(input);
+                var preview = CameraRawRecovery.ExtractPreview(input, metadata);
+                var exported = File.ReadAllBytes(Path.Combine(outDir, entry.PreviewPath));
+                Check(exported.SequenceEqual(preview), "Report preview matches its own source");
+                var saved = new JavaScriptSerializer().Deserialize<CameraRawRecovery.RawMetadata>(
+                    File.ReadAllText(Path.Combine(outDir, entry.MetadataPath)));
+                Check(saved.Format == metadata.Format && saved.Model == metadata.Model, "Report metadata matches its own source");
+            }
+        }
+        Check(!File.ReadAllBytes(Path.Combine(outDir, raf.PreviewPath)).SequenceEqual(
+            File.ReadAllBytes(Path.Combine(outDir, cr2.PreviewPath))), "Same-stem previews contain different bytes");
     }
 
     private static void TestCliSalvageRaw(string testDir)
@@ -478,6 +512,32 @@ public static class CameraRawRecoveryTests
         int rc = CommandLineHandler.Run(new string[] { "salvage-raw", testDir, "-o", cliOut, "--json" });
         Check(rc == 0, "CLI salvage-raw exit code 0");
         Check(File.Exists(Path.Combine(cliOut, "raw-salvage-report.json")), "CLI raw-salvage-report.json exists");
+    }
+
+    private static void TestCliCarvedOutputCollisions(string testDir, byte[] image)
+    {
+        string source = Path.Combine(testDir, "camera-image.dd");
+        File.WriteAllBytes(source, image);
+        string output = Path.Combine(testDir, "carved_out");
+        string previews = Path.Combine(output, "previews");
+        Directory.CreateDirectory(previews);
+        string oldRaw = Path.Combine(output, "carved_raw_00001_Fujifilm_RAF.raw");
+        string oldPreview = Path.Combine(previews, "carved_raw_00001_Fujifilm_RAF-preview.jpg");
+        File.WriteAllText(oldRaw, "previous RAW");
+        File.WriteAllText(oldPreview, "previous JPEG");
+        int rc = CommandLineHandler.Run(new[] { "salvage-raw", source, "-o", output, "--json" });
+        Check(rc == 0, "CLI carves image into existing output directory");
+        Check(File.ReadAllText(oldRaw) == "previous RAW" && File.ReadAllText(oldPreview) == "previous JPEG", "Earlier carved files are unchanged");
+        var report = new JavaScriptSerializer().Deserialize<CameraRawRecovery.SalvageReport>(
+            File.ReadAllText(Path.Combine(output, "raw-salvage-report.json")));
+        var raf = report.Files.Single(file => file.Format == "Fujifilm RAF");
+        Check(Path.Combine(output, raf.OutputPath) != oldRaw && Path.Combine(output, raf.PreviewPath) != oldPreview,
+            "Carved report points at newly published files");
+        Check(File.ReadAllBytes(Path.Combine(output, raf.OutputPath)).SequenceEqual(
+            image.Skip((int)raf.SourceOffset).Take((int)raf.FileBytes)), "Carved output matches source bytes");
+        Check(File.ReadAllBytes(Path.Combine(output, raf.PreviewPath)).SequenceEqual(CreateSampleJpeg(320, 240)),
+            "Carved preview matches expected bytes");
+        Check(File.ReadAllBytes(source).SequenceEqual(image), "Carving preserves the source image");
     }
 
     private static void WriteTiffEntry(Stream stream, ushort tag, ushort type, uint count, uint valOrOffset)

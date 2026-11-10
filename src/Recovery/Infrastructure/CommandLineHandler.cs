@@ -923,19 +923,26 @@ namespace UsbRecovery
                             {
                                 var item = carved[c];
                                 string baseName = string.Format("carved_raw_{0:D5}_{1}", c + 1, item.Format.Replace(" ", "_"));
-                                string outRawPath = Path.Combine(output, baseName + ".raw");
-
-                                fs.Seek(item.Offset, SeekOrigin.Begin);
-                                byte[] rawChunk = new byte[item.Length];
-                                int read = fs.Read(rawChunk, 0, rawChunk.Length);
-                                File.WriteAllBytes(outRawPath, rawChunk);
+                                string rawName = CameraRawRecovery.PublishOutput(output, baseName, ".raw", file =>
+                                {
+                                    fs.Seek(item.Offset, SeekOrigin.Begin);
+                                    byte[] buffer = new byte[1024 * 1024];
+                                    long remaining = item.Length;
+                                    while (remaining > 0)
+                                    {
+                                        int read = fs.Read(buffer, 0, (int)Math.Min(remaining, buffer.Length));
+                                        if (read == 0) throw new EndOfStreamException();
+                                        file.Write(buffer, 0, read);
+                                        remaining -= read;
+                                    }
+                                });
 
                                 string prevPath = null;
                                 if (extractPreviews && item.PreviewBytes != null && item.PreviewBytes.Length > 0)
                                 {
-                                    string previewName = baseName + "-preview.jpg";
+                                    string previewName = CameraRawRecovery.PublishOutput(previewsDir, baseName, "-preview.jpg",
+                                        file => file.Write(item.PreviewBytes, 0, item.PreviewBytes.Length));
                                     prevPath = Path.Combine("previews", previewName);
-                                    File.WriteAllBytes(Path.Combine(previewsDir, previewName), item.PreviewBytes);
                                     report.PreviewsExtracted++;
                                 }
 
@@ -948,13 +955,13 @@ namespace UsbRecovery
                                     Make = item.Metadata != null ? item.Metadata.Make : null,
                                     Model = item.Metadata != null ? item.Metadata.Model : null,
                                     DateTimeOriginal = item.Metadata != null ? item.Metadata.DateTimeOriginal : null,
+                                    OutputPath = rawName,
                                     PreviewPath = prevPath,
                                     PreviewBytes = item.PreviewBytes != null ? item.PreviewBytes.Length : 0
                                 });
                             }
 
-                            var js = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue };
-                            File.WriteAllText(Path.Combine(output, "raw-salvage-report.json"), js.Serialize(report), new UTF8Encoding(false));
+                            CameraRawRecovery.PublishReport(output, report);
                         }
                     }
                 }

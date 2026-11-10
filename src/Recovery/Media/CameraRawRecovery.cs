@@ -83,6 +83,8 @@ namespace UsbRecovery
             public string Make { get; set; }
             public string Model { get; set; }
             public string DateTimeOriginal { get; set; }
+            public string OutputPath { get; set; }
+            public string MetadataPath { get; set; }
             public string PreviewPath { get; set; }
             public long PreviewBytes { get; set; }
         }
@@ -266,6 +268,7 @@ namespace UsbRecovery
                                 Model = meta.Model,
                                 DateTimeOriginal = meta.DateTimeOriginal
                             };
+                            string stem = Path.GetFileNameWithoutExtension(filePath);
 
                             // Extract preview JPEG if available and requested
                             if (extractPreviews && meta.PreviewOffset > 0 && meta.PreviewLength > 0 && meta.PreviewLength < 64 * 1024 * 1024)
@@ -273,9 +276,8 @@ namespace UsbRecovery
                                 byte[] previewData = ExtractPreview(fs, meta);
                                 if (previewData != null && previewData.Length > 0)
                                 {
-                                    string previewName = Path.GetFileNameWithoutExtension(filePath) + "-preview.jpg";
-                                    string previewPath = Path.Combine(previewsDir, previewName);
-                                    File.WriteAllBytes(previewPath, previewData);
+                                    string previewName = PublishOutput(previewsDir, stem, "-preview.jpg",
+                                        file => file.Write(previewData, 0, previewData.Length));
                                     entry.PreviewPath = Path.Combine("previews", previewName);
                                     entry.PreviewBytes = previewData.Length;
                                     report.PreviewsExtracted++;
@@ -283,10 +285,9 @@ namespace UsbRecovery
                             }
 
                             // Write individual metadata JSON
-                            string metaName = Path.GetFileNameWithoutExtension(filePath) + ".meta.json";
-                            string metaPath = Path.Combine(outputDir, metaName);
-                            var js = new JavaScriptSerializer();
-                            File.WriteAllText(metaPath, js.Serialize(meta), new UTF8Encoding(false));
+                            byte[] metadata = Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(meta));
+                            entry.MetadataPath = PublishOutput(outputDir, stem, ".meta.json",
+                                file => file.Write(metadata, 0, metadata.Length));
 
                             report.Files.Add(entry);
                         }
@@ -304,9 +305,52 @@ namespace UsbRecovery
             }
 
             report.Status = "complete";
-            var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
-            File.WriteAllText(Path.Combine(outputDir, "raw-salvage-report.json"), serializer.Serialize(report), new UTF8Encoding(false));
+            PublishReport(outputDir, report);
             return report;
+        }
+
+        internal static void PublishReport(string directory, SalvageReport report)
+        {
+            var serializer = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+            byte[] data = Encoding.UTF8.GetBytes(serializer.Serialize(report));
+            PublishOutput(directory, "raw-salvage-report", ".json", file => file.Write(data, 0, data.Length));
+        }
+
+        internal static string PublishOutput(string directory, string stem, string suffix, Action<Stream> write)
+        {
+            string temporary = RecoveryCatalog.SafeFile(directory, ".raw-" + Guid.NewGuid().ToString("N") + ".partial");
+            bool ownsTemporary = false;
+            try
+            {
+                using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    ownsTemporary = true;
+                    write(file);
+                    file.Flush(true);
+                }
+
+                for (int index = 1; ; index++)
+                {
+                    string name = stem + (index == 1 ? "" : "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture)) + suffix;
+                    string target = Path.Combine(directory, name);
+                    if (File.Exists(target) || Directory.Exists(target)) continue;
+                    try
+                    {
+                        File.Move(temporary, target);
+                        ownsTemporary = false;
+                        return name;
+                    }
+                    catch (IOException)
+                    {
+                        // Another writer can publish the same name between the probe and move.
+                        if (!File.Exists(target) && !Directory.Exists(target)) throw;
+                    }
+                }
+            }
+            finally
+            {
+                if (ownsTemporary) File.Delete(temporary);
+            }
         }
 
         /// <summary>
