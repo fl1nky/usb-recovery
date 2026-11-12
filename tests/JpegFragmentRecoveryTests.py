@@ -7,10 +7,11 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "helpers/recovery_engine"))
 from fragmented_photos import LimitReached, PhotoAssembler
-from jpeg_fragments import InvalidJpeg, entropy, header, huffman, recover_jpegs
+from jpeg_fragments import InvalidJpeg, entropy, has_contiguous_baseline, header, huffman, recover_jpegs
 from PIL import Image
 
 
@@ -153,7 +154,7 @@ class JpegFragments(unittest.TestCase):
         with path.open("rb") as stream:
             assembler = PhotoAssembler(stream)
             assembler.index()
-            assembler.started = time.monotonic() - 121
+            assembler.started = time.monotonic() - 301
             with self.assertRaises(LimitReached):
                 list(recover_jpegs(assembler))
 
@@ -195,6 +196,54 @@ class JpegFragments(unittest.TestCase):
         path.write_bytes(b"\xcc" * 4096 + jpeg() + b"\xcc" * 4096)
         found, _ = self.run_recovery(path)
         self.assertEqual(found, [])
+
+    def test_intact_nonrestart_frames_skip_both_fragmented_searches(self):
+        path = self.root / "mjpeg-frames.dd"
+        source = bytearray(b"\xcc" * (8 * 1024 * 1024))
+        for index in range(12):
+            raw = jpeg(seed=37 + index, gray=index % 2 == 0, restart=0)
+            start = 8192 + index * 32768
+            source[start:start + len(raw)] = raw
+        path.write_bytes(source)
+        with patch("jpeg_fragments.baseline_stream_paths", side_effect=AssertionError("intact file entered gap search")), \
+                patch("jpeg_fragments.baseline_gap_paths", side_effect=AssertionError("intact file entered two-gap search")):
+            found, assembler = self.run_recovery(path)
+        self.assertEqual(found, [])
+        self.assertEqual(len(assembler.jpeg_starts), 12)
+        self.assertFalse(assembler.skipped)
+        self.assertIsNone(assembler.jpeg_stream_state)
+
+    def test_contiguous_guard_keeps_exact_entropy_padding_eoi_and_size_policy(self):
+        frame = dict(prefix=(0, b"hdr"), scan=3, blocks=[({(1, 0): 0}, {(1, 0): 0})], mcus=1)
+        path = self.root / "strict-entropy.bin"
+        for raw, count, decode_ok, accepted in (
+                (b"hdr\x3f\xff\xd9", 1, True, True),
+                (b"hdr\x3e\xff\xd9", 1, True, False),
+                (b"hdr\x3f\xff\xd9", 2, True, False),
+                (b"hdr\x3f\xff\xd9", 1, False, False),
+                (b"hdr\x3f\x00\xff\xd9", 1, True, False)):
+            path.write_bytes(raw)
+            frame["mcus"] = count
+            with path.open("rb") as stream:
+                assembler = PhotoAssembler(stream)
+                with patch.object(assembler, "decode", return_value=decode_ok):
+                    self.assertEqual(has_contiguous_baseline(assembler, frame, [(len(raw) - 2, len(raw), 0xd9)]), accepted)
+                    self.assertFalse(has_contiguous_baseline(assembler, frame, []))
+                    self.assertFalse(has_contiguous_baseline(assembler, frame, [(131072, 131074, 0xd9)]))
+
+    def test_fragmented_nonrestart_still_enters_gap_search(self):
+        raw = jpeg(gray=True, restart=0)
+        source = bytearray(b"\xcc" * 65536)
+        source[32768:32768 + 512] = raw[:512]
+        source[8192:8192 + len(raw) - 512] = raw[512:]
+        path = self.root / "gap-path.dd"
+        path.write_bytes(source)
+        with patch("jpeg_fragments.baseline_stream_paths", return_value=[]) as one_gap, \
+                patch("jpeg_fragments.baseline_gap_paths", return_value=[]) as two_gap:
+            found, _ = self.run_recovery(path)
+        self.assertEqual(found, [])
+        one_gap.assert_called_once()
+        two_gap.assert_called_once()
 
     def test_single_sector_aligned_gap_without_restart(self):
         rng = random.Random(17)

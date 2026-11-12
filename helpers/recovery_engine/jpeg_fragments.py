@@ -408,6 +408,22 @@ def restart_paths(assembler, frame, markers):
     return list(solutions.values())
 
 
+def has_contiguous_baseline(assembler, frame, markers):
+    """Recognize the intact baseline files already owned by ordinary carving."""
+    ends = sorted({end for _, end, marker in markers if marker == 0xd9})
+    start, prefix = frame["prefix"]
+    for end in ends:
+        if frame["scan"] < end <= start + MAX_SINGLE_GAP_FILE:
+            raw = assembler.read(start, end - start)
+            try:
+                entropy(raw[len(prefix):-2], frame["blocks"], frame["mcus"])
+                if assembler.decode(raw, "JPEG"):
+                    return True
+            except InvalidJpeg:
+                pass
+    return False
+
+
 def baseline_gap_paths(assembler, frame, markers):
     """Minimum one/two-gap paths within an explicit bounded sector hypothesis.
 
@@ -416,18 +432,11 @@ def baseline_gap_paths(assembler, frame, markers):
     the last run, and the complete file is at most 128 KiB. Byte-identical
     source windows share parsing work, never assumed original ownership.
     """
+    if has_contiguous_baseline(assembler, frame, markers):
+        return []
     ends = sorted({end for _, end, marker in markers if marker == 0xd9})
     start, prefix = frame["prefix"]
     total, blocks = frame["mcus"] * len(frame["blocks"]), frame["blocks"]
-    for end in ends:
-        if frame["scan"] < end <= start + MAX_SINGLE_GAP_FILE:
-            raw = assembler.read(start, end - start)
-            try:
-                entropy(raw[len(prefix):-2], blocks, frame["mcus"])
-                if assembler.decode(raw, "JPEG"):
-                    return []  # Normal contiguous carving owns this case.
-            except InvalidJpeg:
-                pass
     prefixes = []
     cuts = range((start // 512 + 1) * 512,
                  min(start + MAX_GAP_PIECE + 1, assembler.size + 1), 512)
@@ -1456,6 +1465,8 @@ def recover_jpegs(assembler):
                 continue
             baseline_markers = [marker for marker in markers if marker[2] == 0xd9 or 0xd0 <= marker[2] <= 0xd7]
             if not frame["interval"]:
+                if has_contiguous_baseline(assembler, frame, baseline_markers):
+                    continue
                 recipes = baseline_stream_paths(assembler, frame, baseline_markers)
                 if not recipes:
                     recipes = baseline_gap_paths(assembler, frame, baseline_markers)

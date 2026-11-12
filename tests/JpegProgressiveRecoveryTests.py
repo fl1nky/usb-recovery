@@ -134,7 +134,7 @@ class ProgressiveRecovery(unittest.TestCase):
         with path.open("rb") as stream:
             assembler = PhotoAssembler(stream)
             assembler.index()
-            assembler.started = time.monotonic() - 121
+            assembler.started = time.monotonic() - 301
             with self.assertRaises(LimitReached):
                 list(recover_jpegs(assembler))
 
