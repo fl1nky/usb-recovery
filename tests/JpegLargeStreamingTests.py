@@ -83,42 +83,78 @@ def main():
                 assert not found, fact
             results.append(dict(Name='current-large-'+name,Candidates=len(found),**fact))
             print(json.dumps(results[-1]),flush=True)
-        # No restarted search can repeatedly consume the first giant prefix.
-        anchors, history, output = [],[],destination/'resumed'
+        # Inject work boundaries after real parser reads, independently of CPU speed.
+        anchors, history, output = [], [], destination/'resumed'
+        original_read = PhotoAssembler.read
         cancelled = False
-        for turn in range(40):
-            started = time.monotonic()
-            def sliced(done,total):
-                if time.monotonic()-started > 8:
-                    raise LimitReached('jpeg_stream_owned_slice_incomplete')
+        prior_prefix = None
+        join_head = None
+        for turn, target_phase in enumerate(('prefix', 'prefix', 'join', None)):
+            quota = 128 if target_phase == 'prefix' else 2
+            boundary = dict(Mode='slice', Quota=quota, Reads=0, Injected=False, Start=None, Caller=None)
+            def sliced_read(assembler, offset, length):
+                current = assembler.jpeg_stream_state
+                caller = sys._getframe(1)
+                in_parser = (caller.f_globals.get('__name__') == 'jpeg_fragments' and
+                             caller.f_code.co_name in {'baseline_stream_paths', 'boundary'})
+                if (target_phase is not None and current is not None and
+                        current['Phase'] == target_phase and in_parser and
+                        (target_phase == 'join' or offset == length == 0)):
+                    boundary['Reads'] += 1
+                    if boundary['Reads'] == boundary['Quota']:
+                        boundary.update(Injected=True, Start=current['Start'], Caller=caller.f_code.co_name)
+                        if boundary['Mode'] == 'cancel':
+                            raise InterruptedError('owned large JPEG cancellation')
+                        raise LimitReached('jpeg_stream_owned_slice_incomplete')
+                return original_read(assembler, offset, length)
             options = {} if not anchors else dict(resume_checkpoint=anchors[-1])
-            report = recover(fixtures/'exact.dd',output,options,progress=sliced,checkpoint_progress=anchors.append)
+            with patch.object(PhotoAssembler, 'read', sliced_read):
+                report = recover(fixtures/'exact.dd', output, options, checkpoint_progress=anchors.append)
             state = json.loads(Path(anchors[-1]['Path']).read_text(encoding='utf-8'))
             current = state.get('JpegSearch')
             position = None if current is None else [current['Phase'],current['NextCut'],current['End'],current['Prefix'],current['Physical'],current['Active']]
-            history.append(dict(Turn=turn,Status=report['Status'],Candidates=report['Candidates'],Position=position))
+            history.append(dict(Turn=turn,Status=report['Status'],Candidates=report['Candidates'],
+                                Position=position,Injected=boundary['Injected'],ReadBoundaries=boundary['Reads'],ReadCaller=boundary['Caller']))
             print(json.dumps(history[-1]),flush=True)
-            if report['Status']=='complete':
-                assert report['Candidates']==1 and (output/report['Files'][0]['Path']).read_bytes()==original
-                assert report['ResumedFromCheckpoint'] and turn>1
+            if target_phase is None:
+                assert report['Status'] == 'complete' and report['Candidates'] == 1
+                assert report['ResumedFromCheckpoint'] and cancelled and turn > 1
+                row = report['Files'][0]
+                payload = (output/row['Path']).read_bytes()
+                assert payload == original and row['Extents'] == manifest['Cases'][0]['Extents']
+                with Image.open(io.BytesIO(payload)) as decoded:
+                    decoded.load()
+                    assert sha(decoded.tobytes()) == original_pixels
                 break
-            assert report['Candidates']==0 and not list(output.glob('*.jpg'))
-            if not cancelled and current is not None and current['Phase']=='join':
-                # Cancellation inside the same head also retains parser work.
-                started = time.monotonic()
-                def interrupt(done,total):
-                    if time.monotonic()-started > 1:
-                        raise InterruptedError('owned large JPEG cancellation')
+            assert boundary['Injected'] and report['Status'] == 'limited'
+            assert report['Candidates'] == 0 and not list(output.glob('*.jpg'))
+            assert current is not None and current['Phase'] == target_phase
+            assert current['Start'] == boundary['Start']
+            if target_phase == 'prefix':
+                assert prior_prefix is None or current['NextCut'] > prior_prefix
+                prior_prefix = current['NextCut']
+            else:
+                join_head = current['Start']
+                # Keep the same patched code object across retries, as required
+                # by the checkpoint's real code-fingerprint binding.
+                boundary.update(Mode='cancel', Quota=1, Reads=0, Injected=False, Start=None, Caller=None)
                 try:
-                    recover(fixtures/'exact.dd',output,dict(resume_checkpoint=anchors[-1]),progress=interrupt,checkpoint_progress=anchors.append)
+                    with patch.object(PhotoAssembler, 'read', sliced_read):
+                        recover(fixtures/'exact.dd', output, dict(resume_checkpoint=anchors[-1]),
+                                checkpoint_progress=anchors.append)
                 except InterruptedError:
                     cancelled = True
                 else:
-                    raise AssertionError('Cancellation did not execute')
-        else:
-            raise AssertionError('Sliced search failed to finish')
-        assert cancelled and len({json.dumps(h['Position']) for h in history[:-1]})==len(history)-1
-        results.append(dict(Name='large-sliced-cancel-resume',History=history))
+                    raise AssertionError('Cancellation inside the head join did not execute')
+                retained = json.loads(Path(anchors[-1]['Path']).read_text(encoding='utf-8'))['JpegSearch']
+                assert cancelled and boundary['Injected'] and boundary['Reads'] == 1
+                assert retained['Phase'] == 'join' and retained['Start'] == boundary['Start'] == join_head
+                assert retained['NextCut'] >= current['NextCut']
+                assert not list(output.glob('*.jpg'))
+                assert sha((fixtures/'exact.dd').read_bytes()) == manifest['Cases'][0]['SourceSha256']
+                print(json.dumps(dict(Cancelled=True,Phase='join',Start=join_head,ReadBoundaries=boundary['Reads'],ReadCaller=boundary['Caller'])),flush=True)
+        assert cancelled and len({json.dumps(h['Position']) for h in history[:-1]}) == len(history)-1
+        results.append(dict(Name='large-sliced-cancel-resume',History=history,JoinHead=join_head,Cancelled=cancelled))
         # Actual large native restart/progressive layouts, with independent
         # marker-defined cuts. A resource limit is retained as a limit.
         for name in ('restart','progressive'):
