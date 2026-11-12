@@ -61,6 +61,7 @@ public static class StorageUiTests
     {
         Field<TabControl>(panel,"modes").SelectedIndex=1;await Pause();var grid=Field<DataGridView>(panel,"members");var level=Field<ComboBox>(panel,"level");var layout=Field<ComboBox>(panel,"layoutKind");
         Fits(grid,host,"RAID member grid");Check(grid.Columns.Count==3&&!grid.AllowUserToAddRows&&grid.Columns[2] is DataGridViewCheckBoxColumn,"ordered explicit RAID member model");
+        Fits(Field<Button>(panel,"resumeRaid"),host,"RAID resume button");
         foreach(string value in new[]{"0","1","5","6","10"}){level.SelectedItem=value;Check(layout.Items.Cast<string>().SequenceEqual(RaidImageBuilder.SupportedLayouts(value)),"layout selection follows actual supported engine for RAID "+value);Check(layout.SelectedIndex>=0,"layout has explicit visible choice "+value);}
         var chunk=Field<Control>(panel,"chunk")as ComboBox;Check(chunk!=null,"chunk is a fixed choice instead of accepting unsupported intermediate values");
         if(chunk!=null){Check(chunk.Items.Cast<object>().All(v=>{long chunkBytes=Convert.ToInt64(v);return chunkBytes>=512&&chunkBytes<=RaidImageBuilder.MaximumChunkSize&&(chunkBytes&(chunkBytes-1))==0;}),"all offered chunks are supported powers of two");level.SelectedItem="1";Check(!chunk.Enabled,"chunk disabled for a mirror where it is irrelevant");level.SelectedItem="5";Check(chunk.Enabled,"stripe chunk available for RAID5");foreach(object choice in chunk.Items)if(Convert.ToInt64(choice)==65536){chunk.SelectedItem=choice;break;}}
@@ -74,13 +75,14 @@ public static class StorageUiTests
         Check(config.LogicalSize==2048&&config.ExpectedSha256==new string('a',64),"known logical length and optional reference hash reach engine configuration");Check(config.Members.Count==4&&config.Members[1].Offset==512&&config.Members[3].Missing,"grid values and missing row reach engine without inference");
         Fits(size,host,"logical RAID size");Fits(sha,host,"reference RAID hash");Check(sha.MaxLength==64,"reference hash entry bounded");size.Text="0";sha.Clear();
         select(3);Children(panel).OfType<Button>().First(b=>b.Text=="Убрать").PerformClick();Check(grid.Rows.Count==3,"remove acts on selected ordered member");grid.Focus();var keyboard=Walk(host);Check(keyboard.Contains(grid)&&keyboard.Contains(up)&&keyboard.Contains(down),"RAID grid and ordering tools reachable by keyboard");
+        Check(keyboard.Contains(Field<Button>(panel,"resumeRaid")),"RAID resume reachable by keyboard");
     }
     static async Task Busy(StorageRecoveryPanel panel,Form host)
     {
         var activity=Field<RecoveryActivityView>(panel,"activity");var start=Field<Button>(panel,"start");var stop=Field<Button>(panel,"stop");
         using(var cancellation=new CancellationTokenSource()){
             Set(panel,"cancellation",cancellation);Call(panel,"SetBusy",true);activity.IsActive=true;activity.ClearProgress();
-            try{Check(panel.IsBusy&&!start.Enabled&&stop.Enabled&&!Field<TabControl>(panel,"modes").Enabled,"busy state locks source mode and enables cancellation");Fits(stop,host,"busy storage stop");stop.Focus();Check(Walk(host).Contains(stop),"stop reachable by keyboard while busy");stop.PerformClick();Check(cancellation.IsCancellationRequested&&!stop.Enabled,"stop requests cancellation once");Check(!activity.IsComplete,"requesting stop never claims successful preparation");}
+            try{Check(panel.IsBusy&&!start.Enabled&&stop.Enabled&&!Field<TabControl>(panel,"modes").Enabled,"busy state locks source mode and enables cancellation");Check(!Field<Button>(panel,"resumeRaid").Enabled,"busy state disables starting a second RAID resume");Fits(stop,host,"busy storage stop");stop.Focus();Check(Walk(host).Contains(stop),"stop reachable by keyboard while busy");stop.PerformClick();Check(cancellation.IsCancellationRequested&&!stop.Enabled,"stop requests cancellation once");Check(!activity.IsComplete,"requesting stop never claims successful preparation");}
             finally{activity.IsActive=false;Set(panel,"cancellation",null);Call(panel,"SetBusy",false);}
         }
         await Pause();Check(!panel.IsBusy&&start.Enabled&&!stop.Enabled,"busy state can return to idle without a worker or success archive");
