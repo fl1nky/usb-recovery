@@ -20,6 +20,7 @@ namespace UsbRecovery
         readonly ComboBox chunk=new ComboBox();
         readonly NumericUpDown limit=new NumericUpDown(),snapshotLimit=new NumericUpDown();
         readonly Button browse=new Button(),probe=new Button(),start=new Button(),stop=new Button(),found=new Button(),open=new Button(),searchImage=new Button(),outputBrowse=new Button();
+        readonly Button resumeRaid=new Button();
         readonly Label status=new Label(),secretLabel=new Label();
         readonly RecoveryActivityView activity=new RecoveryActivityView();
         readonly Panel sourcePanel=new Panel();
@@ -60,6 +61,7 @@ namespace UsbRecovery
             members.BackgroundColor=UiTheme.Surface;members.Dock=DockStyle.Fill;members.Name="raid-members";members.AllowUserToAddRows=false;members.AllowUserToDeleteRows=false;members.MultiSelect=false;members.SelectionMode=DataGridViewSelectionMode.FullRowSelect;members.RowHeadersVisible=false;members.AutoSizeColumnsMode=DataGridViewAutoSizeColumnsMode.Fill;members.Columns.Add(new DataGridViewTextBoxColumn{Name="path",HeaderText="Образ диска · порядок сверху вниз",FillWeight=70});members.Columns.Add(new DataGridViewTextBoxColumn{Name="offset",HeaderText="Смещение, байт",FillWeight=22});members.Columns.Add(new DataGridViewCheckBoxColumn{Name="missing",HeaderText="Нет",FillWeight=8});area.Controls.Add(members,0,2);
             var tools=new FlowLayoutPanel{Dock=DockStyle.Fill,WrapContents=false,Margin=Padding.Empty};Action<string,Action> add=(text,click)=>{var button=new Button{Text=text,AutoSize=true,Height=29,Margin=new Padding(1)};button.Click+=delegate{click();};tools.Controls.Add(button);};
             add("Добавить образы",()=>{using(var dialog=new OpenFileDialog{Multiselect=true,Filter="Образы|*.dd;*.img;*.raw;*.bin|Все файлы|*.*"})if(dialog.ShowDialog(this)==DialogResult.OK)foreach(string path in dialog.FileNames)members.Rows.Add(path,"0",false);});add("Найти параметры",()=>{DetectRaidMetadata();});add("Нет диска",()=>members.Rows.Add("","0",true));add("↑",()=>MoveMember(-1));add("↓",()=>MoveMember(1));add("Убрать",()=>{if(members.SelectedRows.Count>0)members.Rows.Remove(members.SelectedRows[0]);});area.Controls.Add(tools,0,3);
+            resumeRaid.Text="Продолжить…";resumeRaid.AutoSize=true;resumeRaid.Height=29;resumeRaid.Margin=new Padding(1);resumeRaid.Name="raid-resume";resumeRaid.Click+=async delegate{await ResumeRaidAsync();};tools.Controls.Add(resumeRaid);
         }
         async void DetectRaidMetadata()
         {
@@ -100,7 +102,32 @@ namespace UsbRecovery
             members.EndEdit();long logicalSize;if(!Int64.TryParse(raidSize.Text,out logicalSize)||logicalSize<0)throw new IOException("Размер RAID должен быть целым неотрицательным числом байт.");var config=new RaidConfiguration{Level=Convert.ToString(level.SelectedItem),Layout=Convert.ToString(layoutKind.SelectedItem),ChunkSize=Convert.ToInt64(chunk.SelectedItem),LogicalSize=logicalSize,ExpectedSha256=expectedSha.Text.Trim(),Members=new List<RaidMember>()};
             foreach(DataGridViewRow row in members.Rows){long offset;if(!Int64.TryParse(Convert.ToString(row.Cells[1].Value),out offset)||offset<0)throw new IOException("Смещение диска должно быть целым неотрицательным числом байт.");config.Members.Add(new RaidMember{Path=Convert.ToString(row.Cells[0].Value),Offset=offset,Missing=Convert.ToBoolean(row.Cells[2].Value??false)});}RaidImageBuilder.Validate(config);return config;
         }
-        async Task StartAsync()
+        Task StartAsync()
+        {
+            return ExecuteAsync(null);
+        }
+
+        async Task ResumeRaidAsync()
+        {
+            if (IsBusy) return;
+            using (var dialog = new FolderBrowserDialog { Description = "Папка RAID с raid.dd.partial и raid-resume.json" }) {
+                if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                try {
+                    var config = RaidImageBuilder.ReadResumeConfiguration(dialog.SelectedPath);
+                    level.SelectedItem = config.Level;
+                    layoutKind.SelectedItem = config.Layout;
+                    chunk.SelectedItem = config.ChunkSize;
+                    raidSize.Text = config.LogicalSize.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    expectedSha.Text = config.ExpectedSha256 ?? "";
+                    members.Rows.Clear();
+                    foreach (var member in config.Members) members.Rows.Add(member.Path ?? "", member.Offset, member.Missing);
+                    await ExecuteAsync(dialog.SelectedPath);
+                } catch (IOException error) { status.Text = error.Message; }
+                catch (ArgumentException error) { status.Text = error.Message; }
+            }
+        }
+
+        async Task ExecuteAsync(string resumeDirectory)
         {
             if (IsBusy) return;
             var secrets = new Dictionary<string, string>();
@@ -126,7 +153,7 @@ namespace UsbRecovery
                 apfsPassword.Clear();
                 bekPath = null;
 
-                execution = StorageRecoveryWorkflow.Create(request);
+                execution = resumeDirectory == null ? StorageRecoveryWorkflow.Create(request) : StorageRecoveryWorkflow.ResumeRaid(request, resumeDirectory);
                 lastRoot = execution.Directory;
                 prepared = null;
                 lastCatalog = null;

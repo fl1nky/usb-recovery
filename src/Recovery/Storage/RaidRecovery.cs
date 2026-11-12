@@ -30,7 +30,7 @@ namespace UsbRecovery
     public sealed class RaidBuildResult
     {
         public string ImagePath, Sha256, ReportPath;
-        public long Bytes;
+        public long Bytes, ResumedBytes;
         public bool Degraded;
     }
 
@@ -60,6 +60,15 @@ namespace UsbRecovery
             public string Sha256;
             public long Bytes;
             public void Dispose() { if (Stream != null) Stream.Dispose(); }
+        }
+
+        sealed class AssemblyCheckpoint
+        {
+            public int Schema;
+            public RaidConfiguration Configuration;
+            public long LogicalBytes, CompletedBytes;
+            public long[] MemberBytes;
+            public string[] MemberHashes;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -205,15 +214,82 @@ namespace UsbRecovery
 
         public static RaidBuildResult Build(RaidConfiguration configuration, string outputDirectory, CancellationToken cancel, Action<long, long> progress, Action<string> phase = null)
         {
+            return Assemble(configuration, outputDirectory, false, cancel, progress, phase);
+        }
+
+        public static RaidBuildResult Resume(RaidConfiguration configuration, string outputDirectory, CancellationToken cancel, Action<long, long> progress, Action<string> phase = null)
+        {
+            return Assemble(configuration, outputDirectory, true, cancel, progress, phase);
+        }
+
+        public static RaidConfiguration ReadResumeConfiguration(string outputDirectory)
+        {
+            return Snapshot(ReadCheckpoint(Path.GetFullPath(outputDirectory)).Configuration);
+        }
+
+        static AssemblyCheckpoint ReadCheckpoint(string directory)
+        {
+            string path = Path.Combine(directory, "raid-resume.json");
+            NoLinks(path);
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                CheckHandle(stream, path);
+                if (stream.Length > 2 * 1024 * 1024) throw Error("RAID_CHECKPOINT_INVALID", "Точка продолжения RAID слишком велика.");
+                try {
+                    using (var reader = new StreamReader(stream, new UTF8Encoding(false, true))) {
+                        var checkpoint = new JavaScriptSerializer { MaxJsonLength = 2 * 1024 * 1024 }.Deserialize<AssemblyCheckpoint>(reader.ReadToEnd());
+                        if (checkpoint == null || checkpoint.Schema != 1 || checkpoint.Configuration == null || checkpoint.MemberBytes == null || checkpoint.MemberHashes == null)
+                            throw Error("RAID_CHECKPOINT_INVALID", "Точка продолжения RAID повреждена или имеет неизвестную версию.");
+                        return checkpoint;
+                    }
+                } catch (ArgumentException) { throw Error("RAID_CHECKPOINT_INVALID", "Не удалось прочитать точку продолжения RAID."); }
+                catch (InvalidOperationException) { throw Error("RAID_CHECKPOINT_INVALID", "Не удалось прочитать точку продолжения RAID."); }
+            }
+        }
+
+        static void ValidateResumeConfiguration(AssemblyCheckpoint checkpoint, RaidConfiguration config)
+        {
+            var saved = Snapshot(checkpoint.Configuration);
+            if (saved.Level != config.Level || saved.Layout != config.Layout || saved.ChunkSize != config.ChunkSize ||
+                saved.LogicalSize != config.LogicalSize || saved.ExpectedSha256 != config.ExpectedSha256 || saved.Members.Count != config.Members.Count)
+                throw Error("RAID_RESUME_CONFIG_CHANGED", "Параметры RAID отличаются от сохранённой сборки.");
+            for (int i = 0; i < config.Members.Count; i++) {
+                var member = config.Members[i]; var previous = saved.Members[i];
+                if (member.Missing != previous.Missing || member.Offset != previous.Offset || !String.Equals(member.Path, previous.Path, StringComparison.OrdinalIgnoreCase))
+                    throw Error("RAID_RESUME_CONFIG_CHANGED", "Порядок, путь или смещение участника RAID изменились.");
+            }
+        }
+
+        static void ValidateCheckpoint(AssemblyCheckpoint checkpoint, RaidConfiguration config, OpenMember[] opened, long logical)
+        {
+            if (checkpoint.MemberBytes.Length != opened.Length || checkpoint.MemberHashes.Length != opened.Length || checkpoint.LogicalBytes != logical)
+                throw Error("RAID_CHECKPOINT_INVALID", "Точка продолжения не соответствует размеру массива.");
+            for (int i = 0; i < opened.Length; i++) {
+                if (checkpoint.MemberBytes[i] != (opened[i] == null ? 0 : opened[i].Bytes) || checkpoint.MemberHashes[i] != (opened[i] == null ? null : opened[i].Sha256))
+                    throw Error("RAID_RESUME_SOURCE_CHANGED", "Образ участника изменился после остановки сборки RAID.");
+            }
+            long unit = config.Level == "1" ? 1024 * 1024 : config.ChunkSize;
+            if (checkpoint.CompletedBytes < 0 || checkpoint.CompletedBytes > logical ||
+                checkpoint.CompletedBytes != logical && checkpoint.CompletedBytes % unit != 0)
+                throw Error("RAID_CHECKPOINT_INVALID", "Некорректная граница продолжения RAID.");
+        }
+
+        static RaidBuildResult Assemble(RaidConfiguration configuration, string outputDirectory, bool resume, CancellationToken cancel, Action<long, long> progress, Action<string> phase)
+        {
             cancel.ThrowIfCancellationRequested(); var config = Snapshot(configuration);
             if (String.IsNullOrWhiteSpace(outputDirectory)) throw Error("RAID_DESTINATION_REQUIRED", "Выбери отдельную папку для собранного образа.");
             string directory = Path.GetFullPath(outputDirectory);if(directory.Length>Path.GetPathRoot(directory).Length)directory=directory.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
             NoLinks(directory);
-            if (File.Exists(directory) || Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any()) throw Error("RAID_DESTINATION_NOT_EMPTY", "Для сборки нужна новая или пустая папка. Готовые файлы не перезаписываются.");
+            if (File.Exists(directory) || !resume && Directory.Exists(directory) && Directory.EnumerateFileSystemEntries(directory).Any()) throw Error("RAID_DESTINATION_NOT_EMPTY", "Для сборки нужна новая или пустая папка. Готовые файлы не перезаписываются.");
             foreach (var member in config.Members) if (!member.Missing && member.Path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw Error("RAID_SOURCE_IN_DESTINATION", "Образы участников должны находиться за пределами папки сборки.");
             var opened = new OpenMember[config.Members.Count]; var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string partial = Path.Combine(directory, "raid.dd.partial"), image = Path.Combine(directory, "raid.dd"), checksum = image + ".sha256", report = Path.Combine(directory, "raid-report.json");
+            string checkpointPath = Path.Combine(directory, "raid-resume.json");
+            AssemblyCheckpoint checkpoint = resume ? ReadCheckpoint(directory) : null;
+            if (resume) ValidateResumeConfiguration(checkpoint, config);
+            if (resume && new[] { image, checksum, report, checksum + ".partial", report + ".partial" }.Any(path => File.Exists(path) || Directory.Exists(path)))
+                throw Error("RAID_RESUME_PUBLICATION_PRESENT", "В папке уже есть итоговые файлы или незавершённая публикация. Используй новую папку сборки.");
             bool created = false, published = false, reportMoved = false; long logical = 0, written = 0, independentBytes = 0, verifiedMirrorBytes = 0; string hash = null;
+            long resumedBytes = 0;
             long lastProgress=0;bool reportedData=false;
             Action reportProgress=()=>{if(progress==null)return;long now=System.Diagnostics.Stopwatch.GetTimestamp();if(written==0||written==logical||!reportedData||now-lastProgress>=System.Diagnostics.Stopwatch.Frequency/10){lastProgress=now;reportedData|=written>0;progress(written,logical);}};
             try {
@@ -238,22 +314,45 @@ namespace UsbRecovery
                 if (sizes.Any(s => s < required)) throw Error("RAID_MEMBER_TRUNCATED", "Образ участника короче требуемого размера.");
                 if (phase != null) phase("Проверка образов участников");
                 foreach (var member in opened) if (member != null) member.Sha256 = Hash(member.Stream, cancel);
+                if (resume) { ValidateCheckpoint(checkpoint, config, opened, logical); resumedBytes = checkpoint.CompletedBytes; }
                 cancel.ThrowIfCancellationRequested(); NoLinks(directory);
                 if (!Directory.Exists(directory)) {
                     var acl = new DirectorySecurity(); acl.SetAccessRuleProtection(true, false); acl.AddAccessRule(new FileSystemAccessRule(WindowsIdentity.GetCurrent().User, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
                     new DirectoryInfo(directory).Create(acl);
                 }
-                NoLinks(directory); if (Directory.EnumerateFileSystemEntries(directory).Any()) throw Error("RAID_DESTINATION_NOT_EMPTY", "Папка сборки уже содержит файлы.");
-                created = true;reportProgress();if (phase != null) phase("Сборка логического образа RAID");
-                using (var output = new FileStream(partial, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1024 * 1024, FileOptions.SequentialScan)) {
+                NoLinks(directory); if (!resume && Directory.EnumerateFileSystemEntries(directory).Any()) throw Error("RAID_DESTINATION_NOT_EMPTY", "Папка сборки уже содержит файлы.");
+                reportProgress();if (phase != null) phase(resume ? "Проверка сохранённой части RAID" : "Сборка логического образа RAID");
+                using (var output = new FileStream(partial, resume ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 1024 * 1024, FileOptions.SequentialScan)) {
                     CheckHandle(output, partial);
+                    if (resume && (output.Length < resumedBytes || output.Length > logical)) throw Error("RAID_PARTIAL_LENGTH_INVALID", "Длина незавершённого образа не соответствует точке продолжения.");
+                    created = true;
+                    checkpoint = new AssemblyCheckpoint { Schema = 1, Configuration = config, LogicalBytes = logical, CompletedBytes = resumedBytes,
+                        MemberBytes = opened.Select(m => m == null ? 0 : m.Bytes).ToArray(), MemberHashes = opened.Select(m => m == null ? null : m.Sha256).ToArray() };
+                    long savedBytes = resumedBytes;
+                    Action save = () => { output.Flush(true); checkpoint.CompletedBytes = written; RecoveryCore.SaveJsonBounded(checkpointPath, checkpoint, 2 * 1024 * 1024); savedBytes = written; };
+                    if (!resume) save();
+                    var previous = new byte[(int)Math.Max(config.Level == "1" ? 1024 * 1024 : config.ChunkSize, config.ChunkSize)];
+                    Action<byte[], int> append = (buffer, count) => {
+                        if (written < resumedBytes) {
+                            int read = 0;
+                            while (read < count) { int got = output.Read(previous, read, count - read); if (got == 0) throw Error("RAID_PARTIAL_LENGTH_INVALID", "Сохранённая часть RAID обрезана."); read += got; }
+                            if (!Equal(buffer, previous, count)) throw Error("RAID_PARTIAL_CONTENT_CHANGED", "Сохранённая часть RAID не совпала с исходными образами.");
+                        } else {
+                            if (written == resumedBytes) output.SetLength(resumedBytes);
+                            output.Write(buffer, 0, count);
+                        }
+                        written += count;
+                        if (written > resumedBytes && written - savedBytes >= 16 * 1024 * 1024) save();
+                        reportProgress();
+                    };
+                    try {
                     if (config.Level == "1") {
                         int window = 1024 * 1024; var one = new byte[window]; var other = new byte[window]; var available = opened.Where(m => m != null).ToArray();
                         while (written < logical) {
                             int count = (int)Math.Min(window, logical - written); Read(available[0], written, one, count, cancel);
                             for (int i = 1; i < available.Length; i++) { Read(available[i], written, other, count, cancel); if (!Equal(one, other, count)) throw Error("RAID_MIRROR_MISMATCH", "Зеркальные копии различаются; правильная версия автоматически не выбирается."); }
                             if (available.Length > 1) verifiedMirrorBytes += count;
-                            output.Write(one, 0, count); written += count;reportProgress();
+                            append(one, count);
                         }
                     } else {
                         int chunk = (int)config.ChunkSize; var blocks = Enumerable.Range(0, opened.Length).Select(i => new byte[chunk]).ToArray(); var data = new int[dataDisks];var px=new byte[chunk];var qx=config.Level=="6"?new byte[chunk]:null;var missing=new int[dataDisks];
@@ -266,12 +365,16 @@ namespace UsbRecovery
                             } else {
                                 int p, q, equations; Mapping(config, row, opened.Length, out p, out q, data); Parity(opened, blocks, data, p, q, chunk,px,qx,missing,out equations); independentBytes = checked(independentBytes + (long)equations * chunk);
                             }
-                            foreach (int disk in data) { int count = (int)Math.Min(chunk, logical - written); if (count == 0) break; cancel.ThrowIfCancellationRequested(); output.Write(blocks[disk], 0, count); written += count;reportProgress(); }
+                            foreach (int disk in data) { int count = (int)Math.Min(chunk, logical - written); if (count == 0) break; cancel.ThrowIfCancellationRequested(); append(blocks[disk], count); }
                         }
                     }
                     if(written!=logical)throw Error("RAID_OUTPUT_LENGTH_INVALID","Не все логические байты были собраны.");
-                    cancel.ThrowIfCancellationRequested(); output.Flush(true); if (phase != null) phase("Проверка собранного образа"); hash = Hash(output, cancel);
+                    save(); cancel.ThrowIfCancellationRequested(); if (phase != null) phase("Проверка собранного образа"); hash = Hash(output, cancel);
                     if (!String.IsNullOrEmpty(config.ExpectedSha256) && !String.Equals(hash, config.ExpectedSha256, StringComparison.Ordinal)) throw Error("RAID_EXPECTED_HASH_MISMATCH", "Собранный образ не совпал с эталонной SHA256. Проверь порядок, схему и смещения.");
+                    } catch (OperationCanceledException) {
+                        if (written >= resumedBytes) save();
+                        throw;
+                    }
                 }
                 if (phase != null) phase("Повторная проверка исходных образов");
                 foreach (var member in opened) if (member != null && !String.Equals(member.Sha256, Hash(member.Stream, cancel), StringComparison.Ordinal)) throw Error("RAID_SOURCE_CHANGED", "Исходный образ участника изменился. Результат не опубликован.");
@@ -279,10 +382,10 @@ namespace UsbRecovery
                 string checksumWork = checksum + ".partial", reportWork = report + ".partial";
                 using (var stream = new FileStream(checksumWork, FileMode.CreateNew, FileAccess.Write, FileShare.None)) using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(hash + "  raid.dd\n");
                 bool degraded = config.Members.Any(m => m.Missing);
-                WriteJson(reportWork, new { schema = 1, status = "assembled_and_hashed", utc = DateTime.UtcNow.ToString("o"), level = config.Level, layout = config.Layout, chunk_bytes = config.ChunkSize, logical_bytes = logical, boundary = config.LogicalSize == 0 ? "derived_conservative_whole_stripes" : "provided_by_user", image = "raid.dd", sha256 = hash, degraded = degraded, source_access = "read_only_share_read", source_hashes_verified_after = true, expected_sha256_verified = !String.IsNullOrEmpty(config.ExpectedSha256), layout_confirmed = false, logical_reference_confirmed = !String.IsNullOrEmpty(config.ExpectedSha256), independent_parity_equation_bytes = independentBytes, verified_mirror_bytes = verifiedMirrorBytes, parameters_origin = "provided_by_user", raw_member_images = true, filesystem_validated = false, limitations = new[] { "No automatic order/layout/offset detection; correct parity alone does not establish the original layout.", "No metadata interpretation, reshape, Storage Spaces, LVM, vendor RAID or controller-specific layouts.", "Degraded reconstruction can have no independent redundancy left; a SHA256 records output, not original-data authenticity.", "Derived length covers common full stripes only; an explicitly supplied logical size is preferred." }, members = config.Members.Select((m, i) => new { index = i, path = m.Path, offset_bytes = m.Offset, missing = m.Missing, bytes = opened[i] == null ? 0 : opened[i].Bytes, sha256 = opened[i] == null ? null : opened[i].Sha256 }).ToArray() });
+                WriteJson(reportWork, new { schema = 1, status = "assembled_and_hashed", utc = DateTime.UtcNow.ToString("o"), level = config.Level, layout = config.Layout, chunk_bytes = config.ChunkSize, logical_bytes = logical, resumed_bytes = resumedBytes, boundary = config.LogicalSize == 0 ? "derived_conservative_whole_stripes" : "provided_by_user", image = "raid.dd", sha256 = hash, degraded = degraded, source_access = "read_only_share_read", source_hashes_verified_after = true, expected_sha256_verified = !String.IsNullOrEmpty(config.ExpectedSha256), layout_confirmed = false, logical_reference_confirmed = !String.IsNullOrEmpty(config.ExpectedSha256), independent_parity_equation_bytes = independentBytes, verified_mirror_bytes = verifiedMirrorBytes, parameters_origin = "provided_by_user", raw_member_images = true, filesystem_validated = false, limitations = new[] { "No automatic order/layout/offset detection; correct parity alone does not establish the original layout.", "No metadata interpretation, reshape, Storage Spaces, LVM, vendor RAID or controller-specific layouts.", "Degraded reconstruction can have no independent redundancy left; a SHA256 records output, not original-data authenticity.", "Derived length covers common full stripes only; an explicitly supplied logical size is preferred." }, members = config.Members.Select((m, i) => new { index = i, path = m.Path, offset_bytes = m.Offset, missing = m.Missing, bytes = opened[i] == null ? 0 : opened[i].Bytes, sha256 = opened[i] == null ? null : opened[i].Sha256 }).ToArray() });
                 cancel.ThrowIfCancellationRequested(); File.Move(checksumWork, checksum); File.Move(reportWork, report);reportMoved=true;File.Move(partial, image); published = true;
                 if (phase != null) phase("Образ RAID собран и проверен");
-                return new RaidBuildResult { ImagePath = image, ReportPath = report, Sha256 = hash, Bytes = logical, Degraded = degraded };
+                return new RaidBuildResult { ImagePath = image, ReportPath = report, Sha256 = hash, Bytes = logical, ResumedBytes = resumedBytes, Degraded = degraded };
             } catch (OperationCanceledException) {
                 if (created && !published) SaveFailure(directory, "cancelled", "CANCELLED", written,reportMoved); throw;
             } catch (RaidRecoveryException error) {
@@ -297,7 +400,7 @@ namespace UsbRecovery
         }
         static void SaveFailure(string directory, string state, string code, long written,bool reportMoved)
         {
-            try { NoLinks(directory); string report = Path.Combine(directory, "raid-report.json"); if (reportMoved&&File.Exists(report)) File.Delete(report); WriteJson(Path.Combine(directory, "raid-failure.json"), new { schema = 1, status = state, code = code, written_bytes = written, published = false, partial = "raid.dd.partial", note = "Incomplete output must not be treated as a complete logical image." }); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            try { NoLinks(directory); string report = Path.Combine(directory, "raid-report.json"); if (reportMoved&&File.Exists(report)) File.Delete(report); RecoveryCore.SaveJsonBounded(Path.Combine(directory, "raid-failure.json"), new { schema = 1, status = state, code = code, written_bytes = written, published = false, partial = "raid.dd.partial", note = "Incomplete output must not be treated as a complete logical image." }, 65536); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
     }
 }

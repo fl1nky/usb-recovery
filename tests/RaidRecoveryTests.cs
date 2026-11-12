@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Web.Script.Serialization;
 using UsbRecovery;
 
 // Literal disk-position tables and polynomial multiplication are independent
@@ -179,6 +180,126 @@ public static class RaidRecoveryTests
         var mutable=Copy(fixture.Configuration);var stable=RaidImageBuilder.Build(mutable,NewOutput(),CancellationToken.None,null,phase=>{if(phase=="Проверка образов участников"){mutable.Level="6";mutable.Members[0].Offset=Int64.MaxValue;mutable.Members.Clear();}});
         Check(stable.Sha256==Digest(fixture.Payload),"configuration is snapshotted before callbacks or worker changes");
     }
+
+    static string CancelAssembly(Fixture fixture)
+    {
+        string output = NewOutput();
+        using (var stop = new CancellationTokenSource())
+            Fails(fixture.Configuration, "CANCELLED", (done, total) => { if (done > 0) stop.Cancel(); }, stop.Token, output);
+        Check(File.Exists(Path.Combine(output, "raid-resume.json")), "cancelled assembly saves a checkpoint");
+        Check(!File.Exists(Path.Combine(output, "raid.dd")), "checkpoint is not a completed image");
+        return output;
+    }
+
+    static void ResumeFails(RaidConfiguration configuration, string output, string code)
+    {
+        bool failed = false;
+        try { RaidImageBuilder.Resume(configuration, output, CancellationToken.None, null); }
+        catch (RaidRecoveryException error) { failed = error.Code == code; }
+        Check(failed, "resume rejects " + code);
+        Check(!File.Exists(Path.Combine(output, "raid.dd")), "rejected resume does not publish an image");
+    }
+
+    static void ResumeAssembly()
+    {
+        foreach (string level in new[] { "0", "1", "5", "6", "10" }) {
+            byte[] payload = level == "1" ? new byte[3 * 1024 * 1024 + 31] : null;
+            if (payload != null) new Random(97).NextBytes(payload);
+            var fixture = Make(level, level == "0" ? "striped" : level == "1" ? "mirror" : level == "10" ? "adjacent-pairs" : "left-symmetric", payload);
+            if (level == "5" || level == "6") fixture.Configuration.Members[0].Missing = true;
+            if (level == "10") fixture.Configuration.Members[1].Missing = true;
+            string output = CancelAssembly(fixture);
+            string partial = Path.Combine(output, "raid.dd.partial");
+            long savedLength = new FileInfo(partial).Length;
+            Check(savedLength > 0 && savedLength < fixture.Payload.Length, "RAID " + level + " cancellation preserves a proper prefix");
+            var savedConfiguration = RaidImageBuilder.ReadResumeConfiguration(output);
+            Check(savedConfiguration.Level == fixture.Configuration.Level && savedConfiguration.Members.Count == fixture.Configuration.Members.Count,
+                "normal resume configuration restores the saved layout");
+            var phases = new List<string>();
+            var result = RaidImageBuilder.Resume(savedConfiguration, output, CancellationToken.None, null, phases.Add);
+            Check(result.ResumedBytes == savedLength && result.Bytes == fixture.Payload.Length, "RAID " + level + " reports retained bytes");
+            Check(Digest(result.ImagePath) == Digest(fixture.Payload), "RAID " + level + " resumed payload is byte-exact");
+            Check(phases.Contains("Проверка сохранённой части RAID"), "retained prefix is verified against logical source bytes");
+            Check(!File.Exists(partial) && File.Exists(result.ReportPath), "resumed image is published only after validation");
+        }
+
+        var damaged = Make("0", "striped");
+        string damagedOutput = CancelAssembly(damaged), damagedPartial = Path.Combine(damagedOutput, "raid.dd.partial");
+        using (var stream = File.OpenWrite(damagedPartial)) stream.WriteByte(213);
+        string damagedHash = Digest(damagedPartial);
+        ResumeFails(damaged.Configuration, damagedOutput, "RAID_PARTIAL_CONTENT_CHANGED");
+        Check(Digest(damagedPartial) == damagedHash, "a changed partial is preserved for inspection");
+
+        var sourceChanged = Make("0", "striped");
+        string sourceOutput = CancelAssembly(sourceChanged), sourcePartial = Path.Combine(sourceOutput, "raid.dd.partial");
+        string prefixHash = Digest(sourcePartial), checkpointHash = Digest(Path.Combine(sourceOutput, "raid-resume.json"));
+        using (var stream = File.OpenWrite(sourceChanged.Paths[0])) stream.WriteByte(7);
+        ResumeFails(sourceChanged.Configuration, sourceOutput, "RAID_RESUME_SOURCE_CHANGED");
+        Check(Digest(sourcePartial) == prefixHash && Digest(Path.Combine(sourceOutput, "raid-resume.json")) == checkpointHash,
+            "changed source rejection leaves the partial and checkpoint unchanged");
+
+        var wrong = Make("0", "striped"); string wrongOutput = CancelAssembly(wrong);
+        var wrongConfiguration = Copy(wrong.Configuration); wrongConfiguration.ChunkSize *= 2;
+        ResumeFails(wrongConfiguration, wrongOutput, "RAID_RESUME_CONFIG_CHANGED");
+        var truncated = Make("0", "striped"); string truncatedOutput = CancelAssembly(truncated);
+        using (var stream = File.OpenWrite(Path.Combine(truncatedOutput, "raid.dd.partial"))) stream.SetLength(1);
+        ResumeFails(truncated.Configuration, truncatedOutput, "RAID_PARTIAL_LENGTH_INVALID");
+
+        var tail = Make("5", "left-symmetric"); string tailOutput = CancelAssembly(tail);
+        using (var stream = new FileStream(Path.Combine(tailOutput, "raid.dd.partial"), FileMode.Append)) stream.Write(new byte[77], 0, 77);
+        var tailResult = RaidImageBuilder.Resume(tail.Configuration, tailOutput, CancellationToken.None, null);
+        Check(Digest(tailResult.ImagePath) == Digest(tail.Payload), "uncommitted tail is replaced after verifying the committed prefix");
+
+        var retry = Make("0", "striped"); string retryOutput = CancelAssembly(retry);
+        long retained = new FileInfo(Path.Combine(retryOutput, "raid.dd.partial")).Length;
+        bool stoppedAgain = false;
+        using (var stop = new CancellationTokenSource()) {
+            try { RaidImageBuilder.Resume(retry.Configuration, retryOutput, stop.Token, (done, total) => { if (done > 0) stop.Cancel(); }); }
+            catch (OperationCanceledException) { stoppedAgain = true; }
+        }
+        Check(stoppedAgain && !File.Exists(Path.Combine(retryOutput, "raid.dd")), "cancelling verification does not publish the saved prefix");
+        var retryResult = RaidImageBuilder.Resume(retry.Configuration, retryOutput, CancellationToken.None, null);
+        Check(retryResult.ResumedBytes >= retained && Digest(retryResult.ImagePath) == Digest(retry.Payload), "a cancelled resume can be retried safely");
+
+        var concurrent = Make("0", "striped"); string concurrentOutput = CancelAssembly(concurrent);
+        bool concurrentBlocked = false;
+        var concurrentResult = RaidImageBuilder.Resume(concurrent.Configuration, concurrentOutput, CancellationToken.None, (done, total) => {
+            if (done == 0 || concurrentBlocked) return;
+            try { RaidImageBuilder.Resume(concurrent.Configuration, concurrentOutput, CancellationToken.None, null); }
+            catch (RaidRecoveryException error) { concurrentBlocked = error.Code == "RAID_IO_ERROR"; }
+        });
+        Check(concurrentBlocked && Digest(concurrentResult.ImagePath) == Digest(concurrent.Payload), "one output handle prevents overlapping resume writers");
+
+        var collision = Make("0", "striped"); string collisionOutput = CancelAssembly(collision);
+        string foreignReport = Path.Combine(collisionOutput, "raid-report.json"); File.WriteAllText(foreignReport, "keep previous report");
+        ResumeFails(collision.Configuration, collisionOutput, "RAID_RESUME_PUBLICATION_PRESENT");
+        Check(File.ReadAllText(foreignReport) == "keep previous report", "existing publication files are preserved");
+
+        var edited = Make("0", "striped"); string editedOutput = CancelAssembly(edited);
+        string checkpointPath = Path.Combine(editedOutput, "raid-resume.json");
+        var json = new JavaScriptSerializer(); var checkpoint = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(checkpointPath));
+        checkpoint["CompletedBytes"] = 1; File.WriteAllText(checkpointPath, json.Serialize(checkpoint));
+        ResumeFails(edited.Configuration, editedOutput, "RAID_CHECKPOINT_INVALID");
+
+        var unknown = Make("0", "striped"); string unknownOutput = CancelAssembly(unknown);
+        string unknownPath = Path.Combine(unknownOutput, "raid-resume.json");
+        var unknownCheckpoint = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(unknownPath));
+        unknownCheckpoint.Remove("Schema"); File.WriteAllText(unknownPath, json.Serialize(unknownCheckpoint));
+        ResumeFails(unknown.Configuration, unknownOutput, "RAID_CHECKPOINT_INVALID");
+
+        var final = Make("0", "striped"); string finalOutput = NewOutput();
+        using (var stop = new CancellationTokenSource())
+            Fails(final.Configuration, "CANCELLED", (done, total) => { if (done == total) stop.Cancel(); }, stop.Token, finalOutput);
+        var finalResult = RaidImageBuilder.Resume(final.Configuration, finalOutput, CancellationToken.None, null);
+        Check(finalResult.ResumedBytes == final.Payload.Length && Digest(finalResult.ImagePath) == Digest(final.Payload),
+            "a fully copied but cancelled image must still pass verification before publication");
+
+        var workflow = Make("0", "striped"); string workflowOutput = CancelAssembly(workflow);
+        var request = new StorageRecoveryRequest { Kind = "RAID", Raid = workflow.Configuration, MaximumOutputBytes = 1024L * 1024 * 1024 };
+        var execution = StorageRecoveryWorkflow.ResumeRaid(request, workflowOutput);
+        StorageRecoveryWorkflow.Execute(request, execution, CancellationToken.None, null);
+        Check(execution.Prepared != null && Digest(execution.Prepared.Image) == Digest(workflow.Payload), "storage workflow resumes the same verified partial");
+    }
     static void W16(byte[] bytes, int at, int value) { bytes[at] = (byte)value; bytes[at + 1] = (byte)(value >> 8); }
     static void W32(byte[] bytes, int at, int value) { for (int i = 0; i < 4; i++) bytes[at + i] = (byte)(value >> (i * 8)); }
     static void FatPipeline()
@@ -198,8 +319,8 @@ public static class RaidRecoveryTests
     {
         try {
             project = Path.GetFullPath(args[0]); root = Path.Combine(project, ".build", "raid-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
-            Matrices(); CorruptionAndBounds(); Safety(); FatPipeline();
-            Console.WriteLine("PASS RaidRecovery: " + checks + " checks; literal-layout independent fixtures, RAID0/1/5/6/10, all supported missing-member combinations, GF/P/Q, hashverified publication, parity/mirror rejection, cancellation, source locks/identity, bounds and actual deleted FAT12 pipeline. Synthetic ordinary files only; no devices or automatic layout inference."); return 0;
+            Matrices(); CorruptionAndBounds(); Safety(); ResumeAssembly(); FatPipeline();
+            Console.WriteLine("PASS RaidRecovery: " + checks + " checks; literal-layout independent fixtures, RAID0/1/5/6/10, all supported missing-member combinations, GF/P/Q, hashverified publication, parity/mirror rejection, cancellation/resume, prefix/source validation, concurrent writers, source locks/identity, bounds and actual deleted FAT12 pipeline. Synthetic ordinary files only; no devices or automatic layout inference."); return 0;
         } catch (Exception error) { Console.Error.WriteLine(error); return 1; }
         finally { if (root != null && Path.GetFullPath(root).StartsWith(Path.Combine(project, ".build", "raid-tests-"), StringComparison.OrdinalIgnoreCase) && Directory.Exists(root)) try { Directory.Delete(root, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
     }

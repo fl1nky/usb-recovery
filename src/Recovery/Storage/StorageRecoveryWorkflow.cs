@@ -21,7 +21,7 @@ namespace UsbRecovery
     // Completed preparation remains available if the following search is stopped.
     public sealed class StorageRecoveryExecution
     {
-        public string Directory, Catalog;
+        public string Directory, Catalog, RaidResumeDirectory;
         public StoragePreparedResult Prepared;
         public RecoveryFileIndex Index;
     }
@@ -70,6 +70,17 @@ namespace UsbRecovery
             return new StorageRecoveryExecution { Directory = directory };
         }
 
+        public static StorageRecoveryExecution ResumeRaid(StorageRecoveryRequest request, string directory)
+        {
+            Validate(request);
+            if (request.Kind != "RAID") throw new IOException("Выбери режим RAID для продолжения сборки.");
+            string full = Path.GetFullPath(directory);
+            SourcePaths.NoLinks(full);
+            if (!File.Exists(Path.Combine(full, "raid.dd.partial")) || !File.Exists(Path.Combine(full, "raid-resume.json")))
+                throw new IOException("Выбери папку RAID с raid.dd.partial и raid-resume.json.");
+            return new StorageRecoveryExecution { Directory = full, RaidResumeDirectory = full };
+        }
+
         public static void Execute(StorageRecoveryRequest request, StorageRecoveryExecution execution,
             CancellationToken token, Action<RecoveryStageProgress> activity)
         {
@@ -78,12 +89,14 @@ namespace UsbRecovery
                 throw new ArgumentException("Не создана рабочая папка операции.", "execution");
             token.ThrowIfCancellationRequested();
             if (request.Kind == "RAID") {
-                string output = Path.Combine(execution.Directory, "raid");
-                var built = RaidImageBuilder.Build(request.Raid, output, token,
-                    (completed, total) => Observe(activity, new RecoveryStageProgress {
+                string output = execution.RaidResumeDirectory ?? Path.Combine(execution.Directory, "raid");
+                Action<long, long> progress = (completed, total) => Observe(activity, new RecoveryStageProgress {
                         Title = "Сборка RAID", Completed = completed, Total = total
-                    }),
-                    phase => Observe(activity, new RecoveryStageProgress { Title = phase }));
+                    });
+                Action<string> phase = title => Observe(activity, new RecoveryStageProgress { Title = title });
+                var built = execution.RaidResumeDirectory == null
+                    ? RaidImageBuilder.Build(request.Raid, output, token, progress, phase)
+                    : RaidImageBuilder.Resume(request.Raid, output, token, progress, phase);
                 execution.Prepared = new StoragePreparedResult {
                     Directory = output, Image = built.ImagePath, Checksum = built.ImagePath + ".sha256"
                 };
