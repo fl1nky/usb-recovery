@@ -98,7 +98,7 @@ class PhotoCheckpoints(unittest.TestCase):
         for expected in (1048576,2097152):
             clock=[0.0]
             with patch.object(photos.time,'monotonic',lambda:clock[0]),self.source.open('rb') as stream:
-                reader=photos.PhotoAssembler(stream,progress=lambda done,total:clock.__setitem__(0,121.0))
+                reader=photos.PhotoAssembler(stream,progress=lambda done,total:clock.__setitem__(0,301.0))
                 reader.size=8*1024**3  # Test the large-device byte interval without creating/hash-reading 8 GiB.
                 journal=checkpoint.Journal(state_dir,binding,anchor,lambda row:self.anchors.append(row))
                 if anchor is None:
@@ -127,7 +127,7 @@ class PhotoCheckpoints(unittest.TestCase):
         clock=[0.0];saved=[];original=photos.PhotoAssembler.read
         def stop_in_chunk(reader,offset,length):
             if offset>=1048576:
-                clock[0]=121.0
+                clock[0]=301.0
             return original(reader,offset,length)
         with patch.object(photos.time,'monotonic',lambda:clock[0]),patch.object(photos.PhotoAssembler,'read',stop_in_chunk),self.source.open('rb') as stream:
             reader=photos.PhotoAssembler(stream);reader.size=8*1024**3
