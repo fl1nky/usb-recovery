@@ -1079,6 +1079,10 @@ class Analyzer:
         never used to open another file or access the network. Stripped/path
         encodings are metadata, not complete image attachments.
         """
+        if media.get("type") == "webpage":
+            page = media.get("webpage", {})
+            return {"media_kind": "webpage", "media_id": str(page["id"]) if "id" in page else None,
+                    "media_status": "webpage_metadata_only", "thumbnail_count": 0}, []
         if media.get("type") == "document":
             document = media.get("document", {})
             if document.get("type") not in ("empty", "descriptor"):

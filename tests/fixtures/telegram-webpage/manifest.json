@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "commit": "4de548e79fed27f1a66fbdff84223321838fe925",
+  "upstream_sha256": "36333f97d944d6a356f703248480b0577c1aff1e5a748b695d8640b2a0f048dc",
+  "source_url": "https://github.com/DrKLO/Telegram/blob/4de548e79fed27f1a66fbdff84223321838fe925/TMessagesProj/src/main/java/org/telegram/tgnet/TLRPC.java",
+  "cases": 8,
+  "producer_sha256": "d1173157ab7204e0599bc0b05c832d7b35755cc2b48874427aa57faf82749e40",
+  "files": {
+    "oracle-sources.tar.gz": "eb62b4fcc5505bcfb43dea324cb913740ecf08764b8655d43c5070bd3012c3d3",
+    "oracle.json.gz": "076d28284eb44c4db690b44c372ee86c887c2bb5b5183afefd2c1e2ed3549fae"
+  }
+}

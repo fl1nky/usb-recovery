@@ -369,12 +369,59 @@ def _document_reference(reader: _Reader):
     return result
 
 
+def _webpage(reader: _Reader):
+    """Read inert link-preview metadata from pinned Android wire classes."""
+    constructor = reader.u32()
+    result = {"constructor": f"0x{constructor:08x}"}
+    if constructor == 0xD41A5167:
+        return {**result, "type": "url_pending", "url": reader.string()}
+    if constructor in (0x211A1788, 0xB0D13E47, 0xEB1477E8, 0xC586DA1C):
+        current = constructor in (0x211A1788, 0xB0D13E47)
+        flags = reader.u32() if current else 0
+        _flags(flags, 1)
+        result.update(type="pending" if constructor in (0xB0D13E47, 0xC586DA1C) else "empty",
+                      id=reader.i64())
+        if flags & 1:
+            result["url"] = reader.string()
+        if result["type"] == "pending":
+            result["preview_date"] = _nonnegative(reader.i32())
+        return result
+    if constructor not in (0xE89C45B2, 0xFA64E172):
+        raise TelegramTlError("TL_UNSUPPORTED_WEBPAGE")
+    flags = reader.u32()
+    # Full scalar previews and already-supported Photo objects. Documents,
+    # cached HTML pages and WebPageAttribute vectors need separate decoders.
+    _flags(flags, 0x61FF if constructor == 0xE89C45B2 else 0x1FF)
+    result.update(type="page", id=reader.i64(), url=reader.string(),
+                  display_url=reader.string(), hash=reader.i32())
+    for bit, key in ((1, "page_type"), (2, "site_name"), (4, "title"), (8, "description")):
+        if flags & bit:
+            result[key] = reader.string()
+    if flags & 16:
+        result["photo"] = _photo(reader)
+    if flags & 32:
+        result["embed_url"], result["embed_type"] = reader.string(), reader.string()
+    if flags & 64:
+        result["embed_width"] = _nonnegative(reader.i32())
+        result["embed_height"] = _nonnegative(reader.i32())
+    if flags & 128:
+        result["duration"] = _nonnegative(reader.i32())
+    if flags & 256:
+        result["page_author"] = reader.string()
+    return result
+
+
 def _media(reader: _Reader, *, allow_current_document=False):
     constructor = reader.u32()
     if constructor == 0x3DED6320:
         return {"type": "empty"}
     if constructor == 0x9F84F49E:
         return {"type": "unsupported", "attachment_available": False}
+    if constructor in (0xDDF10C3B, 0xA32DD600):
+        if constructor == 0xDDF10C3B:
+            _flags(reader.u32(), 0x1B)  # force-large/small, manual, safe booleans
+        return {"type": "webpage", "constructor": f"0x{constructor:08x}",
+                "webpage": _webpage(reader)}
     if constructor == 0x52D8CCD9 and allow_current_document:
         # Current media in the independently serialized layer232 outer profile.
         # Other outer profiles, reply media, alternate documents/video covers

@@ -120,6 +120,8 @@
 !/tests/fixtures/media-units/**
 
 !/tests/fixtures/telegram-platforms/
+!/tests/fixtures/telegram-webpage/
+!/tests/telegram_webpage_oracle/
 !/tests/telegram_platforms_oracle/
 !/tests/telegram_platforms_oracle/NativeScheduledOracle.java
 !/tests/fixtures/video-bframes/
