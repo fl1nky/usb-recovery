@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "commit": "1423d5381fcdaaef85565755b087fbed6a4ed97d",
+  "profile": "Postbox userVersion25 readable SQLite linked text",
+  "files": [
+    {
+      "name": "Message.swift",
+      "sha256": "6e678675885c2b76d283ef0263f8c13c74add080edf63ce1442fb2ee7ad481fb",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/Message.swift"
+    },
+    {
+      "name": "MessageHistoryIndexTable.swift",
+      "sha256": "ded49d73ae7797b571b0a6a861031b5c91149d3e4704166970a279de75ff17d3",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/MessageHistoryIndexTable.swift"
+    },
+    {
+      "name": "MessageHistoryTable.swift",
+      "sha256": "152bb7992482927f775a80a6f4e75a5914dbf882780db28ad79e06f572567bab",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/MessageHistoryTable.swift"
+    },
+    {
+      "name": "MetadataTable.swift",
+      "sha256": "16fd79841aaebcee59163217a92dec53611082e0e1c15736b670d7b53859be17",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/MetadataTable.swift"
+    },
+    {
+      "name": "Peer.swift",
+      "sha256": "6ae89acd5bf0aa5a99a797e24537bf843b6a53749b79d2ad67f9512af634f7f9",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/Peer.swift"
+    },
+    {
+      "name": "Postbox.swift",
+      "sha256": "36d08a58d6edfba9a6233bef1cb1138bb4075099870beb7c0ec9b01333e6b823",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/Postbox.swift"
+    },
+    {
+      "name": "SqliteValueBox.swift",
+      "sha256": "655cdffe18487405bdb0747bb29624b13cbaae096bc2ca8ab94b65830093ff30",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/SqliteValueBox.swift"
+    },
+    {
+      "name": "ValueBoxKey.swift",
+      "sha256": "c2b1173f3508e3637d1a76fe89edee3f727982ebc7339e0d13c86b031bac3435",
+      "url": "https://raw.githubusercontent.com/TelegramMessenger/Telegram-iOS/1423d5381fcdaaef85565755b087fbed6a4ed97d/submodules/Postbox/Sources/ValueBoxKey.swift"
+    }
+  ]
+}

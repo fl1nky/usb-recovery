@@ -31,7 +31,7 @@ namespace UsbRecovery
         public string Archive;
         public long DiscoveredSources, ReadableSources, EncryptedSources, BlockedSources;
         public long HistoryMessages, NotificationRecords, FragmentRecords, NativeRecords, PreviousRecords, DeletedSupportedRecords, StructuredFragmentRecords;
-        public long DraftRecords, ScheduledRecords;
+        public long DraftRecords, ScheduledRecords, UnsentRecords;
         public string[] Warnings;
         public string Image;
         public long Files,Bytes;
@@ -115,7 +115,7 @@ namespace UsbRecovery
                         if (!SafeCode(code)) code = "HELPER_FAILED";
                         object notices; var values = record.TryGetValue("warnings", out notices) ? notices is string?null:notices as IEnumerable : null;
                         result = new HelperResult { Status = state, Code = code, Messages = Count(record, "messages"), DeletedSupportedRecords = Count(record,"deleted_supported_records"), StructuredFragmentRecords = Count(record,"structured_fragment_records"), Media = Count(record, "media"), Archive = Value(record, "archive"), FragmentRecords = Count(record, "fragment_records"), HistoryMessages = Count(record, "history_messages"), NativeRecords = Count(record, "native_records"), PreviousRecords = Count(record, "previous_records"), NotificationRecords = Count(record, "notification_records"), DiscoveredSources = Count(record, "discovered_sources"), ReadableSources = Count(record, "readable_sources"), EncryptedSources = Count(record, "encrypted_sources"), BlockedSources = Count(record, "blocked_sources"), Warnings = values == null ? new string[0] : System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Select(System.Linq.Enumerable.Cast<object>(values), Convert.ToString)) };
-                        result.DraftRecords=Count(record,"draft_records");result.ScheduledRecords=Count(record,"scheduled_records");
+                        result.DraftRecords=Count(record,"draft_records");result.ScheduledRecords=Count(record,"scheduled_records");result.UnsentRecords=Count(record,"unsent_records");
                         result.Image=Value(record,"image");result.Files=Count(record,"files");result.Bytes=Count(record,"bytes");var volumes=new List<StorageVolumeInfo>();object volumeRows;
                         if(record.TryGetValue("volumes",out volumeRows)&&volumeRows is IEnumerable&&!(volumeRows is string))foreach(var raw in (IEnumerable)volumeRows){var row=raw as Dictionary<string,object>;if(row==null||volumes.Count>=256)continue;long offset,length;if(!Int64.TryParse(Value(row,"offset_bytes"),out offset)||!Int64.TryParse(Value(row,"length_bytes"),out length)||offset<0)continue;string kind=Value(row,"kind");if((kind=="APFS"||kind=="BitLocker")&&length>0&&offset<=Int64.MaxValue-length)volumes.Add(new StorageVolumeInfo{Kind=kind,Name=Value(row,"name"),Identifier=Value(row,"identifier"),OffsetBytes=offset,LengthBytes=length});}
                         result.Volumes=volumes.ToArray();

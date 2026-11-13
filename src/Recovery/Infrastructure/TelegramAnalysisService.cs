@@ -48,6 +48,7 @@ namespace UsbRecovery
             if (result.NativeRecords > 0) text += " Записей в поддерживаемых локальных форматах: " + result.NativeRecords + ".";
             if (result.DraftRecords > 0) text += " Черновиков Desktop: " + result.DraftRecords + " (неотправленный текст, не история и не удалённые сообщения).";
             if (result.ScheduledRecords > 0) text += " Запланированных записей Android: " + result.ScheduledRecords + " (дата означает время планируемой отправки).";
+            if (result.UnsentRecords > 0) text += " Неотправленных записей iOS: " + result.UnsentRecords + ".";
             if (result.PreviousRecords > 0) text += " Предыдущих версий из проверенного журнала: " + result.PreviousRecords + ".";
             if (result.NotificationRecords > 0) text += " Сохранённых уведомлений: " + result.NotificationRecords + " (могут содержать только часть сообщения).";
             if (result.FragmentRecords > 0) text += " Текстовых фрагментов: " + result.FragmentRecords + " (автор, дата и принадлежность Telegram не подтверждены).";

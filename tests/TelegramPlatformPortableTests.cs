@@ -30,23 +30,25 @@ public static class TelegramPlatformPortableTests
     static List<Dictionary<string,object>> Records(string archive){return File.ReadAllLines(Path.Combine(archive,"messages.jsonl"),Encoding.UTF8).Where(s=>s.Length>0).Select(s=>Json.Deserialize<Dictionary<string,object>>(s)).ToList();}
     static string Str(Dictionary<string,object>row,string name){object value;return row.TryGetValue(name,out value)?Convert.ToString(value,CultureInfo.InvariantCulture):"";}
     static bool Unknown(Dictionary<string,object>row,string name){object value;return!row.TryGetValue(name,out value)||value==null;}
-    static void Extract(string project)
+    static void Extract(string project,bool postbox=false)
     {
-        string fixture=Path.Combine(project,"tests","fixtures","telegram-platforms");
-        string manifest=Path.Combine(fixture,"manifest.json");Check(Hash(manifest)==ManifestHash,"fixed independent native platform manifest");
+        int count=postbox?14:63;
+        string targetRoot=postbox?Path.Combine(inputs,"postbox"):inputs;
+        string fixture=Path.Combine(project,"tests","fixtures",postbox?"telegram-postbox":"telegram-platforms");
+        string manifest=Path.Combine(fixture,"manifest.json");Check(Hash(manifest)==(postbox?"02414383b71356e59ea4fa11c5f744ff02d770b60aecff1e44a666660d19583a":ManifestHash),"fixed platform manifest");
         var data=Json.Deserialize<Dictionary<string,object>>(File.ReadAllText(manifest,Encoding.UTF8));
         var expected=Rows(data["sources"]).ToDictionary(r=>Str(r,"path"),StringComparer.Ordinal);
-        string zip=Path.Combine(fixture,"native-cases.zip");Check(Hash(zip)==Str(data,"archive_sha256")&&expected.Count==63,"fixed native corpus ZIP and inventory");
-        Directory.CreateDirectory(inputs);long total=0;var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string zip=Path.Combine(fixture,postbox?"controlled-layout.zip":"native-cases.zip");Check(Hash(zip)==Str(data,"archive_sha256")&&expected.Count==count,"fixed corpus ZIP and inventory");
+        Directory.CreateDirectory(targetRoot);long total=0;var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using(var archive=new ZipArchive(File.OpenRead(zip),ZipArchiveMode.Read)){
-            Check(archive.Entries.Count==63,"exact native corpus members");
+            Check(archive.Entries.Count==count,"exact corpus members");
             foreach(var entry in archive.Entries){
                 token.ThrowIfCancellationRequested();string name=entry.FullName;Check(expected.ContainsKey(name)&&seen.Add(name),"unique declared native member");
                 Check(!name.Contains("\\")&&!name.Contains(":")&&!name.StartsWith("/")&&!name.Split('/').Contains("..")&&
                     ((entry.ExternalAttributes>>16)&0xf000)!=0xa000&&entry.Length>=0&&entry.Length<=4*1024*1024,"bounded regular source member");
                 total+=entry.Length;Check(total<=4*1024*1024,"bounded total corpus bytes");
-                string target=Path.GetFullPath(Path.Combine(inputs,name.Replace('/',Path.DirectorySeparatorChar)));
-                Check(target.StartsWith(inputs+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase),"source path containment");
+                string target=Path.GetFullPath(Path.Combine(targetRoot,name.Replace('/',Path.DirectorySeparatorChar)));
+                Check(target.StartsWith(targetRoot+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase),"source path containment");
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
                 using(var source=entry.Open())using(var output=new FileStream(target,FileMode.CreateNew,FileAccess.Write,FileShare.None))source.CopyTo(output);
                 Check(new FileInfo(target).Length==Convert.ToInt64(expected[name]["bytes"])&&Hash(target)==Str(expected[name],"sha256"),"native input raw byte/SHA binding");
@@ -104,6 +106,18 @@ public static class TelegramPlatformPortableTests
                 var row=Records(previous).Single();Check(Str(row,"evidence_kind")=="previous"&&Str(row,"wal_proof")=="all_pages_from_validated_wal"&&Unknown(row,"deleted"),"actual WAL DELETE yields previous checked snapshot, not invented user deletion");
             }
             string imported=Analyze(android,null,3,0,0,3);SearchAndFull(imported,3);
+            Extract(project,true);
+            string postbox=Run("postbox/positive",null,4,3,0,0);
+            var postboxRows=Records(postbox);
+            Check(postboxRows.Count(r=>Str(r,"record_kind")=="telegram_ios_postbox_message")==3&&postboxRows.Count(r=>Str(r,"record_kind")=="telegram_ios_postbox_unsent")==1,"linked Postbox history distinguished from unsent text");
+            Check(postboxRows.All(r=>Str(r,"source_record").Contains("linked:t4")&&Str(r,"native_postbox_value_sha256").Length==64&&Unknown(r,"deleted")),"Postbox source key, checked index and value hash survive actual helper");
+            Check(ArchiveSearchService.Search(postbox,"Telegram","рецепт|Unsent","",0,token,true).total==3,"Postbox Unicode regex and namespace-separated IDs");
+            var longPostbox=ArchiveSearchService.Search(postbox,"Telegram","Long Postbox","",0,token).records.Single();
+            Check(ArchiveSearchService.ReadPage(postbox,longPostbox.archive_record_key,30000,token).text.Contains("Я"),"Postbox long original text remains pageable");
+            Check(ArchiveSearchService.Search(postbox,"Telegram","NEVER_MESSAGE|NEVER_FETCH","",0,token,true).total==0,"opaque Postbox attributes/media/forward signatures never become message text");
+            Run("postbox/controls",null,0,0,0,0);
+            string previousPostbox=Run("postbox/wal",null,1,1,0,0);
+            Check(Records(previousPostbox).All(r=>Str(r,"evidence_kind")=="previous"&&Str(r,"wal_proof")=="all_pages_from_validated_wal"&&Unknown(r,"deleted")),"Postbox actual WAL DELETE yields checked previous version with unknown deletion");
             File.WriteAllText(Path.Combine(work,"receipt.json"),Json.Serialize(new{status="PASS",checks=checks,analyses=analyses,manifest_sha256=ManifestHash,
                 helper_sha256=Hash(HelperClient.Executable),app_sha256=Hash(typeof(RecoveryCore).Assembly.Location),harness_sha256=Hash(typeof(TelegramPlatformPortableTests).Assembly.Location),runs=Runs}),new UTF8Encoding(false));
             Console.WriteLine("PASS TelegramPlatformPortable: "+checks+" checks; "+analyses+" actual helper analyses. Native Qt/Java/SQLite corpus, no real profiles/devices.");return 0;

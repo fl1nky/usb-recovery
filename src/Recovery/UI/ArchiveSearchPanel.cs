@@ -19,7 +19,7 @@ namespace UsbRecovery
     {
         public string app, snapshot_id, chat_name, sender_name, evidence_kind, source_file, source_record, text;
         public string source_id, original_relative_path, source_sha256;
-        public string record_kind, completeness, text_field;
+        public string record_kind, completeness, text_field, native_postbox_value_sha256;
         public string recovery_status,deletion_interpretation,physical_source,record_sha256,proof,native_tl_body_sha256;
         public string provenance_verification;
         public Dictionary<string,object> archive_claims;
@@ -524,6 +524,8 @@ namespace UsbRecovery
             if(message.record_kind=="telegram_desktop_draft")return "Черновик Desktop";
             if(message.record_kind=="telegram_android_scheduled"||message.record_kind=="telegram_android_scheduled_caption")return message.evidence_kind=="previous"?"Запланировано · прежняя версия":"Запланировано Android";
             if(message.record_kind=="telegram_ios29_message")return message.evidence_kind=="previous"?"iOS 29 · прежняя версия":"iOS · прежний формат 29";
+            if(message.record_kind=="telegram_ios_postbox_message")return message.evidence_kind=="previous"?"iOS Postbox · прежняя версия":"iOS Postbox";
+            if(message.record_kind=="telegram_ios_postbox_unsent")return "iOS · неотправленный текст";
             bool caption=message.text_field=="media.legacy_caption"||SupplementalCaption(message.record_kind);
             if(CacheRecord(message.record_kind))return caption?(message.evidence_kind=="previous"?"Кэш · предыдущая подпись":"Кэш · подпись к фото"):(message.evidence_kind=="previous"?"Кэш · предыдущая версия":"Кэш Telegram");
             if(caption)return message.recovery_status=="deleted_supported_by_evidence"?"Подпись к вложению · остаток записи":message.evidence_kind=="previous"?"Подпись к вложению · предыдущая версия":"Подпись к вложению";
@@ -579,12 +581,14 @@ namespace UsbRecovery
             if(message.record_kind=="telegram_desktop_draft")details.AppendLine("\r\nЛокальный черновик Telegram Desktop: неотправленный текст. Это не история переписки и не удалённое сообщение. Автор, дата создания и ID отправленного сообщения неизвестны; ID ответа внутри черновика не присваивается самому черновику.");
             if(message.record_kind=="telegram_android_scheduled"||message.record_kind=="telegram_android_scheduled_caption")details.AppendLine("\r\nЗапланированная запись Telegram Android. Дата означает время планируемой отправки; отправка и факт удаления не подтверждены.");
             if(message.record_kind=="telegram_ios29_message")details.AppendLine("\r\nИсторическая локальная база Telegram iOS, схема 29. Прочитан исходный текст SQLite; вложения не декодированы. Это не поддержка современных баз Postbox.");
+            if(message.record_kind=="telegram_ios_postbox_message"||message.record_kind=="telegram_ios_postbox_unsent")details.AppendLine("\r\nЧитаемая база Postbox 25: текст сообщения связан с индексом истории t4. Вложения и атрибуты не декодированы. Идентификаторы iOS сохранены в исходном пространстве имён; имя владельца по ним не угадывается. Наличие записи само по себе не доказывает удаление.");
             if (message.record_kind == "tl_message"||message.record_kind=="tl_message_caption") details.AppendLine("\r\nЗапись Telegram Android: поддерживаемая структура TL, конструктор " + Known(message.native_constructor, null, "неизвестен") + ". Имена чата и автора показываются только при наличии в источнике.");
             if(CacheRecord(message.record_kind)){
                 details.AppendLine("\r\nМедиакэш Telegram: сохранившаяся подпись и ссылка на фотографию. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.");
                 if(message.evidence_kind=="previous")details.AppendLine("Подпись найдена в предыдущем проверенном снимке кэша; это не доказывает удаления переписки.");
             }
             if(!String.IsNullOrEmpty(message.native_tl_body_sha256))details.AppendLine("SHA256 TL-записи: "+message.native_tl_body_sha256);
+            if(!String.IsNullOrEmpty(message.native_postbox_value_sha256))details.AppendLine("SHA256 Postbox-записи: "+message.native_postbox_value_sha256);
             if(message.sqlite_stored_mid!=null)details.AppendLine("Ключ записи в SQLite: "+Known(null,message.sqlite_stored_mid,"неизвестен")+". ID самого сообщения показан отдельно.");
             if(!String.IsNullOrEmpty(message.rollback_journal_sha256)){
                 details.AppendLine(message.rollback_proof=="all_pages_from_validated_rollback_journal"

@@ -148,13 +148,16 @@ def _normalized(raw):
              "header_length_reconstructed", "physical_source", "physical_byte_offset", "wal_frame",
              "proof", "candidate_message_id", "candidate_peer", "candidate_date", "native_tl_body_sha256", "offset_kind", "sqlite_record_page_offset", "sqlite_record_length", "sqlite_blob_page_offset", "sqlite_header_length_reconstructed", "sqlite_record_sha256",
              "candidate_sender", "heap_class", "heap_object_id", "heap_record_sha256", "heap_record_length", "heap_text_sha256", "heap_snapshot_ms", "heap_version", "heap_identifier_bytes",
-             "container_sha256", "container_source_id", "container_source_file")
+             "container_sha256", "container_source_id", "container_source_file", "native_postbox_value_sha256")
     overflow = _overflow_provenance(raw)
     rollback = _rollback_provenance(raw)
     if overflow is None or rollback is None:
         return None
     names += ROLLBACK_FIELDS
     result = {name: raw.get(name) for name in names}
+    postbox_hash = result['native_postbox_value_sha256']
+    if postbox_hash is not None and (not isinstance(postbox_hash, str) or not re.fullmatch('[0-9a-f]{64}', postbox_hash)):
+        result['native_postbox_value_sha256'] = None
     if result["sqlite_stored_mid"] is not None and (type(result["sqlite_stored_mid"]) is not int or not -(1 << 63) <= result["sqlite_stored_mid"] < (1 << 63)):
         result["sqlite_stored_mid"] = None
     result["date_ambiguous"] = raw.get("date_ambiguous", raw.get("timestamp_ambiguous"))

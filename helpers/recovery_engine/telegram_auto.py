@@ -35,8 +35,8 @@ CACHE_RECORD_KINDS = frozenset(("telegram_media_cache", "telegram_media_cache_ca
 NATIVE_RECORD_KINDS = CACHE_RECORD_KINDS | frozenset((
     "tl_message", "tl_message_caption", "sqlite_deleted_record", "sqlite_deleted_caption",
     "telegram_android_scheduled", "telegram_android_scheduled_caption",
-    "telegram_ios29_message", "telegram_desktop_draft"))
-NON_HISTORY_RECORD_KINDS = frozenset(("notification", "telegram_desktop_draft",
+    "telegram_ios29_message", "telegram_ios_postbox_message", "telegram_ios_postbox_unsent", "telegram_desktop_draft"))
+NON_HISTORY_RECORD_KINDS = frozenset(("notification", "telegram_desktop_draft", "telegram_ios_postbox_unsent",
     "telegram_android_scheduled", "telegram_android_scheduled_caption"))
 
 
@@ -555,7 +555,7 @@ class Analyzer:
             # Only internally checked SQL/TL rows enter this index. Published
             # JSON's self-declared IDs/body hashes cannot qualify as a primary.
             key = (fields.get("identity_scope"), fields.get("chat_id"),
-                   fields.get("message_id"), fields.get("native_tl_body_sha256"),
+                   fields.get("message_id"), fields.get("native_tl_body_sha256") or fields.get('native_postbox_value_sha256'),
                    fields.get("text_field") or "message")
             index = getattr(self, "_verified_native_bodies", None)
             if index is None:
@@ -729,12 +729,15 @@ class Analyzer:
                 self.ios29_messages(connection, original)
             elif "messages_v29" in tables:
                 self.remark("TELEGRAM_IOS29_SCHEMA_UNSUPPORTED", original)
+            postbox = False
+            if {'t0', 't4', 't7'} <= tables:
+                postbox = self.postbox_messages(connection, original)
             # Media-only DBs qualify only through complete checked rows. Their
             # schema name never activates generic TL/freeblock inference.
             cache_records = 0
             if "media_v4" in tables and not getattr(self, "rollback_snapshot", None):
                 cache_records = self.native_media_cache(connection, original)
-            if native_tables or cache_records or scheduled or ios29:
+            if native_tables or cache_records or scheduled or ios29 or postbox:
                 return True
             if {"dialogs", "unread_push_messages"} & tables:
                 return True
@@ -785,6 +788,39 @@ class Analyzer:
         except PlatformError as error:
             self.remark(error.code, original)
         self.worker.remark("TELEGRAM_IOS29_RECORDS_CHECKED", original, records=accepted, **report)
+
+    def postbox_messages(self, connection, original):
+        from telegram_postbox import messages, PostboxError
+        label = self.worker.source_label or str(original)
+        identity = 'telegram-postbox25:' + hashlib.sha256(os.path.normcase(os.path.abspath(label)).encode('utf-8')).hexdigest()
+        report, accepted = {}, 0
+        try:
+            for row in messages(connection, MAX_MESSAGES, cancel=lambda: self.stop, report=report):
+                if not row['text']:
+                    report['textless_records_not_imported'] = report.get('textless_records_not_imported', 0) + 1
+                    continue
+                peer = 'ios-peer:' + format(row['peer'] & ((1 << 64) - 1), '016x')
+                author = 'ios-peer:' + format(row['author'] & ((1 << 64) - 1), '016x') if row['author'] else None
+                self.message(row['text'], 'backup', _native_row_verified=True,
+                    record_kind='telegram_ios_postbox_unsent' if row['unsent'] else 'telegram_ios_postbox_message',
+                    chat_id=peer, message_id=str(row['namespace']) + ':' + str(row['mid']),
+                    sender_id=author, sender_name=None, timestamp=dt.datetime.fromtimestamp(row['date'], dt.timezone.utc).isoformat() if row['date'] else None,
+                    source_record='t7(key=' + row['key_hex'] + ',stable=' + str(row['stable_id']) + ',version=' + str(row['stable_version']) + ') linked:t4',
+                    native_postbox_value_sha256=row['value_sha256'], identity_scope=identity,
+                    application_confirmed=True, text_field='message', deleted=None, deletion_interpretation='unknown',
+                    completeness='postbox25_linked_text_only_attributes_and_media_not_decoded',
+                    recovery_status='postbox_unsent_record_not_sent_history' if row['unsent'] else 'postbox_snapshot_record')
+                accepted += 1
+                if len(self.worker.messages) >= MAX_MESSAGES:
+                    self.stop = True
+                    self.remark('TELEGRAM_MESSAGE_LIMIT', original)
+                    break
+        except PostboxError as error:
+            if str(error) == 'CANCELLED':
+                raise AutoError('CANCELLED') from None
+            self.remark(str(error), original)
+        self.worker.remark('TELEGRAM_POSTBOX_RECORDS_CHECKED', original, records=accepted, **report)
+        return bool(accepted)
 
     def desktop_key_for(self, source):
         """Read only a supplied known-passcode wrap; never account auth info."""
@@ -1695,7 +1731,8 @@ class Analyzer:
             self.fragments = sum(m.get("evidence_kind") == "fragment" for m in self.worker.messages)
             drafts = sum(m.get("record_kind") == "telegram_desktop_draft" for m in self.worker.messages)
             scheduled = sum(m.get("record_kind") in ("telegram_android_scheduled", "telegram_android_scheduled_caption") for m in self.worker.messages)
-            local_nonhistory = drafts + scheduled
+            unsent = sum(m.get('record_kind') == 'telegram_ios_postbox_unsent' for m in self.worker.messages)
+            local_nonhistory = drafts + scheduled + unsent
             if not history and not local_nonhistory:
                 self.remark("NO_READABLE_TELEGRAM_HISTORY")
             self.worker.publish()
@@ -1706,7 +1743,7 @@ class Analyzer:
             self.warnings = list(dict.fromkeys([*self.warnings, *notes]))
             summary = {"status": "partial" if self.warnings else "complete", "code": "LOCAL_DRAFTS_OR_SCHEDULED_AVAILABLE" if local_nonhistory and not history else "PARTIAL_DATA" if history and self.warnings else "OK" if history else "NO_READABLE_TELEGRAM_HISTORY",
                        "messages": len(self.worker.messages), "history_messages": len(history), "notification_records": self.notifications, "fragment_records": self.fragments,
-                       "draft_records": drafts, "scheduled_records": scheduled,
+                       "draft_records": drafts, "scheduled_records": scheduled, "unsent_records": unsent,
                        "native_records": sum(m.get("record_kind") in NATIVE_RECORD_KINDS for m in self.worker.messages),
                        "previous_records": sum(m.get("evidence_kind") == "previous" for m in self.worker.messages),
                        "deleted_supported_records": sum(m.get("recovery_status") == "deleted_supported_by_evidence" for m in self.worker.messages),
