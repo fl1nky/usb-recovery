@@ -62,6 +62,25 @@ public static class StorageWorkflowTests
         Reject<IOException>(() => StorageRecoveryWorkflow.Create(request), "zero output limit rejected");
         Check(!Directory.Exists(request.OutputDirectory), "validation failures leave results untouched");
     }
+    static void Raid10OutputLimits()
+    {
+        var request=Request();request.Raid.Level="10";request.Raid.Layout="md-near-3";
+        request.Raid.Members.Clear();
+        for(int n=0;n<3;n++){
+            string path=Path.Combine(work,"raid10-limit-"+n+".dd");File.WriteAllBytes(path,new byte[8192]);
+            request.Raid.Members.Add(new RaidMember{Path=path});
+        }
+        request.MaximumOutputBytes=8192;StorageRecoveryWorkflow.Validate(request);
+        Check(true,"three near copies accept exactly one component of logical bytes");
+        request.MaximumOutputBytes=8191;
+        Reject<IOException>(()=>StorageRecoveryWorkflow.Validate(request),"near3 auto size respects output budget");
+        request.Raid.Layout="md-near-2";request.MaximumOutputBytes=12287;
+        Reject<IOException>(()=>StorageRecoveryWorkflow.Validate(request),"odd near2 capacity is not truncated to members/2 before budget check");
+        request.MaximumOutputBytes=12288;StorageRecoveryWorkflow.Validate(request);
+        Check(true,"odd near2 whole-stripe capacity accepted at exact limit");
+        request.Raid.ComponentSize=4096;request.MaximumOutputBytes=6144;StorageRecoveryWorkflow.Validate(request);
+        Check(true,"provided component boundary controls automatic RAID10 budget");
+    }
     static void StorageResumeRequests()
     {
         foreach(string kind in new[]{"APFS","BitLocker"}){
@@ -147,6 +166,7 @@ public static class StorageWorkflowTests
             File.WriteAllBytes(Path.Combine(work, "one.dd"), Enumerable.Repeat((byte)0x11, 1024).ToArray());
             File.WriteAllBytes(Path.Combine(work, "two.dd"), Enumerable.Repeat((byte)0x22, 1024).ToArray());
             Validate();
+            Raid10OutputLimits();
             StorageResumeRequests();
             Search(Prepare());
             Check(File.ReadAllBytes(Path.Combine(work, "one.dd")).All(value => value == 0x11) &&

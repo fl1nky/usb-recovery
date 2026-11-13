@@ -1,0 +1,441 @@
+{
+  "schema": 1,
+  "origin": "owned_derived_inverse_mapping_not_native",
+  "upstream_commit": "d2da189112cae3a627f96d9de78341193eb6dc52",
+  "template_sha256": "74c49cec9fe364dee5af78bed1ce3ab879c3d78ebed5853a96d831269a060ce1",
+  "mapping_reference": "https://github.com/torvalds/linux/blob/v6.12/drivers/md/raid10.c",
+  "cases": [
+    {
+      "name": "md-near-2-2",
+      "layout": "md-near-2",
+      "members": 2,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 69632,
+      "sha256": "3853977084200e7990abfdb25b139f0bc96da273f40206edb086c825f6e97b81",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "a559536be758448970cb9ab9186d580982a82933112e96c0a2bfa3ea0ee99878"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "4c4637028b0299a74e729bd57b80542475fc6bdc302316d895d9fbf0774e9679"
+        }
+      ]
+    },
+    {
+      "name": "md-near-2-3",
+      "layout": "md-near-2",
+      "members": 3,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 102400,
+      "sha256": "9e2829b7b71957638a6b8113010878ed5db049fa7a8516a981d5db08feea8a69",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "a3fde96aa9995ce8c0a7301df8537396371841f6d8a04caa7197e8b051f5d211"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "7c7e6af157815fdf63269449e6bfedff86821ce20ee60d54d4415457600238d3"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "153450df49b03f933d6bf536294144180c13ba56c0533a862333e2a589df08b5"
+        }
+      ]
+    },
+    {
+      "name": "md-near-2-5",
+      "layout": "md-near-2",
+      "members": 5,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 172032,
+      "sha256": "9f4a26ffac5d7539ec340cf834c02c01a53e8a862f26def7bfd69e8e7fddfd7c",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "cb01477affadb5439b498ea67100bd7e83deb0a0c219102b90058461a1f48576"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "565a42a770f0eb74d0c5e5087fcd817df13cfedb95df325ddcc9faa343001ff2"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "edce8109dacfd0157b0f22e55bfe42a11134313795f2b15b1d78667a3a9ac148"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "bbec423711b13ae70750d0e1ac87219f30e901179742c5fb4805b603fe0f13ac"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "9b143a92ccaec6a99f484c8a2bfcbe74ab6420754692c75c59b12dae253525ea"
+        }
+      ]
+    },
+    {
+      "name": "md-near-3-3",
+      "layout": "md-near-3",
+      "members": 3,
+      "copies": 3,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 69632,
+      "sha256": "3853977084200e7990abfdb25b139f0bc96da273f40206edb086c825f6e97b81",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "4c46599aedb5b9eccfa82cfb0bac815fd33095e02641a6fdac642770b87bc186"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "7a60ca2e79aab1d80e2c13b0ac6dbde0cd0c1bcc9ec7cd7d97575a721c51f7dd"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "ba2103ed34a1c84fae3f73b980844e8d0f582b469b5314765cb101f9312679b5"
+        }
+      ]
+    },
+    {
+      "name": "md-near-3-4",
+      "layout": "md-near-3",
+      "members": 4,
+      "copies": 3,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 90112,
+      "sha256": "cde39273acc7a8ef379572ecefd42b15f28189ba3265352cbf96e985f2e86707",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "6d606908ab268a2b308e33d2e8530f86abf4dbcff0083df2c06337515d2f0e9b"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "9f9657c81da4f1407bbed87de81279e09532cc93aa00c666a5161140b7bec893"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "f4f0d7bfc67124f422e09917a2096b21a8ce835bcf512a8263467d8045a7b544"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "a4dddfe9dea20fcd04ed873a77fbf56325c94d30b24d8db49a0f89d2ea1af15c"
+        }
+      ]
+    },
+    {
+      "name": "md-near-3-5",
+      "layout": "md-near-3",
+      "members": 5,
+      "copies": 3,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 114688,
+      "sha256": "40b7039b26d5920bc6b0527199a2d6b51573896dbdb8498cb446f4d3f8945654",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "1dc1376cffd69289b9416d0be92e21f108a6316eed72cec335a7fe61d2ea9a2e"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "32fc13c0c34da3302b68df1bd4d45955e29aed4ec4a0bc2822250c753817e9ed"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "2ea4ff600f6c49f15ff95c9d1ddec09ec7752bec08aca2110614d388a59e6856"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "ae18f74972ad388979b59712730879d1d69da092f0c69bb205c89ab22b6e0826"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "3a535d1452c2b27ba2ff3b97d45aa20e3cb47dacef33be11a77bbc234de7d7ca"
+        }
+      ]
+    },
+    {
+      "name": "md-far-2-3",
+      "layout": "md-far-2",
+      "members": 3,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 98304,
+      "sha256": "416dcbaa46dc1299fc81ed1d1fbc8d27baf746083052d7c679000696f45ea1e7",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "3f83b4a155cdeae63300098a555e7457e50d07a83b093eda7a4adf5b5c479d4e"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "afb10d369b1cca51026f5f5298bdfe37271a8dd6c294c342ec16c4b6536461a2"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "dd73d3c3cee5dac153682cd1bb8b386e119eecc889165e608fd6bc6913b1cbad"
+        }
+      ]
+    },
+    {
+      "name": "md-far-2-5",
+      "layout": "md-far-2",
+      "members": 5,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 163840,
+      "sha256": "09ea9184eba8fb8982beb81d958628d9ac35f04a03e8f0ed978bd77651349440",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "7d65091b49f19f8006c2e0c51fce425b03269afe061637df6ef71106cfbb987e"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "8c7913a92c47fc8992ef38b6a8763980bd83d778e1e32d6517c555ba7692f6eb"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "6e06e738b6cdaa6435fa7ea1ab5000ef130da94e9b4da3cd101ab98bc9d62cd3"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "5f763f454b2b380769d21f0766d8294774107c2347f6d2e0ae3ac115ad8b90b5"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "92c5601f1e2b8a7a775a695a27d0f97affb7d9e95caaada06283c98362582fe6"
+        }
+      ]
+    },
+    {
+      "name": "md-far-3-5",
+      "layout": "md-far-3",
+      "members": 5,
+      "copies": 3,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 102400,
+      "sha256": "9e2829b7b71957638a6b8113010878ed5db049fa7a8516a981d5db08feea8a69",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "f92b477245a851d613058c865a6b9fe11ee6656e904aef2c1a7b3a04ef98b106"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "3b231cac4ea4b05b0265315e09d6012ee395d49bc5a9f0773df768d3a030c6f1"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "3296e830889291bc4ef2a52e0433ac6fe58d08001183b83462b66589819aaf4a"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "4a638d170ded32be6decd41c8a0a184cd57f86d70f9b6c26f6510713cfbeb1fb"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "219facc51696e235a81ef78737887915e4a51c7b88b74e7e8b670f4ffdb29564"
+        }
+      ]
+    },
+    {
+      "name": "md-offset-2-3",
+      "layout": "md-offset-2",
+      "members": 3,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 98304,
+      "sha256": "416dcbaa46dc1299fc81ed1d1fbc8d27baf746083052d7c679000696f45ea1e7",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "14dc5a40c5fae67bbd56ae20b2b7885dcafcc9f643223be16edadc2b2efb7743"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "f83aa2a615fb869d30a851a6342340b894d8095582a3c69db855f36150bbc826"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "0be9d7ed4a1a84027d4e3cc89ef997bc3a61008e18566164ab2ce64372aae163"
+        }
+      ]
+    },
+    {
+      "name": "md-offset-2-5",
+      "layout": "md-offset-2",
+      "members": 5,
+      "copies": 2,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 163840,
+      "sha256": "09ea9184eba8fb8982beb81d958628d9ac35f04a03e8f0ed978bd77651349440",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "226e39333fca248699fb19b17c9469400f071defac0c893f2b6d8109029f04da"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "f9f4ed8d18cb93ce662fafe88ca3303785ae5ef3da2c7c2edea318164523f05e"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "c9e5c9828f1d18ad69aecd7e2a4a1c56c279f1efc43963c8015feebe550e688d"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "babd88ee0117db9fcaaa2c213e3ae26c9dcf2ce49cd7aa1e1e3adbeaf87a0a8c"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "93f6b57080a615c6e01d714f1d764c8d6d039a11f03a25194324f27d3048053a"
+        }
+      ]
+    },
+    {
+      "name": "md-offset-3-5",
+      "layout": "md-offset-3",
+      "members": 5,
+      "copies": 3,
+      "chunk": 4096,
+      "component": 69632,
+      "bytes": 102400,
+      "sha256": "9e2829b7b71957638a6b8113010878ed5db049fa7a8516a981d5db08feea8a69",
+      "files": [
+        {
+          "name": "member-0.bin",
+          "offset": 16384,
+          "bytes": 90112,
+          "sha256": "7e85aaefb7d6d67d7bbeefe8a2a448720dd438518bc0404fb2a7a86148211181"
+        },
+        {
+          "name": "member-1.bin",
+          "offset": 20480,
+          "bytes": 98304,
+          "sha256": "f152c5a9ab52a33a83e4791ad18953ba57f1a469df7170d3a31dfbeb053d2f7d"
+        },
+        {
+          "name": "member-2.bin",
+          "offset": 24576,
+          "bytes": 106496,
+          "sha256": "4fb7857f600f4a968a7393e0a42271bf83072ac005eda04a220856de8824fc23"
+        },
+        {
+          "name": "member-3.bin",
+          "offset": 28672,
+          "bytes": 114688,
+          "sha256": "161f3d48e34d6ffd5dd8394f513960242b9e64fb818ebc9f67c8e8bff3dbe3e4"
+        },
+        {
+          "name": "member-4.bin",
+          "offset": 32768,
+          "bytes": 122880,
+          "sha256": "f3b18b1eb65e66e201cd838b594456fd14d7787fe68ca8114c8dabcf6028c9fc"
+        }
+      ]
+    }
+  ]
+}

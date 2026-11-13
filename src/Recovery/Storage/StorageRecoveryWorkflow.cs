@@ -61,6 +61,15 @@ namespace UsbRecovery
             long smallest = request.Raid.Members.Where(member => !member.Missing)
                 .Min(member => new FileInfo(member.Path).Length - member.Offset);
             string level = request.Raid.Level.Trim().ToUpperInvariant().Replace("RAID", "").Replace("-", "").Trim();
+            if(level=="10"){
+                long component=request.Raid.ComponentSize!=0?request.Raid.ComponentSize:smallest/request.Raid.ChunkSize*request.Raid.ChunkSize;
+                long available;
+                try{available=RaidImageBuilder.Raid10LogicalSize(request.Raid.Layout,component,request.Raid.ChunkSize,request.Raid.Members.Count);}
+                catch(OverflowException){throw new IOException("Размер RAID10 превышает допустимый диапазон.");}
+                if((request.Raid.LogicalSize==0?available:request.Raid.LogicalSize)>request.MaximumOutputBytes)
+                    throw new IOException("Образ RAID превысит выбранный лимит. Увеличь лимит результатов.");
+                return;
+            }
             int dataMembers = level == "0" ? request.Raid.Members.Count :
                 level == "5" ? request.Raid.Members.Count - 1 :
                 level == "6" ? request.Raid.Members.Count - 2 :

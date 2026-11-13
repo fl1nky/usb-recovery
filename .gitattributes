@@ -57,4 +57,6 @@
 /vendor/ewfprobe/ewfprobe.py -text
 /tests/fixtures/forensic-images/** -text whitespace=cr-at-eol
 /tests/fixtures/telegram-postbox/** -text whitespace=cr-at-eol
+/tests/fixtures/telegram-desktop-kdf/** -text whitespace=cr-at-eol
+/tests/telegram_desktop_kdf_oracle/** -text whitespace=cr-at-eol
 /tests/postbox_oracle/PostboxWriter.cs -text

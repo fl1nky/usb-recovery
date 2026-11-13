@@ -1,0 +1,264 @@
+{
+  "format": "telegram-desktop-kd2-v2-owned-inputs",
+  "upstream_commit": "a8de5f928ba68197195e6e752293af39d4db8e6c",
+  "qt_version": "5.15.2",
+  "scrypt_producer": "Crypto.Protocol.KDF.scrypt",
+  "sources": {
+    "storage_domain.cpp": "b0360781c97283141ca3af9bc75e89b1e3d8619a5cd44ac899d1732721ec5ecb",
+    "storage_file_utilities.cpp": "74b637a76cd9ebf056c3c5452c0f71cb1b0c76a6309eed2c58a0b6f47fef4ac9",
+    "storage_file_utilities.h": "fef9bf266b75b7b2cd938493e090820e3ad3ee066762f9febc829ca2b7f2fa68"
+  },
+  "archive_sha256": "e4c66200eedf4e4c6e9a934caec503f19e4c15c1bfb87bb685962c5f1485a43e",
+  "producers": {
+    "producer.py": "15a5e37a4988dcb07594dad2b6f168fcbe4dd18eb55c841d8a17345e76cf6067",
+    "telegram_platform_fixture_producer.py": "f7881ba9d7d90a8ef2bc173afea8954e90ad17a1f15eed691af745eeb8e4cfbb"
+  },
+  "fixture_count": 35,
+  "cases": [
+    {
+      "path": "authenticated-wrong-key-size.tdf",
+      "size": 473,
+      "sha256": "1775cada0b18a1263c927cf1f1e74676e4c932015a7d4aae57702a55e8035628",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "bad-container-checksum.tdf",
+      "size": 473,
+      "sha256": "a431590ea8613f9cac41a1348312ca64705f7f2d190d1327cb40cfa50d210839",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "bad-magic.tdf",
+      "size": 473,
+      "sha256": "546945d871aff9c4bdb959417aa87ac562d32e1f9f6bf4f95b33cd975809cef4",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "cipher-integrity.tdf",
+      "size": 473,
+      "sha256": "3b18de95523654952666de8ae9996f6719751962c5462ef01c20d229e51d18ab",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "cipher-short.tdf",
+      "size": 472,
+      "sha256": "ddfd523fe9620dcee09de54cc79379947d6b39c873f801694058d494971aee58",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "committed-first.tdf",
+      "size": 821,
+      "sha256": "7ebad46d6faf80f9cbc8d726eeacfde2242c848da36636eb2a788c8b732b9c5e",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "committed-second.tdf",
+      "size": 821,
+      "sha256": "d480d4013425aaddd390241d3fbc072e492805d3dc8d70322046560e5aecc3d9",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "duplicate-generation.tdf",
+      "size": 821,
+      "sha256": "a71efd2b0bcaef2b4efd1e7f276c292449030ba3d7bac3832efa32550c707e28",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "inner-trailing.tdf",
+      "size": 481,
+      "sha256": "3f3eac4dcd22e10bcf269edad8bba6b3762bcd9da73cc995f59ba7baaa842034",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "malformed-staged-slot.tdf",
+      "size": 796,
+      "sha256": "6813ae1bd0b2e4c69afdee036bfcafa35893d5a307bbc6659dd1ff4bd8d1faf0",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "missing-committed.tdf",
+      "size": 473,
+      "sha256": "c7577bd71400d9a80841e02692f5fd1322c6c43fd1d166995890c4c381c46466",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "new-trailer-version.tdf",
+      "size": 473,
+      "sha256": "4d09ed08b34f55d4776d59d0441d8338303d8f850f91d61251a01a517856a627",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "old-trailer-version.tdf",
+      "size": 473,
+      "sha256": "3099f5f0131e7639b7dcba2af6c148398adfc2f5bf54f911c8899e0aaefedc7a",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "opaque-contains-fake-trailer.tdf",
+      "size": 800,
+      "sha256": "d08d8cdc42b262a274b47074cacedf5213abdcb6a7114590dc4f76bb3d8acbc7",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "open-missing.tdf",
+      "size": 125,
+      "sha256": "37dbfbf81adfe73730c264425bcfda16bb9f3258b351aa843889df9a0f1d7d3b",
+      "secret": "empty",
+      "accepted": false
+    },
+    {
+      "path": "open-no-wraps.tdf",
+      "size": 413,
+      "sha256": "1392d3f279ebc80fc2963f0595cfa9af90eb0decfb43057e13c6c7014908907d",
+      "secret": "empty",
+      "accepted": true
+    },
+    {
+      "path": "open-with-argon2.tdf",
+      "size": 761,
+      "sha256": "af1600811856da2179a5ccee45186ca9ff92d794cd1ea80bd46c8f1e1f33b429",
+      "secret": "empty",
+      "accepted": true
+    },
+    {
+      "path": "open-with-staged.tdf",
+      "size": 761,
+      "sha256": "2c78116bd9d2d9285d2733202fdca628f3686797f7c77fddf9c9f6efdd222aa4",
+      "secret": "empty",
+      "accepted": true
+    },
+    {
+      "path": "outer-trailing.tdf",
+      "size": 481,
+      "sha256": "95cece8f9a436968e9124137402de6d8d49dcb7546c34a0a5fe9e404105b8a92",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "passcode-and-open.tdf",
+      "size": 761,
+      "sha256": "a4acb53802d6a527b8f8fee96c0f086b405bc6f4ea5c772f4f8f660c376e4348",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "salt-long.tdf",
+      "size": 1466,
+      "sha256": "29beca7f2ba8bd4a90931437a9dd43aefec2269744f263c0ba1796d586f60476",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "salt-short.tdf",
+      "size": 448,
+      "sha256": "28c7b0ceafb7a9adf5a30da35b543fd49df633faaef379dfa8a3f06445801b82",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-default.tdf",
+      "size": 473,
+      "sha256": "6753464fb8491bde61524fc3c69099db05ec20195f8b3c54d62bde70e792dc44",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "scrypt-not-power-two.tdf",
+      "size": 473,
+      "sha256": "9284295327ace05dcef07c2d71d9d137f28447115023c6e2371288e76e507ad9",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-p-large.tdf",
+      "size": 473,
+      "sha256": "8930013053ca9c57dfdfa709222d7a8538d370f7f8dde5e74f5bdd7d5efd8a6e",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-p-zero.tdf",
+      "size": 473,
+      "sha256": "44ce55e1320af178c56de88a7be3be6b48ae2065f5af7c04956a2fc937c20432",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-r-large.tdf",
+      "size": 473,
+      "sha256": "5860400755271e9249d9701661c3f0c4b6c3d2c8259ff059de32d1a0a26069e5",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-r-zero.tdf",
+      "size": 473,
+      "sha256": "6c6cb80a86551109dacbb02fc09708e8b536e9de9136c06fa51e5344c9b8ef01",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-too-large.tdf",
+      "size": 473,
+      "sha256": "83706ac824987728814366628a5d9ae6e645bf464faf45241dc7de8922f18e1c",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "scrypt-x86.tdf",
+      "size": 473,
+      "sha256": "00278fc1b7cd05f4f9c22895fe2cfbeaa9cbbece51359c740f2081753f978aae",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "selected-argon2.tdf",
+      "size": 473,
+      "sha256": "46d9166f5f15a856c3bd3082c0dc2ca686fbfc1d0da446db68fdfca22ebff9b6",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "staged-argon2.tdf",
+      "size": 821,
+      "sha256": "f67b8115e2ff2a2dd662f4fc3afc8a37d3907c805625d39ec843c8201824db7e",
+      "secret": "passcode",
+      "accepted": true
+    },
+    {
+      "path": "too-many-slots.tdf",
+      "size": 1169,
+      "sha256": "309f402d5816adabc3e1a105d3cfad1157660d83f75e60422fc6b79069aec6dc",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "truncated-trailer.tdf",
+      "size": 472,
+      "sha256": "910f8463c310a43e44f7b9906fb1aacab2dfedddcf0c2072b0cc496c3e98c60f",
+      "secret": "passcode",
+      "accepted": false
+    },
+    {
+      "path": "unknown-kdf.tdf",
+      "size": 473,
+      "sha256": "e32b30a6eaf407f5d0cc4fd8ff48bc6b3f66bf9399d9a3ac7bf4e1f7beac84dd",
+      "secret": "passcode",
+      "accepted": false
+    }
+  ]
+}

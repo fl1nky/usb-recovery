@@ -170,7 +170,16 @@ namespace UsbRecovery
 
             else if(m.Level==1){m.Layout="mirror";if(m.LayoutCode!=0)Reject(m,"MD_MIRROR_LAYOUT_UNSUPPORTED");}
 
-            else if(m.Level==10){m.Layout="adjacent-pairs";if(m.LayoutCode!=258||m.RaidDisks<4||m.RaidDisks%2!=0)Reject(m,"MD_RAID10_LAYOUT_UNSUPPORTED");}
+            else if(m.Level==10){
+                if(m.LayoutCode==258)m.Layout=m.RaidDisks>=4&&m.RaidDisks%2==0?"adjacent-pairs":"md-near-2";
+                else if(m.LayoutCode==259)m.Layout="md-near-3";
+                else if(m.LayoutCode==513)m.Layout="md-far-2";
+                else if(m.LayoutCode==769)m.Layout="md-far-3";
+                else if(m.LayoutCode==66049)m.Layout="md-offset-2";
+                else if(m.LayoutCode==66305)m.Layout="md-offset-3";
+                else Reject(m,"MD_RAID10_LAYOUT_UNSUPPORTED");
+                if(m.RaidDisks<(m.LayoutCode==259||m.LayoutCode==769||m.LayoutCode==66305?3:2))Reject(m,"MD_RAID10_LAYOUT_UNSUPPORTED");
+            }
 
             else if(m.Level==5){string[] layouts={"left-asymmetric","right-asymmetric","left-symmetric","right-symmetric","parity-first","parity-last"};if(m.LayoutCode>=0&&m.LayoutCode<layouts.Length)m.Layout=layouts[m.LayoutCode];else Reject(m,"MD_PARITY_LAYOUT_UNSUPPORTED");}
 
@@ -178,13 +187,14 @@ namespace UsbRecovery
 
             else Reject(m,"MD_LEVEL_UNSUPPORTED");
 
-            int minimum=m.Level==5?3:m.Level==6||m.Level==10?4:2;
+            int minimum=m.Level==5?3:m.Level==6?4:2;
 
             if(m.RaidDisks<minimum||m.RaidDisks>RaidImageBuilder.MaximumMembers)Reject(m,"MD_MEMBER_COUNT_UNSUPPORTED");
 
             if(m.Level!=1&&!Pow2(m.ChunkBytes)||m.Level==1&&m.ChunkBytes!=0&&!Pow2(m.ChunkBytes))Reject(m,"MD_CHUNK_UNSUPPORTED");
 
             if(m.ComponentBytes<=0||m.Level!=1&&m.ChunkBytes>0&&m.ComponentBytes%m.ChunkBytes!=0)Reject(m,"MD_COMPONENT_ALIGNMENT_UNSUPPORTED");
+            if(m.Level==10&&m.ChunkBytes>0&&m.ComponentBytes/m.ChunkBytes<((m.LayoutCode>>8)&255))Reject(m,"MD_COMPONENT_ALIGNMENT_UNSUPPORTED");
 
         }
 
@@ -439,13 +449,13 @@ namespace UsbRecovery
 
             var active=list.Where(m=>m.Active).ToDictionary(m=>m.Role);for(int role=0;role<first.RaidDisks;role++)if(!active.ContainsKey(role))group.MissingRoles.Add(role);
 
-            var config=new RaidConfiguration{Level=group.Level,Layout=group.Layout,ChunkSize=group.ChunkBytes==0?512:group.ChunkBytes};
+            var config=new RaidConfiguration{Level=group.Level,Layout=group.Layout,ChunkSize=group.ChunkBytes==0?512:group.ChunkBytes,ComponentSize=first.Level==10?first.ComponentBytes:0};
 
             for(int role=0;role<first.RaidDisks;role++){Member m;config.Members.Add(active.TryGetValue(role,out m)?new RaidMember{Path=m.Path,Offset=m.DataOffset}:new RaidMember{Missing=true});}
 
             int data=first.Level==0?first.RaidDisks:first.Level==5?first.RaidDisks-1:first.Level==6?first.RaidDisks-2:first.Level==10?first.RaidDisks/2:1;
 
-            try{config.LogicalSize=checked(first.ComponentBytes*data);RaidImageBuilder.Validate(config);}catch(OverflowException){Reason(group,"MD_ARRAY_SIZE_OVERFLOW");return group;}catch(RaidRecoveryException error){Reason(group,error.Code);return group;}
+            try{config.LogicalSize=first.Level==10?RaidImageBuilder.Raid10LogicalSize(group.Layout,first.ComponentBytes,config.ChunkSize,first.RaidDisks):checked(first.ComponentBytes*data);RaidImageBuilder.Validate(config);}catch(OverflowException){Reason(group,"MD_ARRAY_SIZE_OVERFLOW");return group;}catch(RaidRecoveryException error){Reason(group,error.Code);return group;}
 
             group.LogicalBytes=config.LogicalSize;group.Configuration=config;group.Status="candidate";Reason(group,"MD_METADATA_ONLY_REVIEW_REQUIRED");return group;
 

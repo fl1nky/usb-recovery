@@ -46,6 +46,12 @@ foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
 foreach($relative in 'fixtures\media-units','fixtures\hevc-recovery','fixtures\hevc-validation','fixtures\aac-islands','fixtures\aac-lc','fixtures\ext4','fixtures\refs','fixtures\raid-md','fixtures\raid-controller','fixtures\apfs-salvage','fixtures\telegram-cache-profiles','fixtures\telegram-document-empty','fixtures\telegram-document-descriptor','fixtures\telegram-document-descriptor-portable','fixtures\telegram-document-attributes','fixtures\telegram-document-attributes-compatibility','fixtures\telegram-media-only','fixtures\video-stz2','fixtures\video-fmp4','fixtures\document-media-preview','fixtures\telegram-platforms','fixtures\telegram-postbox','postbox_oracle','fixtures\telegram-webpage','fixtures\forensic-images','fixtures\video-bframes','telegram_platforms_oracle','telegram_webpage_oracle','benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
  Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
 }
+foreach($relative in 'fixtures\telegram-desktop-kdf','telegram_desktop_kdf_oracle','fixtures\raid10'){
+ Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
+}
+$taskBdeManifest=Join-Path $taskSource 'tests\fixtures\bitlocker-full-volume'
+New-Item -ItemType Directory -Path $taskBdeManifest -Force|Out-Null
+Copy-Item -LiteralPath (Join-Path $taskLayout.Tests 'fixtures\bitlocker-full-volume\GTekSD.json') -Destination (Join-Path $taskBdeManifest 'GTekSD.json')
 foreach($name in 'recovery-helper','testdisk-7.2'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}
 $taskAdb=Join-Path $taskStage 'tools\platform-tools';New-Item -ItemType Directory -Path $taskAdb -Force|Out-Null
 foreach($name in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','NOTICE.txt','source.properties'){Copy-Item -LiteralPath (Join-Path $taskLayout.Tools ('platform-tools\'+$name)) -Destination (Join-Path $taskAdb $name)}

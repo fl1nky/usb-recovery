@@ -6,9 +6,11 @@ import hashlib
 import json
 import shutil
 import sqlite3
+import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,6 +52,143 @@ class TelegramPlatformTests(unittest.TestCase):
         self.assertEqual(inventory(self.inputs), before, 'Original DB/WAL/SHM/TDF/key-data source bytes stay unchanged')
         records = [json.loads(s) for s in (output/'messages.jsonl').read_text('utf-8').splitlines()]
         return output, result, records
+
+    def modern_cases(self):
+        folder = ROOT / 'tests/fixtures/telegram-desktop-kdf'
+        raw_manifest = (folder/'manifest.json').read_bytes()
+        self.assertEqual(hashlib.sha256(raw_manifest).hexdigest(),
+            '9c9711965739f03ab3d85d813d21408f0e9fbad27d8e0ef3769776e56a94510a')
+        manifest = json.loads(raw_manifest)
+        self.assertEqual(hashlib.sha256((folder/'native-cases.zip').read_bytes()).hexdigest(),manifest['archive_sha256'])
+        with zipfile.ZipFile(folder/'native-cases.zip') as archive:
+            self.assertEqual(set(archive.namelist()), {row['path'] for row in manifest['cases']})
+            cases = {}
+            for row in manifest['cases']:
+                data = archive.read(row['path'])
+                self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (row['size'],row['sha256']))
+                cases[Path(row['path']).stem] = (data, row)
+        return manifest, cases
+
+    def modern_profile(self, name):
+        _, cases = self.modern_cases()
+        target = self.inputs / ('modern-'+name)
+        shutil.copytree(self.inputs/'positive/desktop-tag6', target)
+        (target/'key_datas').write_bytes(cases[name][0])
+        return target
+
+    def test_modern_key_data_independent_native_corpus_contract(self):
+        manifest, cases = self.modern_cases()
+        self.assertEqual(manifest['upstream_commit'], 'a8de5f928ba68197195e6e752293af39d4db8e6c')
+        self.assertEqual(manifest['qt_version'], '5.15.2')
+        self.assertEqual(manifest['scrypt_producer'], 'Crypto.Protocol.KDF.scrypt')
+        self.assertEqual((manifest['fixture_count'], len(cases), sum(row['accepted'] for _, row in cases.values())), (35,35,9))
+        self.assertEqual(set(manifest['sources']), {'storage_domain.cpp','storage_file_utilities.cpp','storage_file_utilities.h'})
+        producer = (ROOT/'tests/telegram_desktop_kdf_oracle/producer.py').read_text('utf-8')
+        self.assertNotIn('import telegram_platforms',producer)
+        self.assertNotIn('import telegram_auto',producer)
+        self.assertEqual(hashlib.sha256((ROOT/'tests/telegram_desktop_kdf_oracle/producer.py').read_bytes()).hexdigest(),
+            manifest['producers']['producer.py'])
+        self.assertEqual(hashlib.sha256((ROOT/'tests/telegram_platform_fixture_producer.py').read_bytes()).hexdigest(),
+            manifest['producers']['telegram_platform_fixture_producer.py'])
+
+    def test_modern_account_authorization_blob_is_only_framed(self):
+        _, cases = self.modern_cases()
+        original = telegram_platforms._QtReader.take
+        def take(reader,size):
+            value = original(reader,size)
+            self.assertNotIn(b'OPAQUE_ACCOUNT_INFO_NEVER_DECRYPT_KD2',value)
+            return value
+        with patch.object(telegram_platforms._QtReader,'take',take), patch.object(
+                telegram_platforms,'_decrypt_local',wraps=telegram_platforms._decrypt_local) as decrypt:
+            self.assertEqual(telegram_platforms.unwrap_key_data(cases['scrypt-default'][0],TEST_PASSCODE),TEST_KEY)
+            self.assertEqual(decrypt.call_count,1)
+            self.assertEqual(len(decrypt.call_args.args[0]),288)
+
+    def test_modern_key_data_authentication_and_structural_controls(self):
+        _, cases = self.modern_cases()
+        for name, (data, row) in cases.items():
+            with self.subTest(case=name):
+                password = '' if row['secret'] == 'empty' else TEST_PASSCODE
+                if row['accepted']:
+                    self.assertEqual(telegram_platforms.unwrap_key_data(data,password), TEST_KEY)
+                else:
+                    with self.assertRaises(telegram_platforms.PlatformError):
+                        telegram_platforms.unwrap_key_data(data,password)
+
+    def test_modern_malformed_trailer_cost_and_slot_controls_fail_before_kdf(self):
+        _, cases = self.modern_cases()
+        for name, (data, row) in cases.items():
+            if row['accepted'] or name in ('cipher-integrity','authenticated-wrong-key-size'):
+                continue
+            with self.subTest(case=name), patch.object(telegram_platforms.hashlib,'scrypt') as kdf:
+                with self.assertRaises(telegram_platforms.PlatformError):
+                    telegram_platforms.unwrap_key_data(data, '' if row['secret']=='empty' else TEST_PASSCODE)
+                kdf.assert_not_called()
+
+    def test_modern_committed_generation_selects_one_wrap_without_fallback(self):
+        _, cases = self.modern_cases()
+        actual = hashlib.scrypt
+        for name in ('committed-first','committed-second','staged-argon2'):
+            with self.subTest(case=name), patch.object(telegram_platforms.hashlib,'scrypt',wraps=actual) as kdf:
+                self.assertEqual(telegram_platforms.unwrap_key_data(cases[name][0],TEST_PASSCODE),TEST_KEY)
+                self.assertEqual(kdf.call_count,1)
+        # Even a valid independent open wrap cannot rescue a supplied wrong code.
+        with patch.object(telegram_platforms.hashlib,'scrypt',wraps=actual) as kdf:
+            with self.assertRaisesRegex(telegram_platforms.PlatformError,'KEY_OR_INTEGRITY_INVALID'):
+                telegram_platforms.unwrap_key_data(cases['passcode-and-open'][0],'wrong-synthetic-passcode')
+            self.assertEqual(kdf.call_count,1)
+        self.assertEqual(telegram_platforms.unwrap_key_data(cases['passcode-and-open'][0],''),TEST_KEY)
+
+    def test_modern_scrypt_unavailable_is_reported_without_fallback(self):
+        _, cases = self.modern_cases()
+        with patch.object(telegram_platforms.hashlib,'scrypt',side_effect=ValueError('synthetic unavailable')) as kdf:
+            with self.assertRaisesRegex(telegram_platforms.PlatformError,'KDF_UNAVAILABLE'):
+                telegram_platforms.unwrap_key_data(cases['passcode-and-open'][0],TEST_PASSCODE)
+            self.assertEqual(kdf.call_count,1)
+        for invalid in (None, 12, '\ud800', 'x'*4097):
+            with self.subTest(kind=type(invalid).__name__), self.assertRaisesRegex(telegram_platforms.PlatformError,'PASSCODE_INVALID'):
+                telegram_platforms.unwrap_key_data(cases['scrypt-default'][0],invalid)
+
+    def test_modern_wrappers_collect_only_native_drafts_keep_private_files_closed(self):
+        for name in ('scrypt-default','scrypt-x86','committed-second','open-with-argon2'):
+            self.modern_profile(name)
+            password = '' if name.startswith('open-') else TEST_PASSCODE
+            output, summary, rows = self.analyze('modern-'+name,dict(telegram_desktop_passcode=password),guard_private=True)
+            self.assertEqual((summary['draft_records'],summary['history_messages'],len(rows)),(2,0,2))
+            expected = next(row for row in self.oracle['expected']['desktop'] if row['case']=='desktop-tag6')
+            self.assertEqual({row['text'] for row in rows},set(expected['texts']))
+            for row in rows:
+                self.assertEqual(row['record_kind'],'telegram_desktop_draft')
+                self.assertIsNone(row['sender_id'])
+                self.assertIsNone(row['timestamp'])
+            for path in output.rglob('*'):
+                if path.is_file():
+                    raw = path.read_bytes()
+                    self.assertNotIn(TEST_PASSCODE.encode(),raw)
+                    self.assertNotIn(TEST_KEY.hex().encode(),raw)
+        for name in ('selected-argon2','missing-committed','cipher-integrity','malformed-staged-slot'):
+            self.modern_profile(name)
+            _, summary, rows = self.analyze('modern-'+name,dict(telegram_desktop_passcode=TEST_PASSCODE),guard_private=True)
+            self.assertEqual((summary['draft_records'],rows),(0,[]))
+
+    def test_modern_stdin_protocol_known_secret_and_no_secret_leaks(self):
+        source = self.modern_profile('scrypt-default')
+        before = inventory(self.inputs)
+        destination = self.base/'stdin-archive'
+        request = dict(protocol=1,operation='telegram_analyze',destination=str(destination),
+            secrets=dict(telegram_desktop_passcode=TEST_PASSCODE), options=dict(roots=[str(source)]))
+        response = subprocess.run([sys.executable,str(ROOT/'helpers/recovery_engine/engine.py')],
+            input=json.dumps(request),encoding='utf-8',capture_output=True,timeout=30)
+        self.assertEqual(response.returncode,0,response.stderr)
+        self.assertNotIn(TEST_PASSCODE,response.stdout+response.stderr)
+        self.assertNotIn(TEST_KEY.hex(),response.stdout+response.stderr)
+        result = [json.loads(line) for line in response.stdout.splitlines() if json.loads(line).get('event')=='result'][-1]
+        self.assertEqual((result['draft_records'],result['history_messages']),(2,0))
+        rows = [json.loads(line) for line in (destination/'messages.jsonl').read_text('utf-8').splitlines()]
+        self.assertEqual(len(rows),2)
+        self.assertEqual(inventory(self.inputs),before)
+        _, summary, rows = self.analyze('modern-scrypt-default',None,guard_private=True)
+        self.assertEqual((summary['draft_records'],rows),(0,[]))
 
     def test_independent_native_producer_and_frozen_artifacts(self):
         manifest = load_manifest()

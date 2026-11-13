@@ -23,7 +23,7 @@ namespace UsbRecovery
     public sealed class RaidConfiguration
     {
         public string Level, Layout, ExpectedSha256;
-        public long ChunkSize = 65536, LogicalSize;
+        public long ChunkSize = 65536, LogicalSize, ComponentSize;
         public List<RaidMember> Members = new List<RaidMember>();
     }
 
@@ -51,6 +51,7 @@ namespace UsbRecovery
         public const long MaximumChunkSize = 4L * 1024 * 1024;
         static readonly string[] FiveLayouts = { "left-symmetric", "right-symmetric", "left-asymmetric", "right-asymmetric", "parity-first", "parity-last" };
         static readonly string[] SixLayouts = { "left-symmetric", "right-symmetric", "parity-last" };
+        static readonly string[] TenLayouts = { "adjacent-pairs", "md-near-2", "md-near-3", "md-far-2", "md-far-3", "md-offset-2", "md-offset-3" };
         static readonly byte[] Exp = new byte[512], Log = new byte[256];
 
         sealed class OpenMember : IDisposable
@@ -96,7 +97,7 @@ namespace UsbRecovery
                 case "1": return new[] { "mirror" };
                 case "5": return (string[])FiveLayouts.Clone();
                 case "6": return (string[])SixLayouts.Clone();
-                case "10": return new[] { "adjacent-pairs" };
+                case "10": return (string[])TenLayouts.Clone();
                 default: return new string[0];
             }
         }
@@ -107,18 +108,19 @@ namespace UsbRecovery
         static RaidConfiguration Snapshot(RaidConfiguration configuration)
         {
             if (configuration == null || configuration.Members == null) throw Error("RAID_CONFIG_REQUIRED", "Нужны параметры массива и образы участников.");
-            var result = new RaidConfiguration { Level = Level(configuration.Level), Layout = (configuration.Layout ?? "").Trim().ToLowerInvariant(), ChunkSize = configuration.ChunkSize, LogicalSize = configuration.LogicalSize, ExpectedSha256 = configuration.ExpectedSha256 };
-            if (!new[] { "0", "1", "5", "6", "10" }.Contains(result.Level)) throw Error("RAID_LEVEL_UNSUPPORTED", "Поддерживаются RAID 0, 1, 5, 6 и RAID 10 из соседних зеркальных пар.");
+            var result = new RaidConfiguration { Level = Level(configuration.Level), Layout = (configuration.Layout ?? "").Trim().ToLowerInvariant(), ChunkSize = configuration.ChunkSize, LogicalSize = configuration.LogicalSize, ComponentSize = configuration.ComponentSize, ExpectedSha256 = configuration.ExpectedSha256 };
+            if (!new[] { "0", "1", "5", "6", "10" }.Contains(result.Level)) throw Error("RAID_LEVEL_UNSUPPORTED", "Поддерживаются RAID 0, 1, 5, 6 и перечисленные схемы RAID 10.");
             if (result.Layout.Length == 0) result.Layout = result.Level == "0" ? "striped" : result.Level == "1" ? "mirror" : result.Level == "10" ? "adjacent-pairs" : "";
             if (!SupportedLayouts(result.Level).Contains(result.Layout)) throw Error("RAID_LAYOUT_UNSUPPORTED", "Выбери поддерживаемую схему RAID. Автоматическое угадывание не выполняется.");
             if (result.ChunkSize < 512 || result.ChunkSize > MaximumChunkSize || (result.ChunkSize & (result.ChunkSize - 1)) != 0) throw Error("RAID_CHUNK_INVALID", "Размер блока должен быть степенью двойки от 512 байт до 4 МиБ.");
             if (result.LogicalSize < 0) throw Error("RAID_SIZE_INVALID", "Размер логического образа не может быть отрицательным.");
+            if (result.ComponentSize < 0 || result.ComponentSize != 0 && (result.Level != "10" || result.ComponentSize % result.ChunkSize != 0)) throw Error("RAID_COMPONENT_SIZE_INVALID", "Размер области данных участника RAID 10 должен быть кратен блоку.");
             if (!String.IsNullOrEmpty(result.ExpectedSha256)) {
                 result.ExpectedSha256 = result.ExpectedSha256.Trim().ToLowerInvariant();
                 if (result.ExpectedSha256.Length != 64 || !result.ExpectedSha256.All(Uri.IsHexDigit)) throw Error("RAID_SHA256_INVALID", "Эталонная SHA256 должна содержать 64 шестнадцатеричных символа.");
             }
-            int count = configuration.Members.Count, minimum = result.Level == "5" ? 3 : result.Level == "6" || result.Level == "10" ? 4 : 2;
-            if (count < minimum || count > MaximumMembers || result.Level == "10" && count % 2 != 0) throw Error("RAID_MEMBER_COUNT_INVALID", "Число участников не соответствует выбранному уровню RAID.");
+            int count = configuration.Members.Count, minimum = result.Level == "5" ? 3 : result.Level == "6" || result.Layout == "adjacent-pairs" ? 4 : 2;
+            if (count < minimum || count > MaximumMembers || result.Layout == "adjacent-pairs" && count % 2 != 0 || result.Level == "10" && count < TenCopies(result.Layout)) throw Error("RAID_MEMBER_COUNT_INVALID", "Число участников не соответствует выбранному уровню RAID.");
             foreach (var member in configuration.Members) {
                 if (member == null || member.Offset < 0) throw Error("RAID_MEMBER_INVALID", "У каждого участника нужно корректное смещение данных.");
                 if (!member.Missing && String.IsNullOrWhiteSpace(member.Path)) throw Error("RAID_MEMBER_REQUIRED", "Выбери образ участника либо явно отметь отсутствующий диск.");
@@ -129,8 +131,51 @@ namespace UsbRecovery
             }
             int missing = result.Members.Count(m => m.Missing);
             if (result.Level == "0" && missing != 0 || result.Level == "1" && missing == count || result.Level == "5" && missing > 1 || result.Level == "6" && missing > 2) throw Error("RAID_TOO_MANY_MISSING", "Для этого уровня отсутствует слишком много участников.");
-            if (result.Level == "10") for (int i = 0; i < count; i += 2) if (result.Members[i].Missing && result.Members[i + 1].Missing) throw Error("RAID_MIRROR_PAIR_MISSING", "В одной зеркальной паре отсутствуют оба участника.");
+            if (result.Level == "10") {
+                // The disk placement repeats after at most count logical chunks,
+                // including odd member counts. Check every distinct copy set.
+                var disks = new int[TenCopies(result.Layout)]; var offsets = new long[disks.Length];
+                long chunks = result.LogicalSize > 0 ? (result.LogicalSize - 1) / result.ChunkSize + 1 : count;
+                if (result.LogicalSize == 0 && result.ComponentSize > 0) {
+                    long sections = result.ComponentSize / result.ChunkSize / TenFar(result.Layout);
+                    chunks = sections >= TenNear(result.Layout) ? count : sections * count / TenNear(result.Layout);
+                }
+                if (missing == count) throw Error(result.Layout == "adjacent-pairs" ? "RAID_MIRROR_PAIR_MISSING" : "RAID10_COPY_SET_MISSING", "Для массива отсутствуют все зеркальные копии.");
+                for (int i = 0; i < Math.Min(count, chunks); i++) {
+                    TenMapping(result.Layout, count, i, result.ChunkSize, result.ChunkSize, disks, offsets);
+                    if (disks.All(d => result.Members[d].Missing)) throw Error(result.Layout == "adjacent-pairs" ? "RAID_MIRROR_PAIR_MISSING" : "RAID10_COPY_SET_MISSING", "Для части массива отсутствуют все зеркальные копии.");
+                }
+            }
             return result;
+        }
+
+        static int TenCopies(string layout) { return layout.EndsWith("-3", StringComparison.Ordinal) ? 3 : 2; }
+        static int TenNear(string layout) { return layout == "adjacent-pairs" || layout.StartsWith("md-near-", StringComparison.Ordinal) ? TenCopies(layout) : 1; }
+        static int TenFar(string layout) { return TenNear(layout) == 1 ? TenCopies(layout) : 1; }
+
+        // Linux MD original (far-set0) RAID10 geometry, in chunk units.
+        // Reference: drivers/md/raid10.c __raid10_find_phys and raid10_size.
+        // Mixed near+far and far-set variants are deliberately not accepted.
+        static void TenMapping(string layout, int members, long logicalChunk, long chunk, long stride, int[] disks, long[] offsets)
+        {
+            int near = TenNear(layout), far = TenFar(layout);
+            long first = checked(logicalChunk * near), row = first / members;
+            int device = (int)(first % members), slot = 0;
+            if (layout.StartsWith("md-offset-", StringComparison.Ordinal)) row = checked(row * far);
+            long position = checked(row * chunk);
+            for (int n = 0; n < near; n++) {
+                for (int f = 0; f < far; f++) {
+                    disks[slot] = (device + f * near) % members;
+                    offsets[slot++] = checked(position + f * stride);
+                }
+                if (++device == members) { device = 0; position = checked(position + chunk); }
+            }
+        }
+
+        internal static long Raid10LogicalSize(string layout, long component, long chunk, int members)
+        {
+            layout = String.IsNullOrWhiteSpace(layout) ? "adjacent-pairs" : layout.Trim().ToLowerInvariant();
+            return checked(component / chunk / TenFar(layout) * members / TenNear(layout) * chunk);
         }
 
         static void NoLinks(string path)
@@ -250,7 +295,7 @@ namespace UsbRecovery
         {
             var saved = Snapshot(checkpoint.Configuration);
             if (saved.Level != config.Level || saved.Layout != config.Layout || saved.ChunkSize != config.ChunkSize ||
-                saved.LogicalSize != config.LogicalSize || saved.ExpectedSha256 != config.ExpectedSha256 || saved.Members.Count != config.Members.Count)
+                saved.LogicalSize != config.LogicalSize || saved.ComponentSize != config.ComponentSize || saved.ExpectedSha256 != config.ExpectedSha256 || saved.Members.Count != config.Members.Count)
                 throw Error("RAID_RESUME_CONFIG_CHANGED", "Параметры RAID отличаются от сохранённой сборки.");
             for (int i = 0; i < config.Members.Count; i++) {
                 var member = config.Members[i]; var previous = saved.Members[i];
@@ -305,13 +350,21 @@ namespace UsbRecovery
                 }
                 int dataDisks = config.Level == "0" ? opened.Length : config.Level == "1" ? 1 : config.Level == "10" ? opened.Length / 2 : opened.Length - (config.Level == "6" ? 2 : 1);
                 long[] sizes = opened.Where(m => m != null).Select(m => m.Bytes - m.Member.Offset).ToArray();
-                if (config.LogicalSize == 0 && sizes.Any(s => s != sizes[0])) throw Error("RAID_LENGTHS_DIFFER", "Размеры участников различаются. Укажи известный логический размер; граница не угадывается.");
-                long capacity = config.Level == "1" ? sizes.Min() : checked(sizes.Min() / config.ChunkSize * config.ChunkSize * dataDisks);
+                if (config.LogicalSize == 0 && (config.Level != "10" || config.ComponentSize == 0) && sizes.Any(s => s != sizes[0])) throw Error("RAID_LENGTHS_DIFFER", "Размеры участников различаются. Укажи известную границу данных; она не угадывается.");
+                long component = 0, tenStride = 0;
+                if (config.Level == "10") {
+                    bool farLayout = config.Layout.StartsWith("md-far-", StringComparison.Ordinal);
+                    if (farLayout && config.ComponentSize == 0 && sizes.Any(s => s != sizes[0])) throw Error("RAID_COMPONENT_SIZE_REQUIRED", "Для far RAID 10 с разными размерами образов нужен известный размер области данных участника.");
+                    component = config.ComponentSize == 0 ? sizes.Min() / config.ChunkSize * config.ChunkSize : config.ComponentSize;
+                    if (component < config.ChunkSize || sizes.Any(s => s < component)) throw Error("RAID_COMPONENT_SIZE_INVALID", "Область данных RAID 10 выходит за границы образов участников.");
+                    tenStride = farLayout ? component / config.ChunkSize / TenFar(config.Layout) * config.ChunkSize : config.ChunkSize;
+                }
+                long capacity = config.Level == "10" ? Raid10LogicalSize(config.Layout, component, config.ChunkSize, opened.Length) : config.Level == "1" ? sizes.Min() : checked(sizes.Min() / config.ChunkSize * config.ChunkSize * dataDisks);
                 logical = config.LogicalSize == 0 ? capacity : config.LogicalSize;
                 if (logical <= 0 || logical > capacity) throw Error("RAID_SIZE_EXCEEDS_MEMBERS", "Указанный размер не помещается в доступных образах участников.");
                 long rows = config.Level == "1" ? 0 : checked((logical - 1) / checked(config.ChunkSize * dataDisks) + 1);
                 long required = config.Level == "1" ? logical : checked(rows * config.ChunkSize);
-                if (sizes.Any(s => s < required)) throw Error("RAID_MEMBER_TRUNCATED", "Образ участника короче требуемого размера.");
+                if (config.Level != "10" && sizes.Any(s => s < required)) throw Error("RAID_MEMBER_TRUNCATED", "Образ участника короче требуемого размера.");
                 if (phase != null) phase("Проверка образов участников");
                 foreach (var member in opened) if (member != null) member.Sha256 = Hash(member.Stream, cancel);
                 if (resume) { ValidateCheckpoint(checkpoint, config, opened, logical); resumedBytes = checkpoint.CompletedBytes; }
@@ -354,15 +407,30 @@ namespace UsbRecovery
                             if (available.Length > 1) verifiedMirrorBytes += count;
                             append(one, count);
                         }
+                    } else if (config.Level == "10") {
+                        int chunk = (int)config.ChunkSize, copies = TenCopies(config.Layout);
+                        var first = new byte[chunk]; var other = new byte[chunk]; var disks = new int[copies]; var offsets = new long[copies];
+                        while (written < logical) {
+                            cancel.ThrowIfCancellationRequested();
+                            TenMapping(config.Layout, opened.Length, written / chunk, chunk, tenStride, disks, offsets);
+                            int count = (int)Math.Min(chunk, logical - written), available = 0;
+                            for (int copy = 0; copy < copies; copy++) {
+                                var member = opened[disks[copy]]; if (member == null) continue;
+                                if (offsets[copy] < 0 || offsets[copy] > component - count) throw Error("RAID_MEMBER_TRUNCATED", "Зеркальная копия RAID 10 выходит за известную область данных.");
+                                Read(member, offsets[copy], available == 0 ? first : other, count, cancel);
+                                if (available++ != 0 && !Equal(first, other, count)) throw Error("RAID_MIRROR_MISMATCH", "Зеркальные копии различаются; правильная версия автоматически не выбирается.");
+                            }
+                            if (available == 0) throw Error("RAID10_COPY_SET_MISSING", "Для блока отсутствуют все зеркальные копии.");
+                            if (available > 1) verifiedMirrorBytes += count;
+                            append(first, count);
+                        }
                     } else {
                         int chunk = (int)config.ChunkSize; var blocks = Enumerable.Range(0, opened.Length).Select(i => new byte[chunk]).ToArray(); var data = new int[dataDisks];var px=new byte[chunk];var qx=config.Level=="6"?new byte[chunk]:null;var missing=new int[dataDisks];
                         for (long row = 0; row < rows; row++) {
                             cancel.ThrowIfCancellationRequested(); long position = checked(row * config.ChunkSize);
                             for (int disk = 0; disk < opened.Length; disk++) if (opened[disk] != null) Read(opened[disk], position, blocks[disk], chunk, cancel);
                             if (config.Level == "0") for (int i = 0; i < data.Length; i++) data[i] = i;
-                            else if (config.Level == "10") {
-                                for (int i = 0; i < data.Length; i++) { int first = i * 2, second = first + 1; if (opened[first] != null && opened[second] != null) { if (!Equal(blocks[first], blocks[second], chunk)) throw Error("RAID_MIRROR_MISMATCH", "Зеркальная пара различается; правильная версия автоматически не выбирается."); verifiedMirrorBytes += chunk; } data[i] = opened[first] == null ? second : first; }
-                            } else {
+                            else {
                                 int p, q, equations; Mapping(config, row, opened.Length, out p, out q, data); Parity(opened, blocks, data, p, q, chunk,px,qx,missing,out equations); independentBytes = checked(independentBytes + (long)equations * chunk);
                             }
                             foreach (int disk in data) { int count = (int)Math.Min(chunk, logical - written); if (count == 0) break; cancel.ThrowIfCancellationRequested(); append(blocks[disk], count); }
@@ -382,7 +450,7 @@ namespace UsbRecovery
                 string checksumWork = checksum + ".partial", reportWork = report + ".partial";
                 using (var stream = new FileStream(checksumWork, FileMode.CreateNew, FileAccess.Write, FileShare.None)) using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(hash + "  raid.dd\n");
                 bool degraded = config.Members.Any(m => m.Missing);
-                WriteJson(reportWork, new { schema = 1, status = "assembled_and_hashed", utc = DateTime.UtcNow.ToString("o"), level = config.Level, layout = config.Layout, chunk_bytes = config.ChunkSize, logical_bytes = logical, resumed_bytes = resumedBytes, boundary = config.LogicalSize == 0 ? "derived_conservative_whole_stripes" : "provided_by_user", image = "raid.dd", sha256 = hash, degraded = degraded, source_access = "read_only_share_read", source_hashes_verified_after = true, expected_sha256_verified = !String.IsNullOrEmpty(config.ExpectedSha256), layout_confirmed = false, logical_reference_confirmed = !String.IsNullOrEmpty(config.ExpectedSha256), independent_parity_equation_bytes = independentBytes, verified_mirror_bytes = verifiedMirrorBytes, parameters_origin = "provided_by_user", raw_member_images = true, filesystem_validated = false, limitations = new[] { "No automatic order/layout/offset detection; correct parity alone does not establish the original layout.", "No metadata interpretation, reshape, Storage Spaces, LVM, vendor RAID or controller-specific layouts.", "Degraded reconstruction can have no independent redundancy left; a SHA256 records output, not original-data authenticity.", "Derived length covers common full stripes only; an explicitly supplied logical size is preferred." }, members = config.Members.Select((m, i) => new { index = i, path = m.Path, offset_bytes = m.Offset, missing = m.Missing, bytes = opened[i] == null ? 0 : opened[i].Bytes, sha256 = opened[i] == null ? null : opened[i].Sha256 }).ToArray() });
+                WriteJson(reportWork, new { schema = 1, status = "assembled_and_hashed", utc = DateTime.UtcNow.ToString("o"), level = config.Level, layout = config.Layout, chunk_bytes = config.ChunkSize, logical_bytes = logical, component_bytes = component, component_boundary = config.ComponentSize == 0 ? "derived_available_member_bytes" : "provided_data_area", resumed_bytes = resumedBytes, boundary = config.LogicalSize == 0 ? "derived_conservative_whole_stripes" : "provided_by_user", image = "raid.dd", sha256 = hash, degraded = degraded, source_access = "read_only_share_read", source_hashes_verified_after = true, expected_sha256_verified = !String.IsNullOrEmpty(config.ExpectedSha256), layout_confirmed = false, logical_reference_confirmed = !String.IsNullOrEmpty(config.ExpectedSha256), independent_parity_equation_bytes = independentBytes, verified_mirror_bytes = verifiedMirrorBytes, parameters_origin = "provided_by_user", raw_member_images = true, filesystem_validated = false, limitations = new[] { "No automatic order/layout/offset detection; correct parity alone does not establish the original layout.", "No metadata interpretation, reshape, Storage Spaces, LVM, vendor RAID or controller-specific layouts.", "Degraded reconstruction can have no independent redundancy left; a SHA256 records output, not original-data authenticity.", "Derived length covers common full stripes only; an explicitly supplied logical size is preferred." }, members = config.Members.Select((m, i) => new { index = i, path = m.Path, offset_bytes = m.Offset, missing = m.Missing, bytes = opened[i] == null ? 0 : opened[i].Bytes, sha256 = opened[i] == null ? null : opened[i].Sha256 }).ToArray() });
                 cancel.ThrowIfCancellationRequested(); File.Move(checksumWork, checksum); File.Move(reportWork, report);reportMoved=true;File.Move(partial, image); published = true;
                 if (phase != null) phase("Образ RAID собран и проверен");
                 return new RaidBuildResult { ImagePath = image, ReportPath = report, Sha256 = hash, Bytes = logical, ResumedBytes = resumedBytes, Degraded = degraded };

@@ -129,6 +129,12 @@
 !/tests/fixtures/forensic-images/
 !/tests/fixtures/forensic-images/**
 !/tests/fixtures/telegram-postbox/
+!/tests/fixtures/telegram-desktop-kdf/
+!/tests/fixtures/bitlocker-full-volume/
+!/tests/fixtures/raid10/
+/tests/fixtures/bitlocker-full-volume/*
+!/tests/fixtures/bitlocker-full-volume/GTekSD.json
+!/tests/telegram_desktop_kdf_oracle/
 !/tests/postbox_oracle/
 !/vendor/ewfprobe/
 !/vendor/ewfprobe/**

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "id": "GTekSD-BitLocker-CTF-db6caa8f",
+  "provenance": {
+    "repository": "https://github.com/GTekSD/BitLocker-CTF",
+    "commit": "db6caa8f7ddd6d659c2fd33417c64ee6b6c26ee1",
+    "license": "MIT; upstream LICENSE, SHA256 ee49d7a377ab7e7ead75401eb86b618a13b41658a303dc45ffa69c9aa4861f0f",
+    "published_credential": "https://github.com/GTekSD/BitLocker-CTF/blob/db6caa8f7ddd6d659c2fd33417c64ee6b6c26ee1/answer/you-looser/u-need-to/learn/a-lot/kiddo/go/see-this/answer.md",
+    "credential_kind": "password",
+    "credential_input": "stdin only; use the password already published by the challenge author, no guessing",
+    "redistribution": "Only this manifest is committed; archive, container, encrypted partition and decrypted oracle stay in private .build"
+  },
+  "archive_parts": [
+    {"name": "findme_encrypted.part01.bin", "bytes": 3145728, "sha256": "ef6c2722feb74bcd97e2b2c9f49afb956ada9a89464dba169d98ebb857283ed3"},
+    {"name": "findme_encrypted.part02.bin", "bytes": 3145728, "sha256": "c4d6533b397a43c7d75b8c2ff2ec473f82e8ffcff77cf6bcca89085518073220"},
+    {"name": "findme_encrypted.part03.bin", "bytes": 3145728, "sha256": "1b477b066508f7d1bb7a8e85509e621989ddff33413f5e96496ab297b102d971"},
+    {"name": "findme_encrypted.part04.bin", "bytes": 3145728, "sha256": "3bc0c6f2137c11cb271dc137f564f423563fddb88a5be7f3909d27742a5353e2"},
+    {"name": "findme_encrypted.part05.bin", "bytes": 1627450, "sha256": "9b6e9001f368b1a0ac0a33fd8bbf9f292338976a9d0f160df696fa344bb3329c"}
+  ],
+  "container": {
+    "name": "secret_data.vhdx",
+    "bytes": 71303168,
+    "sha256": "3ac487aaff4566a6840df95def57f60d1af30c3b8f4328028e41496b69850a4b",
+    "reader": "dissect.hypervisor 3.21, regular-file read only; no parent, active log or Windows mount"
+  },
+  "disk": {
+    "bytes": 72351744,
+    "sha256": "94fecf4a2bd78eebe6780e4c0cb3bbdfa7fd94d5da0b045a0b615a8d3d239e86",
+    "sector_bytes": 512,
+    "partition_offset": 65536
+  },
+  "volume": {
+    "bytes": 69206016,
+    "sha256": "9d5144b77dc16d8b40ff6ecd3224e179f7a36c37c76a6234aea35521f51832ab",
+    "cipher": "AES_128",
+    "fve_method": "0x8002",
+    "fve_version": 2,
+    "valid_metadata_copies": 3,
+    "eow": false
+  },
+  "oracle": {
+    "implementation": "libbde-python / pybde, independently implemented BitLocker reader",
+    "source": "https://github.com/libyal/libbde",
+    "version": "20260916",
+    "wheel": "libbde_python-20260916-cp312-cp312-win_amd64.whl",
+    "wheel_sha256": "26056eb2e3c5a2a26fa2a335ab54d43ac27e839b0a5b453a9dc6da6f35aa19cb",
+    "wheel_metadata": "https://pypi.org/pypi/libbde-python/20260916/json",
+    "bytes": 69206016,
+    "sha256": "4129bbf029301a2b58d2cfdbbc9f58b3595f21064d3318b76d5ad112d397e6e4",
+    "digest_origin": "Observed full libbde output on 2026-11-13; not a plaintext digest published by the challenge author",
+    "comparison": "Every byte of independent libbde output is compared with every product byte; no boot-sector-only or self-generated ciphertext oracle"
+  },
+  "limits": [
+    "One externally authored AES-128-CBC volume and password protector; not all BitLocker ciphers or protector types",
+    "The independent oracle and product share only the VHDX-to-raw container materialization, not BitLocker decryption",
+    "BitLocker authenticates key metadata, not all data sectors; exact comparison proves this fixture only",
+    "No physical device, GUI, Windows native encryption, TPM, credential recovery or filesystem mount"
+  ]
+}

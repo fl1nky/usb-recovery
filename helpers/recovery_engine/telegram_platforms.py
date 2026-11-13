@@ -9,7 +9,8 @@ LegacyDataImport/Sources/LegacyChatImport.swift. This is NOT current Postbox.
 Desktop: telegramdesktop/tdesktop a8de5f928ba68197195e6e752293af39d4db8e6c,
 storage_account.cpp, storage_domain.cpp, storage_file_utilities.cpp and
 mtproto_auth_key.{cpp,h}. Only draft tags FF03/FF05/FF06 and the legacy
-three-blob key_data wrap are supported. Drafts are unsent, not history.
+three-blob and KD2/v2 scrypt/open key_data wraps are supported. Argon2id
+passcode wraps remain unsupported. Drafts are unsent, not history.
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ import struct
 MAX_NATIVE_FILE = 16 * 1024 * 1024
 MAX_TEXT_BYTES = 1024 * 1024
 MAX_DESKTOP_VERSION = 7003004
+MAX_SCRYPT_MEMORY = 192 * 1024 * 1024
 DESKTOP_TAGS = {0xFFFFFFFFFFFFFF03, 0xFFFFFFFFFFFFFF05, 0xFFFFFFFFFFFFFF06}
 SCHEDULED_COLUMNS = (("mid", "INTEGER", 1), ("uid", "INTEGER", 2),
     ("send_state", "INTEGER", 0), ("date", "INTEGER", 0), ("data", "BLOB", 0),
@@ -125,6 +127,17 @@ class _QtReader:
             raise PlatformError("TELEGRAM_DESKTOP_TEXT_INVALID")
         return text
 
+    def skip_blob(self, limit=MAX_NATIVE_FILE):
+        # Frame opaque account authorization bytes without copying/interpreting.
+        size = self.number(">I")
+        if size == 0xffffffff:
+            return
+        if size > limit:
+            raise PlatformError("TELEGRAM_DESKTOP_FIELD_LIMIT")
+        if size > len(self.data) - self.at:
+            raise PlatformError("TELEGRAM_DESKTOP_TRUNCATED")
+        self.at += size
+
     def end(self):
         if self.at != len(self.data):
             raise PlatformError("TELEGRAM_DESKTOP_TRAILING_DATA")
@@ -176,25 +189,83 @@ def _decrypt_local(encrypted, key):
     return bytes(output[4:size])
 
 
+def _key_data_wrap(reader, password, salt, encrypted):
+    """Parse the entire KD2/v2 trailer before selecting one committed wrap.
+
+    The two slots support interrupted passcode changes. Staged/stale slots
+    must never become fallback passcode attempts. Costs are checked before KDF.
+    """
+    trailer = _QtReader(reader.blob(4096))
+    reader.end()
+    magic, version, committed, count = (trailer.number(">I") for _ in range(4))
+    if magic != 0x4b443200 or version != 2 or count > 2:
+        raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_UNSUPPORTED")
+    generations, live = set(), None
+    for _ in range(count):
+        kind, generation, memory, time, parallel = (trailer.number(">I") for _ in range(5))
+        wrap_salt, wrap_encrypted = trailer.blob(1024), trailer.blob(288)
+        if generation in generations or not 8 <= len(wrap_salt) <= 1024 or len(wrap_encrypted) != 288:
+            raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_INVALID")
+        generations.add(generation)
+        if kind == 2:
+            # Upstream scrypt uses 192 MiB maxmem; additionally bound CPU work.
+            if not (2 <= memory <= 131072 and not memory & (memory - 1)
+                    and 1 <= time <= 8 and parallel == 1):
+                raise PlatformError("TELEGRAM_DESKTOP_KDF_COST_UNSUPPORTED")
+        elif kind == 1:
+            # Frame native Argon2id slots, but do not derive unsupported keys.
+            if not (1 <= parallel <= 16 and 8 * parallel <= memory <= 262144 and 1 <= time <= 64):
+                raise PlatformError("TELEGRAM_DESKTOP_KDF_COST_UNSUPPORTED")
+        else:
+            raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_UNSUPPORTED")
+        if generation == committed:
+            live = (kind, memory, time, parallel, wrap_salt, wrap_encrypted)
+    trailer.end()
+    if not password:
+        if len(encrypted) != 288:
+            raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_INVALID")
+        return salt, encrypted, None
+    if live is None or live[0] != 2:
+        raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_UNSUPPORTED")
+    kind, memory, time, parallel, salt, encrypted = live
+    return salt, encrypted, (memory, time, parallel)
+
+
 def unwrap_key_data(data, passcode):
-    """One supplied passcode, one KDF. Reject modern trailers, no guessing.
+    """One supplied passcode, one selected KDF; no guessing or slot fallback.
 
     Empty string means the caller explicitly supplied the known no-passcode
     state. Encrypted account-info bytes are framed but never decrypted/read.
     """
-    if not isinstance(passcode, str) or len(passcode.encode("utf-8")) > 4096:
+    if not isinstance(passcode, str):
+        raise PlatformError("TELEGRAM_DESKTOP_PASSCODE_INVALID")
+    try:
+        password = passcode.encode("utf-8", "strict")
+    except UnicodeError:
+        raise PlatformError("TELEGRAM_DESKTOP_PASSCODE_INVALID") from None
+    if len(password) > 4096:
         raise PlatformError("TELEGRAM_DESKTOP_PASSCODE_INVALID")
     body, _ = tdf_payload(data)
     reader = _QtReader(body)
     salt, encrypted = reader.blob(32), reader.blob(512)
-    reader.blob(MAX_NATIVE_FILE)  # encrypted account metadata is opaque
-    if reader.at != len(body):
-        raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_UNSUPPORTED")
-    if len(salt) != 32 or len(encrypted) != 288:
+    reader.skip_blob()  # encrypted account metadata is opaque
+    if len(salt) != 32 or len(encrypted) not in (0, 288):
         raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_INVALID")
-    password = passcode.encode("utf-8")
-    derived = hashlib.pbkdf2_hmac("sha512", hashlib.sha512(salt + password + salt).digest(),
-        salt, 100000 if password else 1, dklen=256)
+    scrypt = None
+    if reader.at != len(body):
+        salt, encrypted, scrypt = _key_data_wrap(reader, password, salt, encrypted)
+    elif len(encrypted) != 288:
+        raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_INVALID")
+    if scrypt is None:
+        derived = hashlib.pbkdf2_hmac("sha512", hashlib.sha512(salt + password + salt).digest(),
+            salt, 100000 if password else 1, dklen=256)
+    else:
+        n, r, p = scrypt
+        try:
+            derived = hashlib.scrypt(password, salt=salt, n=n, r=r, p=p,
+                maxmem=MAX_SCRYPT_MEMORY, dklen=256)
+        except (AttributeError, ValueError, MemoryError):
+            raise PlatformError("TELEGRAM_DESKTOP_KDF_UNAVAILABLE") from None
     key = _decrypt_local(encrypted, derived)
     if len(key) != 256:
         raise PlatformError("TELEGRAM_DESKTOP_KEY_WRAP_INVALID")

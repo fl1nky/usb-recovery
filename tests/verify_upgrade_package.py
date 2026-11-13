@@ -99,6 +99,10 @@ def verify_sources(root, ready):
     expected.update(test_sources)
     for relative in SOURCE_FIXTURES:
         expected.update(source_tree(root, "tests/" + relative))
+    for relative in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle", "fixtures/raid10"):
+        expected.update(source_tree(root, "tests/" + relative))
+    manifest = "tests/fixtures/bitlocker-full-volume/GTekSD.json"
+    expected[manifest] = safe(root, manifest)
 
     csharp = sorted(name for name in expected if name.startswith("src/Recovery/") and name.endswith(".cs"))
     require(bool(csharp), "empty C# source set")
@@ -239,6 +243,7 @@ def verify(root=ROOT):
                 "ExportTempCollisionTests", "StorageWorkflowTests", "CaptureProvenanceTests", "ApplicationPathsTests", "FragmentedMediaRecoveryTests", "Stz2MediaRecoveryTests", "Fmp4RecoveryTests", "MediaWorkflowTests", "FragmentedPhotoPortableTests", "JpegTwoGapPortableTests", "PngIdatGapPortableTests", "PngTwoGapPortableTests", "PngStreamingPortableTests", "PhotoSourceAliasTests", "PhotoCatalogTests", "ProgressivePhotoPortableTests", "AndroidHeapPortableTests", "Ext4RecoveryTests", "RefsRecoveryTests", "RaidControllerRecoveryTests", "ApfsRecoveryTests", "Ext4WorkflowTests", "RaidMetadataProbeTests", "RaidMetadataAuditTests", "RaidMetadataUiAuditTests", "Ext4IntegrationAuditTests", "PhotoCheckpointSessionTests", "CandidateIntegrityPreservationTests", "HelperCheckpointProtocolTests", "RecoveryRunLockTests", "AacLcValidatorTests", "AacSyntaxAuditTests", "FragmentedAacRecoveryTests", "HevcSampleValidatorTests", "HevcRecoveryTests", "PhotoCheckpointPortableTests", "PhotoCheckpointParentAuditTests", "TelegramRecoveryProvenanceUiTests", "TelegramRecoveryPortableTests", "TelegramRollbackPortableTests", "TelegramMediaCachePortableTests", "TelegramMediaCacheProfilePortableTests", "TelegramDocumentEmptyPortableTests", "TelegramDocumentDescriptorPortableTests", "TelegramDocumentAttributesPortableTests", "TelegramMediaOnlyPortableTests", "ArchiveTextPortableTests", "FragmentedMediaUnitRecoveryTests", "FragmentedMediaScaleTests"}
     required.update({"RecoveryContinuityTests", "DocumentMediaPreviewTests", "TelegramPlatformPortableTests", "JpegVideoExpansionPortableTests", "ForensicImagePipelineTests", "CommandLineTests", "LocalizationTests", "DdrescueMapTests", "LocalWebServerTests", "OfficeXmlSalvageTests", "E01ImageReaderTests", "CameraRawRecoveryTests", "BtrfsScoutTests", "XfsScoutTests", "ZfsScoutTests"})
     required.add("LvmPipelineTests")
+    required.add("Raid10LayoutTests")
     require({row["name"] for row in reports["Quality"]["tests"]} == required, "expected current quality suites missing")
     require({row["name"] for row in reports["Telegram"]["tests"]} == {"TelegramPortable", "TelegramNativePortable", "TelegramMediaPortable", "TelegramDeletedPortable"}, "Telegram suites missing")
     require({row["name"] for row in reports["Usb"]["tests"]} == {"UsbPackaged"}, "USB suite missing")

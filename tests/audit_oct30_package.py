@@ -126,6 +126,14 @@ def audit():
     for name in ("PostboxWriter.cs", "produce.py"):
         require(sha(ROOT / "tests/postbox_oracle" / name) == sha(helper / "rebuild/tests/postbox_oracle" / name),
                 "Postbox fixture producer missing or stale: " + name)
+    for relative in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle"):
+        original = ROOT / "tests" / relative
+        delivered = helper / "rebuild/tests" / relative
+        names = {p.relative_to(original).as_posix() for p in original.rglob("*") if p.is_file()}
+        require(names == {p.relative_to(delivered).as_posix() for p in delivered.rglob("*") if p.is_file()},
+                "modern Desktop fixture inventory mismatch")
+        for name in names:
+            require(sha(original / name) == sha(delivered / name), "modern Desktop fixture changed")
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})

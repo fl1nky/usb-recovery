@@ -22,6 +22,13 @@ foreach($taskBaseFixture in @(
 }
 & $Python312 (Join-Path $taskLayout.Tests 'prepare_archive_regression_fixtures.py')
 if($LASTEXITCODE-ne0){throw 'Owned archive and fragmented ZIP fixture preparation failed.'}
+$taskRaid10=Join-Path $taskLayout.Root '.build\raid10-layout-fixtures'
+if(Test-Path -LiteralPath $taskRaid10){
+ & $Python312 (Join-Path $taskLayout.Tests 'build_raid10_fixtures.py') --verify $taskRaid10
+}else{
+ & $Python312 (Join-Path $taskLayout.Tests 'build_raid10_fixtures.py') --destination $taskRaid10
+}
+if($LASTEXITCODE-ne0){throw 'RAID10 pinned fixture preparation or verification failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
 $taskForensicSource=Join-Path $taskLayout.Tests 'fixtures\forensic-images'
