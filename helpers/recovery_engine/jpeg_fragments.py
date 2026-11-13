@@ -245,6 +245,72 @@ def block(bits, dc, ac):
         coefficient += 1
 
 
+class BlockTransitions:
+    """Share exact Huffman syntax work for byte-identical bounded windows."""
+    def __init__(self, blocks, limit, batch_only=False):
+        self.blocks, self.limit, self.cache = blocks, limit, OrderedDict()
+        self.bytes = 0
+        self.batch_only = batch_only
+
+    def __call__(self, bits, phase, maximum=1):
+        # Bucket by a short observed prefix, then verify the complete byte
+        # proof of a cached transition, including any nearby EOF boundary.
+        at = bits.at
+        if not 1 <= maximum <= 64:
+            raise InvalidJpeg('jpeg_transition_bounds')
+        if self.batch_only and maximum==1:
+            block(bits,*self.blocks[phase])
+            return 1
+        probe = bytes(bits.raw[at:at + 16])
+        # Batch repeating prefixes for useful cache reuse. Other bytes retain
+        # per-block suffix memoization. This selects work granularity only:
+        # every transition is decoded or replayed from its complete byte proof.
+        if maximum>1 and not any(probe==probe[:period]*(len(probe)//period) for period in (1,2,4,8) if len(probe)%period==0):
+            if self.batch_only:
+                block(bits,*self.blocks[phase])
+                return 1
+            maximum=1
+        key = (probe, bits.value if bits.remaining else 0, bits.remaining, phase, maximum)
+        if key in self.cache:
+            for proof, eof, result in self.cache[key]:
+                if (eof is not None and len(bits.raw)-at != eof) or bits.raw[at:at+len(proof)] != proof:
+                    continue
+                if result is None:
+                    raise InvalidJpeg('jpeg_entropy_cached_invalid')
+                amount, bits.value, bits.remaining, count = result
+                bits.at += amount
+                return count
+        try:
+            count = 0
+            while count < maximum:
+                if count and bits.finish():
+                    break
+                block(bits, *self.blocks[(phase + count) % len(self.blocks)])
+                count += 1
+            result = bits.at - at, bits.value, bits.remaining, count
+        except InvalidJpeg:
+            result = None
+        # Huffman fast8 can inspect at most two stuffed source bytes past the
+        # consumed cursor, then restore it. Four extra bytes conservatively
+        # cover that lookahead. An observed EOF must match exactly on replay.
+        available = len(bits.raw)-at
+        length = min(available,bits.at-at+4)
+        proof = bytes(bits.raw[at:at+length])
+        entry = proof, available if length==available else None, result
+        bucket = self.cache.pop(key,[])
+        self.bytes -= sum(len(row[0])+768 for row in bucket)
+        bucket = (bucket + [entry])[-8:]
+        cost = sum(len(row[0])+768 for row in bucket)
+        while self.cache and (len(self.cache) >= self.limit or self.bytes + cost > MAX_GAP_MEMORY // 2):
+            _, old = self.cache.popitem(last=False)
+            self.bytes -= sum(len(row[0])+768 for row in old)
+        self.cache[key] = bucket
+        self.bytes += cost
+        if result is None:
+            raise InvalidJpeg('jpeg_entropy_cached_invalid')
+        return count
+
+
 def entropy(raw, blocks, mcus, checkpoint=None):
     bits = Bits(raw)
     ordinal = 0
@@ -468,33 +534,8 @@ def baseline_gap_paths(assembler, frame, markers):
     attempts, suffix_work = 0, 0
     cache_limit = max(16, min(assembler.max_states * 64, MAX_GAP_CACHE_MEMORY // 384) // max(1, len(tails)))
     last_progress = time.monotonic()
-    transitions = OrderedDict()
     transition_limit = min(assembler.max_states * 8, MAX_GAP_MEMORY // 1024)
-
-    def consume(bits, phase):
-        # A baseline block uses at most 27 + 63*26 = 1665 bits, or
-        # 418 source bytes even with FF/00 stuffing. Thus this bounded key
-        # contains every byte the transition can inspect, including EOF.
-        at = bits.at
-        key = (bits.raw[at:at + 512], bits.value if bits.remaining else 0,
-               bits.remaining, phase)
-        if key in transitions:
-            result = transitions[key]
-            if result is None:
-                raise InvalidJpeg("jpeg_entropy_cached_invalid")
-            amount, bits.value, bits.remaining = result
-            bits.at += amount
-            return
-        try:
-            block(bits, *blocks[phase])
-            result = bits.at - at, bits.value, bits.remaining
-        except InvalidJpeg:
-            result = None
-        if len(transitions) >= transition_limit:
-            transitions.popitem(last=False)
-        transitions[key] = result
-        if result is None:
-            raise InvalidJpeg("jpeg_entropy_cached_invalid")
+    consume = BlockTransitions(blocks, transition_limit)
 
     def boundary():
         nonlocal last_progress
@@ -668,9 +709,23 @@ class SourceWindow:
     def __getitem__(self, key):
         if isinstance(key, slice):
             low, high, step = key.indices(self.length)
-            if step != 1 or high - low > 1024:
+            if step != 1 or high - low > 32768:
                 raise InvalidJpeg("jpeg_stream_slice_bounds")
-            return bytes(self[n] for n in range(low, high))
+            within=self.start+low-self.current_page
+            if within>=0 and within+high-low<=len(self.current_raw):
+                return self.current_raw[within:within+high-low]
+            pieces = []
+            while low < high:
+                # Load/cache one page through the same bounds-checked reader,
+                # then copy a native byte slice rather than 512 Python calls.
+                self[low]
+                within = self.start + low - self.current_page
+                count = min(high-low, len(self.current_raw)-within)
+                if count <= 0:
+                    raise InvalidJpeg('jpeg_stream_source_truncated')
+                pieces.append(self.current_raw[within:within+count])
+                low += count
+            return b''.join(pieces)
         if not 0 <= key < self.length:
             raise IndexError(key)
         absolute = self.start + key
@@ -696,9 +751,13 @@ class JoinedWindow:
     def __getitem__(self, key):
         if isinstance(key, slice):
             low, high, step = key.indices(len(self))
-            if step != 1 or high - low > 1024:
+            if step != 1 or high - low > 32768:
                 raise InvalidJpeg("jpeg_stream_slice_bounds")
-            return bytes(self[n] for n in range(low, high))
+            if high <= len(self.carry):
+                return self.carry[low:high]
+            if low >= len(self.carry):
+                return self.tail[low-len(self.carry):high-len(self.carry)]
+            return self.carry[low:] + self.tail[:high-len(self.carry)]
         return self.carry[key] if key < len(self.carry) else self.tail[key - len(self.carry)]
 
 
@@ -789,7 +848,7 @@ def validate_stream_state(state, assembler):
             if (not isinstance(row,list) or len(row)!=5 or
                     any(type(n) is not int or not 0<=n<=MAX_FILE*8 for n in row[:4]) or
                     row[1]>255 or row[2]>8 or row[3]>10 or
-                    row[4] is not None and (type(row[4]) is not int or not 0<=row[4]<=MAX_FILE*8)):
+                    row[4] is not None and (type(row[4]) is not int or not -MAX_FILE*8<=row[4]<=MAX_FILE*8)):
                 raise ValueError()
     except (ValueError, TypeError, KeyError):
         raise CheckpointError('PHOTO_CHECKPOINT_JPEG_SEARCH_STATE_INVALID') from None
@@ -850,6 +909,7 @@ def baseline_stream_paths(assembler, frame, markers):
         return []
 
     work, attempts, solutions = 0, 0, {}
+    consume = BlockTransitions(blocks, min(8192, assembler.max_states * 8), batch_only=True)
     for first, tail, expected in state['Solutions']:
         parts = [(at, assembler.read(at, length)) for at, length in (first, tail)]
         if hashlib.sha256(parts[0][1]+parts[1][1]).hexdigest() != expected:
@@ -874,38 +934,64 @@ def baseline_stream_paths(assembler, frame, markers):
             nonlocal work
             bits = Bits(window)
             bits.at, bits.value, bits.remaining = at, value, remaining
-            prior_count = 0
+            prior_count, parsed, saved_work = 0, 0, work
+            bulk, probed_sector = False, None
             if state['Active'] is not None:
                 bits.at,bits.value,bits.remaining,phase,prior_count,_ = state['Active']
             pending, result = [], None
             while True:
                 key = bits.at, bits.value if bits.remaining else 0, bits.remaining, phase
                 if key in cache:
-                    result = cache[key]
-                    cache.move_to_end(key)
-                    break
+                    cached = cache[key]
+                    # Nonnegative values are exact counts through EOI; a
+                    # negative -(n+1) proves only a lower bound of n blocks.
+                    # A short prefix must not poison a later longer candidate.
+                    if cached is None or cached >= 0 or -cached-1 > required-prior_count-parsed:
+                        result = cached
+                        cache.move_to_end(key)
+                        break
                 if bits.finish():
                     result = 0
                     break
-                pending.append(key)
-                work += 1
-                if len(pending) > cache_limit or work > assembler.max_states * 16384:
+                if not bulk and bits.at//512 != probed_sector:
+                    probed_sector=bits.at//512
+                    probe=bytes(window[bits.at:bits.at+16])
+                    bulk=bool(probe) and any(probe==probe[:n]*(len(probe)//n) for n in (1,2,4,8) if len(probe)%n==0)
+                if bulk and prior_count + parsed >= required:
+                    # This candidate already exceeds its SOF/SOS MCU count.
+                    # Do not parse arbitrary megabytes beyond that boundary.
+                    result = -1
+                    pending.append((key, 1))
+                    break
+                pending.append((key, 0))
+                if len(pending) > cache_limit or work >= assembler.max_states * 16384:
                     raise InvalidJpeg("jpeg_stream_entropy_search_incomplete")
-                if work % 128 == 0:
-                    # No speculative candidate: this is only a parser cursor.
-                    state['Active'] = [bits.at,bits.value,bits.remaining,phase,prior_count+len(pending)-1,0]
-                    boundary()
                 try:
-                    block(bits, *blocks[phase])
+                    if bulk:
+                        count = consume(bits, phase, min(64, required-prior_count-parsed, assembler.max_states * 16384-work))
+                        if count==1:
+                            bulk=False
+                    else:
+                        block(bits,*blocks[phase])
+                        count=1
                 except InvalidJpeg:
                     break
-                phase = (phase + 1) % len(blocks)
-            for key in reversed(pending):
-                result = None if result is None else result + 1
+                pending[-1] = key, count
+                parsed += count
+                work += count
+                phase = (phase + count) % len(blocks)
+                if work - saved_work >= 128:
+                    # Cursor points after completed blocks; no candidate bytes
+                    # are published before the remaining grammar is checked.
+                    state['Active'] = [bits.at,bits.value,bits.remaining,phase,prior_count+parsed,0]
+                    boundary()
+                    saved_work = work
+            for key, count in reversed(pending):
+                result = None if result is None else result + (count if result >= 0 else -count)
                 if len(cache) >= cache_limit:
                     cache.popitem(last=False)
                 cache[key] = result
-            return None if result is None else prior_count + result
+            return None if result is None or result < 0 else prior_count + result
 
         for prefix_index in range(state['Prefix'], len(prefixes)):
             cut, checkpoint = prefixes[prefix_index]
@@ -928,7 +1014,7 @@ def baseline_stream_paths(assembler, frame, markers):
                 bits = Bits(JoinedWindow(carry, tail))
                 bits.value, bits.remaining = value, remaining
                 try:
-                    block(bits, *blocks[ordinal % len(blocks)])
+                    consume(bits, ordinal % len(blocks))
                 except InvalidJpeg:
                     state.update(Physical=physical+512, Active=None)
                     continue
