@@ -52,6 +52,9 @@ try{
    # Mandatory source tests and the complete source/license rebuild bundle run.
    & (Join-Path $PSScriptRoot 'build-helper.ps1') -Python312 $taskPython *>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'build-helper.log')
    $taskBuilds+='helper-with-mandatory-source-tests-and-rebuild-bundle'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'TelegramDesktopKdfPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'telegram-desktop-frozen.log')
+  if($LASTEXITCODE-ne0){throw 'Frozen Telegram Desktop checks failed.'}
+  $taskResults+='TelegramDesktopKdfPortableTests'
   }elseif(-not(Test-Path -LiteralPath $taskEnvPython -PathType Leaf)-or-not(Test-Path -LiteralPath $taskHelper -PathType Leaf)-or-not(Test-Path -LiteralPath $taskApp -PathType Leaf)){
    throw 'Managed-only mode requires an existing source-built app, helper and build interpreter.'
   }

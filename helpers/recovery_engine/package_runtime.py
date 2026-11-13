@@ -83,6 +83,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
     shutil.copytree(ROOT / "tests/StorageFixtures/lvm", rebuild / "tests/StorageFixtures/lvm", dirs_exist_ok=True)
     for name in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
+    shutil.copyfile(ROOT / "tests/TelegramDesktopKdfPortableTests.py", rebuild / "tests/TelegramDesktopKdfPortableTests.py")
     (rebuild / "REBUILD.txt").write_text(
         f"Developer rebuild: Windows x64, Python {sys.version.split()[0]}.\n"
         "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"
