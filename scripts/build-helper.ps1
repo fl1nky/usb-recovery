@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Python312 = '',
     [switch]$SkipTests,
     [switch]$SkipRebuildBundle
@@ -38,8 +38,12 @@ Push-Location $taskRoot
 try {
     if (-not $SkipTests) {
         foreach ($taskTest in 'LvmRecoveryTests.py','TelegramPostboxTests.py','ResumableCopyTests.py','ForensicImageTests.py','TelegramPlatformTests.py','TelegramWebPageTests.py','JpegStreamingCheckpointTests.py','JpegLargeStreamingTests.py','TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','ArchiveTextTests.py','ArchiveTextAuditTests.py','TelegramLegacyTests.py','TelegramTlTests.py','SqliteHistoryTests.py','SQLiteRollbackTests.py','SQLiteRollbackAuditTests.py','TelegramRollbackTests.py','TelegramRollbackContextTests.py','TelegramRollbackContextAuditTests.py','TelegramMediaTests.py','TelegramMediaCacheTests.py','TelegramMediaCacheProfileTests.py','TelegramDocumentEmptyTests.py','TelegramDocumentDescriptorTests.py','TelegramDocumentAttributesTests.py','TelegramMediaOnlyTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','PngIdatGapRecoveryTests.py','PngTwoGapRecoveryTests.py','PngStreamingIndexTests.py','PngStreamingNativeTests.py','PngStreamingProtocolTests.py','PhotoSourceAliasTests.py','JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py') {
+            if ($env:GITHUB_ACTIONS -eq 'true') { Write-Output ('::notice title=Source check::'+$taskTest) }
             & $envPython (Join-Path 'tests' $taskTest)
-            if ($LASTEXITCODE -ne 0) { throw 'Telegram regression tests failed.' }
+            if ($LASTEXITCODE -ne 0) {
+                if ($env:GITHUB_ACTIONS -eq 'true') { Write-Output ('::error title=Source check failed::'+$taskTest+' (exit '+$LASTEXITCODE+')') }
+                throw ('Source regression failed: '+$taskTest)
+            }
         }
     }
     & $envPython -m PyInstaller --noconfirm --clean --onedir --console --name recovery-helper `

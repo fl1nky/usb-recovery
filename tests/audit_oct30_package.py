@@ -129,7 +129,8 @@ def audit():
     for relative in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle"):
         original = ROOT / "tests" / relative
         delivered = helper / "rebuild/tests" / relative
-        names = {p.relative_to(original).as_posix() for p in original.rglob("*") if p.is_file()}
+        names = {p.relative_to(original).as_posix() for p in original.rglob("*")
+                 if p.is_file() and not {"__pycache__", ".pytest_cache"}.intersection(p.relative_to(original).parts)}
         require(names == {p.relative_to(delivered).as_posix() for p in delivered.rglob("*") if p.is_file()},
                 "modern Desktop fixture inventory mismatch")
         for name in names:

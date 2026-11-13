@@ -6,7 +6,7 @@ $taskGroup='USBRecoveryHeadless-'+[Guid]::NewGuid().ToString('N')
 $taskRules=[Collections.Generic.List[string]]::new()
 $taskBlockedPrograms=[Collections.Generic.List[string]]::new()
 $taskResults=@();$taskFailure=$null;$taskIsolationConfirmed=$false;$taskBuilds=@()
-$taskManifest=$null;$taskManifestSha=$null
+$taskManifest=$null;$taskManifestSha=$null;$taskStage='setup'
 $taskPython=[IO.Path]::GetFullPath($Python312)
 $taskEnvPython=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'
 $taskHelper=Join-Path $taskLayout.Tools 'recovery-helper\recovery-helper.exe'
@@ -47,17 +47,21 @@ try{
   if(-not $ManagedOnly){
    & $taskPython (Join-Path $taskLayout.Tests 'BootstrapBuildTests.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'bootstrap-tests.log')
    if($LASTEXITCODE-ne0){throw 'Bootstrap integrity controls failed.'}
+   $taskStage='application-build'
    & (Join-Path $PSScriptRoot 'build-app.ps1') *>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'build-app.log')
    $taskBuilds+='application'
    # Mandatory source tests and the complete source/license rebuild bundle run.
+   $taskStage='helper-source-tests-and-build'
    & (Join-Path $PSScriptRoot 'build-helper.ps1') -Python312 $taskPython *>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'build-helper.log')
    $taskBuilds+='helper-with-mandatory-source-tests-and-rebuild-bundle'
+  $taskStage='telegram-desktop-frozen'
   & $taskEnvPython (Join-Path $taskLayout.Tests 'TelegramDesktopKdfPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'telegram-desktop-frozen.log')
   if($LASTEXITCODE-ne0){throw 'Frozen Telegram Desktop checks failed.'}
   $taskResults+='TelegramDesktopKdfPortableTests'
   }elseif(-not(Test-Path -LiteralPath $taskEnvPython -PathType Leaf)-or-not(Test-Path -LiteralPath $taskHelper -PathType Leaf)-or-not(Test-Path -LiteralPath $taskApp -PathType Leaf)){
    throw 'Managed-only mode requires an existing source-built app, helper and build interpreter.'
   }
+  $taskStage='raid10-fixtures'
   $taskRaidFixtures=Join-Path $taskLayout.Root ('.build\raid10-headless-'+[Guid]::NewGuid().ToString('N'))
   & $taskEnvPython (Join-Path $taskLayout.Tests 'build_raid10_fixtures.py') --destination $taskRaidFixtures 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'raid10-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'RAID10 fixture generation failed.'}
@@ -74,6 +78,7 @@ try{
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
   foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests'){
+   $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
    if($LASTEXITCODE-ne0){throw ('Headless build failed: '+$taskName)}
@@ -86,7 +91,11 @@ try{
    $taskResults+=$taskName
   }
  }finally{Pop-Location}
-}catch{$taskFailure=[string]$_;throw}
+}catch{
+ $taskFailure=[string]$_
+ if($env:GITHUB_ACTIONS-eq'true'){Write-Output ('::error title=Headless validation failed::Stage: '+$taskStage+'. Retained logs contain the detailed failure.')}
+ throw
+}
 finally{
  $taskCleanup=@();$taskRemaining=@()
  if($BlockNetwork){
