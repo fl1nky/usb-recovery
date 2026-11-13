@@ -147,7 +147,7 @@ def audit():
         for relative in sorted(fixture_files):
             require(sha(safe(fixture_source, relative)) == sha(safe(fixture_rebuild, relative)),
                     "official Telegram rebuild oracle missing or stale: " + fixture + "/" + relative)
-    for name in ("build-helper.ps1", "ProjectPaths.ps1"):
+    for name in ("build-helper.ps1", "ProjectPaths.ps1", "run-source-test.py"):
         require(sha(ROOT / "scripts" / name) == sha(helper / "rebuild/scripts" / name),
                 "rebuild runner mismatch: " + name)
     for fixture in ("TelegramNativeFixtures", "TelegramMediaFixtures"):
