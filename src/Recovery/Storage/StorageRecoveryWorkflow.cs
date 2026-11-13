@@ -11,6 +11,7 @@ namespace UsbRecovery
     public sealed class StorageRecoveryRequest
     {
         public string Kind, Source, OutputDirectory;
+        public string[] LvmSources;
         public StorageVolumeInfo Volume;
         public RaidConfiguration Raid;
         public Dictionary<string, string> Secrets;
@@ -33,6 +34,8 @@ namespace UsbRecovery
     {
         public int Schema = 1, MaximumSnapshots;
         public string Kind, Source;
+        public string[] LvmSources;
+        public string VolumeIdentifier;
         public long Offset, Length, MaximumOutputBytes;
         public bool IncludeSnapshots, SearchAfterPreparation, MaximumSearch;
     }
@@ -44,11 +47,13 @@ namespace UsbRecovery
             if (request == null) throw new ArgumentNullException("request");
             if (request.MaximumOutputBytes <= 0)
                 throw new IOException("Лимит результатов должен быть положительным.");
-            if (request.Kind != "APFS" && request.Kind != "RAID" && request.Kind != "BitLocker")
+            if (request.Kind != "APFS" && request.Kind != "RAID" && request.Kind != "BitLocker" && request.Kind != "LVM")
                 throw new IOException("Неизвестный режим восстановления.");
             if (request.Kind != "RAID") {
                 if (request.Volume == null || request.Volume.Kind != request.Kind)
                     throw new IOException("Сначала нажми «Проверить образ» и выбери том.");
+                if(request.Kind=="LVM"&&(request.LvmSources==null||request.LvmSources.Length<1||request.LvmSources.Length>32||String.IsNullOrWhiteSpace(request.Volume.Identifier)))throw new IOException("Добавь образы LVM, нажми «Найти тома» и выбери логический том.");
+                if(request.Kind=="LVM"&&!String.Equals(Path.GetFullPath(request.Source),Path.GetFullPath(request.LvmSources[0]),StringComparison.OrdinalIgnoreCase))throw new IOException("Первый исходный образ LVM не совпадает с сохранённой операцией.");
                 return;
             }
 
@@ -85,6 +90,7 @@ namespace UsbRecovery
         static StorageResumePlan Plan(StorageRecoveryRequest request)
         {
             return new StorageResumePlan {Kind=request.Kind,Source=Path.GetFullPath(request.Source),
+                LvmSources=request.LvmSources==null?null:request.LvmSources.Select(Path.GetFullPath).ToArray(),VolumeIdentifier=request.Volume.Identifier,
                 Offset=request.Volume.OffsetBytes,Length=request.Volume.LengthBytes,
                 MaximumOutputBytes=request.MaximumOutputBytes,MaximumSnapshots=request.MaximumSnapshots,
                 IncludeSnapshots=request.IncludeSnapshots,SearchAfterPreparation=request.SearchAfterPreparation,
@@ -99,10 +105,10 @@ namespace UsbRecovery
             StorageResumePlan plan;
             try{plan=new JavaScriptSerializer().Deserialize<StorageResumePlan>(File.ReadAllText(path));}
             catch(ArgumentException){throw new IOException("Параметры продолжения повреждены.");}
-            if(plan==null||plan.Schema!=1||(plan.Kind!="APFS"&&plan.Kind!="BitLocker")||String.IsNullOrWhiteSpace(plan.Source)||plan.Offset<0||plan.Length<=0||plan.MaximumSnapshots<0||plan.MaximumSnapshots>16384)
+            if(plan==null||plan.Schema!=1||(plan.Kind!="APFS"&&plan.Kind!="BitLocker"&&plan.Kind!="LVM")||String.IsNullOrWhiteSpace(plan.Source)||plan.Offset<0||plan.Length<=0||plan.MaximumSnapshots<0||plan.MaximumSnapshots>16384)
                 throw new IOException("Параметры продолжения не поддерживаются.");
             var request=new StorageRecoveryRequest{Kind=plan.Kind,Source=plan.Source,
-                Volume=new StorageVolumeInfo{Kind=plan.Kind,OffsetBytes=plan.Offset,LengthBytes=plan.Length},
+                Volume=new StorageVolumeInfo{Kind=plan.Kind,OffsetBytes=plan.Offset,LengthBytes=plan.Length,Identifier=plan.VolumeIdentifier},LvmSources=plan.LvmSources,
                 OutputDirectory=Path.GetDirectoryName(Path.GetFullPath(directory)),MaximumOutputBytes=plan.MaximumOutputBytes,
                 MaximumSnapshots=plan.MaximumSnapshots,IncludeSnapshots=plan.IncludeSnapshots,
                 SearchAfterPreparation=plan.SearchAfterPreparation,MaximumSearch=plan.MaximumSearch};
@@ -152,9 +158,9 @@ namespace UsbRecovery
                 };
             } else {
                 execution.Prepared = StorageRecovery.Prepare(request.Kind, request.Source,
-                    Path.Combine(execution.Directory, request.Kind == "APFS" ? "apfs" : "unlock"),
+                    Path.Combine(execution.Directory, request.Kind == "APFS" ? "apfs" : request.Kind=="LVM"?"lvm":"unlock"),
                     request.Volume, request.Secrets, request.IncludeSnapshots, request.MaximumOutputBytes,
-                    token, activity, request.MaximumSnapshots, execution.ResumePreparation);
+                    token, activity, request.MaximumSnapshots, execution.ResumePreparation, request.LvmSources);
             }
 
             string catalog = execution.Prepared.Catalog;

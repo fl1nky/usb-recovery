@@ -33,18 +33,23 @@ namespace UsbRecovery
         {
             using(var guard=LockImage(image,token))return HelperClient.Run(HelperClient.Executable,new{protocol=1,operation="storage_probe",source=Path.GetFullPath(image)},token,null);
         }
-        public static StoragePreparedResult Prepare(string kind,string image,string destination,StorageVolumeInfo volume,Dictionary<string,string> secrets,bool snapshots,long maximumBytes,CancellationToken token,Action<RecoveryStageProgress> activity,int maximumSnapshots=1024,bool resume=false)
+        public static HelperResult ProbeLvm(string[] sources,CancellationToken token)
+        {
+            if(sources==null||sources.Length==0||sources.Length>32)throw new IOException("Выбери от одного до 32 RAW-образов физических томов LVM.");
+            return HelperClient.Run(HelperClient.Executable,new{protocol=1,operation="lvm_probe",sources=sources.Select(Path.GetFullPath).ToArray()},token,null);
+        }
+        public static StoragePreparedResult Prepare(string kind,string image,string destination,StorageVolumeInfo volume,Dictionary<string,string> secrets,bool snapshots,long maximumBytes,CancellationToken token,Action<RecoveryStageProgress> activity,int maximumSnapshots=1024,bool resume=false,string[] lvmSources=null)
         {
             if(maximumSnapshots<0||maximumSnapshots>16384)throw new ArgumentException("Недопустимый лимит снимков.");
-            if(kind!="APFS"&&kind!="BitLocker")throw new ArgumentException("Неизвестный источник.");
+            if(kind!="APFS"&&kind!="BitLocker"&&kind!="LVM")throw new ArgumentException("Неизвестный источник.");
             if(volume==null||volume.Kind!=kind||maximumBytes<=0)throw new IOException("Сначала проверь образ и выбери подходящий том.");
             using(var guard=LockImage(image,token)){
-                if(volume.OffsetBytes<0||volume.LengthBytes<=0||volume.OffsetBytes>guard.Length-volume.LengthBytes)throw new IOException("Том выходит за границы образа.");
+                if(volume.OffsetBytes<0||volume.LengthBytes<=0||kind!="LVM"&&volume.OffsetBytes>guard.Length-volume.LengthBytes)throw new IOException("Том выходит за границы образа.");
                 SourcePaths.NoLinks(destination);
                 if(!resume||!Directory.Exists(destination))CreatePrivateDirectory(destination);
-                bool hasCheckpoint=File.Exists(Path.Combine(destination,kind=="APFS"?"apfs-resume.json":"bitlocker-resume.json"));
-                var result=HelperClient.Run(HelperClient.Executable,new{protocol=1,operation=kind=="APFS"?"apfs":"bitlocker",source=Path.GetFullPath(image),destination=Path.GetFullPath(destination),secrets=secrets,options=new{resume=resume&&hasCheckpoint,offset_bytes=volume.OffsetBytes,length_bytes=volume.LengthBytes,include_snapshots=snapshots,max_output_bytes=maximumBytes,max_file_bytes=Math.Min(maximumBytes,1024L*1024*1024*1024),max_files=100000,max_snapshots=maximumSnapshots,prefer_recent_snapshots=true}},token,null,
-                    p=>{if(activity!=null)activity(new RecoveryStageProgress{Key="storage",Title=kind=="APFS"?"Чтение APFS и снимков":"Расшифровка BitLocker",State="running",Completed=p.Completed,Total=p.Total});});
+                bool hasCheckpoint=File.Exists(Path.Combine(destination,kind=="APFS"?"apfs-resume.json":kind=="LVM"?"lvm-resume.json":"bitlocker-resume.json"));
+                var result=HelperClient.Run(HelperClient.Executable,new{protocol=1,operation=kind=="APFS"?"apfs":kind=="LVM"?"lvm":"bitlocker",source=Path.GetFullPath(image),sources=lvmSources,destination=Path.GetFullPath(destination),secrets=secrets,options=new{volume_id=volume.Identifier,resume=resume&&hasCheckpoint,offset_bytes=volume.OffsetBytes,length_bytes=volume.LengthBytes,include_snapshots=snapshots,max_output_bytes=maximumBytes,max_file_bytes=Math.Min(maximumBytes,1024L*1024*1024*1024),max_files=100000,max_snapshots=maximumSnapshots,prefer_recent_snapshots=true}},token,null,
+                    p=>{if(activity!=null)activity(new RecoveryStageProgress{Key="storage",Title=kind=="APFS"?"Чтение APFS и снимков":kind=="LVM"?"Сборка логического тома LVM":"Расшифровка BitLocker",State="running",Completed=p.Completed,Total=p.Total});});
                 if(result.Status=="error")throw new IOException(ErrorText(result.Code));
                 var prepared=new StoragePreparedResult{Directory=destination,Partial=result.Status=="partial",Files=result.Files};
                 if(kind=="APFS"){
@@ -53,7 +58,7 @@ namespace UsbRecovery
                     RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(destination,"result.json"),new{status=prepared.Partial?"finished_with_warnings":"finished",origin="APFS",uniqueFiles=catalog.Items.Count,deleted_recovery_guaranteed=false});
                 }else{
                     string relative=result.Image;
-                    if(relative!="decrypted.dd"&&relative!="decrypted-prefix.dd")throw new IOException("Неподдерживаемый ответ движка BitLocker.");
+                    if(kind=="LVM"?relative!="lvm.dd"||prepared.Partial:relative!="decrypted.dd"&&relative!="decrypted-prefix.dd")throw new IOException("Неподдерживаемый ответ движка подготовки тома.");
                     if((relative=="decrypted-prefix.dd")!=prepared.Partial)throw new IOException("Состояние расшифрованного образа не подтверждено.");
                     prepared.Image=RecoveryCatalog.SafeFile(destination,relative);prepared.Checksum=prepared.Image+".sha256";
                     if(!File.Exists(prepared.Image)||!File.Exists(prepared.Checksum))throw new IOException("Расшифрованный образ не опубликован.");
@@ -74,7 +79,7 @@ namespace UsbRecovery
         }
         public static RecoveryOptions SearchOptions(bool maximum,bool partial)
         {
-            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum,KeepCorrupted=maximum,FragmentedPhotos=maximum,FragmentedVideo=maximum,Ext4Metadata=maximum,RefsMetadata=maximum};
+            var options=new RecoveryOptions{AlternateFat=maximum,OrphanDirectories=maximum,MetadataRescue=maximum,ArchiveMembers=maximum,FragmentedArchives=maximum,JpegFragments=maximum,KeepCorrupted=maximum,FragmentedPhotos=maximum,FragmentedVideo=maximum,Ext4Metadata=maximum,RefsMetadata=maximum,UnknownNtfsAllocation=maximum&&!partial};
             if(partial)options.FatMetadata=options.NtfsMetadata=options.Ext4Metadata=options.RefsMetadata=options.LostPartitions=options.OrphanDirectories=options.MetadataRescue=false;
             return options;
         }
@@ -90,6 +95,11 @@ namespace UsbRecovery
                 case "RESUME_SOURCE_CHANGED":return "Исходный образ или параметры изменились. Продолжение остановлено.";
                 case "RESUME_OUTPUT_CHANGED":case "RESUME_CHECKPOINT_INVALID":case "RESUME_RECORD_NOT_FOUND":return "Сохранённая часть или контрольная точка изменена. Продолжение остановлено.";
                 case "SOURCE_PREPARATION_BUSY":return "Эта рабочая папка уже используется другой операцией.";
+                case "LVM_MEMBERS_MISSING":return "Не все физические тома LVM предоставлены. Добавь недостающие образы.";
+                case "LVM_MIRRORS_DISAGREE":case "LVM_METADATA_COPIES_DISAGREE":return "Копии LVM расходятся. Сборка остановлена; требуется разбор состояния массива.";
+                case "LVM_RAW_PHYSICAL_VOLUME_REQUIRED":return "Нужны RAW-образы самих физических томов LVM. Образ всего диска сначала раздели по его разметке.";
+                case "LVM_LAYOUT_UNSUPPORTED":case "LVM_SEGMENT_UNSUPPORTED":case "LVM_THIN_STATE_UNSUPPORTED":case "LVM_THIN_VERSION_UNSUPPORTED":return "Этот тип или состояние LVM пока не поддерживается.";
+                case "LVM_LABEL_CHECKSUM_FAILED":case "LVM_METADATA_CHECKSUM_FAILED":case "LVM_THIN_CHECKSUM_FAILED":case "LVM_THIN_METADATA_INVALID":return "Проверка метаданных LVM не пройдена. Готовый образ не опубликован.";
                 default:return "Операция не завершена. Исходный образ не изменялся; смотри отчёт источника.";
             }
         }

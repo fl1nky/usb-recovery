@@ -104,16 +104,17 @@ public static class StorageUiTests
             host.ShowInTaskbar=false;host.StartPosition=FormStartPosition.Manual;host.Location=new Point(-20000,-20000);host.Show();await Pause();
             var panel=Field<StorageRecoveryPanel>(host,"storage");var nav=Field<Dictionary<string,Button>>(host,"navigation")["storage"];nav.PerformClick();await Pause();
             Check(panel.Visible&&nav is NavigationButton&&((NavigationButton)nav).Selected,"storage navigation shows actual panel");var modes=Field<TabControl>(panel,"modes");var source=Field<Panel>(panel,"sourcePanel");var layout=Field<TableLayoutPanel>(panel,"root");
-            Check(modes.TabPages.Cast<TabPage>().Select(p=>p.Text).SequenceEqual(new[]{"APFS","RAID","BitLocker"}),"all three distinct storage workflows exist");
+            Check(modes.TabPages.Cast<TabPage>().Select(p=>p.Text).SequenceEqual(new[]{"APFS","RAID","BitLocker","LVM"}),"all four distinct storage workflows exist");
             foreach(bool compact in new[]{false,true}){
                 if(compact)host.Size=host.MinimumSize;else host.ClientSize=new Size(1280,920);await Pause();Fits(nav,host,"storage navigation "+compact);Fits(panel,host,"storage workspace "+compact);
-                for(int mode=0;mode<3;mode++){
+                for(int mode=0;mode<4;mode++){
                     modes.SelectedIndex=mode;await Pause();Fits(modes,host,"mode tabs "+mode+"/"+compact);Fits(Field<RecoveryActivityView>(panel,"activity"),host,"storage activity "+mode+"/"+compact);
                     foreach(string field in new[]{"start","stop","found","searchImage","open"})Fits(Field<Button>(panel,field),host,field+" "+mode+"/"+compact);
-                    await WaitForLayout(()=>modes.SelectedIndex==mode&&source.Visible==(mode!=1)&&(layout.GetRowHeights()[1]==0)==(mode==1));
-                    Check(modes.SelectedIndex==mode&&source.Visible==(mode!=1)&&(layout.GetRowHeights()[1]==0)==(mode==1),"source row collapses exactly for RAID compact="+compact+" requested="+mode+" selected="+modes.SelectedIndex+" visible="+source.Visible+" row="+layout.GetRowHeights()[1]+" style="+layout.RowStyles[1].SizeType+"/"+layout.RowStyles[1].Height+" host="+host.Visible+" panel="+panel.Visible);Check(Field<CheckBox>(panel,"searchAfter").Enabled==(mode!=0),"APFS own extraction workflow mode="+mode+" selected="+modes.SelectedIndex+" enabled="+Field<CheckBox>(panel,"searchAfter").Enabled+" compact="+compact);
-                    if(mode!=1){Fits(source,host,"source row "+compact);Fits(Field<TextBox>(panel,"image"),host,"source image field "+compact);Fits(Field<Button>(panel,"probe"),host,"probe action "+compact);Keys(panel,host,mode);}
-                    else await Raid(panel,host);
+                    await WaitForLayout(()=>modes.SelectedIndex==mode&&source.Visible==(mode==0||mode==2)&&(layout.GetRowHeights()[1]==0)==(mode==1||mode==3));
+                    Check(modes.SelectedIndex==mode&&source.Visible==(mode==0||mode==2)&&(layout.GetRowHeights()[1]==0)==(mode==1||mode==3),"source row collapses for RAID and LVM compact="+compact+" requested="+mode+" selected="+modes.SelectedIndex+" visible="+source.Visible+" row="+layout.GetRowHeights()[1]);Check(Field<CheckBox>(panel,"searchAfter").Enabled==(mode!=0),"APFS own extraction workflow mode="+mode+" selected="+modes.SelectedIndex+" enabled="+Field<CheckBox>(panel,"searchAfter").Enabled+" compact="+compact);
+                    if(mode==0||mode==2){Fits(source,host,"source row "+compact);Fits(Field<TextBox>(panel,"image"),host,"source image field "+compact);Fits(Field<Button>(panel,"probe"),host,"probe action "+compact);Keys(panel,host,mode);}
+                    else if(mode==1)await Raid(panel,host);
+                    else{Fits(Field<ListBox>(panel,"lvmSources"),host,"LVM source images");Fits(Field<ComboBox>(panel,"lvmVolumes"),host,"LVM logical volume selection");Check(Children(panel).Any(c=>c.Name=="lvm-probe")&&Children(panel).Any(c=>c.Name=="lvm-resume"),"LVM discovery and continuation are explicit actions");}
                 }
                 Shot(host,compact?"storage-compact":"storage-normal");await Busy(panel,host);
             }

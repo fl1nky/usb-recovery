@@ -76,10 +76,11 @@ if "--skip-rebuild-bundle" not in sys.argv:
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/telegram-platforms", "telegram_platforms_oracle", "fixtures/video-bframes"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
-    for name in ("TelegramPostboxTests.py", "build_telegram_postbox_fixtures.py", "ResumableCopyTests.py", "ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
+    for name in ("LvmRecoveryTests.py", "TelegramPostboxTests.py", "build_telegram_postbox_fixtures.py", "ResumableCopyTests.py", "ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/telegram-postbox", "postbox_oracle", "fixtures/forensic-images", "fixtures/telegram-webpage", "telegram_webpage_oracle"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
+    shutil.copytree(ROOT / "tests/StorageFixtures/lvm", rebuild / "tests/StorageFixtures/lvm", dirs_exist_ok=True)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"
         "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"

@@ -71,7 +71,7 @@ namespace UsbRecovery
             Map("RecoverySubtitle", "DATA RECOVERY", "ВОССТАНОВЛЕНИЕ ДАННЫХ");
             Map("SectionRecovery", "RECOVERY", "ВОССТАНОВЛЕНИЕ");
             Map("NavUsb", "Drives & Images", "Флешки и образы");
-            Map("NavStorage", "APFS · RAID · BitLocker", "APFS · RAID · BitLocker");
+            Map("NavStorage", "Диски и массивы", "Disks and arrays");
             Map("SectionChats", "MESSENGERS", "ПЕРЕПИСКИ");
             Map("NavTelegram", "Telegram", "Telegram");
             Map("SectionSources", "SOURCES", "ИСТОЧНИКИ");

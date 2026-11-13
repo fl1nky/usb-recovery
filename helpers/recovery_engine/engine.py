@@ -1508,7 +1508,7 @@ def main():
             except Exception:
                 emit("result", status="error", code="FRAGMENTED_PHOTO_FAILED")
                 return 2
-        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker", "prepare_image"):
+        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker", "prepare_image", "lvm_probe", "lvm"):
             import time as _storage_time
             storage_progress_times = {}
             protocol_stdout = sys.stdout
@@ -1526,6 +1526,9 @@ def main():
                     if request["operation"] == "prepare_image":
                         from forensic_image import handle
                         result = handle(request, storage_emit)
+                    elif request['operation'] in ('lvm_probe','lvm'):
+                        from storage_lvm import handle_lvm
+                        result = handle_lvm(request, storage_emit)
                     elif request["operation"] == "storage_probe":
                         from storage_probe import probe
                         result = probe(request, storage_emit)
