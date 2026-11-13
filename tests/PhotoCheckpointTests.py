@@ -57,7 +57,7 @@ class PhotoCheckpoints(unittest.TestCase):
             stream.seek(70*1024*1024-1);stream.write(b'\xa5')
         self.before=hashlib.sha256(self.source.read_bytes()).hexdigest()
         anchor=self.stopped(lambda state:state['Phase']=='index' and state['Index']['Position']>=32*1024*1024)
-        position=json.loads(Path(anchor['Path']).read_text())['Index']['Position']
+        position=json.loads(Path(anchor['Path']).read_text(encoding="utf-8-sig"))['Index']['Position']
         self.assertEqual(position,32*1024*1024)
         progress=[]
         result=self.run_recovery(anchor,progress=lambda done,total:progress.append(done))
@@ -108,7 +108,7 @@ class PhotoCheckpoints(unittest.TestCase):
                 with self.assertRaisesRegex(photos.LimitReached,'index_time_budget'):
                     reader.index(lambda:journal.commit(self.index_state(reader)))
                 anchor=self.anchors[-1]
-                state=json.loads(Path(anchor['Path']).read_text())
+                state=json.loads(Path(anchor['Path']).read_text(encoding="utf-8-sig"))
                 self.assertEqual(state['Index']['Position'],expected)
                 self.assertEqual(state['Index']['starts'],[64] if expected==1048576 else [64,1048640])
                 self.assertEqual(state['Index']['Tokens'],expected//1048576)
@@ -193,7 +193,7 @@ class PhotoCheckpoints(unittest.TestCase):
 
     def test_rehashed_malformed_map_is_rejected_by_structural_validation(self):
         anchor=self.stopped(lambda state:state['Cursor']['Png']==1)
-        path=Path(anchor['Path']);state=json.loads(path.read_text())
+        path=Path(anchor['Path']);state=json.loads(path.read_text(encoding="utf-8-sig"))
         state['Files'][0]['Extents'][0]['LogicalOffset']=1
         raw=checkpoint.encoded(state);path.write_bytes(raw)
         altered=dict(anchor,Sha256=hashlib.sha256(raw).hexdigest())
@@ -252,7 +252,7 @@ class PhotoCheckpoints(unittest.TestCase):
 
     def test_completed_old_anchor_quarantines_unacknowledged_outputs_and_generations(self):
         self.run_recovery()
-        anchor=next(row for row in self.anchors if json.loads(Path(row['Path']).read_text())['Phase']=='candidates')
+        anchor=next(row for row in self.anchors if json.loads(Path(row['Path']).read_text(encoding="utf-8-sig"))['Phase']=='candidates')
         result=self.run_recovery(anchor)
         self.assertEqual(result['Candidates'],1)
         self.assertEqual((self.output/result['Files'][0]['Path']).read_bytes(),self.payload)

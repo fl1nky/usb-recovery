@@ -268,7 +268,7 @@ class ApfsRecovery(unittest.TestCase):
         self.check(result["status"] == "complete" and len(records) == 20, "official encrypted image unlocks with supplied password")
         self.check(any((destination / r["path"]).read_bytes() == " File System\n".encode() for r in records), "decrypted bytes equal independently known plaintext")
         self.check(any(r["original_path"] == "/dir/compressed-lzfse-fork" and r["sha256"] == "5f46d97f947137dcf974fc19914c547acd18fcdb25124c846c1100f8b3fbca5f" for r in records), "encrypted large fork exact across XTS sector offsets")
-        reports = (destination / "apfs-report.json").read_text() + (destination / "storage-candidates.json").read_text()
+        reports = (destination / "apfs-report.json").read_text(encoding="utf-8-sig") + (destination / "storage-candidates.json").read_text(encoding="utf-8-sig")
         self.check('"password"' not in reports and '"apfs_password"' not in reports, "no secret in metadata")
         self.assert_records(source, destination, records)
         for secret, expected in (({}, "SECRET_REQUIRED"), ({"apfs_password": "DO-NOT-LOG-incorrect-ключ"}, "AUTH_FAILED")):
@@ -302,7 +302,7 @@ class ApfsRecovery(unittest.TestCase):
         source = self.fixture("corrupt")
         result, destination, records = self.run_image(source, options={"include_snapshots": False, "max_files": 1000})
         self.check(result["status"] in ("complete", "partial") and bool(records), "valid older checkpoint remains readable")
-        report = json.loads((destination / "apfs-report.json").read_text())
+        report = json.loads((destination / "apfs-report.json").read_text(encoding="utf-8-sig"))
         self.check(report["checkpoint_xid"] == 302 and report["checkpoint_fallback"], "independent expected checkpoint selected")
         self.check(all(r["checkpoint_fallback"] and r["origin"] == "previous-version" and r["deleted"] is None for r in records), "fallback never misrepresented as the latest live state")
 
@@ -331,7 +331,7 @@ class ApfsRecovery(unittest.TestCase):
             self.check(result["status"] == "error" and result["code"] == "INVALID_REQUEST", "malformed options rejected")
         existing = self.root / "existing";existing.mkdir();keep = existing / "keep.txt";keep.write_text("untouched")
         result = handle_apfs({"source": str(self.small), "destination": str(existing)}, None)
-        self.check(result["status"] == "error" and keep.read_text() == "untouched", "existing output not modified")
+        self.check(result["status"] == "error" and keep.read_text(encoding="utf-8-sig") == "untouched", "existing output not modified")
         result = handle_apfs({"source": str(self.small), "destination": str(self.root)}, None)
         self.check(result["status"] == "error" and self.small.is_file(), "source/destination ancestry rejected")
         self.check(handle_apfs(None, None)["code"] == "INVALID_REQUEST", "invalid request sanitized")

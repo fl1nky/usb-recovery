@@ -104,7 +104,7 @@ class BitLockerRecovery(unittest.TestCase):
         self.verify(mft == b"FILE0\0\x03\0", "known MFT plaintext beyond virtualized boot")
         self.verify(image.stat().st_size == result["bytes"], "measured length")
         self.verify(sha(image) == result["image_sha256"], "actual output SHA256")
-        self.verify((destination / (result["image"] + ".sha256")).read_text().strip() == result["image_sha256"], "sidecar matches image")
+        self.verify((destination / (result["image"] + ".sha256")).read_text(encoding="utf-8-sig").strip() == result["image_sha256"], "sidecar matches image")
         report = json.loads((destination / result["report"]).read_text(encoding="utf-8"))
         self.verify(report["cipher"] == cipher and report["source"]["unchanged"], "actual cipher and preserved source")
         self.verify(report["source"]["sha256"] == before == sha(request["source"]), "input hash unchanged")
@@ -150,7 +150,7 @@ class BitLockerRecovery(unittest.TestCase):
         result = handle_bitlocker(request, lambda *args, **fields: None)
         self.verify(result["status"] == "partial" and result["image"] == "decrypted-prefix.dd", "EOW bounded output remains partial")
         output = Path(request["destination"])
-        report = json.loads((output / result["report"]).read_text())
+        report = json.loads((output / result["report"]).read_text(encoding="utf-8-sig"))
         self.verify(report["eow"] and report["sector_size"] == 512, "actual EOW metadata recognized")
         self.verify((output / result["image"]).read_bytes()[3:11] == b"NTFS    ", "independent known EOW boot plaintext")
         self.verify(before == sha(source), "EOW input unchanged")
@@ -168,7 +168,7 @@ class BitLockerRecovery(unittest.TestCase):
             expected[0x38:0x40] = struct.pack("<Q", bde.information.header.Mft2StartLcn)
         output = Path(request["destination"])
         self.verify((output / result["image"]).read_bytes()[:512] == expected, "independently specified Vista boot restoration")
-        report = json.loads((output / result["report"]).read_text())
+        report = json.loads((output / result["report"]).read_text(encoding="utf-8-sig"))
         self.verify(report["bitlocker_version"] == 1 and report["source"]["sha256"] == sha(source), "Vista source preserved and version reported")
 
     def test_offset_and_length_view(self):
@@ -262,7 +262,7 @@ class BitLockerRecovery(unittest.TestCase):
         sentinel = destination / "existing.txt"
         sentinel.write_text("keep", encoding="ascii")
         self.fail(request, "INVALID_REQUEST")
-        self.verify(sentinel.read_text() == "keep", "existing output remains unchanged")
+        self.verify(sentinel.read_text(encoding="utf-8-sig") == "keep", "existing output remains unchanged")
         request = self.request()
         request["destination"] = str(self.aes)
         self.fail(request, "INVALID_SOURCE")
@@ -294,7 +294,7 @@ class BitLockerRecovery(unittest.TestCase):
         request['secrets']={'password':PASSWORD}
         result=handle_bitlocker(request,lambda *a,**k:None)
         self.verify(result['status']=='partial' and not partial.exists(),'Correct credential resumes the same image')
-        report=json.loads((destination/'bitlocker-report.json').read_text())
+        report=json.loads((destination/'bitlocker-report.json').read_text(encoding="utf-8-sig"))
         self.verify(report['resumed_bytes']==8*1024*1024,'Already committed prefix is reused')
         saved=''.join(p.read_text(errors='replace') for p in destination.glob('*.json'))
         self.verify(PASSWORD not in saved and RECOVERY not in saved,'Resume state and reports never contain credentials')

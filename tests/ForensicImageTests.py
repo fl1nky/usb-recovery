@@ -23,7 +23,7 @@ def sha(path):
 class ForensicImages(unittest.TestCase):
     def test_pinned_vendor_bytes(self):
         vendor=ROOT/'vendor/ewfprobe'
-        data=json.loads((vendor/'UPSTREAM.json').read_text())
+        data=json.loads((vendor/'UPSTREAM.json').read_text(encoding="utf-8-sig"))
         self.assertEqual(sha(vendor/'ewfprobe.py'),data['sha256'])
         self.assertEqual(data['commit'],'4af1a54a223edbce12693b29fb3838b63a26b4f2')
     @classmethod
@@ -33,7 +33,7 @@ class ForensicImages(unittest.TestCase):
         cls.fixtures = cls.root / 'native'
         cls.fixtures.mkdir()
         folder = ROOT / 'tests/fixtures/forensic-images'
-        cls.manifest = json.loads((folder/'manifest.json').read_text())
+        cls.manifest = json.loads((folder/'manifest.json').read_text(encoding="utf-8-sig"))
         archive = folder/'native-ewf.tar.gz'
         assert sha(archive) == cls.manifest['archive_sha256']
         with tarfile.open(archive) as inputs:
@@ -67,7 +67,7 @@ class ForensicImages(unittest.TestCase):
                 report = f.read_json(out/'source-preparation.json')
                 self.assertEqual(len(report['binding']['sources']), len(row['files']))
                 self.assertEqual(len(report['read_map']['ranges']), 0)
-                self.assertTrue((out/'working.dd.sha256').read_text().startswith(sha(out/'working.dd')))
+                self.assertTrue((out/'working.dd.sha256').read_text(encoding="utf-8-sig").startswith(sha(out/'working.dd')))
                 request['options']['resume'] = True
                 self.assertEqual(f.prepare(request, lambda *a, **k: None)['status'], 'complete')
                 for member in row['files']:

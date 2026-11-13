@@ -42,7 +42,7 @@ class StreamingCheckpoints(unittest.TestCase):
         with patch.object(PhotoAssembler,'read',fail):
             report=recover(self.source,self.output,checkpoint_progress=anchors.append)
             self.assertEqual((report['Status'],report['Candidates']),('limited',0))
-            state=json.loads(Path(anchors[-1]['Path']).read_text())
+            state=json.loads(Path(anchors[-1]['Path']).read_text(encoding="utf-8-sig"))
             self.assertEqual(state['JpegSearch']['Physical'],self.tail)
             self.assertEqual(state['JpegSearch']['Solutions'],[])
             armed=False
@@ -131,7 +131,7 @@ class StreamingCheckpoints(unittest.TestCase):
         with patch.object(PhotoAssembler,'read',interrupt):
             partial=recover(self.source,self.output,checkpoint_progress=anchors.append)
             self.assertEqual(partial['Status'],'limited')
-            state=json.loads(Path(anchors[-1]['Path']).read_text())
+            state=json.loads(Path(anchors[-1]['Path']).read_text(encoding="utf-8-sig"))
             self.assertIsNotNone(state['JpegSearch']['Active'])
             self.assertFalse(list(self.output.glob('*.jpg')))
             armed=False

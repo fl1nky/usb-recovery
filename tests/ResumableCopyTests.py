@@ -21,7 +21,7 @@ class CopyTests(unittest.TestCase):
             if row['phase']=='copy' and row['completed']>=10*c.CHUNK:raise InterruptedError()
         with self.assertRaises(InterruptedError):c.stage(io.BytesIO(self.raw),len(self.raw),self.path,self.binding,False,stop)
         self.assertFalse(self.path.exists())
-        state=json.loads(Path(str(self.path)+'.resume.json').read_text());self.assertEqual(state['completed'],8*c.CHUNK)
+        state=json.loads(Path(str(self.path)+'.resume.json').read_text(encoding="utf-8-sig"));self.assertEqual(state['completed'],8*c.CHUNK)
         staged=c.stage(io.BytesIO(self.raw),len(self.raw),self.path,self.binding,True)
         self.assertEqual(staged['resumed_bytes'],8*c.CHUNK);c.publish(staged,self.path)
         self.assertEqual(self.path.read_bytes(),self.raw)

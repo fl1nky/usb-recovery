@@ -109,7 +109,7 @@ class PhotoSourceAliases(unittest.TestCase):
         self.assertEqual(record['Extents'], photos._recipe_extents(self.recipes[0]))
         self.assertEqual(record['AlternateExtents'], [photos._recipe_extents(self.recipes[1])])
         self.assertEqual(self.validate(result['Files'])[1], len(self.payload))
-        states = [json.loads(Path(row['Path']).read_text()) for row in self.anchors]
+        states = [json.loads(Path(row['Path']).read_text(encoding="utf-8-sig")) for row in self.anchors]
         updates = [update for state in states for update in state.get('AliasUpdates', [])]
         self.assertEqual(len(updates), 1)
         self.assertEqual(updates[0]['AddedExtents'], record['AlternateExtents'])
@@ -117,7 +117,7 @@ class PhotoSourceAliases(unittest.TestCase):
     def test_resume_adds_alias_to_previously_committed_output(self):
         def stop(row):
             self.anchors.append(row)
-            if json.loads(Path(row['Path']).read_text())['Cursor']['Png'] == 1:
+            if json.loads(Path(row['Path']).read_text(encoding="utf-8-sig"))['Cursor']['Png'] == 1:
                 raise InterruptedError('owned checkpoint interruption')
         producer = self.producer([[self.recipes[0]], [self.recipes[1]]])
         with self.assertRaises(InterruptedError):
@@ -135,7 +135,7 @@ class PhotoSourceAliases(unittest.TestCase):
     def test_aliases_found_before_first_commit_are_in_the_file_record(self):
         producer = self.producer([self.recipes, []])
         result = self.run_search(producer=producer)
-        states = [json.loads(Path(row['Path']).read_text()) for row in self.anchors]
+        states = [json.loads(Path(row['Path']).read_text(encoding="utf-8-sig")) for row in self.anchors]
         stored = [record for state in states for record in state['Files']]
         self.assertEqual(len(stored), 1)
         self.assertEqual(stored[0]['AlternateExtents'], result['Files'][0]['AlternateExtents'])
@@ -162,7 +162,7 @@ class PhotoSourceAliases(unittest.TestCase):
         hybrid = [self.recipes[0][0], self.recipes[1][1]]
         result = self.run_search(producer=self.producer([self.recipes, [hybrid]]))
         self.assertEqual(len(result['Files'][0]['AlternateExtents']), 2)
-        states = [json.loads(Path(row['Path']).read_text()) for row in self.anchors]
+        states = [json.loads(Path(row['Path']).read_text(encoding="utf-8-sig")) for row in self.anchors]
         initial = [record for state in states for record in state['Files']]
         updates = [update for state in states for update in state.get('AliasUpdates', [])]
         self.assertEqual(len(initial), 1)
@@ -199,7 +199,7 @@ class PhotoSourceAliases(unittest.TestCase):
                 producer = self.jpeg_producer(status, same_map)
                 def stop(row):
                     self.anchors.append(row)
-                    if json.loads(Path(row['Path']).read_text())['Cursor']['Jpeg'] == 1:
+                    if json.loads(Path(row['Path']).read_text(encoding="utf-8-sig"))['Cursor']['Jpeg'] == 1:
                         raise InterruptedError('owned JPEG checkpoint interruption')
                 with self.assertRaises(InterruptedError):
                     self.run_search(producer=producer, notify=stop)
@@ -227,7 +227,7 @@ class PhotoSourceAliases(unittest.TestCase):
         result = self.run_search(producer=producer)
         self.assertEqual(result['Status'], 'limited')
         self.assertEqual(result['Files'][0]['Status'], 'jpeg_gap_ambiguous_candidate')
-        last = json.loads(Path(self.anchors[-1]['Path']).read_text())
+        last = json.loads(Path(self.anchors[-1]['Path']).read_text(encoding="utf-8-sig"))
         self.assertEqual(last['Cursor']['Jpeg'], 1)
         self.assertEqual(last['Phase'], 'candidates')
         self.assertEqual(last['AliasUpdates'][0]['AddedExtents'], [])
@@ -274,7 +274,7 @@ class PhotoSourceAliases(unittest.TestCase):
 
     def test_alias_update_cannot_refer_to_another_content_or_drop_maps(self):
         self.run_search()
-        states = [json.loads(Path(row['Path']).read_text()) for row in self.anchors]
+        states = [json.loads(Path(row['Path']).read_text(encoding="utf-8-sig")) for row in self.anchors]
         original = next(index for index, state in enumerate(states) if state.get('AliasUpdates'))
         for mutation in ('unknown-hash', 'empty', 'duplicate-update', 'rollback'):
             chain = copy.deepcopy(states)

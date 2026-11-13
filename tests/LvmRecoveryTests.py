@@ -98,7 +98,7 @@ class LvmTests(unittest.TestCase):
         self.assertFalse((self.output/'lvm.dd').exists());self.assertTrue((self.output/'lvm.dd.partial').exists())
         request['options']['resume']=True
         result=self.run_request(request);self.assertEqual(result['status'],'complete',result)
-        self.assertEqual(json.loads((self.output/'lvm-report.json').read_text())['resumed_bytes'],4*1024*1024)
+        self.assertEqual(json.loads((self.output/'lvm-report.json').read_text(encoding="utf-8-sig"))['resumed_bytes'],4*1024*1024)
         with (self.output/'lvm.dd').open('r+b') as changed:changed.write(b'tampered')
         result=self.run_request(request);self.assertEqual(result['code'],'RESUME_OUTPUT_CHANGED')
     def test_thin_crc_dirty_version_and_repaired_cycle_controls(self):
