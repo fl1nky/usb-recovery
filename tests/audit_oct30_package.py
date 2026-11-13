@@ -123,10 +123,13 @@ def audit():
     require(sha(ROOT / "tests/telegram_platforms_oracle/NativeScheduledOracle.java") == sha(helper / "rebuild/tests/telegram_platforms_oracle/NativeScheduledOracle.java"), "native platform producer missing or stale")
     required_tests += ("TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py")
     require(sha(ROOT / "tests/telegram_webpage_oracle/NativeWebPageOracle.java") == sha(helper / "rebuild/tests/telegram_webpage_oracle/NativeWebPageOracle.java"), "native webpage producer missing or stale")
+    for name in ("PostboxWriter.cs", "produce.py"):
+        require(sha(ROOT / "tests/postbox_oracle" / name) == sha(helper / "rebuild/tests/postbox_oracle" / name),
+                "Postbox fixture producer missing or stale: " + name)
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
-    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "telegram-webpage", "forensic-images", "video-bframes"):
+    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "telegram-postbox", "telegram-webpage", "forensic-images", "video-bframes"):
         fixture_source = ROOT / "tests/fixtures" / fixture
         fixture_rebuild = helper / "rebuild/tests/fixtures" / fixture
         fixture_files = {path.relative_to(fixture_source).as_posix() for path in fixture_source.rglob("*") if path.is_file()}

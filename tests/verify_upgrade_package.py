@@ -18,7 +18,7 @@ DEPENDENCIES = {"USB-Recovery.exe", "USB-Recovery.exe.config", "tools/recovery-h
                 "package-sha256.json", "tools/recovery-helper/runtime-SHA256.json"}
 SOURCE_TREES = ("src", "scripts", "helpers/recovery_engine", "vendor/iphone-backup-decrypt", "vendor/ewfprobe", "docs")
 SOURCE_FIXTURES = ("fixtures/media-units", "fixtures/hevc-recovery", "fixtures/hevc-validation", "fixtures/aac-islands", "fixtures/aac-lc", "fixtures/ext4", "fixtures/refs", "fixtures/raid-md", "fixtures/raid-controller", "fixtures/apfs-salvage", "fixtures/telegram-cache-profiles", "fixtures/telegram-document-empty", "fixtures/telegram-document-descriptor", "fixtures/telegram-document-descriptor-portable", "fixtures/telegram-document-attributes", "fixtures/telegram-document-attributes-compatibility", "fixtures/telegram-media-only", "fixtures/video-stz2", "fixtures/video-fmp4", "fixtures/document-media-preview", "fixtures/telegram-platforms", "fixtures/telegram-webpage", "fixtures/forensic-images", "fixtures/video-bframes", "telegram_platforms_oracle", "telegram_webpage_oracle", "benchmarks", "TelegramNativeFixtures", "TelegramMediaFixtures", "StorageFixtures",
-                   "photorec-20261011T231546120952Z/fixtures")
+                   "fixtures/telegram-postbox", "postbox_oracle", "photorec-20261011T231546120952Z/fixtures")
 EXCLUDED_SOURCE_DIRECTORIES = {".git", "__pycache__", ".pytest_cache", "bin", "obj"}
 GENERATED_TEST_REPORTS = {"CommercialComparison-after.json", "CommercialComparison-baseline.json",
                           "October30-package-audit.json"}

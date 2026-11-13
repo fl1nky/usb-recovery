@@ -1,4 +1,4 @@
-param([string]$Python312='')
+﻿param([string]$Python312='')
 $ErrorActionPreference='Stop'
 $PSDefaultParameterValues['Out-File:Encoding'] = 'utf8'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
@@ -9,6 +9,17 @@ if(-not $Python312){$Python312=Join-Path $taskLayout.Root '.build\engine-env\Scr
 if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source and evidence checks.'}
 & (Join-Path $taskLayout.Tests 'FixtureCacheTests.ps1') -Python312 $Python312
 & (Join-Path $taskLayout.Tests 'OfflineEvidenceTests.ps1') -ProjectRoot $taskLayout.Root
+foreach($taskBaseFixture in @(
+ @('QualityFixtures\cases.json','ContentQualityFixtures.py'),
+ @('DeepRecoveryWork\containers-expected.json','DeepRecoveryFixtures.py')
+)){
+ if(-not(Test-Path -LiteralPath (Join-Path $taskLayout.Tests $taskBaseFixture[0]) -PathType Leaf)){
+  $taskBaseDirectory=Split-Path -Parent (Join-Path $taskLayout.Tests $taskBaseFixture[0])
+  if(Test-Path -LiteralPath $taskBaseDirectory){throw 'Incomplete base fixture cache exists; preserve it and prepare a fresh destination before testing.'}
+  & $Python312 (Join-Path $taskLayout.Tests $taskBaseFixture[1])
+  if($LASTEXITCODE-ne0){throw ('Independent base fixture preparation failed: '+$taskBaseFixture[1])}
+ }
+}
 & $Python312 (Join-Path $taskLayout.Tests 'prepare_archive_regression_fixtures.py')
 if($LASTEXITCODE-ne0){throw 'Owned archive and fragmented ZIP fixture preparation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
