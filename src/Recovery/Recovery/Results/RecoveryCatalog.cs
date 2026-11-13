@@ -90,7 +90,7 @@ namespace UsbRecovery
                 catch(IOException){ verification=new ContentVerification{Code="unverified",Label="Проверка не завершена",Detail="Не удалось завершить дополнительную проверку содержимого. Сравни сохранённый файл с ожидаемым."}; }
                 item.Quality=verification.Code;item.QualityLabel=verification.Label;item.IntegrityDetail=verification.Detail;
                 var ownership=evidence.For(item.Path);
-                if(ownership!=null&&ownership.Kind=="ntfs_record"&&ownership.Note!=null&&ownership.Note.StartsWith("allocation_unknown_candidate",StringComparison.Ordinal)){
+                if(ownership!=null&&ownership.Kind=="ntfs_record"&&ownership.VerificationStatus=="allocation_unknown_candidate"){
                     item.Status="Занятость неизвестна";item.Quality="allocation_unknown_candidate";item.QualityLabel="Сохранность не подтверждена";
                     item.Note+=" Карта занятости NTFS утрачена; содержимое могло быть перезаписано.";item.IntegrityDetail=ownership.Note+" "+item.IntegrityDetail;
                 }
