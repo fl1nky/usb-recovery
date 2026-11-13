@@ -212,7 +212,15 @@ class HeapIndex:
                 self.skip(4)
                 ident = self.defined(self.ident())
                 self.skip(4)
-                self.db.execute('INSERT INTO names VALUES(?,?)', (ident, self.ident()))
+                symbol = self.ident()
+                previous = self.db.execute('SELECT symbol FROM names WHERE id=?', (ident,)).fetchone()
+                # OpenJDK17 recursively emits array LOAD_CLASS records while its
+                # outer class walk also includes arrays. Serial numbers differ;
+                # the same class-object/name-symbol mapping is still unambiguous.
+                if previous is None:
+                    self.db.execute('INSERT INTO names VALUES(?,?)', (ident, symbol))
+                elif previous[0] != symbol:
+                    raise HeapError('HPROF_DUPLICATE_IDENTIFIER')
             elif tag in {0x0c, 0x1c}:
                 if self.ended or self.heap_count and (tag == 0x0c or not self.segmented):
                     raise HeapError('HPROF_MULTIPLE_SNAPSHOTS_UNSUPPORTED')

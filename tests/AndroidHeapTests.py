@@ -248,6 +248,9 @@ class AndroidHeap(unittest.TestCase):
     def test_real_owned_hotspot_heap_independent_writer(self):
         from build_telegram_heap_fixtures import build
         manifest = build(self.work / 'jvm')
+        version = ' | '.join(manifest['java_version'].strip().splitlines()[:3])
+        header = 'Owned JVM fixture: ' + version + '; java_sha256=' + manifest['java_sha256']
+        print(('::notice title=JVM fixture::' if os.environ.get('GITHUB_ACTIONS') == 'true' else '') + header, flush=True)
         path = self.work / 'jvm' / manifest['path']
         result = android_heap.recover(path, self.work / 'scratch')
         self.assertEqual(result['source_sha256'], manifest['sha256'])

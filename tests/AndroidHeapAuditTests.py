@@ -192,6 +192,52 @@ class AndroidHeapAudit(unittest.TestCase):
         with self.assertRaisesRegex(android_heap.HeapError, 'DUPLICATE_IDENTIFIER'):
             self.parse(h.data(parts=pieces))
 
+    def test_repeated_load_class_mapping_with_new_serial_keeps_exact_candidate(self):
+        for width in (4, 8):
+            for new_serial in (False, True):
+                with self.subTest(width=width, new_serial=new_serial):
+                    h = Envelope(width); pieces = h.elements()
+                    repeated = bytearray(h.loads[2])  # TL_message class mapping.
+                    if new_serial:
+                        repeated[9:13] = struct.pack('>I', 8001)
+                    raw = (h.header() + h.metadata() + top(0x1c, b''.join(pieces[:-1])) +
+                           bytes(repeated) + top(0x1c, pieces[-1]) + top(0x2c))
+                    rows = self.parse(raw)
+                    self.assertEqual(len(rows), 1)
+                    self.assertEqual((rows[0]['text'], rows[0]['candidate_message_id']), (h.text, 31))
+                    self.assertEqual(rows[0]['heap_object_id'], h.ident(24).hex())
+
+    def test_conflicting_repeated_load_class_symbol_rejects_before_resolving_messages(self):
+        for width in (4, 8):
+            for same_text in (False, True):
+                with self.subTest(width=width, same_text=same_text):
+                    h = Envelope(width); pieces = h.elements()
+                    if same_text:
+                        # Equality of decoded text cannot replace symbol identity.
+                        extra = top(1, h.ident(9999) + h.names[2].encode('utf-8'))
+                        symbol = h.ident(9999)
+                    else:
+                        extra, symbol = b'', h.sym(h.names[3])
+                    repeated = h.loads[2][:-width] + symbol
+                    raw = (h.header() + h.metadata() + extra + top(0x1c, b''.join(pieces)) +
+                           top(0x2c) + repeated)
+                    with patch.object(android_heap.HeapIndex, 'messages') as resolve, \
+                            self.assertRaisesRegex(android_heap.HeapError, 'DUPLICATE_IDENTIFIER'):
+                        self.parse(raw)
+                    resolve.assert_not_called()
+
+    def test_other_duplicate_definition_guards_remain_strict(self):
+        for width in (4, 8):
+            h = Envelope(width); pieces = h.elements(); metadata = h.metadata()
+            first_size = 9 + struct.unpack_from('>I', metadata, 5)[0]
+            first_symbol = metadata[:first_size]
+            cases = [h.header() + metadata + top(0x1c, b''.join(pieces)) + first_symbol + top(0x2c)]
+            for index in (0, 5, 9):  # class, primitive array, message instance.
+                cases.append(h.header() + metadata + top(0x1c, b''.join(pieces + [pieces[index]])) + top(0x2c))
+            for index, raw in enumerate(cases):
+                with self.subTest(width=width, kind=index), self.assertRaisesRegex(android_heap.HeapError, 'DUPLICATE_IDENTIFIER'):
+                    self.parse(raw)
+
     def test_exact_class_name_and_base_required(self):
         for wrong in ('other.TLRPC$TL_message', 'org.telegram.tgnet.TLRPC$TL_messageSuffix'):
             h = Envelope(); h.names[2] = wrong
