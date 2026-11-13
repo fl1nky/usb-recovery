@@ -18,7 +18,7 @@ import time
 import uuid
 import zlib
 
-from storage_bitlocker import _read_only
+from recovery_io import (RecoveryIOError as ImageError, plain, digest, writable, atomic_bytes, atomic, writer_lock, read_json, read_only as _read_only)
 
 CHUNK = 1024 * 1024
 CHECKPOINT = 8 * CHUNK
@@ -27,58 +27,16 @@ SIGNATURES = (b"EVF\x09\r\n\xff\0", b"EVF2\r\n\x81\0")
 VERSION = 1
 
 
-class ImageError(Exception):
-    pass
 
 
-def plain(value, exists=False):
-    if not isinstance(value, str) or not value or value.startswith(("\\\\", "//")):
-        raise ImageError("INVALID_SOURCE")
-    path = Path(os.path.abspath(value))
-    for node in (path, *path.parents):
-        try:
-            info = node.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
-            raise ImageError("INVALID_SOURCE")
-    if exists and not path.is_file():
-        raise ImageError("INVALID_SOURCE")
-    return path
 
 
-def digest(stream, emit=None, phase="source_hash"):
-    stream.seek(0)
-    value = hashlib.sha256()
-    done, last = 0, 0.0
-    while block := stream.read(CHUNK):
-        value.update(block)
-        done += len(block)
-        now = time.monotonic()
-        if emit is not None and now - last >= .2:
-            emit("progress", phase=phase, completed=done, total=os.fstat(stream.fileno()).st_size)
-            last = now
-    return value.hexdigest()
 
 
-def writable(path):
-    plain(str(path))
-    if path.exists() and (not path.is_file() or path.stat().st_nlink > 1):
-        raise ImageError("INVALID_DESTINATION")
 
 
-def atomic_bytes(path, data):
-    writable(path)
-    temp = path.with_name(path.name + "." + uuid.uuid4().hex + ".tmp")
-    with temp.open("xb") as output:
-        output.write(data)
-        output.flush()
-        os.fsync(output.fileno())
-    os.replace(temp, path)
 
 
-def atomic(path, value):
-    atomic_bytes(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
 
 
 def validate_sections(stream, signature):
@@ -132,38 +90,8 @@ def validate_sections(stream, signature):
             offset = previous
 
 
-@contextlib.contextmanager
-def writer_lock(path):
-    writable(path)
-    with path.open("a+b") as lock:
-        lock.seek(0, 2)
-        if lock.tell() == 0:
-            lock.write(b"\0")
-            lock.flush()
-        lock.seek(0)
-        if os.name == "nt":
-            import msvcrt
-            try:
-                msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError:
-                raise ImageError("SOURCE_PREPARATION_BUSY") from None
-        else:
-            import fcntl
-            try:
-                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError:
-                raise ImageError("SOURCE_PREPARATION_BUSY") from None
-        yield
 
 
-def read_json(path):
-    plain(str(path), True)
-    if path.stat().st_size > 4 * CHUNK:
-        raise ImageError("INVALID_SOURCE")
-    try:
-        return json.loads(path.read_text(encoding="utf-8-sig"))
-    except (ValueError, UnicodeError):
-        raise ImageError("INVALID_SOURCE") from None
 
 
 def map_ranges(path, size):

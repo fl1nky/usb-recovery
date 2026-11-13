@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -21,13 +21,14 @@ namespace UsbRecovery
         readonly NumericUpDown limit=new NumericUpDown(),snapshotLimit=new NumericUpDown();
         readonly Button browse=new Button(),probe=new Button(),start=new Button(),stop=new Button(),found=new Button(),open=new Button(),searchImage=new Button(),outputBrowse=new Button();
         readonly Button resumeRaid=new Button();
+        readonly Button resumeStorage=new Button();
         readonly Label status=new Label(),secretLabel=new Label();
         readonly RecoveryActivityView activity=new RecoveryActivityView();
         readonly Panel sourcePanel=new Panel();
         readonly TableLayoutPanel root=new TableLayoutPanel();
         CancellationTokenSource cancellation;
         StoragePreparedResult prepared;
-        string bekPath,lastRoot,lastCatalog;
+        string bekPath,lastRoot,lastCatalog,pendingResume;
         public bool IsBusy{get;private set;}
         string Kind{get{return modes.SelectedIndex==0?"APFS":modes.SelectedIndex==1?"RAID":"BitLocker";}}
         static Label Caption(string text){return new Label{Text=text,AutoSize=true,ForeColor=UiTheme.Muted,Margin=new Padding(0,5,8,0)};}
@@ -39,7 +40,7 @@ namespace UsbRecovery
             foreach(float height in new[]{64F,80F,44F,250F,34F,120F,44F})root.RowStyles.Add(new RowStyle(SizeType.Absolute,height));root.RowStyles.Add(new RowStyle(SizeType.Percent,100));Controls.Add(root);
             var heading=new Panel{Dock=DockStyle.Fill};heading.Controls.Add(new Label{Text="APFS, RAID и BitLocker",Font=new Font("Segoe UI",19F,FontStyle.Bold),Dock=DockStyle.Top,Height=36});heading.Controls.Add(new Label{Text="Работа с обычными образами · исходники только читаются",Tag="muted",Dock=DockStyle.Bottom,Height=24});root.Controls.Add(heading,0,0);
             sourcePanel.Dock=DockStyle.Fill;var source=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=3,RowCount=2};source.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));source.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,112));source.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,142));source.RowStyles.Add(new RowStyle(SizeType.Absolute,38));source.RowStyles.Add(new RowStyle(SizeType.Percent,100));sourcePanel.Controls.Add(source);
-            image.Dock=DockStyle.Fill;image.Name="storage-image";image.Margin=new Padding(0,7,4,3);source.Controls.Add(image,0,0);Button(browse,"Образ…",delegate{ChooseImage();});source.Controls.Add(browse,1,0);Button(probe,"Проверить образ",async delegate{await ProbeAsync();});source.Controls.Add(probe,2,0);volumes.Dock=DockStyle.Fill;volumes.DropDownStyle=ComboBoxStyle.DropDownList;volumes.Name="storage-volumes";source.Controls.Add(volumes,0,1);source.SetColumnSpan(volumes,3);root.Controls.Add(sourcePanel,0,1);
+            image.Dock=DockStyle.Fill;image.Name="storage-image";image.Margin=new Padding(0,7,4,3);source.Controls.Add(image,0,0);Button(browse,"Образ…",delegate{ChooseImage();});source.Controls.Add(browse,1,0);Button(probe,"Проверить образ",async delegate{await ProbeAsync();});source.Controls.Add(probe,2,0);volumes.Dock=DockStyle.Fill;volumes.DropDownStyle=ComboBoxStyle.DropDownList;volumes.Name="storage-volumes";source.Controls.Add(volumes,0,1);source.SetColumnSpan(volumes,2);Button(resumeStorage,"Продолжить…",delegate{LoadStorageResume();});resumeStorage.Name="storage-resume";source.Controls.Add(resumeStorage,2,1);root.Controls.Add(sourcePanel,0,1);
             var destination=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=3};destination.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,118));destination.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));destination.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,112));destination.Controls.Add(Caption("Результаты"),0,0);output.Text=@"C:\USB-Recovery-Results";output.Name="storage-output";output.Dock=DockStyle.Fill;output.Margin=new Padding(0,6,4,0);destination.Controls.Add(output,1,0);Button(outputBrowse,"Папка…",delegate{using(var dialog=new FolderBrowserDialog{Description="Папка результатов на отдельном диске"})if(dialog.ShowDialog(this)==DialogResult.OK)output.Text=dialog.SelectedPath;});destination.Controls.Add(outputBrowse,2,0);root.Controls.Add(destination,0,2);
             modes.Dock=DockStyle.Fill;modes.Name="storage-modes";TabPage apfsPage=new TabPage("APFS"),raidPage=new TabPage("RAID"),bdePage=new TabPage("BitLocker");modes.TabPages.AddRange(new[]{apfsPage,raidPage,bdePage});modes.SelectedIndex=0;root.Controls.Add(modes,0,3);
             var apfs=new FlowLayoutPanel{Dock=DockStyle.Fill,FlowDirection=FlowDirection.TopDown,WrapContents=false,Padding=new Padding(10),AutoScroll=true};apfsPage.Controls.Add(apfs);apfs.Controls.Add(new Label{Text="Файлы и доступные снимки APFS. Файл из снимка отмечается как предыдущая версия.\r\nОтсутствующие записи не выдаются за восстановленные.",AutoSize=true,Font=new Font("Segoe UI",9F)});
@@ -51,7 +52,7 @@ namespace UsbRecovery
             activity.Dock=DockStyle.Fill;activity.Name="storage-activity";activity.SetPhase("Готово","Выбери режим и исходный образ");root.Controls.Add(activity,0,5);
             var actions=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=5};actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));foreach(int width in new[]{108,155,130,90})actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,width));Button(start,"Анализировать",async delegate{await StartAsync();});start.Tag="primary";start.Name="storage-start";Button(stop,"Остановить",delegate{if(cancellation!=null){cancellation.Cancel();stop.Enabled=false;status.Text="Остановка; незавершённые данные останутся .partial";}});stop.Name="storage-stop";Button(found,"Найденные файлы",delegate{if(lastCatalog!=null)using(var viewer=new RecoveryFilesForm(lastCatalog))viewer.ShowDialog(this);});Button(searchImage,"Искать в образе",async delegate{await SearchPreparedAsync();});Button(open,"Папка",delegate{if(lastRoot!=null&&Directory.Exists(lastRoot))Process.Start(new ProcessStartInfo(lastRoot){UseShellExecute=true});});actions.Controls.Add(start,0,0);actions.Controls.Add(stop,1,0);actions.Controls.Add(found,2,0);actions.Controls.Add(searchImage,3,0);actions.Controls.Add(open,4,0);root.Controls.Add(actions,0,6);
             status.Dock=DockStyle.Fill;status.Font=new Font("Segoe UI",9F);status.Name="storage-status";status.Text="APFS: сохранившиеся записи и снимки. RAID: явные параметры. BitLocker: предоставленный ключ.";root.Controls.Add(status,0,7);
-            modes.SelectedIndexChanged+=delegate{RefreshMode();};image.TextChanged+=delegate{volumes.Items.Clear();};Resize+=delegate{bool compact=Height<820;root.Padding=compact?new Padding(14):new Padding(20,16,20,16);root.RowStyles[0].Height=compact?58:64;root.RowStyles[3].Height=(compact?204:250)+(Kind=="RAID"?80:0);root.RowStyles[5].Height=compact?108:120;};RefreshMode();SetBusy(false);UiTheme.ApplyTree(this);
+            modes.SelectedIndexChanged+=delegate{pendingResume=null;RefreshMode();};image.TextChanged+=delegate{pendingResume=null;volumes.Items.Clear();};Resize+=delegate{bool compact=Height<820;root.Padding=compact?new Padding(14):new Padding(20,16,20,16);root.RowStyles[0].Height=compact?58:64;root.RowStyles[3].Height=(compact?204:250)+(Kind=="RAID"?80:0);root.RowStyles[5].Height=compact?108:120;};RefreshMode();SetBusy(false);UiTheme.ApplyTree(this);
         }
         void BuildRaid(TabPage page)
         {
@@ -89,7 +90,7 @@ namespace UsbRecovery
         void RefreshMode(){bool raid=Kind=="RAID";sourcePanel.Visible=!raid;root.RowStyles[1].Height=raid?0:80;root.RowStyles[3].Height=(Height<820?204:250)+(raid?80:0);searchAfter.Enabled=Kind!="APFS";maximum.Enabled=Kind!="APFS";searchAfter.Visible=maximum.Visible=Kind!="APFS";start.Text=raid?"Собрать и найти":"Анализировать";volumes.Items.Clear();}
         void Post(Action update){if(!IsDisposed&&IsHandleCreated)try{BeginInvoke(new Action(()=>{if(!IsDisposed)update();}));}catch(InvalidOperationException){}}
         void Observe(RecoveryStageProgress stage){Post(()=>{activity.SetPhase(stage.Title,"Анализ рабочей копии");activity.SetProgress(stage.Completed,stage.Total);activity.FoundCandidates=stage.Candidates;});}
-        void SetBusy(bool value){IsBusy=value;image.Enabled=browse.Enabled=probe.Enabled=output.Enabled=outputBrowse.Enabled=modes.Enabled=start.Enabled=volumes.Enabled=!value;searchAfter.Enabled=!value&&Kind!="APFS";maximum.Enabled=!value&&Kind!="APFS";limit.Enabled=!value;stop.Enabled=value;found.Enabled=!value&&lastCatalog!=null&&File.Exists(Path.Combine(lastCatalog,"files-index.json"));open.Enabled=!value&&lastRoot!=null&&Directory.Exists(lastRoot);searchImage.Enabled=!value&&prepared!=null&&prepared.Image!=null;searchImage.Text=prepared!=null&&prepared.Partial?"Искать в части":"Искать в образе";}
+        void SetBusy(bool value){IsBusy=value;resumeStorage.Enabled=!value;image.Enabled=browse.Enabled=probe.Enabled=output.Enabled=outputBrowse.Enabled=modes.Enabled=start.Enabled=volumes.Enabled=!value;searchAfter.Enabled=!value&&Kind!="APFS";maximum.Enabled=!value&&Kind!="APFS";limit.Enabled=!value;stop.Enabled=value;found.Enabled=!value&&lastCatalog!=null&&File.Exists(Path.Combine(lastCatalog,"files-index.json"));open.Enabled=!value&&lastRoot!=null&&Directory.Exists(lastRoot);searchImage.Enabled=!value&&prepared!=null&&prepared.Image!=null;searchImage.Text=prepared!=null&&prepared.Partial?"Искать в части":"Искать в образе";}
         async Task ProbeAsync()
         {
             if(IsBusy)return;cancellation=new CancellationTokenSource();SetBusy(true);activity.IsActive=true;activity.ClearProgress();activity.SetPhase("Проверка образа","Таблица разделов и признаки формата");
@@ -104,7 +105,25 @@ namespace UsbRecovery
         }
         Task StartAsync()
         {
-            return ExecuteAsync(null);
+            return ExecuteAsync(Kind=="RAID"?null:pendingResume);
+        }
+
+        void LoadStorageResume()
+        {
+            if(IsBusy)return;
+            using(var dialog=new FolderBrowserDialog{Description="Рабочая папка APFS или BitLocker со storage-request.json"}){
+                if(dialog.ShowDialog(this)!=DialogResult.OK)return;
+                try{
+                    var request=StorageRecoveryWorkflow.ReadResumeRequest(dialog.SelectedPath);
+                    modes.SelectedIndex=request.Kind=="APFS"?0:2;
+                    image.Text=request.Source;volumes.Items.Clear();volumes.Items.Add(request.Volume);volumes.SelectedIndex=0;
+                    snapshots.Checked=request.IncludeSnapshots;snapshotLimit.Value=Math.Max(1,request.MaximumSnapshots);
+                    limit.Value=Math.Max(limit.Minimum,Math.Min(limit.Maximum,(decimal)request.MaximumOutputBytes/(1024*1024*1024)));
+                    searchAfter.Checked=request.SearchAfterPreparation;maximum.Checked=request.MaximumSearch;
+                    pendingResume=dialog.SelectedPath;
+                    status.Text="Операция загружена. Введи пароль или ключ заново, если он нужен, и нажми «Анализировать».";
+                }catch(IOException error){status.Text=error.Message;}
+            }
         }
 
         async Task ResumeRaidAsync()
@@ -153,7 +172,7 @@ namespace UsbRecovery
                 apfsPassword.Clear();
                 bekPath = null;
 
-                execution = resumeDirectory == null ? StorageRecoveryWorkflow.Create(request) : StorageRecoveryWorkflow.ResumeRaid(request, resumeDirectory);
+                execution = resumeDirectory == null ? StorageRecoveryWorkflow.Create(request) : request.Kind=="RAID" ? StorageRecoveryWorkflow.ResumeRaid(request, resumeDirectory) : StorageRecoveryWorkflow.Resume(request,resumeDirectory);
                 lastRoot = execution.Directory;
                 prepared = null;
                 lastCatalog = null;
@@ -173,6 +192,7 @@ namespace UsbRecovery
                 status.Text = CompletionText(request.Kind, prepared, index);
                 activity.FoundCandidates = index == null ? -1 : index.Candidates;
                 success = true;
+                pendingResume = null;
             } catch (OperationCanceledException) {
                 status.Text = "Операция остановлена. Незавершённые результаты не считаются готовыми.";
             } catch (Exception error) {

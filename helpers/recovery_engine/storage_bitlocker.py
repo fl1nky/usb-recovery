@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later
 """Read-only authenticated BitLocker image preparation using dissect.fve 4.6.
 
 Authentication protects key metadata, not every data sector. This adapter never
@@ -58,30 +58,8 @@ def _plain_path(value, must_exist=False):
     return path
 
 
-@contextlib.contextmanager
-def _read_only(path):
-    if os.name != "nt":
-        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
-        with os.fdopen(fd, "rb") as source:
-            yield source
-        return
-    import msvcrt
-    from ctypes import wintypes
-    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-    kernel.CreateFileW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-                                  wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
-    kernel.CreateFileW.restype = wintypes.HANDLE
-    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
-    handle = kernel.CreateFileW(str(path), 0x80000000, 1, None, 3, 0x08000000, None)
-    if handle == ctypes.c_void_p(-1).value:
-        raise BitLockerError("IO_ERROR")
-    try:
-        fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
-    except BaseException:
-        kernel.CloseHandle(handle)
-        raise
-    with os.fdopen(fd, "rb") as source:
-        yield source
+from recovery_io import read_only as _read_only
+from recovery_io import RecoveryIOError
 
 
 class _BoundedReader(io.RawIOBase):
@@ -229,7 +207,10 @@ def _prepare(request, emit):
     destination = _plain_path(request.get("destination"))
     if source_path == destination or destination in source_path.parents:
         raise BitLockerError("INVALID_SOURCE")
-    if destination.exists() and (not destination.is_dir() or any(destination.iterdir())):
+    resume = options.get("resume", False)
+    if type(resume) is not bool:
+        raise BitLockerError("INVALID_REQUEST")
+    if destination.exists() and (not destination.is_dir() or (any(destination.iterdir()) and not resume)):
         raise BitLockerError("INVALID_REQUEST")
     offset = _integer(options.get("offset_bytes"), 0)
     limit = _integer(options.get("max_output_bytes"), _DEFAULT_LIMIT, 512)
@@ -241,7 +222,7 @@ def _prepare(request, emit):
                 raise ValueError("METADATA_INTEGRITY_FAILED")
             return super().unlock(key)
 
-    with _read_only(source_path) as source:
+    with _read_only(source_path) as source, contextlib.ExitStack() as state_guards:
         info = os.fstat(source.fileno())
         if not stat.S_ISREG(info.st_mode):
             raise BitLockerError("INVALID_SOURCE")
@@ -292,33 +273,26 @@ def _prepare(request, emit):
             raise BitLockerError("IO_ERROR")
         name = "decrypted-prefix.dd" if incomplete else "decrypted.dd"
         partial, image = destination / (name + ".partial"), destination / name
-        stream.seek(0)
-        digest, done, last = hashlib.sha256(), 0, 0.0
-        with partial.open("xb") as output:
-            while done < total:
-                count = min(_CHUNK, total - done)
-                block = stream.read(count)
-                if len(block) != count:
-                    raise BitLockerError("INVALID_SOURCE")
-                output.write(block)
-                digest.update(block)
-                done += count
-                now = time.monotonic()
-                if now - last >= .2 or done == total:
-                    emit("progress", phase="decrypt", completed=done, total=total)
-                    last = now
-            output.flush()
-            os.fsync(output.fileno())
+        from recovery_io import writer_lock, atomic, atomic_bytes
+        from resumable_copy import stage, publish
+        state_guards.enter_context(writer_lock(destination / "bitlocker.lock"))
+        binding = {"format": "bitlocker-copy-v1", "source_sha256": source_hash,
+                   "source_bytes": info.st_size, "offset_bytes": offset,
+                   "length_bytes": length, "output_bytes": total,
+                   "cipher": bde.information.dataset.fvek_type.name,
+                   "sector_size": bde.sector_size}
+        staged = stage(stream, total, image, binding, resume, emit, "decrypt",
+                       destination / "bitlocker-resume.json")
         if _hash(source, info.st_size, emit, "verify_source") != source_hash:
             raise BitLockerError("INVALID_SOURCE")
-        image_hash = digest.hexdigest()
+        image_hash = staged["sha256"]
         report = {
             "format": "bitlocker-derived-image", "version": 1,
             "source": {"path": str(source_path), "bytes": info.st_size, "sha256": source_hash,
                        "offset_bytes": offset, "length_bytes": length, "unchanged": True},
             "image": name, "bytes": total, "sha256": image_hash,
             "declared_logical_bytes": declared, "available_source_bytes": available,
-            "materialized_plaintext_bytes": total,
+            "materialized_plaintext_bytes": total, "resumed_bytes": staged["resumed_bytes"],
             "completeness": "available_prefix" if incomplete else "declared_length_available",
             "bitlocker_version": bde.version, "sector_size": bde.sector_size,
             "cipher": bde.information.dataset.fvek_type.name,
@@ -332,9 +306,13 @@ def _prepare(request, emit):
                        "No TPM unlock, password guessing, repair or Windows mount",
                        "Paused or changing encryption states are not supported"],
         }
-        _write_new(destination / (name + ".sha256"), (image_hash + "\n").encode("ascii"))
-        _write_new(destination / "bitlocker-report.json", json.dumps(report, ensure_ascii=False, indent=2).encode("utf-8"))
-        _publish(partial, image)
+        if resume:
+            atomic_bytes(destination / (name + ".sha256"), (image_hash + "\n").encode("ascii"))
+            atomic(destination / "bitlocker-report.json", report)
+        else:
+            _write_new(destination / (name + ".sha256"), (image_hash + "\n").encode("ascii"))
+            _write_new(destination / "bitlocker-report.json", json.dumps(report, ensure_ascii=False, indent=2).encode("utf-8"))
+        publish(staged, image)
         return {"status": "partial" if incomplete else "complete", "code": "PARTIAL_DATA" if incomplete else "OK",
                 "image": name, "bytes": total, "image_sha256": image_hash,
                 "report": "bitlocker-report.json", "warnings": warnings}
@@ -346,5 +324,10 @@ def handle_bitlocker(request, emit):
         return _prepare(request, emit)
     except BitLockerError as error:
         return {"status": "error", "code": error.code, "warnings": []}
+    except RecoveryIOError as error:
+        code=str(error)
+        if code not in {"RESUME_REQUIRED","RESUME_SOURCE_CHANGED","RESUME_CHECKPOINT_INVALID","RESUME_OUTPUT_CHANGED","SOURCE_PREPARATION_BUSY","SOURCE_TRUNCATED","OUTPUT_EXISTS","INVALID_DESTINATION"}:
+            code="IO_ERROR"
+        return {"status":"error","code":code,"warnings":[]}
     except Exception:
         return {"status": "error", "code": "IO_ERROR", "warnings": []}

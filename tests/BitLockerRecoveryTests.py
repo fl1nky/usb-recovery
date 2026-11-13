@@ -280,6 +280,35 @@ class BitLockerRecovery(unittest.TestCase):
         self.verify(any(path.stat().st_size > 0 for path in destination.glob("*.partial")), "partial bytes retained for diagnosis")
         self.verify(before == sha(self.aes), "interrupted source unchanged")
 
+    def test_resume_authenticates_again_and_reuses_plaintext(self):
+        request=self.request()
+        def interrupt(kind,**fields):
+            if fields.get('phase')=='decrypt' and fields.get('completed',0)>=8*1024*1024:raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):handle_bitlocker(request,interrupt)
+        destination=Path(request['destination']);partial=destination/'decrypted-prefix.dd.partial'
+        before=sha(partial)
+        request['options']['resume']=True
+        request['secrets']={'password':'wrong-public-test-password'}
+        self.fail(request,'AUTH_FAILED')
+        self.verify(sha(partial)==before,'Wrong resume credential does not modify retained plaintext')
+        request['secrets']={'password':PASSWORD}
+        result=handle_bitlocker(request,lambda *a,**k:None)
+        self.verify(result['status']=='partial' and not partial.exists(),'Correct credential resumes the same image')
+        report=json.loads((destination/'bitlocker-report.json').read_text())
+        self.verify(report['resumed_bytes']==8*1024*1024,'Already committed prefix is reused')
+        saved=''.join(p.read_text(errors='replace') for p in destination.glob('*.json'))
+        self.verify(PASSWORD not in saved and RECOVERY not in saved,'Resume state and reports never contain credentials')
+
+    def test_resume_rejects_plaintext_tamper(self):
+        request=self.request()
+        def interrupt(kind,**fields):
+            if fields.get('phase')=='decrypt' and fields.get('completed',0)>=8*1024*1024:raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):handle_bitlocker(request,interrupt)
+        partial=Path(request['destination'])/'decrypted-prefix.dd.partial'
+        with partial.open('r+b') as stream:stream.write(b'tamper')
+        request['options']['resume']=True
+        self.fail(request,'RESUME_OUTPUT_CHANGED')
+
     @unittest.skipUnless(os.name == "nt", "Windows sharing semantics")
     def test_source_handle_prevents_writes(self):
         request = self.request()

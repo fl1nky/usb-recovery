@@ -76,7 +76,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/telegram-platforms", "telegram_platforms_oracle", "fixtures/video-bframes"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
-    for name in ("ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
+    for name in ("ResumableCopyTests.py", "ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/forensic-images", "fixtures/telegram-webpage", "telegram_webpage_oracle"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)

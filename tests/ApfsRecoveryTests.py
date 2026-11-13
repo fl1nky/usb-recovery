@@ -410,6 +410,44 @@ class ApfsRecovery(unittest.TestCase):
                 tracemalloc.stop()
             self.check(failed and peak < 1024 * 1024, "codec header/output ceiling rejects expansion before1MiB allocation")
 
+    def test_cancel_resume_native_encrypted_files_authenticates_again(self):
+        source=self.fixture('encrypted')
+        destination=self.root/'resume-encrypted'
+        request={'source':str(source),'destination':str(destination),'options':{'include_snapshots':False},'secrets':{'password':'password'}}
+        def stop(kind,**fields):
+            if fields.get('phase')=='export-file' and fields.get('completed',0)>0:
+                raise KeyboardInterrupt()
+        with self.assertRaises(KeyboardInterrupt):handle_apfs(request,stop)
+        partials=list(destination.rglob('*.partial'))
+        self.check(bool(partials),'interrupted native file retained privately')
+        before={str(p.relative_to(destination)):sha(p) for p in destination.rglob('*') if p.is_file()}
+        request['options']['resume']=True
+        request['secrets']={'password':'Wrong-secret-do-not-save-72193'}
+        rejected=handle_apfs(request,None)
+        self.check(rejected['code']=='AUTH_FAILED','wrong resume password rejected before reusing plaintext')
+        self.check(before=={str(p.relative_to(destination)):sha(p) for p in destination.rglob('*') if p.is_file()},'wrong password never changes an existing job')
+        request['secrets']={'password':'password'}
+        result=handle_apfs(request,None)
+        self.check(result['status']=='complete' and result['files']==20,'native encrypted APFS continuation completes all files')
+        records=json.loads((destination/'storage-candidates.json').read_text('utf-8'))
+        self.assert_records(source,destination,records)
+        again=handle_apfs(request,None)
+        report=json.loads((destination/'apfs-report.json').read_text('utf-8'))
+        self.check(again['status']=='complete' and report['reused_files']==20,'completed files verified and reused without duplicates')
+        self.check(len({r['path'] for r in records})==20,'one published output per durable source record')
+        saved=''.join(p.read_text('utf-8',errors='replace') for p in destination.rglob('*.json'))
+        self.check('Wrong-secret-do-not-save' not in saved and '"password"' not in saved,'no credential or credential field in resume metadata')
+
+    def test_resume_rejects_output_or_source_change(self):
+        result,destination,records=self.run_image(self.small)
+        request={'source':str(self.small),'destination':str(destination),'options':{'resume':True}}
+        with (destination/records[0]['path']).open('r+b') as stream:stream.write(b'tamper')
+        rejected=handle_apfs(request,None)
+        self.check(rejected['status']=='error' and rejected['code']=='RESUME_OUTPUT_CHANGED','changed published file cannot be silently reused')
+        changed=dict(request);changed['options']={'resume':True,'include_snapshots':False}
+        self.check(handle_apfs(changed,None)['code']=='RESUME_SOURCE_CHANGED','different preparation settings cannot reuse a job')
+        self.check(sha(self.small)==records[0]['source_sha256'],'failed continuation leaves original unchanged')
+
     def test_source_write_denied_throughout_operation_on_windows(self):
         if os.name != "nt":
             self.skipTest("Windows sharing protection")

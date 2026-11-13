@@ -62,6 +62,31 @@ public static class StorageWorkflowTests
         Reject<IOException>(() => StorageRecoveryWorkflow.Create(request), "zero output limit rejected");
         Check(!Directory.Exists(request.OutputDirectory), "validation failures leave results untouched");
     }
+    static void StorageResumeRequests()
+    {
+        foreach(string kind in new[]{"APFS","BitLocker"}){
+            var request=new StorageRecoveryRequest{Kind=kind,Source=Path.Combine(work,"one.dd"),
+                OutputDirectory=Path.Combine(work,"storage-results"),MaximumOutputBytes=4096,MaximumSnapshots=3,
+                Volume=new StorageVolumeInfo{Kind=kind,OffsetBytes=0,LengthBytes=1024},
+                IncludeSnapshots=true,SearchAfterPreparation=true,MaximumSearch=true,
+                Secrets=new Dictionary<string,string>{{"password","Generated-secret-do-not-persist-19627"}}};
+            var execution=StorageRecoveryWorkflow.Create(request);
+            string saved=File.ReadAllText(Path.Combine(execution.Directory,"storage-request.json"));
+            Check(!saved.Contains("Generated-secret")&&!saved.Contains("Secrets")&&!saved.Contains("password"),"resume plan whitelists nonsecret fields");
+            var loaded=StorageRecoveryWorkflow.ReadResumeRequest(execution.Directory);
+            Check(loaded.Secrets==null&&loaded.Kind==kind&&loaded.Volume.LengthBytes==1024&&loaded.MaximumSnapshots==3,"resume restores source selection without credentials");
+            Check(StorageRecoveryWorkflow.Resume(loaded,execution.Directory).ResumePreparation,"preparation can resume before a helper has started");
+            loaded.Secrets=new Dictionary<string,string>{{"recovery_password","Different-ephemeral-secret"}};
+            Check(StorageRecoveryWorkflow.Resume(loaded,execution.Directory).ResumePreparation,"fresh credentials do not change persistent preparation identity");
+            loaded.MaximumOutputBytes++;
+            Reject<IOException>(()=>StorageRecoveryWorkflow.Resume(loaded,execution.Directory),"changed output limits cannot silently reuse checkpoint");
+            loaded.MaximumOutputBytes--;loaded.Volume.OffsetBytes=512;
+            Reject<IOException>(()=>StorageRecoveryWorkflow.Resume(loaded,execution.Directory),"changed partition cannot reuse checkpoint");
+            File.WriteAllText(Path.Combine(execution.Directory,"storage-request.json"),"{\"Schema\":999}");
+            Reject<IOException>(()=>StorageRecoveryWorkflow.ReadResumeRequest(execution.Directory),"unknown resume schema rejected");
+        }
+    }
+
     static StorageRecoveryExecution Prepare()
     {
         var request = Request();
@@ -122,6 +147,7 @@ public static class StorageWorkflowTests
             File.WriteAllBytes(Path.Combine(work, "one.dd"), Enumerable.Repeat((byte)0x11, 1024).ToArray());
             File.WriteAllBytes(Path.Combine(work, "two.dd"), Enumerable.Repeat((byte)0x22, 1024).ToArray());
             Validate();
+            StorageResumeRequests();
             Search(Prepare());
             Check(File.ReadAllBytes(Path.Combine(work, "one.dd")).All(value => value == 0x11) &&
                 File.ReadAllBytes(Path.Combine(work, "two.dd")).All(value => value == 0x22), "source members unchanged");

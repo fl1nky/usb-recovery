@@ -19,6 +19,9 @@ import time
 import zlib
 from pathlib import Path
 
+from recovery_io import RecoveryIOError, writer_lock
+from apfs_journal import FileJournal, JournalLimit
+
 
 class _Failure(Exception):
     def __init__(self, code: str, warning: str):
@@ -498,7 +501,10 @@ def handle_apfs(request, emit):
         source, destination = source.resolve(), destination.resolve()
         if _is_under(source, destination) or _is_under(destination, source):
             raise _Failure("INVALID_SOURCE", "APFS_SOURCE_DESTINATION_OVERLAP")
-        if destination.exists() and (not destination.is_dir() or any(destination.iterdir())):
+        resume = options.get('resume', False)
+        if type(resume) is not bool:
+            raise _Failure('INVALID_REQUEST', 'APFS_INVALID_OPTIONS')
+        if destination.exists() and (not destination.is_dir() or (any(destination.iterdir()) and not resume)):
             raise _Failure("INVALID_REQUEST", "APFS_DESTINATION_NOT_EMPTY")
         offset = _integer(options, "offset_bytes", 0, 0, 2**63 - 1)
         length = _integer(options, "length_bytes", 0, 0, 2**63 - 1)
@@ -532,7 +538,7 @@ def handle_apfs(request, emit):
                 last_notice[0] = now
                 emit("progress", phase=phase, **fields)
 
-        with _source_guard(source) as original:
+        with _source_guard(source) as original, contextlib.ExitStack() as leases:
             size = os.fstat(original.fileno()).st_size
             length = length or size - offset
             if offset % 512 or length < 4096 or offset > size - length:
@@ -599,15 +605,21 @@ def handle_apfs(request, emit):
 
             destination.mkdir(parents=True, exist_ok=True)
             _no_reparse(destination)
-            files_dir = destination / "apfs-files"
-            files_dir.mkdir()
+            leases.enter_context(writer_lock(destination / 'apfs.lock'))
+            binding = {'format': 'APFS', 'parser': 'dissect.apfs==1.1', 'source_sha256': source_hash,
+                       'source_bytes': size, 'offset': offset, 'length': length,
+                       'include_snapshots': include_snapshots, 'prefer_recent_snapshots': prefer_recent,
+                       'max_files': max_files, 'max_file_bytes': max_file, 'max_output_bytes': max_total,
+                       'max_snapshots': max_snapshots, 'max_metadata_nodes': max_nodes, 'max_metadata_bytes': max_metadata}
+            journal = FileJournal(destination, binding, resume, max_metadata)
+            records = journal.records
             owns_directory = True
             report = {"format": "APFS", "parser": "dissect.apfs==1.1", "status": "running",
                       "source_sha256": source_hash, "source_bytes": size, "source_offset_bytes": offset,
                       "container_bytes": container.block_count * container.block_size,
                       "container_id": str(container.uuid), "checkpoint_xid": int(container.sb.xid),
                       "checkpoint_fallback": any(sb.xid > container.sb.xid for sb in container.sbs),
-                      "files": 0, "bytes": 0, "volumes": [], "warnings": [],
+                      "files": 0, "bytes": 0, "volumes": [], "warnings": [], "reused_files": 0,
                       "limits": {"max_files": max_files, "max_file_bytes": max_file, "max_output_bytes": max_total,
                                  "max_snapshots": max_snapshots, "max_metadata_nodes": max_nodes, "max_metadata_bytes": max_metadata},
                       "limitations": ["LIVE_FILES_ARE_NOT_DELETED_RECOVERY", "SNAPSHOTS_ARE_PREVIOUS_REFERENCED_VERSIONS",
@@ -621,10 +633,13 @@ def handle_apfs(request, emit):
                 _atomic_json(destination / "apfs-report.json", report)
 
             save("running")
-            total_written, visited_entries, snapshots_seen, metadata_written = 0, 0, 0, 0
+            total_written = sum(item['bytes'] for item in records)
+            if len(records) > max_files or total_written > max_total:
+                raise RecoveryIOError('RESUME_CHECKPOINT_INVALID')
+            visited_entries, snapshots_seen = 0, 0
 
             def walk(volume, snapshot=None):
-                nonlocal total_written, visited_entries, metadata_written
+                nonlocal total_written, visited_entries
                 stack, visited_dirs = [(volume.root, "/", 0)], set()
                 while stack:
                     directory, parent_path, depth = stack.pop()
@@ -658,43 +673,20 @@ def handle_apfs(request, emit):
                                     warnings.add("APFS_RECORD_TYPE_MISMATCH")
                                     continue
                                 amount = int(node.size)
-                                if amount < 0 or amount > max_file or amount > max_total - total_written:
+                                identity = {'volume_id': str(volume.uuid), 'snapshot_xid': int(snapshot.xid) if snapshot else None,
+                                            'original_path': logical_path, 'inode': int(node.oid)}
+                                reused = journal.contains(identity)
+                                if amount < 0 or amount > max_file or (not reused and amount > max_total - total_written):
                                     warnings.add("APFS_FILE_OR_OUTPUT_LIMIT_REACHED")
                                     continue
-                                if len(records) >= max_files:
+                                if not reused and len(records) >= max_files:
                                     raise _Limit()
                                 extension = Path(name).suffix
                                 if not extension or len(extension) > 16 or not all(c.isascii() and (c.isalnum() or c == ".") for c in extension):
                                     extension = ".bin"
-                                relative = "apfs-files/" + str(len(records) + 1).zfill(8) + extension.lower()
-                                output = destination / relative
-                                partial = output.with_name(output.name + ".partial")
-                                digest, copied = hashlib.sha256(), 0
-                                try:
-                                    with partial.open("xb") as target, _open_file(node) as data:
-                                        while copied < amount:
-                                            chunk = data.read(min(1024 * 1024, amount - copied))
-                                            if not chunk:
-                                                raise _Failure("IO_ERROR", "APFS_SHORT_FILE_READ")
-                                            target.write(chunk)
-                                            copied += len(chunk)
-                                            digest.update(chunk)
-                                        if data.read(1):
-                                            raise _Failure("INVALID_SOURCE", "APFS_FILE_SIZE_MISMATCH")
-                                        target.flush()
-                                        os.fsync(target.fileno())
-                                    if os.name == "nt":
-                                        os.rename(partial, output)
-                                    else:
-                                        os.link(partial, output)
-                                        partial.unlink()
-                                    published.append(output)
-                                except Exception:
-                                    partial.unlink(missing_ok=True)
-                                    raise
-                                record = {"path": relative, "name": name, "original_path": logical_path,
+                                record = {"name": name, "original_path": logical_path,
                                           "original_path_components": logical_path.lstrip("/").split("/"),
-                                          "bytes": copied, "sha256": digest.hexdigest(), "filesystem": "APFS",
+                                          "bytes": amount, "filesystem": "APFS",
                                           "source_sha256": source_hash, "source_offset_bytes": offset,
                                           "volume_id": str(volume.uuid), "volume_name": volume.name,
                                           "record_id": int(node.oid), "inode": int(node.oid),
@@ -707,34 +699,31 @@ def handle_apfs(request, emit):
                                           "deleted": None if snapshot or report["checkpoint_fallback"] else False,
                                           "validation": "metadata-checksum-and-readable-stream",
                                           "physical_ranges": None}
-                                record_json = json.dumps(record, ensure_ascii=False) + "\n"
-                                metadata_size = len(record_json.encode("utf-8"))
-                                if metadata_size > max_metadata - metadata_written:
-                                    output.unlink()
-                                    published.pop()
-                                    raise _Limit()
-                                records.append(record)
-                                journal.write(record_json)
-                                metadata_written += metadata_size
-                                total_written += copied
+                                try:
+                                    was_reused = journal.export(record, extension.lower(), lambda: _open_file(node),
+                                                               lambda kind, **fields: notify(fields.pop('phase'), **fields))
+                                except JournalLimit:
+                                    raise _Limit() from None
+                                if was_reused:
+                                    report['reused_files'] += 1
+                                else:
+                                    total_written += amount
                                 notify("export-files", files=len(records), bytes=total_written)
-                                if len(records) % 25 == 0:
-                                    journal.flush()
                                 if len(records) % 1000 == 0:
                                     save("running", include_candidates=False)
-                            except _Limit:
+                            except (_Limit, RecoveryIOError):
                                 raise
                             except _Failure as failure:
                                 warnings.add(failure.warning)
                                 warnings.add("APFS_REFERENCED_FILE_UNREADABLE")
                             except Exception:
                                 warnings.add("APFS_REFERENCED_FILE_UNREADABLE")
-                    except _Limit:
+                    except (_Limit, RecoveryIOError):
                         raise
                     except Exception:
                         warnings.add("APFS_DIRECTORY_UNREADABLE")
 
-            with _bounded_file_reads(), (destination / "apfs-candidates.journal.jsonl").open("x", encoding="utf-8", newline="\n") as journal:
+            with _bounded_file_reads():
                 try:
                     for volume in volumes:
                         report["volumes"].append({"id": str(volume.uuid), "name": volume.name,
@@ -755,7 +744,7 @@ def handle_apfs(request, emit):
                                     _check_tree(previous.root_tree, budget, previous.omap, 0, previous.xid)
                                     notify("read-snapshot", snapshots=snapshots_seen)
                                     walk(previous, snapshot)
-                                except _Limit:
+                                except (_Limit, RecoveryIOError):
                                     raise
                                 except Exception:
                                     warnings.add("APFS_SNAPSHOT_UNREADABLE")
@@ -763,6 +752,7 @@ def handle_apfs(request, emit):
                     warnings.add("APFS_RESOURCE_LIMIT_REACHED")
             if _hash(original) != source_hash:
                 raise _Failure("INVALID_SOURCE", "APFS_SOURCE_CHANGED")
+            journal.finish()
             state = "partial" if warnings else "complete"
             report["snapshots_examined"] = snapshots_seen
             report["source_unchanged"] = True
@@ -774,21 +764,26 @@ def handle_apfs(request, emit):
         failure = _Failure("DEPENDENCY_MISSING", "APFS_DEPENDENCY_MISSING")
     except _Failure as error:
         failure = error
+    except RecoveryIOError as error:
+        code = str(error)
+        allowed = {'RESUME_REQUIRED', 'RESUME_CHECKPOINT_INVALID', 'RESUME_SOURCE_CHANGED',
+                   'RESUME_OUTPUT_CHANGED', 'RESUME_RECORD_NOT_FOUND', 'SOURCE_PREPARATION_BUSY'}
+        failure = _Failure(code if code in allowed else 'IO_ERROR', 'APFS_PREPARATION_INTERRUPTED_OR_CHANGED')
     except _Limit:
         failure = _Failure("INVALID_SOURCE", "APFS_RESOURCE_LIMIT_REACHED")
     except (OSError, ValueError, TypeError, OverflowError):
         failure = _Failure("IO_ERROR", "APFS_SOURCE_OR_OUTPUT_ERROR")
     except Exception:
         failure = _Failure("INVALID_SOURCE", "APFS_STRUCTURE_UNREADABLE")
-    # Only files owned by this invocation can be removed.  Failed source/auth
-    # validation never leaves a successful report or published candidate set.
+    # Keep the durable ledger and private partials for authenticated continuation.
+    # Never delete previously accepted files or mutate a job after failed unlock.
     if owns_directory and destination is not None:
         for path in published:
             try:
                 path.unlink(missing_ok=True)
             except OSError:
                 pass
-        for name in ("storage-candidates.json", "apfs-report.json", "apfs-candidates.journal.jsonl"):
+        for name in ("storage-candidates.json", "apfs-report.json"):
             try:
                 (destination / name).unlink(missing_ok=True)
                 (destination / (name + ".partial")).unlink(missing_ok=True)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -24,6 +25,16 @@ namespace UsbRecovery
         public string Directory, Catalog, RaidResumeDirectory;
         public StoragePreparedResult Prepared;
         public RecoveryFileIndex Index;
+        public bool ResumePreparation;
+    }
+
+    // Deliberate whitelist: the in-memory request contains credentials.
+    public sealed class StorageResumePlan
+    {
+        public int Schema = 1, MaximumSnapshots;
+        public string Kind, Source;
+        public long Offset, Length, MaximumOutputBytes;
+        public bool IncludeSnapshots, SearchAfterPreparation, MaximumSearch;
     }
 
     public static class StorageRecoveryWorkflow
@@ -67,7 +78,46 @@ namespace UsbRecovery
                 DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" +
                 Guid.NewGuid().ToString("N").Substring(0, 8));
             StorageRecovery.CreatePrivateDirectory(directory);
+            if(request.Kind!="RAID")RecoveryCore.SaveJson(Path.Combine(directory,"storage-request.json"),Plan(request));
             return new StorageRecoveryExecution { Directory = directory };
+        }
+
+        static StorageResumePlan Plan(StorageRecoveryRequest request)
+        {
+            return new StorageResumePlan {Kind=request.Kind,Source=Path.GetFullPath(request.Source),
+                Offset=request.Volume.OffsetBytes,Length=request.Volume.LengthBytes,
+                MaximumOutputBytes=request.MaximumOutputBytes,MaximumSnapshots=request.MaximumSnapshots,
+                IncludeSnapshots=request.IncludeSnapshots,SearchAfterPreparation=request.SearchAfterPreparation,
+                MaximumSearch=request.MaximumSearch};
+        }
+
+        public static StorageRecoveryRequest ReadResumeRequest(string directory)
+        {
+            string path=Path.Combine(Path.GetFullPath(directory),"storage-request.json");
+            SourcePaths.NoLinks(path);
+            if(!File.Exists(path)||new FileInfo(path).Length>65536)throw new IOException("Выбери рабочую папку APFS или BitLocker со storage-request.json.");
+            StorageResumePlan plan;
+            try{plan=new JavaScriptSerializer().Deserialize<StorageResumePlan>(File.ReadAllText(path));}
+            catch(ArgumentException){throw new IOException("Параметры продолжения повреждены.");}
+            if(plan==null||plan.Schema!=1||(plan.Kind!="APFS"&&plan.Kind!="BitLocker")||String.IsNullOrWhiteSpace(plan.Source)||plan.Offset<0||plan.Length<=0||plan.MaximumSnapshots<0||plan.MaximumSnapshots>16384)
+                throw new IOException("Параметры продолжения не поддерживаются.");
+            var request=new StorageRecoveryRequest{Kind=plan.Kind,Source=plan.Source,
+                Volume=new StorageVolumeInfo{Kind=plan.Kind,OffsetBytes=plan.Offset,LengthBytes=plan.Length},
+                OutputDirectory=Path.GetDirectoryName(Path.GetFullPath(directory)),MaximumOutputBytes=plan.MaximumOutputBytes,
+                MaximumSnapshots=plan.MaximumSnapshots,IncludeSnapshots=plan.IncludeSnapshots,
+                SearchAfterPreparation=plan.SearchAfterPreparation,MaximumSearch=plan.MaximumSearch};
+            Validate(request);
+            return request;
+        }
+
+        public static StorageRecoveryExecution Resume(StorageRecoveryRequest request,string directory)
+        {
+            Validate(request);
+            var saved=ReadResumeRequest(directory);
+            var serializer=new JavaScriptSerializer();
+            if(serializer.Serialize(Plan(request))!=serializer.Serialize(Plan(saved)))
+                throw new IOException("Параметры изменены. Загрузи сохранённую операцию кнопкой «Продолжить».");
+            return new StorageRecoveryExecution{Directory=Path.GetFullPath(directory),ResumePreparation=true};
         }
 
         public static StorageRecoveryExecution ResumeRaid(StorageRecoveryRequest request, string directory)
@@ -104,13 +154,13 @@ namespace UsbRecovery
                 execution.Prepared = StorageRecovery.Prepare(request.Kind, request.Source,
                     Path.Combine(execution.Directory, request.Kind == "APFS" ? "apfs" : "unlock"),
                     request.Volume, request.Secrets, request.IncludeSnapshots, request.MaximumOutputBytes,
-                    token, activity, request.MaximumSnapshots);
+                    token, activity, request.MaximumSnapshots, execution.ResumePreparation);
             }
 
             string catalog = execution.Prepared.Catalog;
             if (request.Kind != "APFS" && request.SearchAfterPreparation && !execution.Prepared.Partial)
                 catalog = StorageRecovery.Search(execution.Prepared,
-                    Path.Combine(execution.Directory, "search"), request.MaximumSearch, token, activity);
+                    Path.Combine(execution.Directory, execution.ResumePreparation ? "search-"+Guid.NewGuid().ToString("N").Substring(0,8) : "search"), request.MaximumSearch, token, activity);
             var index = catalog == null ? null : RecoveryCatalog.Load(catalog);
             execution.Catalog = catalog;
             execution.Index = index;
