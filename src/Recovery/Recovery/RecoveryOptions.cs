@@ -13,6 +13,7 @@ namespace UsbRecovery
         // Missing in old saved sessions means the original bounded mode.
         public bool StreamingPngIndex;
         public bool MetadataRescue, ArchiveMembers, FragmentedArchives;
+        public bool UnknownNtfsAllocation;
         public bool CustomSignatures;
         public List<UserSignatureRule> CustomRules=new List<UserSignatureRule>();
         public string TextQuery = "";
@@ -25,6 +26,7 @@ namespace UsbRecovery
             if (Signatures && !(Photos || Video || Audio || Documents || Archives || Other)) throw new ArgumentException("Выбери хотя бы одну группу форматов PhotoRec.");
             if (TextFragments && (String.IsNullOrWhiteSpace(TextQuery) || TextQuery.Length > 256 || TextQuery.Split((char[])null,StringSplitOptions.RemoveEmptyEntries).Length > 8)) throw new ArgumentException("Для текстовых остатков укажи от 1 до 8 ключевых слов, не более 256 символов.");
             if(OrphanDirectories&&!FatMetadata)throw new ArgumentException("Для поиска потерянных каталогов включи FAT/exFAT.");
+            if(UnknownNtfsAllocation&&!MetadataRescue)throw new ArgumentException("Для кандидатов без карты занятости включи независимые записи NTFS.");
         }
         public string PhotoRecCommand()
         {

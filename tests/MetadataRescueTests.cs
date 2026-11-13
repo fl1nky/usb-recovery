@@ -308,12 +308,37 @@ public static class MetadataRescueTests
         Assert(report.Entries.Single().OriginalPath == null && report.Entries.Single().PathStatus == "path_depth_limit" && report.PathResolutionLimited, "Directory-depth work is bounded without invented partial path");
         Assert(report.Entries.Single().DirectoryChain.Count == 128 && report.RecoveredFiles == 1, "Bounded ancestry evidence retains recovered candidate");
     }
+    static void UnknownAllocation()
+    {
+        string image=VolumeImage("unknown-opt-in",false,false,false),before=Hash(image);
+        string run=Path.Combine(fixtures,"unknown-opt-in-result");
+        MetadataRescue.Recover(image,run,CancellationToken.None,null,null,true);
+        var report=ReadReport(run);var item=report.Entries.Single();
+        Assert(report.RecoveredFiles==1&&item.Status=="allocation_unknown_candidate"&&item.Reason=="allocation_unknown","Opt-in unknown allocation never claims currently-free clusters");
+        Bytes(Output(run,item),Pattern(5500),"Signed nonresident extents copied exactly with unavailable bitmap");
+        Assert(item.OriginalPath==null&&item.Note.Contains("могли принадлежать"),"Unknown allocation carries explicit uncertainty and no invented ancestry");
+        Assert(Hash(image)==before,"Uncertain mode source remains byte-identical");
+        image=VolumeImage("unknown-allocated",true,false);run=Path.Combine(fixtures,"unknown-allocated-result");
+        MetadataRescue.Recover(image,run,CancellationToken.None,null,null,true);report=ReadReport(run);
+        Assert(report.RecoveredFiles==0&&report.Entries.Single().Reason=="allocated_cluster_stop","Known allocated clusters still stop extraction in opt-in mode");
+        image=VolumeImage("unknown-boundary",false,false,false);
+        using(var f=new FileStream(image,FileMode.Open,FileAccess.Write)){f.Position=40;f.Write(BitConverter.GetBytes(f.Length/512),0,8);}
+        run=Path.Combine(fixtures,"unknown-boundary-result");MetadataRescue.Recover(image,run,CancellationToken.None,null,null,true);report=ReadReport(run);
+        Assert(report.RecoveredFiles==1&&report.Entries.Single().Status=="allocation_unknown_candidate"&&report.Warnings.Any(w=>w.Contains("boundary_unknown")),"One-sector boot discrepancy is admitted only as explicitly uncertain geometry");
+        image=VolumeImage("unknown-bounds",false,false,false, false,5500,new byte[]{0x21,2,0xff,0x7f,0});run=Path.Combine(fixtures,"unknown-bounds-result");
+        MetadataRescue.Recover(image,run,CancellationToken.None,null,null,true);report=ReadReport(run);
+        Assert(report.RecoveredFiles==0&&report.Entries.Single().Reason=="invalid_cluster_bounds","Unknown allocation never permits out-of-image runs");
+        image=VolumeImage("unknown-unread",false,false,false);run=Path.Combine(fixtures,"unknown-unread-result");Directory.CreateDirectory(run);
+        string map=Path.Combine(run,"source-read-errors.json");File.WriteAllText(map,"broken",Encoding.UTF8);
+        MetadataRescue.Recover(image,run,CancellationToken.None,null,null,true);report=ReadReport(run);
+        Assert(report.RecoveredFiles==0&&report.Entries.Single().Reason=="source_read_errors_allocation_untrusted","Malformed acquisition map still blocks nonresident extraction");
+    }
     public static int Main(string[] args)
     {
         try {
             string project = args.Length == 0 ? Directory.GetCurrentDirectory() : Path.GetFullPath(args[0]);
             fixtures = Path.Combine(project, ".build", "metadata-rescue-tests-" + DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ")); Directory.CreateDirectory(fixtures);
-            ResidentAndValidation(); NonresidentAndOwnership(); KnownPayloadFixture(project); ReadErrorAllocationBoundary(); DirectoryStructure();
+            ResidentAndValidation(); NonresidentAndOwnership(); KnownPayloadFixture(project); ReadErrorAllocationBoundary(); DirectoryStructure(); UnknownAllocation();
             string summary = "PASS MetadataRescue: " + assertions + " assertions; whole-image NTFS FILE scan, USA/resident/Unicode/provenance, signed fragmented runs, current $Bitmap ownership including fragmented MFT, partial stops, unsupported/corrupt records, cancellation/per-file budget/path isolation; original paths only through validated current-MFT slot, exact parent sequences/root, Unicode/DOS namespace, deleted-directory evidence; stale/cyclic/unsafe/ambiguous paths remain unknown and ancestry depth bounded; old fixture with torn USA rejected; known fragmented JPEG SHA256 exact after USA repair on generated copy; unread/invalid maps disable nonresident allocation and path claims; source SHA256 unchanged. Synthetic/known-payload tests only. Fixtures: " + fixtures;
             Console.WriteLine(summary); File.WriteAllText(Path.Combine(project, "tests", "MetadataRescueTests.result.txt"), summary, Encoding.UTF8); return 0;
         } catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

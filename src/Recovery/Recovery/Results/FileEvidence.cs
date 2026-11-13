@@ -292,7 +292,7 @@ namespace UsbRecovery
             }
             foreach(var row in Rows(Read(root,"metadata-rescue/report.json"),"Entries")){
                 string relative=Value(row,"Output");if(String.IsNullOrEmpty(relative))continue;relative="metadata-rescue/"+relative.Replace('\\','/');
-                var item=new EvidenceEntry{Path=relative,Kind="ntfs_record",MappingComplete=Value(row,"UsaFixupsRestored")!="True",Offset=Number(row,"RecordOffset",-1),Note=Value(row,"Status"),VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=Number(row,"RecoveredBytes",-1)};
+                var item=new EvidenceEntry{Path=relative,Kind="ntfs_record",MappingComplete=Value(row,"UsaFixupsRestored")!="True",Offset=Number(row,"RecordOffset",-1),Note=Value(row,"Status")+"; "+Value(row,"Note"),VerifiedSha256=Value(row,"Sha256"),VerifiedBytes=Number(row,"RecoveredBytes",-1)};
                 if(Value(row,"PathStatus")=="verified_parent_chain"){item.OriginalPath=Value(row,"OriginalPath");item.OriginalPathStatus=Value(row,"PathStatus");item.PathEvidence=Value(row,"PathEvidence");item.VolumeOffset=Number(row,"PathVolumeOffset",-1);}
                 if(item.MappingComplete)foreach(var extent in Rows(row,"Extents")){long offset=Number(extent,"ImageOffset",-1),length=Number(extent,"Length");if(offset>=0&&length>0&&offset<=Int64.MaxValue-length)item.Ranges.Add(new FileExtent{Offset=offset,Length=length});}
                 result.entries[relative]=item;

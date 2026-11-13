@@ -578,6 +578,7 @@ namespace UsbRecovery
                     options.EmbeddedPhotos = true;
                     options.Containers = true;
                     options.MetadataRescue = true;
+                    options.UnknownNtfsAllocation = true;
                     options.ArchiveMembers = true;
                     options.FragmentedArchives = true;
                     options.FragmentedPhotos = true;

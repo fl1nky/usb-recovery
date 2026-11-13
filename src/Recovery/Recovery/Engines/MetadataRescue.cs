@@ -84,6 +84,7 @@ namespace UsbRecovery
         }
         sealed class Volume
         {
+            public bool BoundaryUnknown;
             public long Offset, Length, MftLcn, Clusters;
             public int ClusterBytes, RecordBytes;
             public Data Bitmap, Mft;
@@ -97,7 +98,7 @@ namespace UsbRecovery
         }
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel,
-            Action<string> progress, IList<BootCandidate> discovered = null)
+            Action<string> progress, IList<BootCandidate> discovered = null, bool allowUnknownAllocation = false)
         {
             string full = LocalImage(image), root = Path.GetFullPath(Path.Combine(runDirectory, "metadata-rescue"));
             SafeAncestors(Path.GetDirectoryName(root));
@@ -132,7 +133,7 @@ namespace UsbRecovery
                             long offset = position + at;
                             if (at + 512 <= count && block[at + 3] == 'N' && block[at + 4] == 'T' && block[at + 5] == 'F' && block[at + 6] == 'S') {
                                 byte[] boot = new byte[512]; Buffer.BlockCopy(block, at, boot, 0, 512);
-                                AddVolume(volumes, DecodeBoot(boot, offset, input.Length));
+                                AddVolume(volumes, DecodeBoot(boot, offset, input.Length, allowUnknownAllocation));
                                 long length = BootLength(boot);
                                 if (length >= 512 && offset >= length - 512)
                                     AddVolume(volumes, DecodeBoot(boot, offset - length + 512, input.Length));
@@ -171,6 +172,7 @@ namespace UsbRecovery
                         if (record.Data.FileSize == 0) { item.Reason = "empty_stream"; continue; }
                         if (record.Data.FileSize > MaximumFileBytes) { item.Reason = "file_size_limit"; continue; }
                         byte[] fixedRecord = null;
+                        bool unknownAllocation = false;
                         long available = record.Data.FileSize;
                         if (record.Data.Resident) {
                             fixedRecord = FixedRecord(input, record.Offset);
@@ -179,12 +181,17 @@ namespace UsbRecovery
                             item.Extents.Add(new Extent { ImageOffset = record.Offset + record.Data.ValueOffset, LogicalOffset = 0, Length = available });
                         } else {
                             if (allocationUntrusted) { item.Reason = "source_read_errors_allocation_untrusted"; continue; }
-                            List<Volume> matches = volumes.Where(v => record.Offset >= v.Offset && record.Offset < v.Offset + v.Length && v.Bitmap != null).ToList();
+                            List<Volume> matches = volumes.Where(v => record.Offset >= v.Offset && record.Offset < v.Offset + v.Length && (v.Bitmap != null || allowUnknownAllocation)).ToList();
                             if (matches.Count != 1) { item.Reason = matches.Count > 1 ? "ambiguous_volume" : "current_bitmap_unavailable"; continue; }
                             Volume volume = matches[0]; item.VolumeOffset = volume.Offset;
                             if (!CheckRuns(record.Data, volume)) { item.Reason = "invalid_cluster_bounds"; continue; }
                             available = Math.Min(record.Data.FileSize, record.Data.ValidLength);
-                            long prefix = FreePrefix(input, volume, record.Data, available, cancel);
+                            unknownAllocation = volume.Bitmap == null;
+                            long prefix = unknownAllocation ? available : FreePrefix(input, volume, record.Data, available, cancel);
+                            if (unknownAllocation) {
+                                item.Reason = "allocation_unknown";
+                                item.Note += "; карта занятости недоступна: байты прочитаны по уцелевшим экстентам, но могли принадлежать другому файлу или быть перезаписаны";
+                            }
                             if (prefix < available) { available = prefix; item.Reason = "allocated_cluster_stop"; }
                             if (available == 0) { if (item.Reason == null) item.Reason = "no_initialized_bytes"; continue; }
                             if (available < record.Data.FileSize && item.Reason == null) item.Reason = "uninitialized_tail_not_invented";
@@ -211,12 +218,12 @@ namespace UsbRecovery
                         item.Output = relative; item.RecoveredBytes = available;
                         using (var payload = File.OpenRead(target)) using (var sha = SHA256.Create())
                             item.Sha256 = BitConverter.ToString(sha.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
-                        item.Status = partial ? "partial_candidate" : fixedRecord != null ? "resident_candidate" : "unallocated_candidate";
+                        item.Status = partial ? "partial_candidate" : fixedRecord != null ? "resident_candidate" : unknownAllocation ? "allocation_unknown_candidate" : "unallocated_candidate";
                         if (item.Reason == null) item.Reason = fixedRecord != null ? "validated_record_resident_data" : "all_copied_clusters_currently_free";
                         report.RecoveredFiles++; report.OutputBytes += available;
                     }
                     foreach (Volume volume in volumes.Where(v => v.Bitmap == null))
-                        report.Warnings.Add("Том " + volume.Offset + ": nonresident-потоки пропущены (" + volume.BitmapProblem + ")");
+                        report.Warnings.Add("Том " + volume.Offset + (allowUnknownAllocation ? ": занятость nonresident-потоков неизвестна (" : ": nonresident-потоки пропущены (") + volume.BitmapProblem + ")");
                 }
                 return report.RecoveredFiles;
             } catch (OperationCanceledException) { report.Cancelled = true; throw; }
@@ -397,15 +404,19 @@ namespace UsbRecovery
             if (!Power(sector) || sector < 512 || sector > 4096 || last < 15 || last >= Int64.MaxValue / sector) return 0;
             return (last + 1) * sector;
         }
-        static Volume DecodeBoot(byte[] boot, long offset, long imageLength)
+        static Volume DecodeBoot(byte[] boot, long offset, long imageLength, bool uncertainBoundary = false)
         {
             long length = BootLength(boot); int sector = U16(boot, 11), clusters = boot[13];
+            // Admit a one-sector count discrepancy only as uncertain geometry.
+            // Extents must still fit the source; allocation is never certified.
+            bool boundaryUnknown = uncertainBoundary && length > 0 && offset >= 0 && imageLength >= offset && length - sector == imageLength - offset;
+            if (boundaryUnknown) length -= sector;
             if (length == 0 || offset < 0 || offset > imageLength - length || !Power(clusters) || clusters > 128) return null;
             int clusterBytes = sector * clusters; long mft = I64(boot, 48), count = length / clusterBytes;
             int encoded = unchecked((sbyte)boot[64]);
             int record = encoded > 0 && encoded <= 128 ? encoded * clusterBytes : encoded >= -16 && encoded <= -9 ? 1 << -encoded : 0;
             if (!Power(record) || record < 512 || record > MaximumRecordBytes || mft <= 0 || mft >= count || mft > (length - record) / clusterBytes) return null;
-            return new Volume { Offset = offset, Length = length, ClusterBytes = clusterBytes, Clusters = count, MftLcn = mft, RecordBytes = record };
+            return new Volume { Offset = offset, Length = length, ClusterBytes = clusterBytes, Clusters = count, MftLcn = mft, RecordBytes = record, BoundaryUnknown = boundaryUnknown };
         }
         static void AddVolume(List<Volume> volumes, Volume volume)
         {
@@ -429,6 +440,7 @@ namespace UsbRecovery
         }
         static void PrepareBitmap(FileStream input, Volume volume, CancellationToken cancel)
         {
+            if (volume.BoundaryUnknown) { volume.BitmapProblem = "boot_sector_count_boundary_unknown"; return; }
             volume.BitmapProblem = "active_mft_or_bitmap_unavailable";
             Record mft = ParseAt(input, volume.Offset + volume.MftLcn * volume.ClusterBytes);
             if (mft == null || mft.Number != 0 || mft.Flags != 1 || mft.Name != "$MFT" || mft.AmbiguousName || mft.Size != volume.RecordBytes || mft.AttributeList || mft.Data == null || mft.Data.Resident || mft.Data.Unsupported != null || !CheckRuns(mft.Data, volume) || mft.Data.Runs[0].Lcn != volume.MftLcn) return;
