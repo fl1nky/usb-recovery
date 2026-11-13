@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: headless-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: windows-2022
@@ -19,12 +23,12 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up build interpreter
         id: python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12.14'
+          python-version: '3.12.10'
           architecture: x64
       - name: Verify bootstrap integrity controls
         run: |

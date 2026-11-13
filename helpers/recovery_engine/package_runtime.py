@@ -84,7 +84,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
     for name in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
     (rebuild / "REBUILD.txt").write_text(
-        "Developer rebuild: Windows x64, Python 3.12.14.\n"
+        f"Developer rebuild: Windows x64, Python {sys.version.split()[0]}.\n"
         "Run scripts/build-helper.ps1 -Python312 <absolute interpreter path>.\n"
         "No package index is used: fixed wheels, source packages and SHA256 inventory are bundled.\n"
         "Runtime use requires no Python or network installation.\n"
