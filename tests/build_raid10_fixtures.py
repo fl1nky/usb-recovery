@@ -110,7 +110,7 @@ def build(destination):
     pinned = ROOT / "tests/fixtures/raid10/manifest.json"
     if result != json.loads(pinned.read_text(encoding="utf-8-sig")):
         raise ValueError("Derived bytes differ from pinned source inventory")
-    (destination / "manifest.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    (destination / "manifest.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     return result
 
 

@@ -2,29 +2,50 @@ name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feat/remaining-offline-20261113" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
-    runs-on: windows-latest
+    runs-on: windows-2022
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Build Application
-        shell: powershell
+      - name: Set up build interpreter
+        id: python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12.14'
+          architecture: x64
+      - name: Verify bootstrap integrity controls
         run: |
-          .\scripts\build-app.ps1
-
-      - name: Package Portable Distribution
-        shell: powershell
+          & '${{ steps.python.outputs.python-path }}' tests/BootstrapBuildTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Bootstrap controls failed.' }
+      - name: Restore checksum-pinned build dependencies
         run: |
-          .\scripts\package.ps1
-
-      - name: Run Quality Offline Tests
-        shell: powershell
+          & '${{ steps.python.outputs.python-path }}' scripts/bootstrap-build.py
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned dependency restore failed.' }
+      - name: Build and verify without devices or GUI
         run: |
-          $env:__COMPAT_LAYER = 'RunAsInvoker'
-          .\tests\QualityOfflineTests.ps1 -ApplicationDirectory dist\USB-Recovery
+          .\scripts\test-headless.ps1 -Python312 '${{ steps.python.outputs.python-path }}' -BlockNetwork
+      - name: Retain test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: headless-evidence
+          path: |
+            .build/headless-validation.json
+            .build/bootstrap-build.json
+            .build/headless-*/*.log
+            .build/headless-*/*.manifest
+          include-hidden-files: true
+          retention-days: 7
