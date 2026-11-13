@@ -49,7 +49,8 @@
 # Portable builds and offline third-party sources are attached to GitHub Releases
 /.build/
 /tools/
-/vendor/
+!/vendor/
+/vendor/*
 /Р“РѕС‚РѕРІР°СЏ РїСЂРѕРіСЂР°РјРјР°/
 
 # Pinned public upstream storage parser test images, never user recovery data
@@ -125,3 +126,9 @@
 !/tests/telegram_platforms_oracle/
 !/tests/telegram_platforms_oracle/NativeScheduledOracle.java
 !/tests/fixtures/video-bframes/
+!/tests/fixtures/forensic-images/
+!/tests/fixtures/forensic-images/**
+!/vendor/ewfprobe/
+!/vendor/ewfprobe/**
+/vendor/ewfprobe/**/__pycache__/
+/vendor/ewfprobe/**/*.pyc

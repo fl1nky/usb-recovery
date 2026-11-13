@@ -390,6 +390,7 @@ namespace UsbRecovery
             }
 
             var options = BuildOptions(mode, fs);
+            options.ReadMapPath = ddrescueMapFile;
             options.Validate();
 
             Console.WriteLine("Starting USB-Recovery scan:");

@@ -13,6 +13,9 @@ if(-not(Test-Path -LiteralPath $Python312)){throw 'Provide -Python312 for source
 if($LASTEXITCODE-ne0){throw 'Owned archive and fragmented ZIP fixture preparation failed.'}
 & $Python312 (Join-Path $taskLayout.Tests 'build_fragmented_media_fixtures.py') (Join-Path $taskLayout.Root '.build\fragmented-media-tests')
 if($LASTEXITCODE-ne0){throw 'Independent media fixture generation failed.'}
+$taskForensicSource=Join-Path $taskLayout.Tests 'fixtures\forensic-images'
+$taskForensicDestination=Join-Path $taskLayout.Root '.build\forensic-image-fixtures'
+Expand-RecoveryFixtureCache -BuildRoot (Join-Path $taskLayout.Root '.build') -Python $Python312 -Generator (Join-Path $taskLayout.Tests 'prepare_forensic_image_fixtures.py') -Source $taskForensicSource -Destination $taskForensicDestination -GeneratorArguments @('--extract',$taskForensicSource,'--destination',$taskForensicDestination)
 $taskCompactGenerator=Join-Path $taskLayout.Tests 'prepare_stz2_media_fixtures.py'
 $taskCompactTarget=Join-Path $taskLayout.Root '.build\video-stz2-fixtures-current'
 if(Test-Path -LiteralPath $taskCompactTarget){$taskCompactArguments=@('--verify',$taskCompactTarget)}else{$taskCompactArguments=@($taskCompactTarget)}

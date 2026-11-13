@@ -30,3 +30,5 @@ The product is a public beta. Validation uses controlled files and images. Real 
 [Step-by-step guide](docs/guides/quick-start.md) · [Recovery methods](docs/guides/recovery.md) · [Telegram coverage](docs/guides/media-and-telegram.md) · [Storage formats](docs/guides/storage.md)
 
 [Build and tests](docs/development/build.md) · [AGPLv3 license](LICENSE)
+
+[E01/Ex01 and ddrescue](docs/guides/forensic-images.md)

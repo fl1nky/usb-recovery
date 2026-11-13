@@ -103,16 +103,16 @@ def audit():
     archive = CArchiveReader(str(helper / "recovery-helper.exe"))
     pyz = archive.open_embedded_archive("PYZ.pyz")
     embedded = []
-    for name in ("engine", "telegram_auto", "telegram_platforms", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "png_sector_index", "png_streaming", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
+    for name in ("engine", "forensic_image", "ewf_reader", "ewfprobe", "telegram_auto", "telegram_platforms", "telegram_tl", "telegram_media_cache", "sqlite_history", "archive_search", "archive_text", "text_match", "memory_fragments", "storage_probe", "storage_apfs", "storage_bitlocker", "sqlite_deleted", "fragmented_photos", "png_fragments", "png_sector_index", "png_streaming", "jpeg_fragments", "android_heap", "recovery_checkpoint", "sqlite_rollback", "sqlite_rollback_records", "rollback_provenance"):
         code = marshal.loads(archive.extract(name)) if name == "engine" else pyz.extract(name)
-        source = ROOT / "helpers/recovery_engine" / (name + ".py")
+        source = ROOT / ("vendor/ewfprobe/ewfprobe.py" if name == "ewfprobe" else "helpers/recovery_engine/" + name + ".py")
         reference = compile(source.read_bytes(), str(source), "exec", optimize=0)
         require(normalize(code) == normalize(reference), "frozen code differs from source: " + name)
         embedded.append({"module": name, "source_sha256": sha(source), "matched": True,
                          "comparison": "recursive code objects; only co_filename normalized"})
 
     rebuild_tests = []
-    required_tests = ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "ArchiveTextTests.py", "ArchiveTextAuditTests.py", "TelegramLegacyTests.py", "build_telegram_legacy_fixtures.py", "TelegramTlTests.py",
+    required_tests = ("ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "ArchiveTextTests.py", "ArchiveTextAuditTests.py", "TelegramLegacyTests.py", "build_telegram_legacy_fixtures.py", "TelegramTlTests.py",
                       "SqliteHistoryTests.py", "SQLiteRollbackTests.py", "SQLiteRollbackAuditTests.py", "TelegramRollbackTests.py",
                       "build_telegram_rollback_fixtures.py", "audit_telegram_rollback_fixtures.py", "audit_telegram_rollback_overflow.py", "TelegramRollbackContextTests.py", "TelegramRollbackContextAuditTests.py", "build_telegram_rollback_context_fixtures.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py",
                       "build_telegram_media_fixtures.py", "TelegramMediaCacheTests.py", "build_telegram_media_cache_fixtures.py", "TelegramMediaCacheProfileTests.py", "build_telegram_media_cache_profile_fixtures.py", "PngIdatGapRecoveryTests.py", "build_png_idat_gap_fixtures.py", "Oct30IndependentReviewTests.py", "ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py','build_telegram_wal_tail_fixtures.py','build_telegram_overflow_fixtures.py')
@@ -126,7 +126,7 @@ def audit():
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
-    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "telegram-webpage", "video-bframes"):
+    for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "telegram-webpage", "forensic-images", "video-bframes"):
         fixture_source = ROOT / "tests/fixtures" / fixture
         fixture_rebuild = helper / "rebuild/tests/fixtures" / fixture
         fixture_files = {path.relative_to(fixture_source).as_posix() for path in fixture_source.rglob("*") if path.is_file()}

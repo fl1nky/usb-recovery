@@ -10,6 +10,7 @@
 | dissect.apfs | 1.1 | AGPL-3.0-or-later; tools/recovery-helper/licenses/dissect.apfs |
 | dissect.fve | 4.6 | AGPL-3.0-or-later; tools/recovery-helper/licenses/dissect.fve |
 | dissect.volume | 3.18 | AGPL-3.0-or-later; tools/recovery-helper/licenses/dissect.volume |
+| ewfprobe | `4af1a54a223edbce12693b29fb3838b63a26b4f2` | MIT; vendor/ewfprobe и tools/recovery-helper/licenses/ewfprobe; только незашифрованные E01/Ex01 через проверяемую логическую копию |
 | dissect.cstruct | 4.7 | Apache-2.0; tools/recovery-helper/licenses/dissect.cstruct |
 | dissect.util | 3.24 | Apache-2.0; tools/recovery-helper/licenses/dissect.util |
 | asn1crypto | 1.5.1 | MIT; tools/recovery-helper/licenses/asn1crypto |

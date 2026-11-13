@@ -54,3 +54,5 @@
 /tests/telegram_webpage_oracle/** -text whitespace=cr-at-eol
 /tests/telegram_platforms_oracle/** -text whitespace=cr-at-eol
 /tests/fixtures/video-bframes/** -text whitespace=cr-at-eol
+/vendor/ewfprobe/ewfprobe.py -text
+/tests/fixtures/forensic-images/** -text whitespace=cr-at-eol

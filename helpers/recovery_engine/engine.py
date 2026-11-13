@@ -1507,15 +1507,25 @@ def main():
             except Exception:
                 emit("result", status="error", code="FRAGMENTED_PHOTO_FAILED")
                 return 2
-        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker"):
+        if isinstance(request, dict) and request.get("protocol") == 1 and request.get("operation") in ("storage_probe", "apfs", "bitlocker", "prepare_image"):
+            import time as _storage_time
+            storage_progress_times = {}
             protocol_stdout = sys.stdout
             def storage_emit(event, **fields):
+                if event == "progress":
+                    now, phase = _storage_time.monotonic(), fields.get("phase", "")
+                    if fields.get("completed") != fields.get("total") and now-storage_progress_times.get(phase, 0.0) < .2:
+                        return
+                    storage_progress_times[phase] = now
                 protocol_stdout.write(json.dumps({"protocol": 1, "type": event, **fields}, ensure_ascii=False) + "\n")
                 protocol_stdout.flush()
             # Dependency diagnostics must not escape into the protocol or logs.
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 try:
-                    if request["operation"] == "storage_probe":
+                    if request["operation"] == "prepare_image":
+                        from forensic_image import handle
+                        result = handle(request, storage_emit)
+                    elif request["operation"] == "storage_probe":
                         from storage_probe import probe
                         result = probe(request, storage_emit)
                     elif request["operation"] == "apfs":

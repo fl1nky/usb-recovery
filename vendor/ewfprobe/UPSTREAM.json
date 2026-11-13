@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/abrignoni/ewfprobe",
+  "commit": "4af1a54a223edbce12693b29fb3838b63a26b4f2",
+  "source": "ewfprobe.py",
+  "sha256": "4169e397ee125591f4245791b5d7427ea3c2fd7b44e390a4a127a7548d39c2f6",
+  "license": "MIT",
+  "scope": "Unencrypted EWF-E01 and EWF2-Ex01 only; source unmodified"
+}

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -217,18 +217,18 @@ namespace UsbRecovery
         void ResumeImage()
         {
             if (busy || loading) return;
-            using (var dialog = new OpenFileDialog { Title = "Полный обычный образ флешки — DD/IMG/RAW", Filter = "Образы флешки|*.dd;*.img;*.raw;*.bin|Все файлы|*.*", CheckFileExists = true })
+            using (var dialog = new OpenFileDialog { Title = "Образ флешки — RAW / E01 / Ex01", Filter = "Образы дисков|*.dd;*.img;*.raw;*.bin;*.E01;*.Ex01|Все файлы|*.*", CheckFileExists = true })
                 if (dialog.ShowDialog(this) == DialogResult.OK) {if(dialog.FileName.EndsWith(".partial",StringComparison.OrdinalIgnoreCase)){MessageBox.Show(this,"Неполная копия .partial не подходит для поиска. Сначала заверши съём.");return;}BeginRecovery(null, dialog.FileName);}
         }
 
         async void ChooseSavedJob()
         {
-            if(IsBusy)return;using(var dialog=new FolderBrowserDialog{Description="Папка остановленного съёма или поиска с recovery-session.json / capture-resume.json",ShowNewFolderButton=false})if(dialog.ShowDialog(this)==DialogResult.OK)await ContinueSavedJobAsync(dialog.SelectedPath);
+            if(IsBusy)return;using(var dialog=new FolderBrowserDialog{Description="Папка остановленного съёма, подготовки образа или поиска",ShowNewFolderButton=false})if(dialog.ShowDialog(this)==DialogResult.OK)await ContinueSavedJobAsync(dialog.SelectedPath);
         }
         public async Task<bool> ContinueSavedJobAsync(string directory)
         {
             if(IsBusy)return false;string folder=Path.GetFullPath(directory);
-            if(!File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName))&&!File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json"))){status.Text="В этой папке нет сохранённой сессии или сведений о съёме.";return false;}
+            if(!File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName))&&!File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json"))&&!ForensicImageSource.HasRequest(folder)){status.Text="В этой папке нет сохранённой сессии или сведений о съёме.";return false;}
             BeginActivity("Продолжение поиска","Проверка сохранённой сессии");busy=true;cancellation=new CancellationTokenSource();var token=cancellation.Token;bool complete=false;lastDirectory=folder;lastGallery=null;
             start.Enabled=resume.Enabled=refresh.Enabled=choose.Enabled=disks.Enabled=searchSettings.Enabled=profile.Enabled=expertButton.Enabled=verifyVideo.Enabled=continueJob.Enabled=open.Enabled=gallery.Enabled=fileList.Enabled=false;stop.Enabled=true;
             workflow.Current=1;workflow.Invalidate();status.Text="Проверка сохранённой сессии и результатов…";progress.Style=ProgressBarStyle.Marquee;Append("Продолжение: "+folder+". Используются сохранённые параметры поиска.");
@@ -237,7 +237,7 @@ namespace UsbRecovery
                     Action<string> update=text=>Post(()=>{status.Text=text;Append(text);});
                     if(File.Exists(RecoveryCatalog.SafeFile(folder,"capture-request.json")))RecoveryCore.ValidateSavedCaptureDestination(folder);
                     ScanResult found;
-                    if(File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName)))found=RecoveryPipeline.Resume(folder,token,update,state=>Post(()=>PresentActivity(state)));
+                    if(File.Exists(RecoveryCatalog.SafeFile(folder,RecoverySession.FileName))||ForensicImageSource.HasRequest(folder))found=RecoveryPipeline.Resume(folder,token,update,state=>Post(()=>PresentActivity(state)));
                     else {
                         string optionsFile=RecoveryCatalog.SafeFile(folder,"search-options.json");if(!File.Exists(optionsFile)||new FileInfo(optionsFile).Length>64*1024)throw new IOException("Не найдены сохранённые параметры. Заверши съём и открой полный образ отдельным поиском.");
                         var options=new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<RecoveryOptions>(File.ReadAllText(optionsFile));if(options==null)throw new IOException("Параметры поиска повреждены.");options.Validate();
@@ -321,7 +321,7 @@ namespace UsbRecovery
             catch (OperationCanceledException)
             {
                 status.Text = "Остановлено. Уже найденное сохранено. Для проверки и экспорта нажми «Подготовить найденное».";
-                Append("Остановлено пользователем. usb.dd.partial — неполная копия; поиск по ней не запускается. Полную usb.dd можно выбрать кнопкой «Открыть образ».");
+                Append("Операция остановлена. Найденные файлы и контрольные точки сохранены. Нажми «Продолжить…» и выбери эту папку; незавершённый образ не используется как полный.");
                 if (runDirectory != null) { try { RecoveryCore.SaveJson(Path.Combine(runDirectory, "result.json"), new { status = "cancelled", utc = DateTime.UtcNow.ToString("o") }); } catch { } }
             }
             catch (Exception e)

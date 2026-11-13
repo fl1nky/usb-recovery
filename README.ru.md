@@ -28,3 +28,5 @@
 [Пошаговая инструкция](docs/guides/quick-start.md) · [Способы поиска](docs/guides/recovery.md) · [Источники Telegram](docs/guides/media-and-telegram.md) · [Форматы хранения](docs/guides/storage.md)
 
 [Сборка и проверки](docs/development/build.md) · [Лицензия AGPLv3](LICENSE)
+
+[E01/Ex01 и ddrescue](docs/guides/forensic-images.md)

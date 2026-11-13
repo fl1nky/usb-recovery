@@ -33,20 +33,22 @@ if not python_license.exists():
     python_license = Path(sys.base_prefix) / "LICENSE"
 if python_license.is_file():
     shutil.copyfile(python_license, licenses / "Python-LICENSE.txt")
-for name in ("iphone-backup-decrypt",):
+for name in ("iphone-backup-decrypt", "ewfprobe"):
     vendor = ROOT / "vendor" / name
     for file in vendor.iterdir():
         if file.is_file() and any(word in file.name.lower() for word in ("license", "copying", "notice")):
             target = licenses / name / file.name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(file, target)
+    if name == "ewfprobe":
+        inventory.append({"name": "ewfprobe", "version": "4af1a54a223edbce12693b29fb3838b63a26b4f2", "licenses": ["licenses/ewfprobe/LICENSE"]})
 (DEST / "dependencies.json").write_text(json.dumps({"python": sys.version.split()[0], "packages": inventory}, indent=2), encoding="utf-8")
 if "--skip-rebuild-bundle" not in sys.argv:
     rebuild = DEST / "rebuild"
     source_dest = rebuild / "helpers/recovery_engine"
     shutil.copytree(ROOT / "helpers/recovery_engine", source_dest,
                     ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
-    for name in ("iphone-backup-decrypt",):
+    for name in ("iphone-backup-decrypt", "ewfprobe"):
         shutil.copytree(ROOT / "vendor" / name, rebuild / "vendor" / name,
                         ignore=shutil.ignore_patterns(".git", "__pycache__", "build", "*.egg-info"), dirs_exist_ok=True)
     (rebuild / "scripts").mkdir(exist_ok=True)
@@ -74,9 +76,9 @@ if "--skip-rebuild-bundle" not in sys.argv:
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/telegram-platforms", "telegram_platforms_oracle", "fixtures/video-bframes"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
-    for name in ("TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
+    for name in ("ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
-    for name in ("fixtures/telegram-webpage", "telegram_webpage_oracle"):
+    for name in ("fixtures/forensic-images", "fixtures/telegram-webpage", "telegram_webpage_oracle"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
     (rebuild / "REBUILD.txt").write_text(
         "Developer rebuild: Windows x64, Python 3.12.14.\n"

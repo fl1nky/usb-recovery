@@ -20,10 +20,24 @@ namespace UsbRecovery
         public static ScanResult Run(string image,string directory,bool deep,CancellationToken cancel,Action<string> progress)
         {return Run(image,directory,RecoveryOptions.Legacy(deep),cancel,progress);}
         public static ScanResult Run(string image,string directory,RecoveryOptions options,CancellationToken cancel,Action<string> progress,string imageChecksum=null,Action<RecoveryStageProgress> activity=null)
-        {return Execute(image,directory,options,cancel,progress,imageChecksum,false,activity);}
+        {
+            if(ForensicImageSource.Requires(image,options)){
+                var prepared=ForensicImageSource.Prepare(image,directory,options,imageChecksum,cancel,progress,activity);
+                return Execute(prepared.Image,directory,options,cancel,progress,prepared.Checksum,false,activity);
+            }
+            return Execute(image,directory,options,cancel,progress,imageChecksum,false,activity);
+        }
         public static ScanResult Resume(string directory,CancellationToken cancel,Action<string> progress,Action<RecoveryStageProgress> activity=null)
         {
-            var saved=RecoverySession.Read(directory);return Execute(saved.SourcePath,directory,saved.Options,cancel,progress,null,true,activity);
+            if(ForensicImageSource.HasRequest(directory)){
+                var request=ForensicImageSource.Read(directory);
+                var prepared=ForensicImageSource.Prepare(request.SourcePath,directory,request.Options,request.ChecksumPath,cancel,progress,activity);
+                bool started=File.Exists(RecoveryCatalog.SafeFile(directory,RecoverySession.FileName));
+                return Execute(prepared.Image,directory,request.Options,cancel,progress,prepared.Checksum,started,activity);
+            }
+            var saved=RecoverySession.Read(directory);
+            if(String.Equals(Path.GetFullPath(saved.SourcePath),ForensicImageSource.WorkingPath(directory),StringComparison.OrdinalIgnoreCase))throw new IOException("Параметры подготовки образа утрачены.");
+            return Execute(saved.SourcePath,directory,saved.Options,cancel,progress,null,true,activity);
         }
         static string ExpectedSha(string checksum)
         {
@@ -66,7 +80,11 @@ namespace UsbRecovery
                         else {warnings=true;progress("Соседний capture.json не подтверждает этот образ. Происхождение носителя не переносится.");}
                     }
                     if(imageChecksum!=null){warnings=true;progress("Внешний образ: контрольная сумма фиксирует текущий файл, полнота исходного съёма не подтверждена.");if(!File.Exists(Path.Combine(directory,"source-image.json")))RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory,"source-image.json"),new{origin="external_image",sourcePath=image,completeness="unknown",checksumFile=Path.GetFileName(imageChecksum)});}
-                    if(File.Exists(errors))File.Copy(errors,RecoveryCatalog.SafeFile(directory,"source-read-errors.json"),false);
+                    if(File.Exists(errors)){
+                        string errorCopy=RecoveryCatalog.SafeFile(directory,"source-read-errors.json");SourcePaths.NoLinks(errors);SourcePaths.NoLinks(errorCopy);
+                        if(!File.Exists(errorCopy))File.Copy(errors,errorCopy,false);
+                        else if(new FileInfo(errors).Length!=new FileInfo(errorCopy).Length||!String.Equals(RecoveryCore.HashFile(errors,cancel,(a,b)=>{}),RecoveryCore.HashFile(errorCopy,cancel,(a,b)=>{}),StringComparison.OrdinalIgnoreCase))throw new IOException("Сохранённая карта чтения не совпадает с рабочей копией.");
+                    }
                     session=RecoverySession.Start(directory,image,expected,options,cancel);session.State.ExternalImage=imageChecksum!=null;session.Status("running");
                 }else {session=RecoverySession.Open(directory,image,options,cancel,progress);warnings=session.State.ExternalImage;progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото продолжится с сохранённой точки, если она есть; остальные незавершённые методы начнутся сначала.");}
                 try{

@@ -24,6 +24,7 @@ namespace UsbRecovery
         public string SourcePath,SourceSha256,Status,UpdatedUtc,ReadMapSha256,SourceReadMapSha256;
         public long SourceBytes;
         public bool ExternalImage,SourceInWorkingDirectory;
+        public string RelativeSourcePath;
         public RecoveryOptions Options;
         public List<SessionStage> Stages=new List<SessionStage>();
     }
@@ -49,7 +50,8 @@ namespace UsbRecovery
         {
             if(!Path.IsPathRooted(source))throw new IOException("Путь образа в сессии должен быть абсолютным.");
             string folder=Path.GetFullPath(root).TrimEnd('\\','/'),image=Path.GetFullPath(source);
-            if(image.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)&&!String.Equals(image,Path.Combine(folder,"usb.dd"),StringComparison.OrdinalIgnoreCase))throw new IOException("Внутри папки поиска допускается только рабочий usb.dd. Другой исходный образ должен находиться отдельно от отчётов.");
+            bool prepared=String.Equals(image,ForensicImageSource.WorkingPath(root),StringComparison.OrdinalIgnoreCase)&&ForensicImageSource.HasRequest(root);
+            if(image.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)&&!String.Equals(image,Path.Combine(folder,"usb.dd"),StringComparison.OrdinalIgnoreCase)&&!prepared)throw new IOException("Внутри папки поиска допускается только рабочий usb.dd или зарегистрированная логическая копия образа.");
         }
         public static RecoverySessionState Read(string root)
         {
@@ -57,7 +59,11 @@ namespace UsbRecovery
             try{
                 var state=new JavaScriptSerializer{MaxJsonLength=64*1024*1024}.Deserialize<RecoverySessionState>(File.ReadAllText(file,Encoding.UTF8));
                 if(state==null||state.Schema!=1||state.Options==null||!Hash(state.SourceSha256)||state.SourceBytes<=0||String.IsNullOrEmpty(state.SourcePath)||state.Stages==null||state.Stages.Count>Keys.Length)throw new IOException("Сессия повреждена или имеет неподдерживаемую версию.");
-                if(state.SourceInWorkingDirectory)state.SourcePath=RecoveryCatalog.SafeFile(root,"usb.dd");
+                if(state.SourceInWorkingDirectory){
+                    string relative=state.RelativeSourcePath??"usb.dd";
+                    if(relative!="usb.dd"&&relative!="source-preparation/working.dd")throw new IOException("Недопустимый относительный источник сессии.");
+                    state.SourcePath=RecoveryCatalog.SafeFile(root,relative);
+                }
                 if(!new[]{"running","cancelled","error","finished","finished_with_warnings"}.Contains(state.Status))throw new IOException("Неизвестное состояние сессии.");state.Options.Validate();SourceLocation(root,state.SourcePath);var seen=new HashSet<string>(StringComparer.Ordinal);
                 foreach(var stage in state.Stages){if(stage==null||!Keys.Contains(stage.Key)||!seen.Add(stage.Key)||stage.Artifacts==null||stage.Artifacts.Count>100000||stage.Candidates<0||!new[]{"running","complete","incomplete","cancelled"}.Contains(stage.Status))throw new IOException("Некорректные этапы сохранённой сессии.");var artifactNames=new HashSet<string>(StringComparer.OrdinalIgnoreCase);foreach(var artifact in stage.Artifacts){if(artifact==null||!artifactNames.Add(artifact.Path)||!Hash(artifact.Sha256)||artifact.Bytes<0)throw new IOException("Некорректная контрольная сумма результата.");RecoveryCatalog.SafeFile(root,artifact.Path);}}
                 foreach(var stage in state.Stages)if(stage.CheckpointPath!=null||stage.CheckpointSha256!=null||stage.CheckpointSequence!=0||stage.CheckpointBytes!=0){
@@ -74,6 +80,7 @@ namespace UsbRecovery
             if(Directory.Exists(RecoveryCatalog.SafeFile(root,"attempt-history")))throw new IOException("В папке есть история предыдущих попыток. Нужна новая папка поиска.");
             foreach(string key in Keys)if(Paths(root,key).Any())throw new IOException("Папка уже содержит результаты. Для нового поиска нужна новая папка.");
             var state=new RecoverySessionState{SourcePath=Path.GetFullPath(source),SourceBytes=new FileInfo(source).Length,SourceSha256=sha,Options=options,Status="running",SourceInWorkingDirectory=String.Equals(Path.GetFullPath(source),RecoveryCatalog.SafeFile(root,"usb.dd"),StringComparison.OrdinalIgnoreCase)};
+            if(String.Equals(Path.GetFullPath(source),ForensicImageSource.WorkingPath(root),StringComparison.OrdinalIgnoreCase)){state.SourceInWorkingDirectory=true;state.RelativeSourcePath="source-preparation/working.dd";}
             string map=RecoveryCatalog.SafeFile(root,"source-read-errors.json");if(File.Exists(map))state.ReadMapSha256=RecoveryCore.HashFile(map,cancel,(a,b)=>{});
             if(File.Exists(source+".read-errors.json"))state.SourceReadMapSha256=RecoveryCore.HashFile(source+".read-errors.json",cancel,(a,b)=>{});
             var session=new RecoverySession(root,state);session.Save();return session;

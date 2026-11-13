@@ -30,7 +30,7 @@ if(Test-Path -LiteralPath (Join-Path $taskRoot 'README.ru.md')){Copy-Item -Liter
 if(Test-Path -LiteralPath (Join-Path $taskRoot 'LICENSE')){Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination (Join-Path $taskStage 'LICENSE')}
 Copy-RecoveryTree (Join-Path $taskRoot 'docs') (Join-Path $taskStage 'docs')
 $taskSource=Join-Path $taskStage 'source'
-foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-backup-decrypt','docs'){
+foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-backup-decrypt','vendor\ewfprobe','docs'){
  Copy-RecoveryTree (Join-Path $taskRoot $relative) (Join-Path $taskSource $relative)
 }
 Copy-Item -LiteralPath (Join-Path $taskRoot 'build.ps1') -Destination (Join-Path $taskSource 'build.ps1')
@@ -43,7 +43,7 @@ foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
   Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $taskSource ('tests\'+$file.Name))
  }
 }
-foreach($relative in 'fixtures\media-units','fixtures\hevc-recovery','fixtures\hevc-validation','fixtures\aac-islands','fixtures\aac-lc','fixtures\ext4','fixtures\refs','fixtures\raid-md','fixtures\raid-controller','fixtures\apfs-salvage','fixtures\telegram-cache-profiles','fixtures\telegram-document-empty','fixtures\telegram-document-descriptor','fixtures\telegram-document-descriptor-portable','fixtures\telegram-document-attributes','fixtures\telegram-document-attributes-compatibility','fixtures\telegram-media-only','fixtures\video-stz2','fixtures\video-fmp4','fixtures\document-media-preview','fixtures\telegram-platforms','fixtures\telegram-webpage','fixtures\video-bframes','telegram_platforms_oracle','telegram_webpage_oracle','benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
+foreach($relative in 'fixtures\media-units','fixtures\hevc-recovery','fixtures\hevc-validation','fixtures\aac-islands','fixtures\aac-lc','fixtures\ext4','fixtures\refs','fixtures\raid-md','fixtures\raid-controller','fixtures\apfs-salvage','fixtures\telegram-cache-profiles','fixtures\telegram-document-empty','fixtures\telegram-document-descriptor','fixtures\telegram-document-descriptor-portable','fixtures\telegram-document-attributes','fixtures\telegram-document-attributes-compatibility','fixtures\telegram-media-only','fixtures\video-stz2','fixtures\video-fmp4','fixtures\document-media-preview','fixtures\telegram-platforms','fixtures\telegram-webpage','fixtures\forensic-images','fixtures\video-bframes','telegram_platforms_oracle','telegram_webpage_oracle','benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
  Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
 }
 foreach($name in 'recovery-helper','testdisk-7.2'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}

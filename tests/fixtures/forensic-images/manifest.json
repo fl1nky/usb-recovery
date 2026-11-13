@@ -1,0 +1,96 @@
+{
+  "upstream": "https://github.com/abrignoni/ewfprobe",
+  "commit": "4af1a54a223edbce12693b29fb3838b63a26b4f2",
+  "writer": "libewf ewfacquire; Ex01 uses20260924",
+  "source_manifest_sha256": "aa49472ae63268a984991ee86552de0668148c9f1d14936c12c97d48eb3610cc",
+  "files": {
+    "encase5-fast.E01": {
+      "sha256": "b2e0a191f7384678326fac68497189159977631d595c361dc3ccdc70d3340a75",
+      "bytes": 127054
+    },
+    "encase6-fast.E01": {
+      "sha256": "893777377747b48117fe3447dfe15dc981522676d4f6ff93ae2a1c06a77f07fb",
+      "bytes": 127224
+    },
+    "encase6-split.E01": {
+      "sha256": "7eb3ef39f182247589f7a863d00e5b9ac3171b679a534695d87f80111bb178cb",
+      "bytes": 1018578
+    },
+    "encase6-split.E02": {
+      "sha256": "f5ca3ec9a7a4163c7abb92a9088bc2236234a0b4c44909dc23839064fe2a86c7",
+      "bytes": 1017681
+    },
+    "encase6-split.E03": {
+      "sha256": "a1aff09864e6e42bf41bfdfcb16ff93ceb14a039de233b4c7b92ea3abf476954",
+      "bytes": 1017681
+    },
+    "encase6-split.E04": {
+      "sha256": "371be8ff8fdf473353a467976d6615cfbc31f2e4de69e24aeee576c415311239",
+      "bytes": 100109
+    },
+    "ex01-fast.Ex01": {
+      "sha256": "39c49aa6223c96188c716864ce22256ba714b77640788c35c2a232e7e309705e",
+      "bytes": 111368
+    },
+    "ex01-none.Ex01": {
+      "sha256": "6b6f5ce084eb7f5c3cc8e9e0760c33f8d26ddc8cb0d3db1c91d952afac37bf30",
+      "bytes": 232632
+    }
+  },
+  "variants": {
+    "encase5-fast": {
+      "format": "encase5",
+      "compression": "fast",
+      "sectors_per_chunk": 64,
+      "segment_size": null,
+      "files": [
+        "encase5-fast.E01"
+      ]
+    },
+    "encase6-fast": {
+      "format": "encase6",
+      "compression": "fast",
+      "sectors_per_chunk": 64,
+      "segment_size": null,
+      "files": [
+        "encase6-fast.E01"
+      ]
+    },
+    "encase6-split": {
+      "format": "encase6",
+      "compression": "none",
+      "sectors_per_chunk": 64,
+      "segment_size": "1M",
+      "files": [
+        "encase6-split.E01",
+        "encase6-split.E02",
+        "encase6-split.E03",
+        "encase6-split.E04"
+      ]
+    },
+    "ex01-fast": {
+      "format": "encase7-v2",
+      "compression": "fast",
+      "sectors_per_chunk": 64,
+      "segment_size": null,
+      "files": [
+        "ex01-fast.Ex01"
+      ],
+      "writer": "ewfacquire 20260924"
+    },
+    "ex01-none": {
+      "format": "encase7-v2",
+      "compression": "none",
+      "sectors_per_chunk": 64,
+      "segment_size": null,
+      "files": [
+        "ex01-none.Ex01"
+      ],
+      "writer": "ewfacquire 20260924"
+    }
+  },
+  "raw": "source.raw",
+  "size": 3145728,
+  "sha256": "770be732aafc4962c6940a2076c35471419621d9d6ca57cda60cbd6e82a8b36f",
+  "archive_sha256": "d9ab013b85a07b89989746d5e74258b50ea12f0f600078743c4940eeb98f473c"
+}

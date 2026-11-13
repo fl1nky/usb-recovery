@@ -14,6 +14,7 @@ namespace UsbRecovery
         public bool StreamingPngIndex;
         public bool MetadataRescue, ArchiveMembers, FragmentedArchives;
         public bool UnknownNtfsAllocation;
+        public string ReadMapPath;
         public bool CustomSignatures;
         public List<UserSignatureRule> CustomRules=new List<UserSignatureRule>();
         public string TextQuery = "";
