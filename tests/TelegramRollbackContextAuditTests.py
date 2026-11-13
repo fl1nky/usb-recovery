@@ -39,7 +39,7 @@ class TelegramRollbackContextAuditTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory(prefix="own-rollback-context-audit-")
-        cls.base = Path(cls.temporary.name)
+        cls.base = Path(cls.temporary.name).resolve()
         cls.fixtures = cls.base / "fixtures"
         cls.manifest = build(cls.fixtures)
         cls.full_case = next(case for case in cls.manifest["cases"] if case["name"] == "full-delete")
@@ -137,6 +137,36 @@ class TelegramRollbackContextAuditTests(unittest.TestCase):
         for row in native:
             self.assertNotEqual(row["source_id"], row["container_source_id"])
         self.assertEqual(source.read_bytes(), original)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows short-path control")
+    def test_zip_short_path_alias_keeps_canonical_member_identity(self):
+        import ctypes as ct
+        source = self.job / "source" / "owned-archive.zip"
+        source.parent.mkdir()
+        self.zip_source(source)
+        api = ct.WinDLL("kernel32", use_last_error=True).GetShortPathNameW
+        api.argtypes = [ct.c_wchar_p, ct.c_wchar_p, ct.c_uint32]
+        api.restype = ct.c_uint32
+        buffer = ct.create_unicode_buffer(32768)
+        length = api(str(source), buffer, len(buffer))
+        if not length:
+            self.skipTest("Owned volume has no short-path alias")
+        self.assertLess(length, len(buffer))
+        alias = Path(buffer.value)
+        if str(alias) == str(source):
+            self.skipTest("Owned volume does not generate short-path aliases")
+        self.assertEqual(alias.resolve(), source)
+        before = source.read_bytes()
+        _, _, rows = self.import_source(alias)
+        member = "Telegram/cache4.db-journal"
+        container_id = hashlib.sha256(str(source).encode()).hexdigest()
+        self.assert_native_rows(rows, dict(source_file=str(source) + "!/" + member,
+            source_id=hashlib.sha256((container_id + "!/" + member).encode()).hexdigest(),
+            source_sha256=sha(self.fixtures / "full-delete/cache4.db-journal"),
+            original_relative_path=source.name + "!/" + member,
+            container_sha256=sha(source), container_source_id=container_id,
+            container_source_file=str(source)))
+        self.assertEqual(source.read_bytes(), before)
 
     def test_zip_from_phone_acquisition_keeps_both_layers_of_persistent_origin(self):
         root, snapshot, records = self.acquisition(with_zip=True)
