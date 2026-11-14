@@ -52,12 +52,53 @@ if "--skip-rebuild-bundle" not in sys.argv:
         shutil.copytree(ROOT / "vendor" / name, rebuild / "vendor" / name,
                         ignore=shutil.ignore_patterns(".git", "__pycache__", "build", "*.egg-info"), dirs_exist_ok=True)
     (rebuild / "scripts").mkdir(exist_ok=True)
-    for name in ("build-helper.ps1", "ProjectPaths.ps1", "run-source-test.py"):
+    for name in (
+        'build-helper.ps1',
+        'ProjectPaths.ps1',
+        'run-source-test.py',
+        'SourceTests.ps1',
+        'source-tests.json',
+        'test-source.ps1',
+        'prepare-helper-env.ps1',
+    ):
         shutil.copyfile(ROOT / "scripts" / name, rebuild / "scripts" / name)
     (rebuild / "tests").mkdir(exist_ok=True)
-    for name in ("TelegramAutoTests.py", "TelegramMemoryTests.py", "ArchiveSearchTests.py", "ArchiveTextTests.py", "ArchiveTextAuditTests.py", "TelegramLegacyTests.py", "build_telegram_legacy_fixtures.py", "TelegramTlTests.py", "SqliteHistoryTests.py", "SQLiteRollbackTests.py", "SQLiteRollbackAuditTests.py", "TelegramRollbackTests.py", "build_telegram_rollback_fixtures.py", "audit_telegram_rollback_fixtures.py", "audit_telegram_rollback_overflow.py", "TelegramRollbackContextTests.py", "TelegramRollbackContextAuditTests.py", "build_telegram_rollback_context_fixtures.py", "build_telegram_native_fixtures.py", "TelegramMediaTests.py", "build_telegram_media_fixtures.py", "TelegramMediaCacheTests.py", "build_telegram_media_cache_fixtures.py", "TelegramMediaCacheProfileTests.py", "TelegramDocumentEmptyTests.py", "TelegramDocumentDescriptorTests.py", "build_telegram_document_descriptor_fixtures.py", "telegram_document_descriptor_fixture_generator.py", "build_telegram_descriptor_portable_corpus.py", "build_telegram_document_empty_fixtures.py", "build_telegram_document_portable_fixtures.py", "build_telegram_media_cache_profile_fixtures.py", "PngIdatGapRecoveryTests.py", "PngTwoGapRecoveryTests.py", "PhotoSourceAliasTests.py", "build_png_two_gap_fixtures.py", "prepare_png_two_gap_fixtures.py", "prepare_photo_telegram_fixtures.py", "build_png_idat_gap_fixtures.py", "Oct30IndependentReviewTests.py"):
+    # The build registry is authoritative for mandatory source programs.
+    registry = json.loads((ROOT / "scripts/source-tests.json").read_text(encoding="utf-8"))
+    for item in registry["tests"]:
+        name = item["file"]
+        if Path(name).name != name or not (ROOT / "tests" / name).is_file():
+            raise ValueError("Invalid mandatory rebuild test")
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
-    for name in ("ApfsRecoveryTests.py", "BitLockerRecoveryTests.py", "StorageProbeTests.py", 'TelegramDeletedTests.py', 'TelegramResidualProvenanceTests.py', 'DeletedArchiveSearchTests.py', 'FragmentedPhotoTests.py', 'JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','build_progressive_jpeg_fixtures.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','build_telegram_heap_fixtures.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py','build_telegram_wal_tail_fixtures.py','build_telegram_overflow_fixtures.py'):
+    shutil.copyfile(ROOT / "tests/SourceRegistry.Tests.ps1", rebuild / "tests/SourceRegistry.Tests.ps1")
+    shutil.copyfile(ROOT / "tests/ReadabilityRecoveryPortableTests.py", rebuild / "tests/ReadabilityRecoveryPortableTests.py")
+    for name in (
+        'build_telegram_legacy_fixtures.py',
+        'build_telegram_rollback_fixtures.py',
+        'audit_telegram_rollback_fixtures.py',
+        'audit_telegram_rollback_overflow.py',
+        'build_telegram_rollback_context_fixtures.py',
+        'build_telegram_native_fixtures.py',
+        'build_telegram_media_fixtures.py',
+        'build_telegram_media_cache_fixtures.py',
+        'build_telegram_document_descriptor_fixtures.py',
+        'telegram_document_descriptor_fixture_generator.py',
+        'build_telegram_descriptor_portable_corpus.py',
+        'build_telegram_document_empty_fixtures.py',
+        'build_telegram_document_portable_fixtures.py',
+        'build_telegram_media_cache_profile_fixtures.py',
+        'build_png_two_gap_fixtures.py',
+        'prepare_png_two_gap_fixtures.py',
+        'prepare_photo_telegram_fixtures.py',
+        'build_png_idat_gap_fixtures.py',
+    ):
+        shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    for name in (
+        'build_progressive_jpeg_fixtures.py',
+        'build_telegram_heap_fixtures.py',
+        'build_telegram_wal_tail_fixtures.py',
+        'build_telegram_overflow_fixtures.py',
+    ):
         if (ROOT / "tests" / name).is_file():
             shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     shutil.copytree(ROOT / "tests/fixtures/telegram-cache-profiles",
@@ -66,19 +107,33 @@ if "--skip-rebuild-bundle" not in sys.argv:
                     rebuild / "tests/fixtures/telegram-document-empty", dirs_exist_ok=True)
     shutil.copytree(ROOT / "tests/fixtures/telegram-document-descriptor",
                     rebuild / "tests/fixtures/telegram-document-descriptor", dirs_exist_ok=True)
-    for name in ("TelegramDocumentAttributesTests.py", "build_telegram_document_attributes_fixtures.py", "telegram_document_compatibility.py", "TelegramMediaOnlyTests.py", "build_telegram_media_only_fixtures.py", "telegram_media_retention_policy.py"):
+    for name in (
+        'build_telegram_document_attributes_fixtures.py',
+        'telegram_document_compatibility.py',
+        'build_telegram_media_only_fixtures.py',
+        'telegram_media_retention_policy.py',
+    ):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("telegram-document-attributes", "telegram-document-attributes-compatibility", "telegram-media-only"):
         shutil.copytree(ROOT / "tests/fixtures" / name, rebuild / "tests/fixtures" / name, dirs_exist_ok=True)
-    for name in ("PngStreamingIndexTests.py", "PngStreamingNativeTests.py", "PngStreamingProtocolTests.py"):
-        shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
-    for name in ("TelegramPlatformTests.py", "build_telegram_platform_fixtures.py", "telegram_platform_fixture_producer.py", "JpegStreamingCheckpointTests.py", "JpegLargeStreamingTests.py", "build_large_jpeg_fixtures.py", "prepare_bframe_media_fixtures.py"):
+    for name in (
+        'build_telegram_platform_fixtures.py',
+        'telegram_platform_fixture_producer.py',
+        'build_large_jpeg_fixtures.py',
+        'prepare_bframe_media_fixtures.py',
+    ):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in ("fixtures/telegram-platforms", "telegram_platforms_oracle", "fixtures/video-bframes"):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
-    for name in ("LvmRecoveryTests.py", "TelegramPostboxTests.py", "build_telegram_postbox_fixtures.py", "ResumableCopyTests.py", "ForensicImageTests.py", "prepare_forensic_image_fixtures.py", "TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py"):
+    for name in ('build_telegram_postbox_fixtures.py', 'prepare_forensic_image_fixtures.py', 'build_telegram_webpage_fixtures.py'):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
-    for name in ("fixtures/telegram-postbox", "postbox_oracle", "fixtures/forensic-images", "fixtures/telegram-webpage", "telegram_webpage_oracle"):
+    for name in (
+        'fixtures/telegram-postbox',
+        'postbox_oracle',
+        'fixtures/forensic-images',
+        'fixtures/telegram-webpage',
+        'telegram_webpage_oracle',
+    ):
         shutil.copytree(ROOT / "tests" / name, rebuild / "tests" / name, dirs_exist_ok=True)
     shutil.copytree(ROOT / "tests/StorageFixtures/lvm", rebuild / "tests/StorageFixtures/lvm", dirs_exist_ok=True)
     for name in ("fixtures/telegram-desktop-kdf", "telegram_desktop_kdf_oracle"):

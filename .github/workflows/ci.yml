@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "feat/remaining-offline-20261113" ]
+    branches: [ "main", "feat/remaining-offline-20261113", "feat/readability-recovery-20261114" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:

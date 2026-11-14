@@ -1,43 +1,18 @@
-﻿param(
+param(
     [string]$Python312 = '',
     [switch]$SkipTests,
     [switch]$SkipRebuildBundle
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
+. (Join-Path $PSScriptRoot 'SourceTests.ps1')
 $taskRoot = (Get-RecoveryLayout).Root
+& (Join-Path $PSScriptRoot 'prepare-helper-env.ps1') -Python312 $Python312
 $envPython = Join-Path $taskRoot '.build\engine-env\Scripts\python.exe'
-$wheelRoot = Join-Path $taskRoot 'helpers\recovery_engine\wheels'
-if (-not (Test-Path -LiteralPath $envPython)) {
-    if (-not $Python312) { throw 'Provide -Python312 with a Windows x64 Python 3.12 interpreter for developer rebuilding.' }
-    $version = & $Python312 -c 'import sys; print(str(sys.version_info.major)+chr(46)+str(sys.version_info.minor))'
-    if ($version -ne '3.12') { throw 'Python 3.12 is required for rebuilding.' }
-    & $Python312 -m venv (Join-Path $taskRoot '.build\engine-env')
-    if ($LASTEXITCODE -ne 0) { throw 'Could not create the build environment.' }
-}
-if (-not (Test-Path -LiteralPath $wheelRoot)) { throw 'Bundled wheel directory is missing.' }
-$wheelManifest = Get-Content -LiteralPath (Join-Path $wheelRoot 'SHA256.json') -Raw | ConvertFrom-Json
-foreach ($item in $wheelManifest) {
-    $candidate = Join-Path $wheelRoot $item.name
-    if ([IO.Path]::GetFileName($item.name) -ne $item.name -or -not (Test-Path -LiteralPath $candidate)) { throw 'Invalid wheel inventory.' }
-    if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -ne $item.sha256) { throw 'Wheel checksum mismatch.' }
-}
-$storageSources=Join-Path $taskRoot 'helpers\recovery_engine\storage-dependencies.json'
-if(Test-Path -LiteralPath $storageSources){foreach($item in (Get-Content -LiteralPath $storageSources -Raw|ConvertFrom-Json)){
-    if([IO.Path]::GetFileName($item.source)-ne$item.source){throw 'Invalid storage source inventory.'}
-    $candidate=Join-Path $taskRoot ('helpers\recovery_engine\dependency-sources\'+$item.source)
-    if(-not(Test-Path -LiteralPath $candidate)-or(Get-FileHash -LiteralPath $candidate).Hash-ne$item.sha256){throw 'Storage source checksum mismatch.'}
-}}
-& $envPython -m pip install --no-index --find-links $wheelRoot --require-hashes -r (Join-Path $taskRoot 'helpers\recovery_engine\requirements-wheel-lock.txt')
-if ($LASTEXITCODE -ne 0) { throw 'Could not install the fixed local dependencies.' }
-foreach ($vendorName in @('iphone-backup-decrypt')) {
-    & $envPython -m pip install --no-cache-dir --no-index --no-deps --no-build-isolation (Join-Path $taskRoot "vendor\$vendorName")
-    if ($LASTEXITCODE -ne 0) { throw "Could not install pinned source: $vendorName" }
-}
 Push-Location $taskRoot
 try {
     if (-not $SkipTests) {
-        foreach ($taskTest in 'TelegramRollbackContextAuditTests.py','LvmRecoveryTests.py','TelegramPostboxTests.py','ResumableCopyTests.py','ForensicImageTests.py','TelegramPlatformTests.py','TelegramWebPageTests.py','JpegStreamingCheckpointTests.py','JpegLargeStreamingTests.py','TelegramAutoTests.py','TelegramMemoryTests.py','ArchiveSearchTests.py','ArchiveTextTests.py','ArchiveTextAuditTests.py','TelegramLegacyTests.py','TelegramTlTests.py','SqliteHistoryTests.py','SQLiteRollbackTests.py','SQLiteRollbackAuditTests.py','TelegramRollbackTests.py','TelegramRollbackContextTests.py','TelegramMediaTests.py','TelegramMediaCacheTests.py','TelegramMediaCacheProfileTests.py','TelegramDocumentEmptyTests.py','TelegramDocumentDescriptorTests.py','TelegramDocumentAttributesTests.py','TelegramMediaOnlyTests.py','Oct30IndependentReviewTests.py','ApfsRecoveryTests.py','BitLockerRecoveryTests.py','StorageProbeTests.py','TelegramDeletedTests.py','TelegramResidualProvenanceTests.py','DeletedArchiveSearchTests.py','FragmentedPhotoTests.py','PngIdatGapRecoveryTests.py','PngTwoGapRecoveryTests.py','PngStreamingIndexTests.py','PngStreamingNativeTests.py','PngStreamingProtocolTests.py','PhotoSourceAliasTests.py','JpegFragmentRecoveryTests.py','JpegTwoGapRecoveryTests.py','JpegProgressiveRecoveryTests.py','AndroidHeapTests.py','AndroidHeapAuditTests.py','FragmentedPhotoAuditTests.py','PngContextAuditTests.py','PhotoCheckpointTests.py','PhotoCheckpointAuditTests.py','TelegramWalTailTests.py','ArchiveRecoveryProvenanceTests.py','TelegramOverflowTests.py','TelegramOverflowAuditTests.py','TelegramWalTailAuditTests.py') {
+        foreach ($taskTest in (Get-RecoverySourceTests -Suite Full -Root $taskRoot)) {
             if ($env:GITHUB_ACTIONS -eq 'true') { Write-Output ('::notice title=Source check::'+$taskTest) }
             & $envPython (Join-Path $PSScriptRoot 'run-source-test.py') (Join-Path 'tests' $taskTest)
             if ($LASTEXITCODE -ne 0) {

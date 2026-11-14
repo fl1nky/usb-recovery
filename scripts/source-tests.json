@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "tests": [
+    {
+      "file": "TelegramHtmlTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "TelegramRollbackContextAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "LvmRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramPostboxTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "ResumableCopyTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "ForensicImageTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramPlatformTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramWebPageTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "JpegStreamingCheckpointTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "JpegLargeStreamingTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramAutoTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramMemoryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "ArchiveSearchTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "ArchiveTextTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "ArchiveTextAuditTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "TelegramLegacyTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramTlTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "SqliteHistoryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "SQLiteRollbackTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "SQLiteRollbackAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramRollbackTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramRollbackContextTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramMediaTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramMediaCacheTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramMediaCacheProfileTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramDocumentEmptyTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramDocumentDescriptorTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramDocumentAttributesTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramMediaOnlyTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "Oct30IndependentReviewTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "ApfsRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "BitLockerRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "StorageProbeTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramDeletedTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramResidualProvenanceTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "DeletedArchiveSearchTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "FragmentedPhotoTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngIdatGapRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngTwoGapRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngStreamingIndexTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngStreamingNativeTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngStreamingProtocolTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PhotoSourceAliasTests.py",
+      "suite": "quick"
+    },
+    {
+      "file": "JpegFragmentRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "JpegTwoGapRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "JpegProgressiveRecoveryTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "AndroidHeapTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "AndroidHeapAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "FragmentedPhotoAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PngContextAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PhotoCheckpointTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "PhotoCheckpointAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramWalTailTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "ArchiveRecoveryProvenanceTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramOverflowTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramOverflowAuditTests.py",
+      "suite": "full"
+    },
+    {
+      "file": "TelegramWalTailAuditTests.py",
+      "suite": "full"
+    }
+  ]
+}

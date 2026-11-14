@@ -16,6 +16,7 @@ $taskLogRoot=Join-Path $taskLayout.Root ('.build\headless-'+[Guid]::NewGuid().To
 New-Item -ItemType Directory -Path $taskLogRoot -Force|Out-Null
 $taskInitialOutputs=@($taskEnvPython,$taskHelper,$taskApp)|Where-Object {Test-Path -LiteralPath $_}
 $taskOldPip=@{}
+$taskOldCompatibility=[Environment]::GetEnvironmentVariable('__COMPAT_LAYER','Process')
 foreach($taskKey in 'PIP_NO_INDEX','PIP_DISABLE_PIP_VERSION_CHECK','PIP_CONFIG_FILE'){$taskOldPip[$taskKey]=[Environment]::GetEnvironmentVariable($taskKey,'Process')}
 
 function Add-HeadlessBlockRule([string]$Program){
@@ -42,8 +43,12 @@ try{
   $taskIsolationConfirmed=$true
  }
  $env:PIP_NO_INDEX='1';$env:PIP_DISABLE_PIP_VERSION_CHECK='1';$env:PIP_CONFIG_FILE='NUL'
+ # Owned regular-image tests need no device privileges. Keep vendor executables
+ # at the caller's existing privilege level rather than requesting elevation.
+ $env:__COMPAT_LAYER='RunAsInvoker'
  Push-Location $taskLayout.Root
  try{
+  & (Join-Path $taskLayout.Tests 'SourceRegistry.Tests.ps1') *>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'source-registry.log')
   if(-not $ManagedOnly){
    & $taskPython (Join-Path $taskLayout.Tests 'BootstrapBuildTests.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'bootstrap-tests.log')
    if($LASTEXITCODE-ne0){throw 'Bootstrap integrity controls failed.'}
@@ -58,6 +63,10 @@ try{
   & $taskEnvPython (Join-Path $taskLayout.Tests 'TelegramDesktopKdfPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'telegram-desktop-frozen.log')
   if($LASTEXITCODE-ne0){throw 'Frozen Telegram Desktop checks failed.'}
   $taskResults+='TelegramDesktopKdfPortableTests'
+  $taskStage='readability-recovery-frozen'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'ReadabilityRecoveryPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'readability-recovery-frozen.log')
+  if($LASTEXITCODE-ne0){throw 'Frozen HTML/JPEG regression checks failed.'}
+  $taskResults+='ReadabilityRecoveryPortableTests'
   }elseif(-not(Test-Path -LiteralPath $taskEnvPython -PathType Leaf)-or-not(Test-Path -LiteralPath $taskHelper -PathType Leaf)-or-not(Test-Path -LiteralPath $taskApp -PathType Leaf)){
    throw 'Managed-only mode requires an existing source-built app, helper and build interpreter.'
   }
@@ -106,6 +115,7 @@ finally{
   if($taskRemaining.Count){$taskCleanup+='Temporary outbound rules remain: '+($taskRemaining-join', ')}
  }
  foreach($taskKey in $taskOldPip.Keys){[Environment]::SetEnvironmentVariable($taskKey,$taskOldPip[$taskKey],'Process')}
+ [Environment]::SetEnvironmentVariable('__COMPAT_LAYER',$taskOldCompatibility,'Process')
  $taskHashes=@{}
  foreach($taskProgram in @($taskEnvPython,$taskHelper,$taskApp)){if(Test-Path -LiteralPath $taskProgram -PathType Leaf){$taskHashes[$taskProgram]=(Get-FileHash -LiteralPath $taskProgram -Algorithm SHA256).Hash.ToLowerInvariant()}}
  $taskReceipt=[ordered]@{status=$(if($null-eq$taskFailure-and$taskCleanup.Count-eq0){'passed'}else{'failed'});mode=$(if($ManagedOnly){'managed_only_existing_build'}else{'full_source_build'});network_isolation_requested=[bool]$BlockNetwork;outbound_rules_verified=$taskIsolationConfirmed;egress_probe_performed=$false;blocked_programs=@($taskBlockedPrograms);temporary_rule_count=$taskRules.Count;remaining_rules=$taskRemaining;cleanup_confirmed=($taskCleanup.Count-eq0-and$taskRemaining.Count-eq0);initial_outputs_present=$taskInitialOutputs;builds_completed=$taskBuilds;headless_managed_suites=$taskResults;artifact_sha256=$taskHashes;headless_manifest=$taskManifest;headless_manifest_sha256=$taskManifestSha;logs=$taskLogRoot;failure=$taskFailure;cleanup_errors=$taskCleanup;gui_tests_run=$false;real_devices_tested=$false}
