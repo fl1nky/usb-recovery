@@ -188,7 +188,7 @@ public static class TelegramDocumentAttributesPortableTests
     static Dictionary<string,string> Sources()
     {
         var result=Binding(Path.Combine(project,"tests","fixtures","telegram-document-attributes"));
-        foreach(string file in new[]{"tests/TelegramDocumentAttributesPortableTests.cs","tests/TelegramDocumentAttributesPortableTests.ps1","tests/FrameworkTarget.cs","helpers/recovery_engine/telegram_tl.py","helpers/recovery_engine/telegram_auto.py","helpers/recovery_engine/engine.py","helpers/recovery_engine/archive_search.py","helpers/recovery_engine/archive_text.py","src/Recovery/Infrastructure/TelegramAnalysisService.cs","src/Recovery/Infrastructure/HelperClient.cs","src/Recovery/Infrastructure/ApplicationPaths.cs","src/Recovery/UI/ArchiveSearchPanel.cs"})result.Add("@source/"+file,Hash(Safe(project,file)));
+        foreach(string file in new[]{"tests/TelegramDocumentAttributesPortableTests.cs","tests/TelegramDocumentAttributesPortableTests.ps1","tests/FrameworkTarget.cs","helpers/recovery_engine/telegram_tl.py","helpers/recovery_engine/telegram_auto.py","helpers/recovery_engine/engine.py","helpers/recovery_engine/telegram_html.py","helpers/recovery_engine/archive_search.py","helpers/recovery_engine/archive_text.py","src/Recovery/Infrastructure/TelegramAnalysisService.cs","src/Recovery/Infrastructure/HelperClient.cs","src/Recovery/Infrastructure/ApplicationPaths.cs","src/Recovery/UI/ArchiveSearchPanel.cs","src/Recovery/Archive/ArchiveContracts.cs","src/Recovery/Infrastructure/ArchiveSearchService.cs"})result.Add("@source/"+file,Hash(Safe(project,file)));
         return result;
     }
     static Dictionary<string,string> Runtime(string helper,string app,string harness)

@@ -27,7 +27,7 @@ def snapshot(helper,app,corpus,controls):
         runner_sha256=digest(Path(__file__)),corpus=inventory(corpus),controls=inventory(controls),
         working_source_context_not_executed={name:digest(ROOT/name) for name in (
             'helpers/recovery_engine/telegram_auto.py','helpers/recovery_engine/telegram_tl.py',
-            'helpers/recovery_engine/engine.py','helpers/recovery_engine/archive_search.py',
+            'helpers/recovery_engine/engine.py','helpers/recovery_engine/telegram_html.py','helpers/recovery_engine/archive_search.py',
             'helpers/recovery_engine/sqlite_history.py','helpers/recovery_engine/sqlite_deleted.py',
             'tests/build_telegram_legacy_fixtures.py')})
 

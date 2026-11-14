@@ -12,7 +12,7 @@ import time
 from score_telegram_recovery import score,sha,text_sha
 
 REPO=Path(__file__).resolve().parents[2]
-SOURCES=('helpers/recovery_engine/engine.py','helpers/recovery_engine/telegram_auto.py',
+SOURCES=('helpers/recovery_engine/engine.py','helpers/recovery_engine/telegram_html.py','helpers/recovery_engine/telegram_auto.py',
          'helpers/recovery_engine/sqlite_history.py','helpers/recovery_engine/sqlite_deleted.py',
          'helpers/recovery_engine/archive_search.py','tests/build_telegram_native_fixtures.py',
          'tests/build_telegram_wal_tail_fixtures.py','tests/build_telegram_overflow_fixtures.py')
