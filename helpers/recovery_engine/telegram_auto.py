@@ -1650,7 +1650,7 @@ class Analyzer:
             elif markup and size <= MAX_TEXT:
                 # Parse solely as data. No browser, HTML source execution or
                 # remote resource retrieval participates in this pipeline.
-                from engine import TelegramHTML
+                from telegram_html import TelegramHTML
                 parser = TelegramHTML()
                 parser.feed(copied.read_text(encoding="utf-8-sig", errors="replace"))
                 if parser.messages:
