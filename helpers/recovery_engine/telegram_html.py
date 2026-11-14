@@ -2,6 +2,13 @@
 from html.parser import HTMLParser
 
 
+# HTML void elements never create a container, including their XHTML spelling.
+# HTMLParser's default start/end handler calls both callbacks for <br/>.
+VOID_ELEMENTS = frozenset({
+    'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+    'meta', 'param', 'source', 'track', 'wbr',
+})
+
 class TextOnly(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -43,7 +50,7 @@ class TelegramHTML(HTMLParser):
         attrs = dict(attrs)
         if tag in ("script", "style"):
             self.blocked += 1
-        if tag in ("br", "img", "meta", "link", "input", "hr", "source", "wbr"):
+        if tag in VOID_ELEMENTS:
             if tag == "br" and self.current and not self.blocked:
                 self.current["text"] += "\n"
             return
@@ -61,6 +68,8 @@ class TelegramHTML(HTMLParser):
             self.current["attachment_refs"].append(attrs["href"])
 
     def handle_endtag(self, tag):
+        if tag in VOID_ELEMENTS:
+            return
         if tag in ("script", "style"):
             self.blocked = max(0, self.blocked - 1)
         if self.current and len(self.stack) == self.depth and tag == "div":
