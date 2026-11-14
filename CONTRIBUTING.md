@@ -27,10 +27,14 @@ or packaged acceptance. See [Build and tests](docs/development/build.md).
 
 - Sources and working copies: `src/Recovery/Sources`.
 - Recovery algorithms: `src/Recovery/Recovery/Engines`.
+- Recovery state and retry: `RecoverySessionState.cs`, `RecoverySession.cs`,
+  `RecoveryStageFiles.cs` in `src/Recovery/Recovery`.
 - Archive protocol models: `src/Recovery/Archive`.
 - Archive search transport: `src/Recovery/Infrastructure/ArchiveSearchService.cs`.
 - Local importers and image processing: `helpers/recovery_engine`.
 - HTML export reader: `helpers/recovery_engine/telegram_html.py`.
+- Durable storage copies: `helpers/recovery_engine/resumable_copy.py` and
+  `recovery_io.py`; EWF/read-error masking remains in `forensic_image.py`.
 
 [Architecture](docs/development/architecture.md) describes the pipeline and the
 boundaries between source, recovered candidate, verified content and export.

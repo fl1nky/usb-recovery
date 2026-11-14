@@ -52,14 +52,34 @@ def writable(path):
         raise RecoveryIOError("INVALID_DESTINATION")
 
 
+def write_all(stream, data):
+    """Finish bounded writes; never count bytes the destination did not accept."""
+    remaining = memoryview(data)
+    while remaining:
+        written = stream.write(remaining)
+        if type(written) is not int or not 0 < written <= len(remaining):
+            raise RecoveryIOError("IO_ERROR")
+        remaining = remaining[written:]
+
+
 def atomic_bytes(path, data):
     writable(path)
     temp = path.with_name(path.name + "." + uuid.uuid4().hex + ".tmp")
-    with temp.open("xb") as output:
-        output.write(data)
-        output.flush()
-        os.fsync(output.fileno())
-    os.replace(temp, path)
+    created = published = False
+    try:
+        with temp.open("xb") as output:
+            created = True
+            write_all(output, data)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temp, path)
+        published = True
+    finally:
+        if created and not published:
+            try:
+                temp.unlink()
+            except OSError:
+                pass  # Preserve the original failure and the prior named state.
 
 
 def atomic(path, value):

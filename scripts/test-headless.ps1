@@ -67,6 +67,10 @@ try{
   & $taskEnvPython (Join-Path $taskLayout.Tests 'ReadabilityRecoveryPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'readability-recovery-frozen.log')
   if($LASTEXITCODE-ne0){throw 'Frozen HTML/JPEG regression checks failed.'}
   $taskResults+='ReadabilityRecoveryPortableTests'
+  $taskStage='recovery-copy-frozen'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'RecoveryCopyPortableTests.py') --exe $taskHelper 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'recovery-copy-frozen.log')
+  if($LASTEXITCODE-ne0){throw 'Frozen copy/resume checks failed.'}
+  $taskResults+='RecoveryCopyPortableTests'
   }elseif(-not(Test-Path -LiteralPath $taskEnvPython -PathType Leaf)-or-not(Test-Path -LiteralPath $taskHelper -PathType Leaf)-or-not(Test-Path -LiteralPath $taskApp -PathType Leaf)){
    throw 'Managed-only mode requires an existing source-built app, helper and build interpreter.'
   }
@@ -86,7 +90,7 @@ try{
   $taskLevels[0].SetAttribute('level','asInvoker')
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
-  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests'){
+  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')

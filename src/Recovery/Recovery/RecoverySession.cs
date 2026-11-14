@@ -225,6 +225,8 @@ namespace UsbRecovery
 
         public void Begin(string key, bool continueCheckpoint)
         {
+            if (key == null || !Keys.Contains(key))
+                throw new ArgumentException("Неизвестный метод восстановления.", "key");
             lock (gate)
             {
                 SessionStage old = State.Stages.FirstOrDefault(x => x.Key == key);
@@ -232,8 +234,6 @@ namespace UsbRecovery
                     throw new IOException("Нет подтверждённой точки продолжения фотографий.");
                 if (continueCheckpoint)
                     VerifyCheckpoint(old, CancellationToken.None);
-                if (old != null && old.Status != "complete" && !continueCheckpoint)
-                    Archive(key);
                 var next = new SessionStage
                 {
                     Key = key,
@@ -247,10 +247,32 @@ namespace UsbRecovery
                     next.CheckpointBytes = old.CheckpointBytes;
                 }
 
-                if (old != null)
-                    State.Stages.Remove(old);
-                State.Stages.Add(next);
-                Save();
+                int position = old == null ? State.Stages.Count : State.Stages.IndexOf(old);
+                string previousUpdatedUtc = State.UpdatedUtc;
+                if (old == null)
+                    State.Stages.Add(next);
+                else
+                    State.Stages[position] = next;
+                try
+                {
+                    // Persist the retry intent before moving outputs. A crash during
+                    // archiving must not leave a reference to a moved checkpoint.
+                    Save();
+                }
+                catch
+                {
+                    if (old == null)
+                        State.Stages.RemoveAt(position);
+                    else
+                        State.Stages[position] = old;
+                    State.UpdatedUtc = previousUpdatedUtc;
+                    throw;
+                }
+
+                // After intent is durable, retain it even if a move fails. The next
+                // attempt can archive the remaining paths without stale references.
+                if (old != null && old.Status != "complete" && !continueCheckpoint)
+                    Archive(key);
             }
         }
 
