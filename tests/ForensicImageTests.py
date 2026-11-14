@@ -13,6 +13,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'helpers/recovery_engine'))
 import forensic_image as f
+from stream_faults import limited_open
 
 
 def sha(path):
@@ -124,6 +125,31 @@ class ForensicImages(unittest.TestCase):
         request['options']['resume']=True
         with self.assertRaises(f.ImageError):f.prepare(request,lambda *a,**k:None)
         self.assertFalse((out/'working.dd').exists())
+
+    def test_short_writes_do_not_publish_incomplete_logical_image(self):
+        source = self.root/'short-write.dd'
+        source.write_bytes(bytes(range(251)) * 10000)
+        before = sha(source)
+        out = self.root/'short-write-result'
+        with limited_open(lambda path, mode: path.name == 'working.dd.partial' and mode == 'xb'):
+            result = f.prepare(self.request(source, out), lambda *a, **k: None)
+        self.assertEqual(result['status'], 'complete')
+        self.assertEqual(sha(out/'working.dd'), before)
+        self.assertEqual(sha(source), before)
+
+    def test_stalled_write_cannot_publish_and_can_resume(self):
+        source = self.root/'stalled-write.dd'
+        source.write_bytes(bytes(range(251)) * 10000)
+        out = self.root/'stalled-write-result'
+        request = self.request(source, out)
+        with limited_open(lambda path, mode: path.name == 'working.dd.partial' and mode == 'xb', (0,)):
+            with self.assertRaisesRegex(f.ImageError, '^IO_ERROR$'):
+                f.prepare(request, lambda *a, **k: None)
+        self.assertFalse((out/'working.dd').exists())
+        self.assertFalse((out/'source-preparation.json').exists())
+        request['options']['resume'] = True
+        self.assertEqual(f.prepare(request, lambda *a, **k: None)['status'], 'complete')
+        self.assertEqual(sha(out/'working.dd'), sha(source))
 
     def test_changed_source_or_map_rejected(self):
         source=self.root/'changed-source.dd';source.write_bytes(b'cd'*(6*f.CHUNK))

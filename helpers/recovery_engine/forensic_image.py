@@ -18,7 +18,7 @@ import time
 import uuid
 import zlib
 
-from recovery_io import (RecoveryIOError as ImageError, plain, digest, writable, atomic_bytes, atomic, writer_lock, read_json, read_only as _read_only)
+from recovery_io import (RecoveryIOError as ImageError, plain, digest, writable, atomic_bytes, atomic, writer_lock, read_json, read_only as _read_only, write_all)
 
 CHUNK = 1024 * 1024
 CHECKPOINT = 8 * CHUNK
@@ -303,10 +303,12 @@ def prepare(request, emit):
             output.seek(done)
             saved = done
             if not state.exists():
+                output.flush()
+                os.fsync(output.fileno())
                 atomic(state, {"binding": binding, "completed": done, "prefix_sha256": current.hexdigest()})
             while done < size:
                 block = filtered(reader, done, min(CHUNK, size - done), good)
-                output.write(block)
+                write_all(output, block)
                 current.update(block)
                 done += len(block)
                 if ewf and (reader.checksum_errors or reader.table_errors or reader.padded_chunks):

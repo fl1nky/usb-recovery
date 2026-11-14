@@ -13,138 +13,32 @@ namespace UsbRecovery
             root = Path.GetFullPath(directory);
         }
 
+        // Output scopes are shared by validation, hashing and retry archival.
         static readonly Dictionary<string, string[]> OutputNames = new Dictionary<string, string[]>
         {
-            {
-                "partitions",
-                new[]
-                {
-                    "partition-search.json"
-                }
-            },
-            {
-                "fat",
-                new[]
-                {
-                    "filesystem"
-                }
-            },
-            {
-                "ntfs",
-                new[]
-                {
-                    "ntfs"
-                }
-            },
-            {
-                "ext4",
-                new[]
-                {
-                    "ext4"
-                }
-            },
-            {
-                "refs",
-                new[]
-                {
-                    "refs"
-                }
-            },
-            {
-                "apfs",
-                new[]
-                {
-                    "apfs"
-                }
-            },
-            {
-                "ntfs-records",
-                new[]
-                {
-                    "metadata-rescue"
-                }
-            },
-            {
-                "photorec",
-                new[]
-                {
-                    "photorec.log",
-                    "photorec.ses"
-                }
-            },
-            {
-                "photos",
-                new[]
-                {
-                    "extra-photos",
-                    "extra-photo-search.json"
-                }
-            },
-            {
-                "containers",
-                new[]
-                {
-                    "containers",
-                    "container-search.json"
-                }
-            },
-            {
-                "archive-members",
-                new[]
-                {
-                    "salvage-content",
-                    "archive-salvage.json"
-                }
-            },
-            {
-                "fragmented-zip",
-                new[]
-                {
-                    "fragmented-archives",
-                    "fragmented-zip.json"
-                }
-            },
-            {
-                "fragmented-photos",
-                new[]
-                {
-                    "fragmented-photos",
-                    "fragmented-photos.state",
-                    "fragmented-photos.index",
-                    "fragmented-photo-search.json"
-                }
-            },
-            {
-                "fragmented-media",
-                new[]
-                {
-                    "fragmented-media",
-                    "fragmented-media.json"
-                }
-            },
-            {
-                "user-signatures",
-                new[]
-                {
-                    "user-signatures",
-                    "user-signatures.json"
-                }
-            },
-            {
-                "text",
-                new[]
-                {
-                    "text-fragments",
-                    "text-search.json"
-                }
-            },
+            { "partitions", new[] { "partition-search.json" } },
+            { "fat", new[] { "filesystem" } },
+            { "ntfs", new[] { "ntfs" } },
+            { "ext4", new[] { "ext4" } },
+            { "refs", new[] { "refs" } },
+            { "apfs", new[] { "apfs" } },
+            { "ntfs-records", new[] { "metadata-rescue" } },
+            { "photorec", new[] { "photorec.log", "photorec.ses" } },
+            { "photos", new[] { "extra-photos", "extra-photo-search.json" } },
+            { "containers", new[] { "containers", "container-search.json" } },
+            { "archive-members", new[] { "salvage-content", "archive-salvage.json" } },
+            { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.json" } },
+            { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },
+            { "fragmented-media", new[] { "fragmented-media", "fragmented-media.json" } },
+            { "user-signatures", new[] { "user-signatures", "user-signatures.json" } },
+            { "text", new[] { "text-fragments", "text-search.json" } },
         };
         internal static readonly string[] Keys = OutputNames.Keys.ToArray();
         internal static IEnumerable<string> Paths(string root, string key)
         {
             string[] names;
             if (!OutputNames.TryGetValue(key, out names))
-                names = OutputNames["photorec"];
+                throw new ArgumentException("Неизвестный метод восстановления.", "key");
             foreach (string name in names)
             {
                 string path = RecoveryCatalog.SafeFile(root, name);
@@ -209,6 +103,9 @@ namespace UsbRecovery
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(target));
+            // Label the destination before moving anything: a failed later move
+            // must leave already retained candidates visible to the catalog.
+            RecoveryCore.SaveJson(target, new { stage = key, status = "previous_interrupted_attempt", note = "Retained output from an interrupted attempt. Archiving may be partial; remaining output is retained in the original stage paths until the next retry." });
             foreach (string path in paths)
             {
                 string dest = RecoveryCatalog.SafeFile(root, Path.GetDirectoryName(target).Substring(root.TrimEnd('\\').Length + 1) + "/" + Path.GetFileName(path));
@@ -217,8 +114,6 @@ namespace UsbRecovery
                 else
                     File.Move(path, dest);
             }
-
-            RecoveryCore.SaveJson(target, new { stage = key, status = "previous_interrupted_attempt", note = "Completed candidates retained. An interrupted method restarted from its beginning; previous output may be partial." });
         }
     }
 }
