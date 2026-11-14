@@ -4,6 +4,12 @@
 
 ## Подготовить зависимости
 
+После клонирования можно запустить `python scripts/bootstrap-build.py` под
+Python 3.12: он восстанавливает закреплённые исходники зависимостей и wheels из
+проверенного выпуска без копирования старого EXE. Первый запуск требует сети;
+`--archive` принимает уже скачанный ZIP того же закреплённого выпуска.
+Ручной способ ниже остаётся доступен.
+
 ```powershell
 git clone https://github.com/fl1nky/usb-recovery.git
 Set-Location usb-recovery
@@ -56,6 +62,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Выбери интерпретатор Python
 В `dist/USB-Recovery` находятся готовая программа, `tools`, документация и папка `source` с `src`, `scripts`, `helpers`, `tests`, `vendor`, `docs` и корневым `build.ps1`. Это комплект для локального запуска и пересборки; разработческие окружения и восстановленные личные данные в него не входят
 
 ## Проверить готовый комплект
+
+Для короткой проверки исходников до пересборки готового комплекта:
+
+```powershell
+.\scripts\prepare-helper-env.ps1 -Python312 $taskPython
+.\scripts\test-source.ps1 -Python312 .build/engine-env/Scripts/python.exe -Suite Quick
+```
+
+`-Suite Full` запускает все обязательные Python-программы из
+`scripts/source-tests.json`. Короткий набор не заменяет полную приёмку EXE/ZIP.
+Потеря любого обязательного файла останавливает проверку до запуска тестов.
+Этот сценарий не включает сетевую блокировку и не открывает окна.
 
 ```powershell
 .\build.ps1 -Action Test
