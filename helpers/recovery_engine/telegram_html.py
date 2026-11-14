@@ -9,6 +9,7 @@ VOID_ELEMENTS = frozenset({
     'meta', 'param', 'source', 'track', 'wbr',
 })
 
+
 class TextOnly(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
