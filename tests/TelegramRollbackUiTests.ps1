@@ -1,4 +1,4 @@
-﻿# Controlled source WinForms/protocol test. Uses owned fake helper/archives only.
+# Controlled source WinForms/protocol test. Uses owned fake helper/archives only.
 # No screenshots, personal profiles, device access, production build or network.
 [CmdletBinding()]
 param([string]$TestDirectory='')
@@ -14,7 +14,7 @@ $taskWorker=Join-Path $taskOut 'tools\recovery-helper'
 $null=New-Item -ItemType Directory -Force -Path $taskWorker
 $taskUtf8=[Text.UTF8Encoding]::new($true)
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-$taskRelative=@('src\Recovery\UI\ArchiveSearchPanel.cs','src\Recovery\UI\ArchiveMessageTextForm.cs','src\Recovery\Infrastructure\HelperClient.cs','src\Recovery\Infrastructure\ApplicationPaths.cs','src\Recovery\UI\Controls\UiTheme.cs','src\Recovery\UI\Controls\ModernControls.cs','src\Recovery\UI\Controls\RecoveryMotion.cs')
+$taskRelative=@('src\Recovery\Archive\ArchiveContracts.cs','src\Recovery\Infrastructure\ArchiveSearchService.cs','src\Recovery\UI\ArchiveSearchPanel.cs','src\Recovery\UI\ArchiveMessageTextForm.cs','src\Recovery\Infrastructure\HelperClient.cs','src\Recovery\Infrastructure\ApplicationPaths.cs','src\Recovery\UI\Controls\UiTheme.cs','src\Recovery\UI\Controls\ModernControls.cs','src\Recovery\UI\Controls\RecoveryMotion.cs')
 function Get-SourceBinding{
     $taskEntries=[ordered]@{}
     foreach($taskRelativeName in $taskRelative){$taskFile=Join-Path $taskRoot $taskRelativeName;$taskEntries[$taskRelativeName]=(Get-FileHash -LiteralPath $taskFile -Algorithm SHA256).Hash.ToLowerInvariant()}
