@@ -71,7 +71,8 @@ if "--skip-rebuild-bundle" not in sys.argv:
             raise ValueError("Invalid mandatory rebuild test")
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     shutil.copyfile(ROOT / "tests/SourceRegistry.Tests.ps1", rebuild / "tests/SourceRegistry.Tests.ps1")
-    shutil.copyfile(ROOT / "tests/ReadabilityRecoveryPortableTests.py", rebuild / "tests/ReadabilityRecoveryPortableTests.py")
+    for name in ("ReadabilityRecoveryPortableTests.py", "RecoveryCopyPortableTests.py", "stream_faults.py"):
+        shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     for name in (
         'build_telegram_legacy_fixtures.py',
         'build_telegram_rollback_fixtures.py',
