@@ -24,7 +24,8 @@ import re
 import struct
 import time
 
-MAX_HEADER = 128 * 1024
+INITIAL_HEADER = 128 * 1024
+MAX_HEADER = 1024 * 1024
 MAX_INTERVAL = 64 * 1024
 MAX_MARKERS = 100_000
 MAX_STARTS = 20_000
@@ -72,25 +73,45 @@ def huffman(counts, values):
     return table
 
 
+def extend_header(assembler, start, raw, required):
+    """Read a declared marker segment lazily, within source and memory limits.
+
+    Legal APP/COM segments can exceed the initial window in aggregate. Keep
+    the normal small-header path unchanged and never extend into missing bytes.
+    """
+    if required <= len(raw):
+        return raw
+    if required > MAX_HEADER:
+        raise InvalidJpeg("jpeg_header_limit")
+    if required > assembler.size - start:
+        raise InvalidJpeg("jpeg_header_torn")
+    extra = assembler.read(start + len(raw), required - len(raw))
+    if len(extra) != required - len(raw):
+        raise InvalidJpeg("jpeg_header_torn")
+    return raw + extra
+
+
 def header(assembler, start, allow_progressive=False):
-    raw = assembler.read(start, min(MAX_HEADER, assembler.size - start))
+    raw = assembler.read(start, min(INITIAL_HEADER, assembler.size - start))
     if not raw.startswith(b"\xff\xd8"):
         raise InvalidJpeg("jpeg_soi")
     p, frame, tables, quant, interval = 2, None, {}, set(), 0
     for _ in range(256):
-        if p >= len(raw) or raw[p] != 255:
+        raw = extend_header(assembler, start, raw, p + 1)
+        if raw[p] != 255:
             raise InvalidJpeg("jpeg_header_torn")
-        while p < len(raw) and raw[p] == 255:
+        while raw[p] == 255:
             p += 1
-        if p >= len(raw):
-            raise InvalidJpeg("jpeg_header_torn")
+            raw = extend_header(assembler, start, raw, p + 1)
         marker = raw[p]
         p += 1
-        if marker in {0, 1, 0xd8, 0xd9} or 0xd0 <= marker <= 0xd7 or len(raw) - p < 2:
+        if marker in {0, 1, 0xd8, 0xd9} or 0xd0 <= marker <= 0xd7:
             raise InvalidJpeg("jpeg_header_marker")
+        raw = extend_header(assembler, start, raw, p + 2)
         length = u16(raw, p)
-        if length < 2 or length > len(raw) - p:
+        if length < 2:
             raise InvalidJpeg("jpeg_header_bounds")
+        raw = extend_header(assembler, start, raw, p + length)
         body = raw[p + 2:p + length]
         end = p + length
         if marker == 0xc0 or marker == 0xc2 and allow_progressive:

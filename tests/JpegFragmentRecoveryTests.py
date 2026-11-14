@@ -99,6 +99,40 @@ class JpegFragments(unittest.TestCase):
         self.assertEqual(status, "jpeg_restart_structural_candidate")
         self.assertIn("not authenticated", note)
 
+    def test_large_app_metadata_preserves_exact_fragmented_original(self):
+        original = jpeg()
+        # T.81 B.2.4.6 permits application segments with 16-bit lengths.
+        # Multiple legal segments may put SOS beyond the old 128-KiB window.
+        application = b'\xff\xef\xff\xff' + b'A' * 65533
+        raw = original[:2] + application * 4 + original[2:]
+        self.assertEqual(pixels(raw), pixels(original))
+        path, positions, pieces = self.source(raw)
+        found, assembler = self.run_recovery(path)
+        self.assertEqual(len(found), 1, assembler.skipped)
+        recipe = found[0][0]
+        self.assertEqual(b''.join(part for _, part in recipe), raw)
+        self.assertEqual([at for at, _ in recipe], positions)
+        self.assertEqual([part for _, part in recipe], pieces)
+
+    def test_metadata_header_remains_bounded(self):
+        application = b'\xff\xef\xff\xff' + b'A' * 65533
+        raw = b'\xff\xd8' + application * 17
+        path = self.root / 'too-much-metadata.dd'
+        path.write_bytes(raw)
+        with path.open('rb') as stream:
+            assembler = PhotoAssembler(stream)
+            with self.assertRaises(InvalidJpeg):
+                header(assembler, 0)
+
+    def test_truncated_metadata_never_reads_past_source(self):
+        raw = b'\xff\xd8\xff\xef\xff\xff' + b'A' * 130
+        path = self.root / 'torn-metadata.dd'
+        path.write_bytes(raw)
+        with path.open('rb') as stream:
+            assembler = PhotoAssembler(stream)
+            with self.assertRaises(InvalidJpeg):
+                header(assembler, 0)
+
     def test_grayscale_and_partial_final_interval(self):
         raw = jpeg(gray=True, restart=7)
         path, _, _ = self.source(raw)
