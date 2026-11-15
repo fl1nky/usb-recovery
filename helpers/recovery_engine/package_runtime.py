@@ -73,6 +73,8 @@ if "--skip-rebuild-bundle" not in sys.argv:
     shutil.copyfile(ROOT / "tests/SourceRegistry.Tests.ps1", rebuild / "tests/SourceRegistry.Tests.ps1")
     for name in ("ReadabilityRecoveryPortableTests.py", "RecoveryCopyPortableTests.py", "stream_faults.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
+    (rebuild / "tests/benchmarks").mkdir(exist_ok=True)
+    shutil.copyfile(ROOT / "tests/benchmarks/native_storage.py", rebuild / "tests/benchmarks/native_storage.py")
     for name in (
         'build_telegram_legacy_fixtures.py',
         'build_telegram_rollback_fixtures.py',

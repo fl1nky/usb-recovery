@@ -3,6 +3,12 @@ using System.Collections.Generic;
 
 namespace UsbRecovery
 {
+    public sealed class RecoveryMethodCheckpoint
+    {
+        public string Path, Sha256;
+        public long Sequence;
+    }
+
     public sealed class SessionArtifact
     {
         public string Path, Sha256;

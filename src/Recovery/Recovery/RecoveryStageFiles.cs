@@ -31,7 +31,7 @@ namespace UsbRecovery
             { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },
             { "fragmented-media", new[] { "fragmented-media", "fragmented-media.json" } },
             { "user-signatures", new[] { "user-signatures", "user-signatures.json" } },
-            { "text", new[] { "text-fragments", "text-search.json" } },
+            { "text", new[] { "text-fragments", "text.state", "text-search.json" } },
         };
         internal static readonly string[] Keys = OutputNames.Keys.ToArray();
         internal static IEnumerable<string> Paths(string root, string key)

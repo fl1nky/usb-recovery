@@ -2,6 +2,10 @@
   "schema": 1,
   "tests": [
     {
+      "file": "NativeStorageBenchmarkTests.py",
+      "suite": "quick"
+    },
+    {
       "file": "TelegramHtmlTests.py",
       "suite": "quick"
     },

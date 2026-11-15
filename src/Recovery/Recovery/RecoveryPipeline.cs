@@ -176,7 +176,7 @@ namespace UsbRecovery
                     {
                         session = RecoverySession.Open(directory, image, options, cancel, progress);
                         warnings = session.State.ExternalImage;
-                        progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото продолжится с сохранённой точки, если она есть; остальные незавершённые методы начнутся сначала.");
+                        progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото и текста продолжится с подтверждённой точки, если она есть; остальные незавершённые методы начнутся сначала.");
                     }
 
                     try
@@ -325,7 +325,7 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Текст: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, session.MethodCheckpoint("text"), value => session.CaptureMethodCheckpoint("text", value), expected) });
                         foreach (var method in methods)
                         {
                             cancel.ThrowIfCancellationRequested();
@@ -372,9 +372,9 @@ namespace UsbRecovery
                                 continue;
                             }
 
-                            bool continuePhoto = method.Key == "fragmented-photos" && session.PhotoCheckpoint() != null;
-                            session.Begin(method.Key, continuePhoto);
-                            progress(method.Name + (continuePhoto ? ": продолжение с сохранённой точки…" : "…"));
+                            bool continueMethod = session.MethodCheckpoint(method.Key) != null;
+                            session.Begin(method.Key, continueMethod);
+                            progress(method.Name + (continueMethod ? ": продолжение с сохранённой точки…" : "…"));
                             try
                             {
                                 int count = method.Run();
