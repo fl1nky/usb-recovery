@@ -1,0 +1,81 @@
+name: Native storage corpus
+
+on:
+  push:
+    branches: [ "feat/headless-expansion-20261115" ]
+    paths:
+      - 'src/**'
+      - 'tests/benchmarks/native_storage.py'
+      - 'tests/benchmarks/produce_native_fat.py'
+      - 'tests/benchmarks/NativeStorageBenchmark.cs'
+      - 'scripts/build-app.ps1'
+      - 'scripts/build-benchmark-driver.ps1'
+      - '.github/workflows/native-corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-storage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  produce:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install filesystem utilities on disposable runner
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y dosfstools mtools
+      - name: Produce native images without mounts or devices
+        run: python3 tests/benchmarks/produce_native_fat.py --destination .build/native-fat
+      - uses: actions/upload-artifact@v7
+        with:
+          name: native-fat-corpus
+          path: .build/native-fat
+          include-hidden-files: true
+          retention-days: 7
+
+  recover:
+    needs: produce
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - uses: actions/download-artifact@v8
+        with:
+          name: native-fat-corpus
+          path: .build/native-fat
+      - name: Build console-only image driver
+        run: |
+          .\scripts\build-app.ps1
+          .\scripts\build-benchmark-driver.ps1
+      - name: Measure native FAT and pinned ext4 controls
+        run: |
+          python tests/benchmarks/native_storage.py prepare-ext4 --destination .build/native-ext4
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned corpus preparation failed.' }
+          python tests/benchmarks/native_storage.py run --corpus .build/native-fat --destination .build/native-fat-results --driver .build/app/NativeStorageBenchmark.exe --require-exact
+          if ($LASTEXITCODE -ne 0) { throw 'FAT benchmark failed.' }
+          python tests/benchmarks/native_storage.py run --corpus .build/native-ext4 --destination .build/native-ext4-results --driver .build/app/NativeStorageBenchmark.exe --require-exact
+          if ($LASTEXITCODE -ne 0) { throw 'Ext4 benchmark failed.' }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-storage-evidence
+          path: |
+            .build/native-fat-results
+            .build/native-ext4-results
+            .build/native-fat/manifest.json
+            .build/native-fat/producer-commands.json
+          include-hidden-files: true
+          retention-days: 7
