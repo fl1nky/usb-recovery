@@ -122,7 +122,7 @@ def audit():
     required_tests += ("TelegramPlatformTests.py", "build_telegram_platform_fixtures.py", "telegram_platform_fixture_producer.py", "JpegStreamingCheckpointTests.py", "JpegLargeStreamingTests.py", "build_large_jpeg_fixtures.py", "prepare_bframe_media_fixtures.py")
     require(sha(ROOT / "tests/telegram_platforms_oracle/NativeScheduledOracle.java") == sha(helper / "rebuild/tests/telegram_platforms_oracle/NativeScheduledOracle.java"), "native platform producer missing or stale")
     required_tests += ("TelegramWebPageTests.py", "build_telegram_webpage_fixtures.py",
-                       "RecoveryCopyPortableTests.py", "stream_faults.py")
+                       "RecoveryCopyPortableTests.py", "Sof1PortableTests.py", "NativeStorageBenchmarkTests.py", "stream_faults.py")
     require(sha(ROOT / "tests/telegram_webpage_oracle/NativeWebPageOracle.java") == sha(helper / "rebuild/tests/telegram_webpage_oracle/NativeWebPageOracle.java"), "native webpage producer missing or stale")
     for name in ("PostboxWriter.cs", "produce.py"):
         require(sha(ROOT / "tests/postbox_oracle" / name) == sha(helper / "rebuild/tests/postbox_oracle" / name),

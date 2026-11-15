@@ -189,7 +189,8 @@ namespace UsbRecovery
             {
                 long sequence;
                 string name = Path.GetFileNameWithoutExtension(file);
-                if (name.Length == 23 && Int64.TryParse(name.Substring(11), out sequence))
+                if (name.Length == 23 && Int64.TryParse(name.Substring(11), out sequence) && sequence > 0 &&
+                    name == "checkpoint-" + sequence.ToString("D12", CultureInfo.InvariantCulture))
                     next = Math.Max(next, sequence + 1);
             }
             if (next <= 0 || next > 999999999999L) throw new IOException("TEXT_CHECKPOINT_SEQUENCE_LIMIT");
@@ -205,7 +206,8 @@ namespace UsbRecovery
                 long sequence;
                 string name = Path.GetFileNameWithoutExtension(file);
                 if (name.Length == 23 && Int64.TryParse(name.Substring(11), out sequence) &&
-                    sequence > 0 && sequence < next && sequence != previousAnchor)
+                    sequence > 0 && sequence < next && sequence != previousAnchor &&
+                    name == "checkpoint-" + sequence.ToString("D12", CultureInfo.InvariantCulture))
                 {
                     RecoveryCatalog.SafeFile(root, "text.state/" + Path.GetFileName(file));
                     try { File.Delete(file); } catch (IOException) { } catch (UnauthorizedAccessException) { }

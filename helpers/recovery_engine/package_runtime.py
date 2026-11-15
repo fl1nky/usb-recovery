@@ -71,7 +71,7 @@ if "--skip-rebuild-bundle" not in sys.argv:
             raise ValueError("Invalid mandatory rebuild test")
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     shutil.copyfile(ROOT / "tests/SourceRegistry.Tests.ps1", rebuild / "tests/SourceRegistry.Tests.ps1")
-    for name in ("ReadabilityRecoveryPortableTests.py", "RecoveryCopyPortableTests.py", "stream_faults.py"):
+    for name in ("ReadabilityRecoveryPortableTests.py", "RecoveryCopyPortableTests.py", "Sof1PortableTests.py", "stream_faults.py"):
         shutil.copyfile(ROOT / "tests" / name, rebuild / "tests" / name)
     (rebuild / "tests/benchmarks").mkdir(exist_ok=True)
     shutil.copyfile(ROOT / "tests/benchmarks/native_storage.py", rebuild / "tests/benchmarks/native_storage.py")

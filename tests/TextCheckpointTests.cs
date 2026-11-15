@@ -82,8 +82,12 @@ public static class TextCheckpointTests
         string[] saved = RecoveryCore.RecoveredFiles(root).ToArray();
         Check(saved.Length == 1, "earlier committed fragment survives cancellation");
         string savedHash = Hash(saved[0]);
+        string unknownState = Path.Combine(root, "text.state", "checkpoint-+00000000100.json");
+        File.WriteAllText(unknownState, "owned non-checkpoint control");
+        string unknownHash = Hash(unknownState);
         if (removePendingOutput) File.Delete(saved[0]);
         VerifyResume(root, source, position);
+        Check(Hash(unknownState) == unknownHash, "generation cleanup preserves noncanonical filenames");
         Check(File.Exists(saved[0]) && Hash(saved[0]) == savedHash, "missing write-ahead output can be rebuilt from source-bound byte evidence");
         Check(Hash(source) == before, "cancellation and resume never modify source bytes");
     }

@@ -22,8 +22,8 @@ namespace UsbRecovery
             return new Regex(pattern, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         }
         static readonly Regex Utf8Runs = Bytes(@"(?:[\x09\x0a\x0d\x20-\x7e]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xec\xee-\xef][\x80-\xbf]{2}|\xed[\x80-\x9f][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf]{2}|[\xf1-\xf3][\x80-\xbf]{3}|\xf4[\x80-\x8f][\x80-\xbf]{2}){8,8192}");
-        static readonly Regex LeRuns = Bytes(@"(?:[\x09\x0a\x0d\x20-\x7e\xa0-\xff]\x00|[\x00-\xff][\x01-\x05]){8,8192}");
-        static readonly Regex BeRuns = Bytes(@"(?:\x00[\x09\x0a\x0d\x20-\x7e\xa0-\xff]|[\x01-\x05][\x00-\xff]){8,8192}");
+        static readonly Regex LeRuns = Bytes(@"(?:[\x09\x0a\x0d\x20-\x7e\xa0-\xff]\x00|[\x00-\xff][\x01-\x05]|[\x00-\xff][\xd8-\xdb][\x00-\xff][\xdc-\xdf]){8,8192}");
+        static readonly Regex BeRuns = Bytes(@"(?:\x00[\x09\x0a\x0d\x20-\x7e\xa0-\xff]|[\x01-\x05][\x00-\xff]|[\xd8-\xdb][\x00-\xff][\xdc-\xdf][\x00-\xff]){8,8192}");
 
         internal static string[] Terms(string query)
         {

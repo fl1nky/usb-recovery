@@ -36,6 +36,20 @@ def pixels(raw):
         return hashlib.sha256(image.tobytes()).hexdigest()
 
 
+def extended_sequential_jpeg(*, gray=False, subsampling=0, restart=8):
+    """libjpeg emits real SOF1 for these 16-bit quantization tables."""
+    rng = random.Random(71)
+    image = Image.new('L' if gray else 'RGB', (83, 61))
+    image.putdata([rng.randrange(256) if gray else tuple(rng.randrange(256) for _ in range(3))
+                   for _ in range(image.width * image.height)])
+    stream = io.BytesIO()
+    image.save(stream, 'JPEG', qtables=[[1] + [300]*63, [1] + [320]*63],
+               subsampling=subsampling, restart_marker_blocks=restart)
+    raw = stream.getvalue()
+    assert b'\xff\xc1' in raw and b'\xff\xc0' not in raw
+    return raw
+
+
 class JpegFragments(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="jpeg-fragments-")
@@ -98,6 +112,45 @@ class JpegFragments(unittest.TestCase):
         self.assertEqual([part for _, part in recipe], pieces)
         self.assertEqual(status, "jpeg_restart_structural_candidate")
         self.assertIn("not authenticated", note)
+
+    def test_native_sof1_three_islands_exact(self):
+        for gray, subsampling, restart in ((False, 0, 8), (False, 1, 4), (False, 2, 2), (True, 0, 8)):
+            with self.subTest(gray=gray, subsampling=subsampling):
+                raw = extended_sequential_jpeg(gray=gray, subsampling=subsampling, restart=restart)
+                path, positions, pieces = self.source(raw)
+                found, assembler = self.run_recovery(path)
+                self.assertEqual(len(found), 1, assembler.skipped)
+                recipe, status, note = found[0]
+                restored = b''.join(part for _, part in recipe)
+                self.assertEqual(restored, raw)
+                self.assertEqual(pixels(restored), pixels(raw))
+                self.assertEqual([at for at, _ in recipe], positions)
+                self.assertEqual(status, 'jpeg_restart_structural_candidate')
+                self.assertIn('not authenticated', note)
+
+    def test_native_sof1_nonrestart_gap_exact(self):
+        raw = extended_sequential_jpeg(gray=True, restart=0)
+        self.assertGreater(len(raw), 512)
+        data = bytearray(b'\xcc' * (2 * 1024 * 1024))
+        first, second = 2500*512, 500*512
+        data[first:first+512] = raw[:512]
+        data[second:second+len(raw)-512] = raw[512:]
+        path = self.root/'sof1-nonrestart.dd'
+        path.write_bytes(data)
+        found, assembler = self.run_recovery(path)
+        self.assertEqual(len(found), 1, assembler.skipped)
+        restored = b''.join(part for _, part in found[0][0])
+        self.assertEqual(restored, raw)
+        self.assertEqual(pixels(restored), pixels(raw))
+        self.assertEqual(found[0][1], 'jpeg_gap_structural_candidate')
+
+    def test_sof1_unsupported_precision_is_not_reinterpreted(self):
+        raw = bytearray(extended_sequential_jpeg())
+        raw[raw.index(b'\xff\xc1') + 4] = 12
+        path, _, _ = self.source(bytes(raw))
+        found, assembler = self.run_recovery(path)
+        self.assertEqual(found, [])
+        self.assertGreater(assembler.skipped.get('jpeg_frame_unsupported', 0), 0)
 
     def test_large_app_metadata_preserves_exact_fragmented_original(self):
         original = jpeg()

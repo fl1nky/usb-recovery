@@ -114,7 +114,10 @@ def header(assembler, start, allow_progressive=False):
         raw = extend_header(assembler, start, raw, p + length)
         body = raw[p + 2:p + length]
         end = p + length
-        if marker == 0xc0 or marker == 0xc2 and allow_progressive:
+        # Eight-bit interleaved SOF1 uses the same Huffman MCU grammar as SOF0.
+        # libjpeg emits it for legal 16-bit quantization tables. Precision,
+        # scan layout and table validation below still reject other SOF1 modes.
+        if marker in {0xc0, 0xc1} or marker == 0xc2 and allow_progressive:
             if frame is not None or len(body) < 6 or body[0] != 8:
                 raise InvalidJpeg("jpeg_frame_unsupported")
             height, width, count = u16(body, 1), u16(body, 3), body[5]
@@ -132,7 +135,7 @@ def header(assembler, start, allow_progressive=False):
             hmax, vmax = max(c[0] for c in components.values()), max(c[1] for c in components.values())
             frame = dict(width=width, height=height, components=components, progressive=marker == 0xc2,
                          mcus=math.ceil(width / (8 * hmax)) * math.ceil(height / (8 * vmax)))
-        elif marker in {0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf}:
+        elif marker in {0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf}:
             raise InvalidJpeg("jpeg_progressive_or_coding_unsupported")
         elif marker == 0xc4:
             at = 0
