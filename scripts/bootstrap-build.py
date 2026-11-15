@@ -1,4 +1,4 @@
-"""Restore pinned build inputs from an immutable public release, never its EXEs."""
+"""Restore pinned inputs; never reuse a previous application/helper executable."""
 import argparse
 import hashlib
 import json
@@ -21,6 +21,8 @@ PREFIXES = ("helpers/recovery_engine/wheels/", "helpers/recovery_engine/dependen
 WHEEL_REGISTRY = "helpers/recovery_engine/wheels/SHA256.json"
 SOURCE_REGISTRY = "helpers/recovery_engine/storage-dependencies.json"
 LOCK = "helpers/recovery_engine/requirements-wheel-lock.txt"
+NATIVE_REGISTRY = "scripts/native-build-inputs.json"
+NATIVE_PREFIXES = ("tools/testdisk-7.2/", "tools/platform-tools/")
 VENDOR = "vendor/iphone-backup-decrypt/"
 VENDOR_FILES = frozenset((".github/workflows/release.yml", ".gitignore", "Dockerfile", "LICENSE.txt",
     "README.md", "SECURITY.md", "pyproject.toml", "src/iphone_backup_decrypt/__init__.py",
@@ -139,9 +141,77 @@ def restore(archive, root=ROOT, expected=ARCHIVE_SHA256):
                 for _, target, name, sha in checked]}
     return result
 
+def restore_native_tools(archive, root=ROOT, expected=ARCHIVE_SHA256):
+    """Opt-in third-party inputs, separate from application/helper runtimes."""
+    root = plain(root.absolute())
+    plain(archive)
+    if digest(archive) != expected:
+        raise ValueError("Bootstrap archive checksum mismatch")
+    registry = plain(root / NATIVE_REGISTRY)
+    records = json.loads(registry.read_text(encoding="utf-8"))
+    required, folded, total = {}, set(), 0
+    if not isinstance(records, list) or not records or len(records) > 128:
+        raise ValueError("Invalid native tool registry")
+    for row in records:
+        if not isinstance(row, dict):
+            raise ValueError("Invalid native tool record")
+        name, sha, size = row.get("path"), row.get("sha256"), row.get("bytes")
+        if not isinstance(name, str) or not name.startswith(NATIVE_PREFIXES):
+            raise ValueError("Unregistered native tool path")
+        safe_name(name)
+        if (name.casefold() in folded or not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha) or
+                type(size) is not int or not 0 < size <= 64 * 1024**2):
+            raise ValueError("Invalid native tool record")
+        folded.add(name.casefold())
+        total += size
+        if total > 128 * 1024**2:
+            raise ValueError("Native tool expansion limit")
+        required[name] = (sha, size)
+    rows, names = [], set()
+    with zipfile.ZipFile(archive) as bundle:
+        for entry in bundle.infolist():
+            if not entry.filename.startswith(NATIVE_PREFIXES) or entry.is_dir():
+                continue
+            name = safe_name(entry.filename)
+            if (name.casefold() in names or name not in required or
+                    (entry.external_attr >> 16) & 0o170000 == 0o120000 or entry.flag_bits & 1):
+                raise ValueError("Unsafe native tool member")
+            names.add(name.casefold())
+            if entry.file_size != required[name][1]:
+                raise ValueError("Native tool size mismatch")
+            target = plain(root / name)
+            if target.exists() and not target.is_file():
+                raise ValueError("Native tool target is not a file")
+            rows.append((entry, name, target))
+        if {name for _, name, _ in rows} != set(required):
+            raise ValueError("Missing native tool input")
+        build = plain(root / ".build")
+        build.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="native-tools-", dir=build) as stage:
+            checked = []
+            for entry, name, target in rows:
+                temporary = Path(stage) / name
+                temporary.parent.mkdir(parents=True, exist_ok=True)
+                with bundle.open(entry) as source, temporary.open("xb") as output:
+                    shutil.copyfileobj(source, output, 1024**2)
+                if temporary.stat().st_size != required[name][1] or digest(temporary) != required[name][0]:
+                    raise ValueError("Native tool checksum mismatch")
+                if target.exists() and digest(target) != required[name][0]:
+                    raise ValueError("Existing native tool differs")
+                checked.append((temporary, target, name))
+            for temporary, target, _ in checked:
+                plain(target).parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    os.link(temporary, target)
+    return {"status": "passed", "registry_sha256": digest(registry),
+            "files": [{"path": name, "sha256": required[name][0], "bytes": required[name][1]} for name in sorted(required)],
+            "application_or_helper_restored": False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--archive", type=Path, help="Use the already verified release ZIP without downloading")
+    parser.add_argument("--native-tools", action="store_true", help="Also restore checkout-pinned third-party tools and licenses")
     options = parser.parse_args()
     root = plain(ROOT)
     if options.archive is None:
@@ -167,8 +237,12 @@ def main():
     else:
         archive = options.archive
     result = restore(archive)
+    if options.native_tools:
+        result["native_tools"] = restore_native_tools(archive)
     (root / ".build/bootstrap-build.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    print(f"PASS pinned build inputs: {len(result['files'])} files; no previous runtime copied")
+    print(f"PASS pinned build inputs: {len(result['files'])} files; no previous application/helper copied")
+    if options.native_tools:
+        print(f"PASS pinned native tool inputs: {len(result['native_tools']['files'])} files")
 
 if __name__ == "__main__":
     main()

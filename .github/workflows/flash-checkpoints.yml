@@ -28,7 +28,11 @@ jobs:
           architecture: x64
       - name: Restore checksum-pinned dependencies
         run: |
-          & '${{ steps.python.outputs.python-path }}' scripts/bootstrap-build.py
+          & '${{ steps.python.outputs.python-path }}' tests/BootstrapBuildTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Bootstrap controls failed.' }
+          & '${{ steps.python.outputs.python-path }}' tests/BootstrapNativeToolsTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Native tool bootstrap controls failed.' }
+          & '${{ steps.python.outputs.python-path }}' scripts/bootstrap-build.py --native-tools
           if ($LASTEXITCODE -ne 0) { throw 'Pinned dependency restore failed.' }
       - name: Verify flash transactions without devices or GUI
         run: .\scripts\test-flash-checkpoints.ps1 -Python312 '${{ steps.python.outputs.python-path }}' -BlockNetwork

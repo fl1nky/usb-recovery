@@ -51,6 +51,8 @@ public static class ExtraPhotoTests
             try { ExtraPhotoSearch.Recover(image, partial, midway.Token, (a, b) => midway.Cancel()); throw new Exception("Midway cancel ignored"); } catch (OperationCanceledException) { }
 
             string tool = Path.Combine(project, "tools", "testdisk-7.2", "photorec_win.exe");
+            phase = "photorec-availability";
+            Assert(File.Exists(tool), "Pinned PhotoRec control executable is missing.");
             string baseline = Path.Combine(root, "До улучшения"); Directory.CreateDirectory(baseline);
             string arguments = "/log /logname \"" + Path.Combine(baseline, "photorec.log") + "\" /d \"" + Path.Combine(baseline, "files") + "\" /cmd \"" + image + "\" partition_none,fileopt,everything,enable,wholespace,search";
             var info = new ProcessStartInfo(tool, arguments) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = baseline, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -77,7 +79,8 @@ public static class ExtraPhotoTests
         catch (Exception e)
         {
             if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-                Console.WriteLine("::error title=ExtraPhoto failure location::" + phase + "; " + e.GetType().Name + "; " + e.HResult.ToString("x8"));
+                Console.WriteLine("::error title=ExtraPhoto failure location::" + phase + "; " + e.GetType().Name + "; " + e.HResult.ToString("x8") +
+                    (e is System.ComponentModel.Win32Exception ? "; native=" + ((System.ComponentModel.Win32Exception)e).NativeErrorCode : ""));
             Console.WriteLine(e); return 1;
         }
     }

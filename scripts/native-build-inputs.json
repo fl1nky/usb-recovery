@@ -1,0 +1,247 @@
+[
+  {
+    "path": "tools/testdisk-7.2/63/cygwin",
+    "sha256": "1a9b75481dba09d8f73b9b13f39d52db026bfc7ae8eb4de1d250388756445dbc",
+    "bytes": 1518
+  },
+  {
+    "path": "tools/testdisk-7.2/AUTHORS.txt",
+    "sha256": "24f8f773d2f79b50b15acb86c2960a63eb87236bb9498358540289a116688c90",
+    "bytes": 220
+  },
+  {
+    "path": "tools/testdisk-7.2/COPYING.txt",
+    "sha256": "9f2e250993c6206fac643824e05e5a0d7d3e0895d9e09a5ce4b12bc2610afc11",
+    "bytes": 18326
+  },
+  {
+    "path": "tools/testdisk-7.2/cygewf-2.dll",
+    "sha256": "e904b5a3f55572fec2d08d222a6c1a54dd768bbb72e666f8eebffa0c68c19214",
+    "bytes": 5457751
+  },
+  {
+    "path": "tools/testdisk-7.2/cyggcc_s-seh-1.dll",
+    "sha256": "38425ee608500b6808bcfe4569ea7f6387a436e8b779979c9c3c045201b87260",
+    "bytes": 491530
+  },
+  {
+    "path": "tools/testdisk-7.2/cygiconv-2.dll",
+    "sha256": "b5674bb002302ab874521499ca07edc30ace5a6beded599591743a2d9656a9cf",
+    "bytes": 1380305
+  },
+  {
+    "path": "tools/testdisk-7.2/cygjpeg-8.dll",
+    "sha256": "49c02ebeeb3d02ae5ef7760aba80b07f070e27100b7ac48fd5cd3fc77323df04",
+    "bytes": 1994733
+  },
+  {
+    "path": "tools/testdisk-7.2/cygncursesw-10.dll",
+    "sha256": "b2f0f7b56356244a4530934d95de622c58772b66bd356963ab345741a21d41a9",
+    "bytes": 3785114
+  },
+  {
+    "path": "tools/testdisk-7.2/cygwin1.dll",
+    "sha256": "52062be7ef8f14445a81a5dff3b3ac3c7b74466159fffd542b22a83af8ac6b86",
+    "bytes": 3693153
+  },
+  {
+    "path": "tools/testdisk-7.2/cygz.dll",
+    "sha256": "78d499f1d956edf00dd988c95f7f76174425c0fb47e3ddb56ba6af447f18f4f1",
+    "bytes": 306623
+  },
+  {
+    "path": "tools/testdisk-7.2/documentation.html",
+    "sha256": "7dfdf954fd87e01ea09dc2e929ac66a8d7d7df9948a0a17040783a89fc9ea876",
+    "bytes": 504
+  },
+  {
+    "path": "tools/testdisk-7.2/fidentify_win.exe",
+    "sha256": "22d8aabc5c90d661c8a40ac48893771e9b715d7b15651c05e10c70e9a1fd13ad",
+    "bytes": 332328
+  },
+  {
+    "path": "tools/testdisk-7.2/iconv.dll",
+    "sha256": "56a7c5e6f67da7aa083426c115993bffe5db5f416e45ca63927dce6d130bd6d5",
+    "bytes": 38426
+  },
+  {
+    "path": "tools/testdisk-7.2/INFO",
+    "sha256": "45c3a355cd86b60f4647c715dc9c6a5fd8216047416f04b32cf273b1216ed442",
+    "bytes": 117
+  },
+  {
+    "path": "tools/testdisk-7.2/libbz2-1.dll",
+    "sha256": "8f5992efe8fb53f4d758a3ee69ba45bb6946bd423f7fcc26f82e14fdd5656b82",
+    "bytes": 105838
+  },
+  {
+    "path": "tools/testdisk-7.2/libewf-2.dll",
+    "sha256": "239961d0c468ce6c632345abb703c5424e723b32c1a86e7e61e4639a1ce0ab11",
+    "bytes": 8067913
+  },
+  {
+    "path": "tools/testdisk-7.2/libfreetype-6.dll",
+    "sha256": "8ba4f47a486ddc5b45e96972b1e32a72be3ed62e613eeed8505d7738807d675a",
+    "bytes": 794104
+  },
+  {
+    "path": "tools/testdisk-7.2/libgcc_s_seh-1.dll",
+    "sha256": "26b4e0c252d1334d99d86fac26a1532ba749e184cd59b9136de043bd5270dc13",
+    "bytes": 521356
+  },
+  {
+    "path": "tools/testdisk-7.2/libglib-2.0-0.dll",
+    "sha256": "0e6003293133caf2ff3b8d873cfdfc414fed79cfd09ed42e5973723bd21b5951",
+    "bytes": 1446843
+  },
+  {
+    "path": "tools/testdisk-7.2/libharfbuzz-0.dll",
+    "sha256": "2fa5115554c602aaff4634a480cfa3cbe4959bdbbeee42d6d321e9460d512706",
+    "bytes": 1062910
+  },
+  {
+    "path": "tools/testdisk-7.2/libintl-8.dll",
+    "sha256": "269b6768f4f852c126359533f0c7e8cdc858951db17c2201b67e926f12a9370a",
+    "bytes": 103685
+  },
+  {
+    "path": "tools/testdisk-7.2/libjpeg-62.dll",
+    "sha256": "5dab29d2a5521d81d9ad30874fc495507c070996532b15886d0db6fe929956dd",
+    "bytes": 783485
+  },
+  {
+    "path": "tools/testdisk-7.2/libpcre-1.dll",
+    "sha256": "63017cff2af6c1fd7fd2c0b3eb9790b5c4d9c710bdec3151e96a7462bf994558",
+    "bytes": 284109
+  },
+  {
+    "path": "tools/testdisk-7.2/libpcre2-16-0.dll",
+    "sha256": "c0841da8789e9faa1d853216163478eb90299254dc3f441fd55b2f60121b5ac8",
+    "bytes": 597829
+  },
+  {
+    "path": "tools/testdisk-7.2/libpng16-16.dll",
+    "sha256": "c21e93636d0752bae17aed23d45dae65dcf08a31d59fe24245e18d7e0713ede3",
+    "bytes": 257185
+  },
+  {
+    "path": "tools/testdisk-7.2/libssp-0.dll",
+    "sha256": "2be3afa998237a39e86f0f035bfc6abdcd51c3733efedfa18217f6c30f852627",
+    "bytes": 89041
+  },
+  {
+    "path": "tools/testdisk-7.2/libstdc++-6.dll",
+    "sha256": "3567182fddf2139f5d794ff1db3f454e8b9b1f48b8617e6143352851f664c87a",
+    "bytes": 22916288
+  },
+  {
+    "path": "tools/testdisk-7.2/libwinpthread-1.dll",
+    "sha256": "13014d3b7ee5194f0269d6bb15556f4b0924808c52f0536155811daf41c7a27c",
+    "bytes": 68933
+  },
+  {
+    "path": "tools/testdisk-7.2/NEWS.txt",
+    "sha256": "6cd6b0d6c2ac3a413ccba78533105b3987df50017569dc0481fa72311c9432d8",
+    "bytes": 20971
+  },
+  {
+    "path": "tools/testdisk-7.2/photorec_win.exe",
+    "sha256": "d75b9a6ff60f91479085a578aca518abb1cd7405f24506a61afa2f7e222147bf",
+    "bytes": 971816
+  },
+  {
+    "path": "tools/testdisk-7.2/platforms/qwindows.dll",
+    "sha256": "02f0d11790f35187f5a5c2b698dc4ba57c9f2d1ce8e584ebce6e862133e4674d",
+    "bytes": 1362156
+  },
+  {
+    "path": "tools/testdisk-7.2/qphotorec_win.exe",
+    "sha256": "561a06050c8b1303706d6d33558ccc81cfb9137393fc040f25405316243bd7eb",
+    "bytes": 912424
+  },
+  {
+    "path": "tools/testdisk-7.2/qt.conf",
+    "sha256": "6c6eed542fd955f532bdadf0e7136aefa8def2a8dc0f8629ff61e2a6ed684dc7",
+    "bytes": 55
+  },
+  {
+    "path": "tools/testdisk-7.2/Qt5Core.dll",
+    "sha256": "03e09d9dd941233b87e96fd0e6a117790a621f3afb971265d65be80334f831e0",
+    "bytes": 6324655
+  },
+  {
+    "path": "tools/testdisk-7.2/Qt5Gui.dll",
+    "sha256": "bdcc621a04568db6c1b765083addbd1f817e32f59f8d1679cc64b6f06a0d98c5",
+    "bytes": 6921855
+  },
+  {
+    "path": "tools/testdisk-7.2/Qt5Widgets.dll",
+    "sha256": "925cbe1bcfc9f049b778691584187afd0bdcdfb6274dc1951bc8d96786d44611",
+    "bytes": 7303411
+  },
+  {
+    "path": "tools/testdisk-7.2/readme.txt",
+    "sha256": "68af43175eeba5e1104074600f807492391f2928da944786ea1acc507dc5ce02",
+    "bytes": 647
+  },
+  {
+    "path": "tools/testdisk-7.2/source/SHA256.txt",
+    "sha256": "0ab39cb6ff5f2cd9b180c1bda5f249fc76eb5bcba115e63f106606231560925c",
+    "bytes": 152
+  },
+  {
+    "path": "tools/testdisk-7.2/source/testdisk-7.2-source.tar.bz2",
+    "sha256": "f8343be20cb4001c5d91a2e3bcd918398f00ae6d8310894a5a9f2feb813c283f",
+    "bytes": 855781
+  },
+  {
+    "path": "tools/testdisk-7.2/testdisk.pdf",
+    "sha256": "34173fdb5503df7925ac6c78d66ac40e1972223e65d91c96f7b91ce56b2ef37c",
+    "bytes": 563321
+  },
+  {
+    "path": "tools/testdisk-7.2/testdisk_win.exe",
+    "sha256": "025ea8936765169966fe497b8c46bd5ad16b98b189ee90d6854f063200c95f0c",
+    "bytes": 765992
+  },
+  {
+    "path": "tools/testdisk-7.2/THANKS.txt",
+    "sha256": "12b2bd649cdb8df8a649ffed716af77570982194b96a1fffabc18d830153ccc5",
+    "bytes": 350
+  },
+  {
+    "path": "tools/testdisk-7.2/VERSION.txt",
+    "sha256": "81bdb4615fad4dd3953406c3505ed2bea8cd550274bd16cbe9576f45a786a385",
+    "bytes": 37
+  },
+  {
+    "path": "tools/testdisk-7.2/zlib1.dll",
+    "sha256": "65aee53b03ea7b0182130346598318a095abd682ccb925a8aa233a59bf29bd81",
+    "bytes": 125108
+  },
+  {
+    "path": "tools/platform-tools/adb.exe",
+    "sha256": "b4a6b455702684652cccf7b46258b29e653538904359a58fd4931cf3ef286b3f",
+    "bytes": 8273560
+  },
+  {
+    "path": "tools/platform-tools/AdbWinApi.dll",
+    "sha256": "c1d653030b4bde65d3e07e4d0b0979e17be56df1436cdd15528630f27808050d",
+    "bytes": 108184
+  },
+  {
+    "path": "tools/platform-tools/AdbWinUsbApi.dll",
+    "sha256": "0710e894d9b40f71a670c13c694079d564c92c1279da382cfe4850983aaebe1b",
+    "bytes": 73368
+  },
+  {
+    "path": "tools/platform-tools/NOTICE.txt",
+    "sha256": "38ec8c6f5b7799c223ffeab1f9e81c2d5fc67b5e56d6424f649630ca1ee1a811",
+    "bytes": 1154131
+  },
+  {
+    "path": "tools/platform-tools/source.properties",
+    "sha256": "2dccd788c0234d8cf7f7457377e57f57527a86a629c6ed54feb8af0f549dac38",
+    "bytes": 38
+  }
+]

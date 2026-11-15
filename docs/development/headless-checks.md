@@ -6,18 +6,31 @@
 Python 3.12 x64 нужен только разработчику для сборки исходников:
 
 ~~~powershell
-python scripts/bootstrap-build.py
+python scripts/bootstrap-build.py --native-tools
 .\scripts\test-headless.ps1 -Python312 (Get-Command python.exe).Source
 ~~~
 
 Bootstrap использует опубликованный immutable ZIP с закреплённым SHA256.
 Он извлекает зависимости и исходники библиотеки iPhone, проверяет их по реестрам
-текущего checkout и не переносит старый helper или EXE.
+текущего checkout и не переносит старое приложение или helper. Флаг `--native-tools`
+дополнительно извлекает сторонние TestDisk/PhotoRec и platform-tools вместе с
+лицензиями, строго по `scripts/native-build-inputs.json`. Для PhotoRec-контроля
+в чистом checkout этот флаг обязателен. Каждый файл проверяется до публикации;
+без флага восстанавливаются только прежние исходные зависимости.
 Для уже скачанного ZIP доступен параметр --archive.
 
 Запуск создаёт приложение и новый helper, выполняет обязательные исходные тесты,
 сборки RAID и проверки рабочего процесса. Журналы и итог находятся в .build;
 пути и контрольные суммы записываются в headless-validation.json.
+
+Для быстрого повторения C#-проверок флешек после подготовки зависимостей:
+
+~~~powershell
+.\scripts\test-flash-checkpoints.ps1 -Python312 (Get-Command python.exe).Source
+~~~
+
+Этот проход отдельно строит приложение и проверяет контрольные точки, архивы,
+повреждения и прежние результаты. Он дополняет полный source/helper прогон.
 
 На уже привилегированном выделенном Windows CI runner параметр -BlockNetwork
 создаёт временные исходящие блокирующие правила для перечисленных программ,
