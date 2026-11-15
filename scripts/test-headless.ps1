@@ -85,6 +85,13 @@ try{
   $taskStage='container-compatibility-fixtures'
   & $taskEnvPython (Join-Path $taskLayout.Tests 'DeepRecoveryFixtures.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'container-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Container compatibility fixture generation failed.'}
+  $taskStage='archive-checkpoint-fixtures'
+  $taskArchiveLegacy=Join-Path $taskLogRoot 'archive-legacy'
+  $taskArchiveCheckpoints=Join-Path $taskLogRoot 'archive-checkpoints'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_archive_salvage_fixtures.py') $taskArchiveLegacy 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'archive-legacy-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'Archive legacy fixtures failed.'}
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_archive_checkpoint_fixtures.py') $taskArchiveCheckpoints 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'archive-checkpoint-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'Archive checkpoint fixtures failed.'}
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
   # Retain compatibility attributes, especially longPathAware, while giving
   # only these ordinary-file console tests their own asInvoker execution level.
@@ -97,7 +104,7 @@ try{
   $taskLevels[0].SetAttribute('level','asInvoker')
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
-  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests'){
+  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
@@ -107,6 +114,8 @@ try{
    if($taskName-eq'ExtraPhotoTests'){Add-HeadlessBlockRule (Join-Path $taskLayout.Tools 'testdisk-7.2\photorec_win.exe')}
    $taskArguments=@($taskLayout.Root)
    if($taskName-eq'Raid10LayoutTests'){$taskArguments+=$taskRaidFixtures}
+   if($taskName-eq'ArchiveCheckpointTests'){$taskArguments+=$taskArchiveCheckpoints}
+   if($taskName-eq'ArchiveSalvageTests'){$taskArguments=@($taskArchiveLegacy)}
    & $taskExe @taskArguments 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot ($taskName+'.log'))
    if($LASTEXITCODE-ne0){throw ('Headless test failed: '+$taskName)}
    $taskResults+=$taskName

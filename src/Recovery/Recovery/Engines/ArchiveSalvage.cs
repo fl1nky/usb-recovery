@@ -30,6 +30,15 @@ namespace UsbRecovery
         static readonly Encoding Utf8 = new UTF8Encoding(false, true), LegacyName = Encoding.GetEncoding(437);
         static readonly uint[] CrcTable = MakeCrcTable();
 
+        public sealed class ScanState
+        {
+            public long Position, SkipUntil, TotalBytes, DecodedWorkBytes;
+            public int Candidates;
+            public bool Complete, Limited;
+            public RecoveryOutputHead Output;
+            public Dictionary<string, int> Skipped = new Dictionary<string, int>();
+        }
+
         sealed class WorkBudget
         {
             public long Remaining = MaximumTotalBytes;
@@ -58,7 +67,7 @@ namespace UsbRecovery
                 if (position >= count) return 0;
                 source.Position = start + position;
                 int read = source.Read(buffer, offset, (int)Math.Min(length, count - position)); position += read;
-                if (read == 0) throw new MemberError("ZIP_MEMBER_TRUNCATED");
+                if (read == 0) throw new IOException("ZIP_SOURCE_TRUNCATED");
                 return read;
             }
             public override void Flush() { }
@@ -83,7 +92,7 @@ namespace UsbRecovery
             if (offset < 0 || size < 0 || offset > stream.Length - size) throw new MemberError("ZIP_HEADER_TRUNCATED");
             byte[] data = new byte[size]; stream.Position = offset; int done = 0, read;
             while (done < size && (read = stream.Read(data, done, size - done)) > 0) done += read;
-            if (done != size) throw new MemberError("ZIP_HEADER_TRUNCATED");
+            if (done != size) throw new IOException("ZIP_SOURCE_TRUNCATED");
             return data;
         }
 
@@ -125,7 +134,7 @@ namespace UsbRecovery
             }
         }
 
-        static SalvagedArchiveMember Extract(FileStream source, long offset, string output, long remaining, WorkBudget work, CancellationToken cancel)
+        static SalvagedArchiveMember Header(FileStream source, long offset, long remaining)
         {
             byte[] header = Read(source, offset, 30);
             if (header[0] != 0x50 || header[1] != 0x4b || header[2] != 3 || header[3] != 4) throw new MemberError("ZIP_HEADER_INVALID");
@@ -143,13 +152,30 @@ namespace UsbRecovery
             CheckExtra(Read(source, offset + 30L + nameBytes, extraBytes));
             long dataOffset = offset + 30L + nameBytes + extraBytes;
             if (dataOffset > source.Length - compressed) throw new MemberError("ZIP_MEMBER_TRUNCATED");
-            string relative = "salvage-content/member-" + offset.ToString("D16") + "_" + SafeLeaf(name), target = Path.Combine(output, Path.GetFileName(relative)), partial = target + ".partial";
+            string relative = "salvage-content/member-" + offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + "_" + SafeLeaf(name);
+            return new SalvagedArchiveMember { Path = relative, OriginalMemberName = name,
+                HeaderOffset = offset, DataOffset = dataOffset, CompressedBytes = compressed, Bytes = original,
+                CompressionMethod = method, Crc32 = crc.ToString("x8"),
+                Note = "Independent ZIP member CRC and size verified. Archive/document completeness and deletion state unknown. Active file extensions neutralized; nothing executed." };
+        }
+
+        // Only a private partial is produced here. The parent must commit the
+        // corresponding CRC/SHA plan before Publish creates its public name.
+        static SalvagedArchiveMember Extract(FileStream source, long offset, string output, long remaining, WorkBudget work, CancellationToken cancel)
+        {
+            var member = Header(source, offset, remaining);
+            string target = Path.Combine(output, Path.GetFileName(member.Path)), partial = target + ".partial";
+            PlainPath(partial);
+            if (File.Exists(partial)) File.Delete(partial); // Unlink only; never truncate an alias.
+            long original = member.Bytes, compressed = member.CompressedBytes;
+            int method = member.CompressionMethod;
+            uint crc = Convert.ToUInt32(member.Crc32, 16);
             uint actualCrc = 0xffffffff; long written = 0;
-            string sha;
+            bool verified = false;
             try {
                 using (var file = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
                 using (var digest = SHA256.Create())
-                using (var body = new SliceStream(source, dataOffset, compressed)) {
+                using (var body = new SliceStream(source, member.DataOffset, compressed)) {
                     Stream decoded = method == 8 ? (Stream)new DeflateStream(body, CompressionMode.Decompress, true) : body;
                     try {
                         byte[] bytes = new byte[32768]; int count;
@@ -167,14 +193,91 @@ namespace UsbRecovery
                     // DeflateStream implementations prefetch, so CRC/length
                     // remain the main content verification, not this check.
                     if (body.Position != compressed) throw new MemberError("ZIP_COMPRESSED_SIZE_MISMATCH");
-                    digest.TransformFinalBlock(new byte[0], 0, 0); sha = BitConverter.ToString(digest.Hash).Replace("-", "").ToLowerInvariant(); file.Flush(true);
+                    digest.TransformFinalBlock(new byte[0], 0, 0);
+                    member.Sha256 = BitConverter.ToString(digest.Hash).Replace("-", "").ToLowerInvariant(); file.Flush(true);
                 }
-                File.Move(partial, target);
-                return new SalvagedArchiveMember { Path = relative, OriginalMemberName = name, Sha256 = sha, HeaderOffset = offset, DataOffset = dataOffset, CompressedBytes = compressed, Bytes = written, CompressionMethod = method, Crc32 = crc.ToString("x8"), Note = "Independent ZIP member CRC and size verified. Archive/document completeness and deletion state unknown. Active file extensions neutralized; nothing executed." };
-            } finally { if (File.Exists(partial)) File.Delete(partial); }
+                verified = true;
+                return member;
+            } finally { if (!verified && File.Exists(partial)) File.Delete(partial); }
         }
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel, Action<long, long> progress)
+        {
+            return Recover(image, runDirectory, cancel, progress, null);
+        }
+
+        static bool SameHeader(SalvagedArchiveMember a, SalvagedArchiveMember b)
+        {
+            return a.Path == b.Path && a.OriginalMemberName == b.OriginalMemberName && a.HeaderOffset == b.HeaderOffset &&
+                a.DataOffset == b.DataOffset && a.CompressedBytes == b.CompressedBytes && a.Bytes == b.Bytes &&
+                a.CompressionMethod == b.CompressionMethod && a.Crc32 == b.Crc32;
+        }
+
+        static string Hash(string path, CancellationToken cancel)
+        {
+            return RecoveryCore.HashFile(path, cancel, (done, total) => { });
+        }
+
+        static void Publish(FileStream source, string root, SalvagedArchiveMember member,
+            WorkBudget repair, CancellationToken cancel)
+        {
+            string target = RecoveryCatalog.SafeFile(root, member.Path);
+            string partial = RecoveryCatalog.SafeFile(root, member.Path + ".partial");
+            if (File.Exists(target))
+            {
+                if (new FileInfo(target).Length != member.Bytes || Hash(target, cancel) != member.Sha256)
+                    throw new IOException("ZIP_MEMBER_OUTPUT_CHANGED");
+                return;
+            }
+            if (!File.Exists(partial) || new FileInfo(partial).Length != member.Bytes || Hash(partial, cancel) != member.Sha256)
+            {
+                SalvagedArchiveMember recreated;
+                try { recreated = Extract(source, member.HeaderOffset, Path.GetDirectoryName(target), MaximumMemberBytes, repair, cancel); }
+                catch (MemberError) { throw new IOException("ZIP_MEMBER_REPAIR_FAILED"); }
+                catch (InvalidDataException) { throw new IOException("ZIP_MEMBER_REPAIR_FAILED"); }
+                if (!SameHeader(member, recreated) || member.Sha256 != recreated.Sha256)
+                    throw new IOException("ZIP_MEMBER_SOURCE_CHANGED");
+            }
+            cancel.ThrowIfCancellationRequested();
+            File.Move(partial, target);
+        }
+
+        static void Validate(ScanState state, IList<SalvagedArchiveMember> records, FileStream source, CancellationToken cancel)
+        {
+            if (state.Position < 0 || state.Position > source.Length || state.SkipUntil < 0 || state.SkipUntil > source.Length ||
+                state.Complete && state.Position != source.Length || state.Complete && state.Limited ||
+                !state.Complete && !state.Limited && state.Position % BlockBytes != 0 ||
+                state.Candidates < records.Count || state.Candidates > MaximumHeaders + 1 ||
+                state.TotalBytes < 0 || state.TotalBytes > MaximumTotalBytes || state.DecodedWorkBytes < state.TotalBytes ||
+                state.DecodedWorkBytes > MaximumTotalBytes || state.Skipped == null || state.Skipped.Count > 32 ||
+                state.Skipped.Any(x => x.Key == null || x.Key.Length > 64 || !x.Key.StartsWith("ZIP_", StringComparison.Ordinal) ||
+                    x.Value < 0 || x.Value > state.Candidates))
+                throw new IOException("ZIP_MEMBER_CHECKPOINT_INVALID");
+            long total = 0, end = 0;
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var record in records)
+            {
+                cancel.ThrowIfCancellationRequested();
+                if (record == null || record.HeaderOffset < 0 || record.HeaderOffset >= state.Position ||
+                    record.Bytes < 0 || record.Bytes > MaximumMemberBytes || record.Sha256 == null || record.Sha256.Length != 64 ||
+                    record.Sha256.Any(c => !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f')) ||
+                    record.Status != "member_crc_verified" || !names.Add(record.Path))
+                    throw new IOException("ZIP_MEMBER_CHECKPOINT_RECORD_INVALID");
+                try
+                {
+                    if (!SameHeader(record, Header(source, record.HeaderOffset, MaximumMemberBytes)))
+                        throw new IOException("ZIP_MEMBER_SOURCE_CHANGED");
+                }
+                catch (MemberError) { throw new IOException("ZIP_MEMBER_SOURCE_CHANGED"); }
+                total += record.Bytes;
+                end = Math.Max(end, record.DataOffset + record.CompressedBytes);
+            }
+            if (state.TotalBytes != total || state.SkipUntil != end)
+                throw new IOException("ZIP_MEMBER_CHECKPOINT_COUNT_CHANGED");
+        }
+
+        internal static int Recover(string image, string runDirectory, CancellationToken cancel,
+            Action<long, long> progress, RecoveryCheckpointContext checkpoint)
         {
             cancel.ThrowIfCancellationRequested();
             image = Path.GetFullPath(image); runDirectory = Path.GetFullPath(runDirectory);
@@ -183,35 +286,114 @@ namespace UsbRecovery
             PlainPath(image); PlainPath(runDirectory);
             string output = Path.Combine(runDirectory, "salvage-content"), report = Path.Combine(runDirectory, "archive-salvage.json"); PlainPath(output);
             PlainPath(report);
-            if (File.Exists(report) || Directory.Exists(report)) throw new IOException("Отчёт спасения уже существует. Для повторного поиска выбери новый результат.");
-            if (File.Exists(output) || Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any()) throw new IOException("Папка спасения содержимого уже существует. Для повторного поиска выбери новый результат.");
-            Directory.CreateDirectory(output); var files = new List<SalvagedArchiveMember>(); var skipped = new Dictionary<string, int>();
-            var work = new WorkBudget();
-            string status = "incomplete"; long totalBytes = 0, position = 0, skipUntil = 0; int carry = 0, candidates = 0;
-            Action<string> skip = code => { int count; skipped.TryGetValue(code, out count); skipped[code] = count + 1; };
-            Action save = () => File.WriteAllText(report, new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.Serialize(new { status = status, engine = "ZIP local-member salvage", sourceImage = image, sourceAccess = "read_only", candidates = candidates, members = files.Count, bytes = totalBytes, decodedWorkBytes = MaximumTotalBytes - work.Remaining, maximumMemberBytes = MaximumMemberBytes, maximumTotalBytes = MaximumTotalBytes, skipped = skipped, files = files, note = "Only ZIP32 stored/deflate with known local sizes. The shared work budget includes failed candidates. Data descriptors, ZIP64, encryption and arbitrary fragmented bodies unsupported. Whole archive/Office document not reconstructed." }), new UTF8Encoding(false));
-            try {
-                using (var scan = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, BlockBytes))
-                using (var parser = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, 65536)) {
-                    byte[] block = new byte[BlockBytes + 3]; int read;
-                    while ((read = scan.Read(block, carry, block.Length - carry)) > 0) {
-                        cancel.ThrowIfCancellationRequested(); int length = carry + read, limit = scan.Position == scan.Length ? length : Math.Max(0, length - 3); long start = position - carry;
-                        for (int i = 0; i < limit; i++) {
+            if (String.Equals(image, report, StringComparison.OrdinalIgnoreCase) || image.StartsWith(output + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Источник пересекается с результатами спасения ZIP.");
+            if (Directory.Exists(report) || checkpoint == null && File.Exists(report))
+                throw new IOException("Отчёт спасения уже существует. Для повторного поиска выбери новый результат.");
+            if (File.Exists(output) || checkpoint == null && Directory.Exists(output) && Directory.EnumerateFileSystemEntries(output).Any())
+                throw new IOException("Папка спасения содержимого уже существует. Для повторного поиска выбери новый результат.");
+            var journal = new RecoveryMethodJournal<ScanState>(image, new ScanState(), checkpoint, cancel);
+            var state = journal.Payload;
+            var ledger = new RecoveryOutputLedger<SalvagedArchiveMember>(checkpoint, state.Output, MaximumMembers, cancel);
+            var work = new WorkBudget { Remaining = MaximumTotalBytes - state.DecodedWorkBytes };
+            var repair = new WorkBudget();
+            string status = "incomplete";
+            Action<string> skip = code => { int count; state.Skipped.TryGetValue(code, out count); state.Skipped[code] = count + 1; };
+            Action save = () => RecoveryCore.SaveJson(report, new { status = status, engine = "ZIP local-member salvage", sourceImage = image,
+                sourceAccess = "read_only", candidates = state.Candidates, members = ledger.Records.Count,
+                bytes = ledger.Records.Sum(x => x.Bytes), decodedWorkBytes = MaximumTotalBytes - work.Remaining,
+                repairWorkBytes = MaximumTotalBytes - repair.Remaining, maximumMemberBytes = MaximumMemberBytes,
+                maximumTotalBytes = MaximumTotalBytes, skipped = state.Skipped, files = ledger.Records,
+                note = "Only ZIP32 stored/deflate with known local sizes. Search work includes failed candidates; repair of committed files has a separate bounded budget. Data descriptors, ZIP64, encryption and arbitrary fragmented bodies unsupported. Whole archive/Office document not reconstructed." });
+            using (var scan = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, BlockBytes))
+            using (var parser = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+            {
+                Validate(state, ledger.Records, parser, cancel);
+                var expected = new HashSet<string>(ledger.Records.Select(x => x.Path), StringComparer.OrdinalIgnoreCase);
+                if (Directory.Exists(output))
+                {
+                    if (Directory.EnumerateDirectories(output).Any()) throw new IOException("ZIP_MEMBER_OUTPUT_CHANGED");
+                    foreach (string file in Directory.EnumerateFiles(output))
+                        if (!file.EndsWith(".partial", StringComparison.OrdinalIgnoreCase) &&
+                            !expected.Contains("salvage-content/" + Path.GetFileName(file))) throw new IOException("ZIP_MEMBER_OUTPUT_CHANGED");
+                }
+                Directory.CreateDirectory(output);
+                foreach (var member in ledger.Records) Publish(parser, runDirectory, member, repair, cancel);
+                if (journal.Resumed && progress != null) progress(state.Position, scan.Length);
+                if (state.Limited) throw new IOException("Спасение ZIP ранее достигло предела. Проверенные файлы сохранены; нужен отдельный поиск.");
+                var pending = new List<SalvagedArchiveMember>();
+                long lastHeader = state.Position;
+                Action commit = () =>
+                {
+                    state.DecodedWorkBytes = MaximumTotalBytes - work.Remaining;
+                    state.Output = ledger.Append(state.Output, pending);
+                    journal.Save(state);
+                    ledger.Accept(pending);
+                    foreach (var member in pending) Publish(parser, runDirectory, member, repair, cancel);
+                    pending.Clear();
+                };
+                try
+                {
+                    if (journal.Enabled && !journal.Resumed) journal.Save(state);
+                    byte[] block = new byte[BlockBytes + 3];
+                    while (!state.Complete && state.Position < scan.Length)
+                    {
+                        cancel.ThrowIfCancellationRequested();
+                        scan.Position = state.Position;
+                        int length = (int)Math.Min(block.Length, scan.Length - state.Position), done = 0;
+                        while (done < length)
+                        {
+                            int amount = scan.Read(block, done, length - done);
+                            if (amount == 0) throw new IOException("ZIP_SOURCE_TRUNCATED");
+                            done += amount;
+                        }
+                        int limit = (int)Math.Min(BlockBytes, scan.Length - state.Position);
+                        for (int i = 0; i < limit; i++)
+                        {
                             if ((i & 65535) == 0) cancel.ThrowIfCancellationRequested();
-                            if (start + i < skipUntil || i > length - 4 || block[i] != 0x50 || block[i + 1] != 0x4b || block[i + 2] != 3 || block[i + 3] != 4) continue;
-                            if (++candidates > MaximumHeaders || files.Count >= MaximumMembers || totalBytes >= MaximumTotalBytes || work.Remaining <= 0) { status = "limited"; save(); throw new IOException("Спасение содержимого ZIP достигло ограничения. Проверенные файлы сохранены."); }
-                            try {
-                                var member = Extract(parser, start + i, output, MaximumTotalBytes - totalBytes, work, cancel);
-                                totalBytes += member.Bytes; files.Add(member); skipUntil = member.DataOffset + member.CompressedBytes;
-                            } catch (MemberError error) { skip(error.Code); if (error.Code == "ZIP_WORK_LIMIT") { status = "limited"; throw new IOException("Достигнут предел распаковки ZIP. Проверенные файлы сохранены."); } }
+                            lastHeader = state.Position + i;
+                            if (lastHeader < state.SkipUntil || i > length - 4 || block[i] != 0x50 || block[i + 1] != 0x4b || block[i + 2] != 3 || block[i + 3] != 4) continue;
+                            if (++state.Candidates > MaximumHeaders || ledger.Records.Count + pending.Count >= MaximumMembers ||
+                                state.TotalBytes >= MaximumTotalBytes || work.Remaining <= 0)
+                            { status = "limited"; throw new IOException("Спасение содержимого ZIP достигло ограничения. Проверенные файлы сохранены."); }
+                            try
+                            {
+                                var member = Extract(parser, lastHeader, output, MaximumTotalBytes - state.TotalBytes, work, cancel);
+                                state.TotalBytes += member.Bytes;
+                                pending.Add(member);
+                                state.SkipUntil = member.DataOffset + member.CompressedBytes;
+                            }
+                            catch (MemberError error)
+                            {
+                                skip(error.Code);
+                                if (error.Code == "ZIP_WORK_LIMIT") { status = "limited"; throw new IOException("Достигнут предел распаковки ZIP. Проверенные файлы сохранены."); }
+                            }
                             catch (InvalidDataException) { skip("ZIP_DEFLATE_INVALID"); }
                         }
-                        position += read; carry = length - limit; Buffer.BlockCopy(block, limit, block, 0, carry); if (progress != null) progress(scan.Position, scan.Length); save();
+                        state.Position += limit;
+                        state.Complete = state.Position == scan.Length;
+                        commit();
+                        if (progress != null) progress(state.Position, scan.Length);
+                        save();
                     }
+                    cancel.ThrowIfCancellationRequested();
+                    if (!state.Complete) { state.Complete = true; commit(); }
+                    status = "complete";
+                    return ledger.Records.Count;
                 }
-                cancel.ThrowIfCancellationRequested(); status = "complete"; return files.Count;
-            } catch (OperationCanceledException) { status = "cancelled"; throw; }
-            finally { save(); }
+                catch (OperationCanceledException) { status = "cancelled"; throw; }
+                catch (IOException)
+                {
+                    if (status == "limited")
+                    {
+                        state.Position = Math.Min(scan.Length, lastHeader + 1);
+                        state.Limited = true;
+                        commit();
+                    }
+                    throw;
+                }
+                finally { save(); }
+            }
         }
 
         static uint[] MakeCrcTable()

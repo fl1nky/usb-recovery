@@ -1,0 +1,44 @@
+name: Flash checkpoints
+
+on:
+  push:
+    branches: [ "feat/flash-recovery-complete-20261115" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flash-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-windows:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - name: Restore checksum-pinned dependencies
+        run: |
+          & '${{ steps.python.outputs.python-path }}' scripts/bootstrap-build.py
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned dependency restore failed.' }
+      - name: Verify flash transactions without devices or GUI
+        run: .\scripts\test-flash-checkpoints.ps1 -Python312 '${{ steps.python.outputs.python-path }}' -BlockNetwork
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: flash-checkpoint-evidence
+          path: |
+            .build/flash-checkpoints-validation.json
+            .build/flash-checkpoints-*/*.log
+            .build/flash-checkpoints-*/*.manifest
+          include-hidden-files: true
+          retention-days: 7

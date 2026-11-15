@@ -305,7 +305,10 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Части архивов: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "archive-members",
+                                SourceSha256 = expected, Settings = "zip32-local-members-v1",
+                                Resume = session.MethodCheckpoint("archive-members"),
+                                Commit = value => session.CaptureMethodCheckpoint("archive-members", value) }) });
                         if (options.FragmentedArchives)
                             methods.Add(new Work { Key = "fragmented-zip", Name = "Сборка ZIP / Office из раздельных записей", Run = () => FragmentedZipRecovery.Recover(image, directory, cancel, (done, total) =>
                             {

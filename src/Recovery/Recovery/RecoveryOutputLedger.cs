@@ -105,11 +105,27 @@ namespace UsbRecovery
             {
                 return records.Count == 0 ? head : new RecoveryOutputHead { Count = count + records.Count };
             }
-            for (int at = 0; at < records.Count; at += RecordsPerPage)
+            var json = new JavaScriptSerializer { MaxJsonLength = MaximumPageBytes };
+            for (int at = 0; at < records.Count; )
             {
                 cancel.ThrowIfCancellationRequested();
-                var page = new RecoveryOutputPage<T> { Previous = head,
-                    Records = records.Skip(at).Take(RecordsPerPage).ToList() };
+                var page = new RecoveryOutputPage<T> { Previous = head, Records = new List<T>() };
+                int bytes = Encoding.UTF8.GetByteCount(json.Serialize(page));
+                while (at < records.Count && page.Records.Count < RecordsPerPage)
+                {
+                    string encoded;
+                    try { encoded = json.Serialize(records[at]); }
+                    catch (ArgumentException) { throw new IOException("METHOD_OUTPUT_LEDGER_RECORD_TOO_LARGE"); }
+                    catch (InvalidOperationException) { throw new IOException("METHOD_OUTPUT_LEDGER_RECORD_TOO_LARGE"); }
+                    int added = Encoding.UTF8.GetByteCount(encoded) + (page.Records.Count == 0 ? 0 : 1);
+                    if (added > MaximumPageBytes - bytes - 8)
+                    {
+                        if (page.Records.Count == 0) throw new IOException("METHOD_OUTPUT_LEDGER_RECORD_TOO_LARGE");
+                        break;
+                    }
+                    page.Records.Add(records[at++]);
+                    bytes += added;
+                }
                 string relative = context.Method + ".state/outputs/page-" + Guid.NewGuid().ToString("N") + ".json";
                 string path = RecoveryCatalog.SafeFile(context.Directory, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));

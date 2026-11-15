@@ -11,6 +11,7 @@ using UsbRecovery;
 
 public static class ExtraPhotoTests
 {
+    static string phase = "setup";
     static string Hash(string file) { using (var s = File.OpenRead(file)) using (var h = SHA256.Create()) return BitConverter.ToString(h.ComputeHash(s)); }
     static void Assert(bool value, string why) { if (!value) throw new Exception(why); }
     static byte[] MakeImage(ImageFormat format)
@@ -34,6 +35,7 @@ public static class ExtraPhotoTests
             byte[] corrupt = (byte[])png.Clone(); corrupt[35] ^= 1; Buffer.BlockCopy(corrupt, 0, raw, 6 * 1024 * 1024 + 9, corrupt.Length);
             string image = Path.Combine(root, "Фото внутри данных.dd"); File.WriteAllBytes(image, raw);
             string before = Hash(image), output = Path.Combine(root, "Усиленный поиск"); Directory.CreateDirectory(output);
+            phase = "native-image-extraction";
             int count;
             using (var guard = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read)) count = ExtraPhotoSearch.Recover(image, output, CancellationToken.None, (done, total) => { });
             Assert(count == 2, "Expected exactly two structurally complete photo streams, got " + count);
@@ -41,8 +43,10 @@ public static class ExtraPhotoTests
             byte[] savedPng = File.ReadAllBytes(Path.Combine(output, "extra-photos", "offset-" + pngOffset.ToString("D16") + ".png"));
             Assert(jpg.SequenceEqual(savedJpeg), "Unaligned JPEG not byte-identical"); Assert(png.SequenceEqual(savedPng), "Boundary-crossing PNG not byte-identical");
             Assert(before == Hash(image), "Source changed");
+            phase = "pre-cancellation";
             var cancelled = new CancellationTokenSource(); cancelled.Cancel();
             try { ExtraPhotoSearch.Recover(image, output, cancelled.Token, (a, b) => { }); throw new Exception("Pre-cancel ignored"); } catch (OperationCanceledException) { }
+            phase = "midway-cancellation";
             var midway = new CancellationTokenSource(); string partial = Path.Combine(root, "Остановка"); Directory.CreateDirectory(partial);
             try { ExtraPhotoSearch.Recover(image, partial, midway.Token, (a, b) => midway.Cancel()); throw new Exception("Midway cancel ignored"); } catch (OperationCanceledException) { }
 
@@ -51,18 +55,30 @@ public static class ExtraPhotoTests
             string arguments = "/log /logname \"" + Path.Combine(baseline, "photorec.log") + "\" /d \"" + Path.Combine(baseline, "files") + "\" /cmd \"" + image + "\" partition_none,fileopt,everything,enable,wholespace,search";
             var info = new ProcessStartInfo(tool, arguments) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = baseline, RedirectStandardOutput = true, RedirectStandardError = true };
             info.EnvironmentVariables["__COMPAT_LAYER"] = "RunAsInvoker"; info.EnvironmentVariables["CYGWIN"] = "noglob"; info.EnvironmentVariables["LANG"] = "C.UTF-8"; info.EnvironmentVariables["LC_ALL"] = "C.UTF-8";
+            phase = "photorec-launch";
             using (var process = Process.Start(info))
             {
                 var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
-                if (!process.WaitForExit(30000)) { process.Kill(); throw new Exception("Baseline timeout"); }
+                phase = "photorec-wait";
+                if (!process.WaitForExit(30000)) { process.Kill(); process.WaitForExit(); throw new Exception("Baseline timeout"); }
+                phase = "photorec-exit";
+                if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+                    Console.WriteLine("::notice title=PhotoRec control exit::" + process.ExitCode);
                 Assert(process.ExitCode == 0, "Baseline failed: " + stderr.Result); File.WriteAllText(Path.Combine(baseline, "stdout.log"), stdout.Result, Encoding.UTF8);
             }
+            phase = "photorec-exact-control";
             int baselineExact = Directory.GetFiles(baseline, "*", SearchOption.AllDirectories).Where(p => Path.GetExtension(p) == ".jpg" || Path.GetExtension(p) == ".png").Count(p => { byte[] bytes = File.ReadAllBytes(p); return bytes.SequenceEqual(jpg) || bytes.SequenceEqual(png); });
             Assert(baselineExact == 0, "Fixture is not an improvement over baseline");
             Assert(before == Hash(image), "Source changed after baseline");
             string summary = "PASS: unaligned JPEG and boundary-crossing PNG exact; corrupted PNG and truncated JPEG rejected; pre/mid cancellation; image unchanged. Baseline exact photos=0, extra search=2. Fixture=" + image;
+            phase = "save-summary";
             File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ExtraPhotoTests.result.txt"), summary, Encoding.UTF8); Console.WriteLine(summary); return 0;
         }
-        catch (Exception e) { Console.WriteLine(e); return 1; }
+        catch (Exception e)
+        {
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+                Console.WriteLine("::error title=ExtraPhoto failure location::" + phase + "; " + e.GetType().Name + "; " + e.HResult.ToString("x8"));
+            Console.WriteLine(e); return 1;
+        }
     }
 }

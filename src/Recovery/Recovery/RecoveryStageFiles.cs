@@ -26,7 +26,7 @@ namespace UsbRecovery
             { "photorec", new[] { "photorec.log", "photorec.ses" } },
             { "photos", new[] { "extra-photos", "photos.state", "extra-photo-search.json" } },
             { "containers", new[] { "containers", "containers.state", "container-search.json" } },
-            { "archive-members", new[] { "salvage-content", "archive-salvage.json" } },
+            { "archive-members", new[] { "salvage-content", "archive-members.state", "archive-salvage.json" } },
             { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.json" } },
             { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },
             { "fragmented-media", new[] { "fragmented-media", "fragmented-media.json" } },
