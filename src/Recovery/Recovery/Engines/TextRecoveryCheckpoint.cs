@@ -77,6 +77,7 @@ namespace UsbRecovery
             image = Path.GetFullPath(source);
             publish = committed;
             cancel = token;
+            sourceHash = sourceHash == null ? null : sourceHash.ToLowerInvariant();
             if (resume != null && !Enabled) throw new IOException("TEXT_CHECKPOINT_CALLBACK_REQUIRED");
             string engineHash = Enabled ? Hash(typeof(RawTextSearch).Assembly.Location, cancel) : null;
             if (Enabled && !ValidHash(sourceHash)) throw new IOException("TEXT_SOURCE_BINDING_REQUIRED");
@@ -89,7 +90,8 @@ namespace UsbRecovery
             string file = RecoveryCatalog.SafeFile(root, "text.state/checkpoint-" +
                 resume.Sequence.ToString("D12", CultureInfo.InvariantCulture) + ".json");
             if (!String.Equals(file, Path.GetFullPath(resume.Path), StringComparison.OrdinalIgnoreCase) ||
-                !File.Exists(file) || new FileInfo(file).Length > MaximumStateBytes || Hash(file, cancel) != resume.Sha256)
+                !File.Exists(file) || new FileInfo(file).Length > MaximumStateBytes ||
+                !String.Equals(Hash(file, cancel), resume.Sha256, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("TEXT_CHECKPOINT_CHANGED");
             try
             {

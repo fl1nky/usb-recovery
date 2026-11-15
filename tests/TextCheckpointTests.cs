@@ -63,6 +63,7 @@ public static class TextCheckpointTests
     static void CancelResume(bool removePendingOutput)
     {
         string source = Image(removePendingOutput ? "repair" : "cancel"), before = Hash(source);
+        if (removePendingOutput) File.WriteAllText(source + ".sha256", before.ToUpperInvariant());
         string root = Path.Combine(work, removePendingOutput ? "repair-job" : "cancel-job");
         bool stopped = false;
         using (var cancel = new CancellationTokenSource())
@@ -145,7 +146,8 @@ public static class TextCheckpointTests
         {
             work = Path.Combine(Path.GetFullPath(args[0]), ".build", "text-checkpoints-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(work);
-            CancelResume(false); CancelResume(true); TamperedOutput(); KilledProcess();
+            if (args.Length > 1 && args[1] == "uppercase") CancelResume(true);
+            else { CancelResume(false); CancelResume(true); TamperedOutput(); KilledProcess(); }
             Console.WriteLine("PASS TextCheckpoint: " + checks + " checks; actual cancellation/kill/cursor resume, source-bound repair, tamper rejection; no GUI or physical device");
             return 0;
         }
