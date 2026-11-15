@@ -21,11 +21,12 @@ public static class ExtraPhotoTests
             bitmap.Save(stream, format); return stream.ToArray();
         }
     }
-    public static int Main()
+    public static int Main(string[] args)
     {
         try
         {
-            string root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "extra-photo-tests-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff")); Directory.CreateDirectory(root);
+            string project = args.Length > 0 ? Path.GetFullPath(args[0]) : Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".."));
+            string root = Path.Combine(project, ".build", "extra-photo-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
             byte[] jpg = MakeImage(ImageFormat.Jpeg), png = MakeImage(ImageFormat.Png), raw = new byte[8 * 1024 * 1024];
             int jpegOffset = 131089, pngOffset = 4 * 1024 * 1024 + 4;
             Buffer.BlockCopy(jpg, 0, raw, jpegOffset, jpg.Length); Buffer.BlockCopy(png, 0, raw, pngOffset, png.Length);
@@ -45,7 +46,7 @@ public static class ExtraPhotoTests
             var midway = new CancellationTokenSource(); string partial = Path.Combine(root, "Остановка"); Directory.CreateDirectory(partial);
             try { ExtraPhotoSearch.Recover(image, partial, midway.Token, (a, b) => midway.Cancel()); throw new Exception("Midway cancel ignored"); } catch (OperationCanceledException) { }
 
-            string tool = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "tools", "testdisk-7.2", "photorec_win.exe"));
+            string tool = Path.Combine(project, "tools", "testdisk-7.2", "photorec_win.exe");
             string baseline = Path.Combine(root, "До улучшения"); Directory.CreateDirectory(baseline);
             string arguments = "/log /logname \"" + Path.Combine(baseline, "photorec.log") + "\" /d \"" + Path.Combine(baseline, "files") + "\" /cmd \"" + image + "\" partition_none,fileopt,everything,enable,wholespace,search";
             var info = new ProcessStartInfo(tool, arguments) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = baseline, RedirectStandardOutput = true, RedirectStandardError = true };

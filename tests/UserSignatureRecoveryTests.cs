@@ -72,8 +72,19 @@ public static class UserSignatureRecoveryTests
         footer=Footer();footer.MaxBytes=1024*1024;byte[] work=new byte[1024*1024+32];for(int i=0;i<1024;i++)Bytes("ABCD").CopyTo(work,i*8);image=Image("footer-work-limit",work);output=Output("footer-work-limit");Check(Io(()=>UserSignatureRecovery.Recover(image,output,new[]{footer},CancellationToken.None,null)),"footer rescans consume bounded shared budget");report=Report(output);Check(report.Status=="limited"&&report.FooterWorkBytes<=UserSignatureRecovery.MaximumFooterWorkBytes&&report.Recovered==0,"work budget cannot masquerade as complete");
         var longPrefix=Fixed();longPrefix.HeaderHex=String.Join(" ",Enumerable.Repeat("41",253).Concat(new[]{"42","43","44"}));longPrefix.FixedBytes=256;image=Image("near-match-work-limit",Enumerable.Repeat((byte)65,3*1024*1024).ToArray());output=Output("near-match-work-limit");Check(Io(()=>UserSignatureRecovery.Recover(image,output,new[]{longPrefix},CancellationToken.None,null)),"near-matching long prefixes have explicit comparison cap");report=Report(output);Check(report.Status=="limited"&&report.HeaderWorkBytes<=UserSignatureRecovery.MaximumHeaderWorkBytes+1&&report.Recovered==0,"header CPU budget prevents unconstrained near-match work");
     }
+    static void MaximumExtension()
+    {
+        var rule = Fixed(); rule.Extension = "abcdefghijkl";
+        string image = Image("maximum-extension", Bytes("ABCD12345678")), before = Hash(image), output = Output("maximum-extension");
+        Check(UserSignatureRecovery.Recover(image, output, new[] { rule }, CancellationToken.None, null) == 1,
+            "all twelve supported extension characters survive shared output validation");
+        Verify(image, output, Bytes("ABCD12345678"));
+        Check(Directory.GetFiles(Path.Combine(output, "user-signatures")).Single().EndsWith(".abcdefghijkl", StringComparison.Ordinal),
+            "canonical custom output name preserves the maximum extension");
+        Check(Hash(image) == before, "maximum extension case preserves source bytes");
+    }
     public static int Main(string[] args)
     {
-        try{string project=Path.GetFullPath(args[0]);root=Path.Combine(project,".build","user-signature-tests-"+Guid.NewGuid().ToString("N").Substring(0,8));while(root.Length<320)root=Path.Combine(root,new string('s',40));Directory.CreateDirectory(root);Check(root.Length>=320,"custom signature operations use a genuinely long path");Positive();Negatives();Validation();GuardsAndLimits();Console.WriteLine("PASS UserSignatureRecovery: "+checks+" checks; literal fixed/footer boundaries, block boundaries, offsets, normalization/invalid rules, caps/cancellation/path guards/source SHA; candidates never asserted intact. Synthetic regular files only. "+root);return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        try{string project=Path.GetFullPath(args[0]);root=Path.Combine(project,".build","user-signature-tests-"+Guid.NewGuid().ToString("N").Substring(0,8));while(root.Length<320)root=Path.Combine(root,new string('s',40));Directory.CreateDirectory(root);Check(root.Length>=320,"custom signature operations use a genuinely long path");Positive();Negatives();Validation();GuardsAndLimits();MaximumExtension();Console.WriteLine("PASS UserSignatureRecovery: "+checks+" checks; literal fixed/footer boundaries, block boundaries, offsets, normalization/invalid rules, caps/cancellation/path guards/source SHA; candidates never asserted intact. Synthetic regular files only. "+root);return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}
     }
 }

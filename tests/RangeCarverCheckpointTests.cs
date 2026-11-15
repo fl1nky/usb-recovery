@@ -15,16 +15,29 @@ using UsbRecovery;
 public static class RangeCarverCheckpointTests
 {
     static string work, method;
+    static bool footerMode;
     static int checks;
     static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 16 * 1024 * 1024 };
-    static string OutputFolder { get { return method == "photos" ? "extra-photos" : "containers"; } }
-    static string Prefix { get { return method == "photos" ? "Фотографии: " : "Контейнеры: "; } }
+    static string OutputFolder { get { return method == "photos" ? "extra-photos" : method; } }
+    static string Prefix { get { return method == "photos" ? "Фотографии: " : method == "containers" ? "Контейнеры: " : "Свои типы: "; } }
+    static string OffsetPrefix { get { return method == "user-signatures" ? "owned-" : "offset-"; } }
+    static string ModeName { get { return footerMode ? "user-signatures-footer" : method; } }
+    static void Select(string name)
+    {
+        footerMode = name == "user-signatures-footer";
+        method = footerMode ? "user-signatures" : name;
+    }
     static void Check(bool value, string why) { checks++; if (!value) throw new Exception(method + ": " + why); }
     static string Hash(string path) { return RecoveryCore.HashFile(path, CancellationToken.None, (a, b) => { }); }
     static RecoveryOptions Options()
     {
         return new RecoveryOptions { FatMetadata = false, NtfsMetadata = false, LostPartitions = false,
-            Signatures = false, EmbeddedPhotos = method == "photos", Containers = method == "containers" };
+            Signatures = false, EmbeddedPhotos = method == "photos", Containers = method == "containers",
+            CustomSignatures = method == "user-signatures", CustomRules = new List<UserSignatureRule> {
+                new UserSignatureRule { Id = "owned", Name = "Owned fixed candidate", Extension = "bin",
+                    HeaderHex = "52 49 46 46", FixedBytes = footerMode ? 0 : 108,
+                    FooterHex = footerMode ? "4F574E4544454E4421" : null,
+                    MinBytes = footerMode ? 108 : 0, MaxBytes = footerMode ? 256 : 0 } } };
     }
     static byte[] Original(int variant)
     {
@@ -50,13 +63,18 @@ public static class RangeCarverCheckpointTests
                     writer.Write(Encoding.ASCII.GetBytes("data")); writer.Write(64);
                     for (int i = 0; i < 32; i++) writer.Write((short)((i * 311 + variant * 197) % 12000));
                 }
+                if (footerMode)
+                {
+                    byte[] footer = Encoding.ASCII.GetBytes("OWNEDEND!");
+                    memory.Write(footer, 0, footer.Length);
+                }
             }
             return memory.ToArray();
         }
     }
     static string Image(string name, bool many)
     {
-        string path = Path.Combine(work, method + "-" + name + ".dd");
+        string path = Path.Combine(work, ModeName + "-" + name + ".dd");
         byte[] data = new byte[40 * 1024 * 1024];
         var offsets = many ? Enumerable.Range(0, 129).Select(i => 1024 * 1024 + i * 4096 + 9)
             .Concat(new[] { 30 * 1024 * 1024 + 17 }).ToArray() :
@@ -114,11 +132,21 @@ public static class RangeCarverCheckpointTests
         foreach (string file in files)
         {
             string stem = Path.GetFileNameWithoutExtension(file);
-            long offset = Int64.Parse(stem.Substring("offset-".Length));
+            long offset = Int64.Parse(stem.Substring(OffsetPrefix.Length));
             Check(File.ReadAllBytes(file).SequenceEqual(File.ReadAllBytes(source + ".original-" + offset)), "exact original bytes and source offset");
         }
-        string report = Path.Combine(root, method == "photos" ? "extra-photo-search.json" : "container-search.json");
-        Check(Object(report)["status"].Equals("complete"), "resumed report is complete");
+        string report = Path.Combine(root, method == "photos" ? "extra-photo-search.json" :
+            method == "containers" ? "container-search.json" : "user-signatures.json");
+        Check(Object(report)[method == "user-signatures" ? "Status" : "status"].Equals("complete"), "resumed report is complete");
+        if (method == "user-signatures")
+        {
+            var signatureReport = Json.Deserialize<UserSignatureRecovery.Report>(File.ReadAllText(report));
+            Check(signatureReport.Files.All(r => r.Status == "signature_candidate" &&
+                r.Boundary == (footerMode ? "first_matching_footer" : "user_fixed_size")),
+                "signature boundary and unknown file validity survive continuation");
+            Check(footerMode ? signatureReport.FooterWorkBytes > 0 : signatureReport.FooterWorkBytes == 0,
+                "footer search work is preserved in the saved state");
+        }
         Check(RecoverySession.Read(root).Stages.Single().Status == "complete", "parent commits method completion");
         string reportHash = Hash(report);
         Check(RecoveryPipeline.Resume(root, CancellationToken.None, message => { }).ResumedStages == 1 && Hash(report) == reportHash,
@@ -143,6 +171,8 @@ public static class RangeCarverCheckpointTests
         Cancel(source, root);
         string changed;
         if (kind == "source") changed = source;
+        else if (kind == "checkpoint")
+            changed = RecoveryCatalog.SafeFile(root, RecoverySession.Read(root).Stages.Single().CheckpointPath);
         else if (kind == "ledger")
         {
             var stage = RecoverySession.Read(root).Stages.Single();
@@ -169,14 +199,15 @@ public static class RangeCarverCheckpointTests
     static void PublicationFailure()
     {
         string source = Image("publication-failure", false), root = source + ".job";
-        string extension = method == "photos" ? ".png" : ".wav";
-        string partial = Path.Combine(root, OutputFolder, "offset-" + (1024 * 1024 + 9).ToString("D16") + extension + ".partial");
+        string extension = method == "photos" ? ".png" : method == "containers" ? ".wav" : ".bin";
+        string partial = Path.Combine(root, OutputFolder, OffsetPrefix + (1024 * 1024 + 9).ToString("D16") + extension + ".partial");
         bool failed = false, injected = false;
         try
         {
             RecoveryPipeline.Run(source, root, Options(), CancellationToken.None, message =>
             {
-                if (injected || !message.StartsWith(method == "photos" ? "JPEG/PNG внутри данных" : "Контейнеры и медиа по смещениям", StringComparison.Ordinal)) return;
+                if (injected || !message.StartsWith(method == "photos" ? "JPEG/PNG внутри данных" :
+                    method == "containers" ? "Контейнеры и медиа по смещениям" : "Свои типы файлов", StringComparison.Ordinal)) return;
                 Directory.CreateDirectory(Path.GetDirectoryName(partial));
                 File.WriteAllText(partial, "owned stale partial");
                 File.SetAttributes(partial, FileAttributes.ReadOnly); injected = true;
@@ -186,7 +217,7 @@ public static class RangeCarverCheckpointTests
         finally { if (File.Exists(partial)) File.SetAttributes(partial, FileAttributes.Normal); }
         Check(injected && failed && File.Exists(partial), "real denied output publication occurs after write-ahead commit");
         long position = Cursor(root);
-        Check(position == 4 * 1024 * 1024 && Directory.GetFiles(Path.Combine(root, OutputFolder)).Length == 1,
+        Check(position == (method == "user-signatures" ? 2 : 4) * 1024 * 1024 && Directory.GetFiles(Path.Combine(root, OutputFolder)).Length == 1,
             "parent pins planned ranges while named candidate files are still absent");
         Resume(source, root, position, 3);
         Check(!File.Exists(partial), "repaired output replaces only the stale partial name");
@@ -195,7 +226,7 @@ public static class RangeCarverCheckpointTests
     {
         string source = Image("killed", false), root = source + ".job", ready = source + ".ready";
         var start = new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,
-            "child " + method + " \"" + source + "\" \"" + root + "\" \"" + ready + "\"")
+            "child " + ModeName + " \"" + source + "\" \"" + root + "\" \"" + ready + "\"")
             { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
         using (var child = Process.Start(start))
         {
@@ -232,7 +263,7 @@ public static class RangeCarverCheckpointTests
     {
         if (args.Length == 5 && args[0] == "child")
         {
-            method = args[1];
+            Select(args[1]);
             RecoveryPipeline.Run(args[2], args[3], Options(), CancellationToken.None, message =>
                 { if (Percent(message) >= 20) { File.WriteAllText(args[4], "ready"); Thread.Sleep(Timeout.Infinite); } }, args[2] + ".sha256");
             return 3;
@@ -241,12 +272,12 @@ public static class RangeCarverCheckpointTests
         {
             work = Path.Combine(Path.GetFullPath(args[0]), ".build", "range-checkpoints-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(work);
-            foreach (string key in args.Length > 1 ? new[] { args[1] } : new[] { "photos", "containers" })
+            foreach (string key in args.Length > 1 ? new[] { args[1] } : new[] { "photos", "containers", "user-signatures", "user-signatures-footer" })
             {
-                method = key; Cancellation(false);
+                Select(key); Cancellation(false);
                 if (args.Length > 2) continue;
                 Cancellation(true); PublicationFailure(); FailedParentSave();
-                foreach (string kind in new[] { "source", "output", "unknown", "ledger" }) Rejected(kind);
+                foreach (string kind in new[] { "source", "output", "unknown", method == "user-signatures" ? "checkpoint" : "ledger" }) Rejected(kind);
                 KilledProcess();
             }
             Console.WriteLine("PASS RangeCarverCheckpoint: " + checks + " checks; exact originals, split signatures, cancel/kill/cursor, write-ahead repair, multi-page ledgers and tamper; no GUI/devices");

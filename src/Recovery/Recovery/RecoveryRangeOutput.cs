@@ -28,15 +28,17 @@ namespace UsbRecovery
         readonly long maximumBytes;
         readonly FileStream source;
         readonly CancellationToken cancel;
+        readonly Func<RecoveryRangeRecord, bool> canonicalName;
         public RecoveryRangeOutput(string directory, string outputFolder, FileStream image,
-            long maximum, CancellationToken token)
+            long maximum, CancellationToken token, Func<RecoveryRangeRecord, bool> namePolicy = null)
         {
             root = directory; folder = outputFolder; source = image; maximumBytes = maximum; cancel = token;
+            canonicalName = namePolicy;
         }
-        public RecoveryRangeRecord Plan(long offset, long bytes, string format)
+        public RecoveryRangeRecord Plan(long offset, long bytes, string format, string relativePath = null)
         {
             var record = new RecoveryRangeRecord { Offset = offset, Bytes = bytes, Format = format,
-                Path = folder + "/offset-" + offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + format };
+                Path = relativePath ?? folder + "/offset-" + offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + format };
             Validate(record, false);
             record.Sha256 = CopyHash(record, null);
             return record;
@@ -45,9 +47,12 @@ namespace UsbRecovery
         {
             if (record == null || record.Offset < 0 || record.Bytes <= 0 || record.Bytes > maximumBytes ||
                 record.Offset > source.Length - record.Bytes || record.Format == null ||
-                record.Format.Length < 2 || record.Format.Length > 12 || record.Format[0] != '.' ||
+                record.Format.Length < 2 || record.Format.Length > 13 || record.Format[0] != '.' ||
                 System.Linq.Enumerable.Any(record.Format.Substring(1), c => !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9')) ||
-                record.Path != folder + "/offset-" + record.Offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + record.Format ||
+                record.Path == null || !record.Path.StartsWith(folder + "/", StringComparison.Ordinal) ||
+                (canonicalName == null ?
+                    record.Path != folder + "/offset-" + record.Offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + record.Format :
+                    !canonicalName(record)) ||
                 requireHash && (record.Sha256 == null || record.Sha256.Length != 64 ||
                 System.Linq.Enumerable.Any(record.Sha256, c => !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f'))))
                 throw new IOException("METHOD_OUTPUT_RANGE_INVALID");

@@ -329,7 +329,10 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Свои типы: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "user-signatures",
+                                SourceSha256 = expected, Settings = new JavaScriptSerializer().Serialize(options.CustomRules),
+                                Resume = session.MethodCheckpoint("user-signatures"),
+                                Commit = value => session.CaptureMethodCheckpoint("user-signatures", value) }) });
                         if (options.TextFragments)
                             methods.Add(new Work { Key = "text", Name = "Текстовые остатки по ключевым словам", Run = () => RawTextSearch.Recover(image, directory, options.TextQuery, cancel, (done, total) =>
                             {
