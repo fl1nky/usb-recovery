@@ -16,7 +16,7 @@ namespace UsbRecovery
         // Output scopes are shared by validation, hashing and retry archival.
         static readonly Dictionary<string, string[]> OutputNames = new Dictionary<string, string[]>
         {
-            { "partitions", new[] { "partition-search.json" } },
+            { "partitions", new[] { "partition-search.json", "partitions.state" } },
             { "fat", new[] { "filesystem" } },
             { "ntfs", new[] { "ntfs" } },
             { "ext4", new[] { "ext4" } },
@@ -24,8 +24,8 @@ namespace UsbRecovery
             { "apfs", new[] { "apfs" } },
             { "ntfs-records", new[] { "metadata-rescue" } },
             { "photorec", new[] { "photorec.log", "photorec.ses" } },
-            { "photos", new[] { "extra-photos", "extra-photo-search.json" } },
-            { "containers", new[] { "containers", "container-search.json" } },
+            { "photos", new[] { "extra-photos", "photos.state", "extra-photo-search.json" } },
+            { "containers", new[] { "containers", "containers.state", "container-search.json" } },
             { "archive-members", new[] { "salvage-content", "archive-salvage.json" } },
             { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.json" } },
             { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },

@@ -176,7 +176,7 @@ namespace UsbRecovery
                     {
                         session = RecoverySession.Open(directory, image, options, cancel, progress);
                         warnings = session.State.ExternalImage;
-                        progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото и текста продолжится с подтверждённой точки, если она есть; остальные незавершённые методы начнутся сначала.");
+                        progress("Сессия проверена. Завершённые этапы используются повторно. Методы с подтверждённой внутренней точкой продолжатся с неё; остальные незавершённые методы начнутся сначала.");
                     }
 
                     try
@@ -237,7 +237,10 @@ namespace UsbRecovery
                                 {
                                     observe("running", done, total, -1);
                                     progress("Поиск разделов: " + done * 100 / Math.Max(1, total) + "%");
-                                });
+                                }, new RecoveryCheckpointContext { Directory = directory, Method = "partitions",
+                                    SourceSha256 = expected, Settings = "boot-sector-scan-v1",
+                                    Resume = session.MethodCheckpoint("partitions"),
+                                    Commit = value => session.CaptureMethodCheckpoint("partitions", value) });
                                 RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory, "partition-search.json"), new { status = bootCandidates.Count >= BootScout.MaximumVolumes ? "limited" : "complete", candidates = bootCandidates, note = "Candidates validated by filesystem parsers. Original image unchanged." });
                                 if (bootCandidates.Count >= BootScout.MaximumVolumes)
                                     warnings = true;
@@ -283,13 +286,20 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Фотографии: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "photos",
+                                SourceSha256 = expected, Settings = "embedded-jpeg-png-v1",
+                                Resume = session.MethodCheckpoint("photos"),
+                                Commit = value => session.CaptureMethodCheckpoint("photos", value) }) });
                         if (options.Containers)
                             methods.Add(new Work { Key = "containers", Name = "Контейнеры и медиа по смещениям", Run = () => ContainerCarver.Recover(image, directory, options, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Контейнеры: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "containers",
+                                SourceSha256 = expected, Settings = new JavaScriptSerializer().Serialize(new {
+                                    options.Photos, options.Video, options.Audio, options.Documents, options.Archives, options.Other }),
+                                Resume = session.MethodCheckpoint("containers"),
+                                Commit = value => session.CaptureMethodCheckpoint("containers", value) }) });
                         if (options.ArchiveMembers)
                             methods.Add(new Work { Key = "archive-members", Name = "Исправные части повреждённых ZIP / Office", Run = () => ArchiveSalvage.Recover(image, directory, cancel, (done, total) =>
                             {

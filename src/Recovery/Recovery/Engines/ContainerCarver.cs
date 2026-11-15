@@ -81,33 +81,108 @@ namespace UsbRecovery
         }
         public static int Recover(string image,string directory,RecoveryOptions options,CancellationToken cancel,Action<long,long> progress)
         {
-            if(!File.Exists(image)||image.StartsWith(@"\\",StringComparison.Ordinal)||Path.GetFullPath(image).IndexOf(':',2)>=0)throw new IOException("Контейнеры ищутся только в обычном локальном файле образа.");
-            string root=Path.Combine(directory,"containers");Directory.CreateDirectory(root);var records=new List<object>();int candidates=0,probes=0;long position=0,skipUntil=0;int carry=0;
-            using(var scan=new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read,4*1024*1024))
-            using(var parse=new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read)) {
-                byte[] block=new byte[4*1024*1024+16];int read;
-                while((read=scan.Read(block,carry,block.Length-carry))>0){
-                    cancel.ThrowIfCancellationRequested();int length=carry+read,limit=scan.Position==scan.Length?length:Math.Max(0,length-15);long baseOffset=position-carry;
-                    for(int i=0;i<limit;i++){
-                        if((i&65535)==0)cancel.ThrowIfCancellationRequested();
-                        if(baseOffset+i<skipUntil)continue;
-                        bool zip=(options.Archives||options.Documents||options.Other)&&Is(block,i,"PK\x03\x04"),pdf=(options.Documents||options.Other)&&Is(block,i,"%PDF-"),riff=Is(block,i,"RIFF"),bmff=Is(block,i+4,"ftyp");if(!zip&&!pdf&&!riff&&!bmff)continue;
-                        if(++probes>10000)throw new IOException("Достигнут предел 10 000 контейнеров-кандидатов. Найденное сохранено.");
-                        string ext=null;long start=baseOffset+i,end=-1;
-                        if(zip)end=ZipEnd(parse,start,cancel,out ext);else if(pdf){ext=".pdf";end=PdfEnd(parse,start,cancel);}else if(riff)end=RiffEnd(parse,start,out ext);else if(bmff)end=BmffEnd(parse,start,cancel,out ext);
-                        if(end<=start)continue;
-                        bool include=options.Other || (new[]{".webp",".heic",".avif"}.Contains(ext)?options.Photos:new[]{".mp4",".mov",".avi"}.Contains(ext)?options.Video:new[]{".wav",".m4a"}.Contains(ext)?options.Audio:ext==".zip"?options.Archives:options.Documents);
-                        if(!include)continue;
-                        string name="offset-"+start.ToString("D16")+ext,target=Path.Combine(root,name);if(File.Exists(target))continue;
-                        string partial=target+".partial";parse.Position=start;
-                        using(var output=new FileStream(partial,FileMode.CreateNew,FileAccess.Write,FileShare.Read)){byte[] data=new byte[1024*1024];long left=end-start;while(left>0){cancel.ThrowIfCancellationRequested();int n=parse.Read(data,0,(int)Math.Min(left,data.Length));if(n==0)throw new IOException("Неполный контейнер.");output.Write(data,0,n);left-=n;}}
-                        File.Move(partial,target);skipUntil=end;candidates++;records.Add(new{path="containers/"+name,offset=start,bytes=end-start,method="byte-offset-container",status="structure_only",note="Payload integrity, deletion state and original name unknown; ZIP64 and fragmented containers not reconstructed."});
+            return Recover(image, directory, options, cancel, progress, null);
+        }
+        internal static int Recover(string image, string directory, RecoveryOptions options,
+            CancellationToken cancel, Action<long, long> progress, RecoveryCheckpointContext checkpoint)
+        {
+            const int blockBytes = 4 * 1024 * 1024;
+            cancel.ThrowIfCancellationRequested();
+            if (!File.Exists(image) || image.StartsWith(@"\\", StringComparison.Ordinal) || Path.GetFullPath(image).IndexOf(':', 2) >= 0)
+                throw new IOException("Контейнеры ищутся только в обычном локальном файле образа.");
+            string report = RecoveryCatalog.SafeFile(directory, "container-search.json");
+            if (String.Equals(Path.GetFullPath(image), report, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Исходный образ не может быть отчётом поиска.");
+            var journal = new RecoveryMethodJournal<RecoveryRangeScanState>(image,
+                new RecoveryRangeScanState(), checkpoint, cancel);
+            var state = journal.Payload;
+            var ledger = new RecoveryOutputLedger<RecoveryRangeRecord>(checkpoint, state.Output, 10000, cancel);
+            using (var scan = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, blockBytes))
+            using (var parse = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (state.Position < 0 || state.Position > scan.Length || state.SkipUntil < 0 || state.SkipUntil > scan.Length ||
+                    state.Probes < 0 || state.Probes > 10000 || state.Complete && state.Limited ||
+                    state.Complete && state.Position != scan.Length ||
+                    !state.Complete && !state.Limited && state.Position % blockBytes != 0 ||
+                    ledger.Records.Count > state.Probes || ledger.Records.Any(r =>
+                        !new[] { ".zip", ".docx", ".xlsx", ".pptx", ".pdf", ".webp", ".heic", ".avif", ".avi", ".wav", ".mp4", ".mov", ".m4a" }.Contains(r.Format)) ||
+                    state.SkipUntil != (ledger.Records.Count == 0 ? 0 : ledger.Records.Max(r => r.Offset + r.Bytes)))
+                    throw new IOException("CONTAINER_SCAN_CHECKPOINT_INVALID");
+                var output = new RecoveryRangeOutput(directory, "containers", parse, Maximum, cancel);
+                output.RestoreAll(ledger.Records, state.Position);
+                if (state.Limited) throw new IOException("Поиск контейнеров ранее достиг ограничения. Найденное проверено; начни отдельный поиск с меньшей областью.");
+                if (journal.Resumed && progress != null) progress(state.Position, scan.Length);
+                if (journal.Enabled && !journal.Resumed) journal.Save(state);
+                byte[] block = new byte[blockBytes + 15];
+                while (!state.Complete && state.Position < scan.Length)
+                {
+                    cancel.ThrowIfCancellationRequested();
+                    scan.Position = state.Position;
+                    int read = (int)Math.Min(block.Length, scan.Length - state.Position), done = 0;
+                    while (done < read)
+                    {
+                        int amount = scan.Read(block, done, read - done);
+                        if (amount == 0) throw new IOException("CONTAINER_SOURCE_TRUNCATED");
+                        done += amount;
                     }
-                    position+=read;carry=length-limit;Buffer.BlockCopy(block,limit,block,0,carry);if(progress!=null)progress(scan.Position,scan.Length);
-                    RecoveryCore.SaveJson(Path.Combine(directory,"container-search.json"),new{status="running",files=records});
+                    if (read < block.Length) Array.Clear(block, read, block.Length - read);
+                    int limit = (int)Math.Min(blockBytes, scan.Length - state.Position);
+                    var pending = new List<RecoveryRangeRecord>();
+                    for (int i = 0; i < limit; i++)
+                    {
+                        if ((i & 65535) == 0) cancel.ThrowIfCancellationRequested();
+                        long start = state.Position + i;
+                        if (start < state.SkipUntil) continue;
+                        bool zip = (options.Archives || options.Documents || options.Other) && Is(block, i, "PK\x03\x04");
+                        bool pdf = (options.Documents || options.Other) && Is(block, i, "%PDF-");
+                        bool riff = Is(block, i, "RIFF"), bmff = Is(block, i + 4, "ftyp");
+                        if (!zip && !pdf && !riff && !bmff) continue;
+                        if (state.Probes == 10000)
+                        {
+                            state.Position += i;
+                            state.Limited = true;
+                            state.Output = ledger.Append(state.Output, pending);
+                            journal.Save(state);
+                            ledger.Accept(pending);
+                            foreach (var record in pending) output.Restore(record);
+                            SaveReport(report, ledger.Records, "limited", journal.Resumed);
+                            throw new IOException("Достигнут предел 10 000 контейнеров-кандидатов. Найденное сохранено.");
+                        }
+                        state.Probes++;
+                        string extension = null;
+                        long end = -1;
+                        if (zip) end = ZipEnd(parse, start, cancel, out extension);
+                        else if (pdf) { extension = ".pdf"; end = PdfEnd(parse, start, cancel); }
+                        else if (riff) end = RiffEnd(parse, start, out extension);
+                        else if (bmff) end = BmffEnd(parse, start, cancel, out extension);
+                        if (end <= start) continue;
+                        bool include = options.Other || (new[] { ".webp", ".heic", ".avif" }.Contains(extension) ? options.Photos :
+                            new[] { ".mp4", ".mov", ".avi" }.Contains(extension) ? options.Video :
+                            new[] { ".wav", ".m4a" }.Contains(extension) ? options.Audio : extension == ".zip" ? options.Archives : options.Documents);
+                        if (!include) continue;
+                        pending.Add(output.Plan(start, end - start, extension));
+                        state.SkipUntil = end;
+                    }
+                    state.Position += limit;
+                    state.Complete = state.Position == scan.Length;
+                    state.Output = ledger.Append(state.Output, pending);
+                    journal.Save(state);
+                    ledger.Accept(pending);
+                    foreach (var record in pending) output.Restore(record);
+                    if (progress != null) progress(state.Position, scan.Length);
+                    SaveReport(report, ledger.Records, state.Complete ? "complete" : "running", journal.Resumed);
                 }
+                if (!state.Complete) { state.Complete = true; journal.Save(state); }
             }
-            RecoveryCore.SaveJson(Path.Combine(directory,"container-search.json"),new{status="complete",files=records});return candidates;
+            SaveReport(report, ledger.Records, "complete", journal.Resumed);
+            return ledger.Records.Count;
+        }
+        static void SaveReport(string path, IList<RecoveryRangeRecord> records, string status, bool resumed)
+        {
+            RecoveryCore.SaveJson(path, new { status = status, resumedFromCheckpoint = resumed,
+                files = records.Select(r => new { path = r.Path, offset = r.Offset, bytes = r.Bytes,
+                    sha256 = r.Sha256, method = "byte-offset-container", status = "structure_only",
+                    note = "Payload integrity, deletion state and original name unknown; ZIP64 and fragmented containers not reconstructed." }).ToList() });
         }
     }
 }

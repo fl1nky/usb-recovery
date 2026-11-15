@@ -2,7 +2,7 @@ name: Native storage corpus
 
 on:
   push:
-    branches: [ "feat/headless-expansion-20261115" ]
+    branches: [ "feat/headless-expansion-20261115", "feat/flash-recovery-complete-20261115" ]
     paths:
       - 'src/**'
       - 'tests/benchmarks/native_storage.py'

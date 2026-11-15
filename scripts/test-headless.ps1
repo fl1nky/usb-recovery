@@ -94,7 +94,7 @@ try{
   $taskLevels[0].SetAttribute('level','asInvoker')
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
-  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests'){
+  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
