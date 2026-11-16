@@ -314,7 +314,10 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Сборка ZIP: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "fragmented-zip",
+                                SourceSha256 = expected, Settings = "zip32-between-members-v1",
+                                Resume = session.MethodCheckpoint("fragmented-zip"),
+                                Commit = value => session.CaptureMethodCheckpoint("fragmented-zip", value) }) });
                         if (options.FragmentedPhotos)
                             methods.Add(new Work { Key = "fragmented-photos", Name = "Сборка разрозненных фотографий", Run = () => FragmentedPhotoRecovery.Recover(image, directory, cancel, (done, total) =>
                             {

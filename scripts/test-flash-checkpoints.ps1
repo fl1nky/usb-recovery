@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][string]$Python312,[switch]$BlockNetwork)
+﻿param([Parameter(Mandatory)][string]$Python312,[switch]$BlockNetwork)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
@@ -45,6 +45,12 @@ try{
   if($LASTEXITCODE-ne0){throw 'Archive fixture generation failed.'}
   & $taskEnvPython (Join-Path $taskLayout.Tests 'build_archive_checkpoint_fixtures.py') $taskArchives 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'checkpoint-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Archive checkpoint fixtures failed.'}
+  $taskFragmentedLegacy=Join-Path $taskLog 'fragmented-zip-legacy'
+  $taskFragmentedCheckpoints=Join-Path $taskLog 'fragmented-zip-checkpoints'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_fragmented_zip_fixtures.py') $taskFragmentedLegacy 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'fragmented-zip-legacy-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'Fragmented ZIP legacy fixtures failed.'}
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_fragmented_zip_checkpoint_fixtures.py') $taskFragmentedCheckpoints 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'fragmented-zip-checkpoint-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'Fragmented ZIP checkpoint fixtures failed.'}
   & $taskEnvPython (Join-Path $taskLayout.Tests 'DeepRecoveryFixtures.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'container-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Container fixtures failed.'}
   $taskManifest=Join-Path $taskLog 'console.manifest'
@@ -54,7 +60,7 @@ try{
   if($taskLevels.Count-ne1-or@($taskXml.GetElementsByTagName('longPathAware')|Where-Object InnerText -eq 'true').Count-ne1){throw 'Missing compatibility attributes.'}
   $taskLevels[0].SetAttribute('level','asInvoker');$taskXml.Save($taskManifest)
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests'){
+  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Flash.exe')
    & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
@@ -64,6 +70,8 @@ try{
    $taskArguments=@($taskRoot)
    if($taskName-eq'ArchiveCheckpointTests'){$taskArguments+=$taskArchives}
    if($taskName-eq'ArchiveSalvageTests'){$taskArguments=@($taskLegacy)}
+   if($taskName-eq'FragmentedZipCheckpointTests'){$taskArguments+=$taskFragmentedCheckpoints}
+   if($taskName-eq'FragmentedZipRecoveryTests'){$taskArguments=@($taskFragmentedLegacy)}
    & $taskExe @taskArguments 2>&1|Tee-Object -FilePath (Join-Path $taskLog ($taskName+'.log'))
    if($LASTEXITCODE-ne0){throw ('Focused flash test failed: '+$taskName)}
    $taskSuites+=$taskName

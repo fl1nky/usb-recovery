@@ -103,7 +103,9 @@ public static class FragmentedZipRecoveryTests
         Check(item.SourceRanges.Select(x=>x.Offset).SequenceEqual(proof.Extents.Select(x=>x.ImageOffset))&&item.SourceRanges.Select(x=>x.Length).SequenceEqual(proof.Extents.Select(x=>x.Length)),"catalog preserves logical source extent order and lengths");
         Check(item.OriginalPath==null&&item.OriginalLocations.Count==0,"central member names never invented as original archive filename");
         var session=RecoverySession.Read(work);var stage=session.Stages.Single();
-        Check(stage.Key=="fragmented-zip"&&stage.Status=="complete"&&stage.Candidates==1&&stage.Artifacts.Count==2,"session captures new method report plus archive");
+        Check(stage.Key=="fragmented-zip"&&stage.Status=="complete"&&stage.Candidates==1&&stage.Artifacts.Count(x=>!x.Path.StartsWith("fragmented-zip.state/",StringComparison.Ordinal))==2,"session captures exactly the report and archive outside checkpoint bookkeeping");
+        Check(stage.Artifacts.Any(x=>x.Path.StartsWith("fragmented-zip.state/outputs/",StringComparison.Ordinal))&&stage.Artifacts.Any(x=>x.Path.StartsWith("fragmented-zip.state/plans/",StringComparison.Ordinal))&&stage.CheckpointPath!=null,"completed session also retains the durable index and source plan");
+        Check(stage.Artifacts.All(x=>{string path=RecoveryCatalog.SafeFile(work,x.Path);return new FileInfo(path).Length==x.Bytes&&Hash(path)==x.Sha256;}),"every data and checkpoint artifact has an exact retained hash and length");
         Check(stage.Artifacts.Any(x=>x.Path=="fragmented-zip.json"&&x.Sha256==Hash(Path.Combine(work,"fragmented-zip.json")))&&stage.Artifacts.Any(x=>x.Path==proof.Path&&x.Sha256==proof.Sha256),"session retains hashes for both archive and extent report");
         DateTime archiveTime=File.GetLastWriteTimeUtc(Path.Combine(work,proof.Path));string reportHash=Hash(Path.Combine(work,"fragmented-zip.json"));
         result=RecoveryPipeline.Resume(work,CancellationToken.None,null);
