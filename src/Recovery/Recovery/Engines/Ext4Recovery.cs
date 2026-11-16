@@ -529,9 +529,10 @@ namespace UsbRecovery
             string extension = SignatureExtension(header); entry.ContentTypeHint = extension == ".bin" ? null : extension.Substring(1) + "_signature_only";
             string name = "volume_" + entry.VolumeOffset + "_inode_" + entry.Inode + "_generation_" + entry.Generation + extension;
             string relative = "files/" + name, destination = Path.Combine(c.Root, "files", name), temporary = destination + ".partial";
-            NoLinks(destination); byte[] buffer = new byte[1024 * 1024];
+            NoLinks(destination); byte[] buffer = new byte[1024 * 1024]; bool ownsTemporary = false;
             try {
                 using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) using (var sha = SHA256.Create()) {
+                    ownsTemporary = true;
                     foreach (Extent extent in entry.Extents) {
                         c.Input.Position = extent.ImageOffset; long remaining = extent.Length;
                         while (remaining > 0) {
@@ -545,7 +546,7 @@ namespace UsbRecovery
                 c.Cancel.ThrowIfCancellationRequested(); File.Move(temporary, destination);
                 entry.Output = relative; entry.RecoveredBytes = entry.DeclaredSize; entry.Status = "deleted_inode_candidate";
                 c.Report.RecoveredFiles++; c.Report.OutputBytes += entry.RecoveredBytes;
-            } finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            } finally { if (ownsTemporary && File.Exists(temporary)) File.Delete(temporary); }
         }
 
         static bool InodeChecksum(Volume v, uint number, byte[] bytes)
