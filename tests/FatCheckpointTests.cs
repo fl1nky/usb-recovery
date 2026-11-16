@@ -14,9 +14,11 @@ public static class FatCheckpointTests
     public sealed class Expected { public long bytes, offset; public string sha256; public int directory, member; }
     public sealed class Manifest { public string image_sha256; public List<Expected> files; }
     static int checks;
+    static string phase = "setup";
     static string work, fixtures;
     static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 16 * 1024 * 1024 };
     static void Check(bool value, string why) { checks++; if (!value) throw new Exception(why); }
+    static void RunCase(string name, Action action) { phase = name; action(); }
     static string Hash(string path) { return RecoveryCore.HashFile(path, CancellationToken.None, (a, b) => { }); }
     static RecoveryOptions Options() { return new RecoveryOptions { FatMetadata = true, NtfsMetadata = false,
         LostPartitions = false, Signatures = false, EmbeddedPhotos = false, Containers = false }; }
@@ -293,14 +295,42 @@ public static class FatCheckpointTests
         {
             work = Path.Combine(Path.GetFullPath(args[0]), ".build", "fat-checkpoints-" + Guid.NewGuid().ToString("N"));
             fixtures = Path.GetFullPath(args[1]); Directory.CreateDirectory(work);
-            CancelResume(false, false); CancelResume(true, false); CancelResume(true, true);
-            FailedParent(); FailedIo(true, false); FailedIo(true, true); FailedIo(false, false); KilledProcess(); OrphanResume(); AlternateFat(); Exfat();
-            ReportsAfterFailure(); TruncatedEvidenceRepair();
-            foreach (string kind in new[] { "source", "output", "plan", "ledger", "checkpoint", "unknown" }) Rejected(kind);
+            RunCase("directory-cancel", () => CancelResume(false, false));
+            RunCase("export-cancel", () => CancelResume(true, false));
+            RunCase("missing-export", () => CancelResume(true, true));
+            RunCase("parent-write-denied", FailedParent);
+            RunCase("publish-denied", () => FailedIo(true, false));
+            RunCase("publish-denied-missing-scratch", () => FailedIo(true, true));
+            RunCase("source-read-denied", () => FailedIo(false, false));
+            RunCase("worker-killed", KilledProcess);
+            RunCase("orphan-cancel", OrphanResume);
+            RunCase("alternate-fat", AlternateFat);
+            RunCase("exfat", Exfat);
+            RunCase("report-publish-denied", ReportsAfterFailure);
+            RunCase("large-map-repair", TruncatedEvidenceRepair);
+            foreach (string kind in new[] { "source", "output", "plan", "ledger", "checkpoint", "unknown" })
+                RunCase("changed-" + kind, () => Rejected(kind));
+            phase = "source-unchanged";
             Check(Hash(Path.Combine(fixtures, "directories.dd")) == File.ReadAllText(Path.Combine(fixtures, "directories.dd.sha256")).Trim(), "owned FAT image unchanged");
             Console.WriteLine("PASS FatCheckpoint: " + checks + " checks; real directory/export/orphan cursors, cancel/kill, owned OS read/rename failures, parent denial, exFAT/alternate ownership, repair and tamper; structural owned images only");
             return 0;
         }
-        catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        catch (Exception error)
+        {
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
+            {
+                // Only owned case labels, counters and method identifiers: no
+                // exception values, source bytes, filesystem paths or locals.
+                var frames = new StackTrace(error, false).GetFrames() ?? new StackFrame[0];
+                string location = String.Join(" > ", frames.Take(6).Select(frame =>
+                {
+                    var method = frame.GetMethod();
+                    return method == null ? "unknown" : method.DeclaringType == null ? method.Name : method.DeclaringType.Name + "." + method.Name;
+                }));
+                Console.WriteLine("::error title=FAT checkpoint failure location::" + phase + "; check=" + checks +
+                    "; " + error.GetType().Name + "; hr=" + error.HResult.ToString("x8") + "; " + location);
+            }
+            Console.Error.WriteLine(error); return 1;
+        }
     }
 }
