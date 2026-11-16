@@ -90,14 +90,8 @@ namespace UsbRecovery
             for (int index = 0; index < count; index++)
             {
                 c.Cancel.ThrowIfCancellationRequested(); ReplayBlock item = blocks[next + index];
-                if (jc.HasCsumV2 || jc.HasCsumV3)
-                {
-                    uint seq = item.Sequence;
-                    byte[] sequence = { (byte)(seq >> 24), (byte)(seq >> 16), (byte)(seq >> 8), (byte)seq };
-                    uint crc = Crc(Crc(jc.Seed, sequence, 0, 4), bytes, index * (int)jc.BlockBytes, (int)jc.BlockBytes);
-                    if ((jc.HasCsumV3 ? crc : crc & 65535) != item.Tag.Checksum)
-                        throw new IOException("EXT4_REPLAY_OVERLAY_CHECKSUM_INVALID");
-                }
+                if (!JournalDataChecksumValid(jc, item.Tag, item.Sequence, bytes, index * (int)jc.BlockBytes))
+                    throw new IOException("EXT4_REPLAY_OVERLAY_CHECKSUM_INVALID");
                 if (!jc.Volume.Overlay.ContainsKey(item.Tag.DestinationBlock)) additions.Add(item.Tag.DestinationBlock);
             }
             if (additions.Count > c.Limits.MaximumJournalBlocks - jc.Volume.Overlay.Count ||

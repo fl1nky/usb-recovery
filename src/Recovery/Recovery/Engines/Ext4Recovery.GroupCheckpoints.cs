@@ -19,12 +19,19 @@ namespace UsbRecovery
             readonly MetadataSourceScope previous;
             readonly FileStream input, lease;
             readonly string hash, limits;
+            readonly bool ownsLease;
             readonly Dictionary<JournalContext, string> journalBindings = new Dictionary<JournalContext, string>();
             public MetadataSourceScope(Context c, RecoveryCheckpointContext context)
             {
                 owner = c; previous = c.CheckpointSource; input = c.Input;
                 limits = new JavaScriptSerializer().Serialize(c.Limits);
+                if (previous != null && previous.Matches(c, context.SourceSha256))
+                {
+                    previous.ValidateLimits(); lease = previous.lease; hash = previous.hash;
+                    c.CheckpointSource = this; return;
+                }
                 lease = new FileStream(LocalFile(input.Name), FileMode.Open, FileAccess.Read, FileShare.Read);
+                ownsLease = true;
                 try {
                     hash = HashStream(lease, c.Cancel);
                     if (hash != context.SourceSha256) throw new IOException("EXT4_GROUP_SOURCE_CHANGED");
@@ -47,7 +54,7 @@ namespace UsbRecovery
                 if (new JavaScriptSerializer().Serialize(owner.Limits) != limits)
                     throw new IOException("EXT4_JOURNAL_LIMITS_CHANGED");
             }
-            public void Dispose() { owner.CheckpointSource = previous; lease.Dispose(); }
+            public void Dispose() { owner.CheckpointSource = previous; if (ownsLease) lease.Dispose(); }
         }
         const int MaximumGroupBlobBytes = 1024 * 1024;
         sealed class GroupProgress
@@ -95,7 +102,7 @@ namespace UsbRecovery
         { return MetadataBlobPath(context, "group-blobs", hash); }
         static string MetadataBlobPath(RecoveryCheckpointContext context, string folder, string hash)
         {
-            if (!GroupDigest(hash) || folder != "group-blobs" && folder != "inode-blobs" && folder != "journal-blobs")
+            if (!GroupDigest(hash) || folder != "group-blobs" && folder != "inode-blobs" && folder != "journal-blobs" && folder != "history-blobs")
                 throw new IOException("EXT4_GROUP_BLOB_INVALID");
             return RecoveryCatalog.SafeFile(context.Directory, "ext4.state/" + folder + "/blob-" + hash + ".json");
         }

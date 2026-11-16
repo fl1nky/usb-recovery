@@ -63,6 +63,13 @@ namespace UsbRecovery
         {
             return machine.Budget <= 0 ? "budget" : machine.Visited.Contains(machine.Next) ? "cycle" : null;
         }
+        static bool JournalDataChecksumValid(JournalContext jc, JournalTag tag, uint seq, byte[] bytes, int offset)
+        {
+            if (!jc.HasCsumV2 && !jc.HasCsumV3) return true;
+            byte[] sequence = { (byte)(seq >> 24), (byte)(seq >> 16), (byte)(seq >> 8), (byte)seq };
+            uint checksum = Crc(Crc(jc.Seed, sequence, 0, 4), bytes, offset, (int)jc.BlockBytes);
+            return (jc.HasCsumV3 ? checksum : checksum & 65535) == tag.Checksum;
+        }
         static void JournalFail(JournalMachine machine, string failure)
         { machine.Complete = true; machine.Failure = failure; }
         static void ApplyJournalStep(Context c, JournalContext jc, JournalMachine machine, JournalStep step,
@@ -83,14 +90,8 @@ namespace UsbRecovery
             if (machine.Pending != null)
             {
                 JournalTag tag = machine.Pending[machine.TagIndex];
-                if (jc.HasCsumV2 || jc.HasCsumV3)
-                {
-                    uint seq = machine.Transaction.Sequence;
-                    byte[] sequence = { (byte)(seq >> 24), (byte)(seq >> 16), (byte)(seq >> 8), (byte)seq };
-                    uint checksum = Crc(Crc(jc.Seed, sequence, 0, 4), block, 0, block.Length);
-                    if ((jc.HasCsumV3 ? checksum : checksum & 65535) != tag.Checksum)
-                    { JournalFail(machine, "journal_data_checksum_invalid"); return; }
-                }
+                if (!JournalDataChecksumValid(jc, tag, machine.Transaction.Sequence, block, 0))
+                { JournalFail(machine, "journal_data_checksum_invalid"); return; }
                 if (jc.HasCsumV1) machine.OldChecksum = Crc32BigEndian(machine.OldChecksum, block);
                 machine.Transaction.DataBlocks.Add(Tuple.Create(tag, jc.Blocks[(int)step.Logical]));
                 machine.Next = NextJournalBlock(machine.Next, jc.First, jc.MaxLen);
