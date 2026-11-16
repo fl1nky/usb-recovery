@@ -869,69 +869,7 @@ namespace UsbRecovery
 
         static void ReplayJournal(Context c, JournalContext jc)
         {
-            Volume v = jc.Volume;
-            v.JournalReplayAttempted = true;
-            v.Report.JournalReplayAttempted = true;
-            if (jc.Start == 0 || jc.Start >= jc.MaxLen) return;
-
-            uint cur = jc.Start;
-            uint expectedSeq = jc.Sequence;
-            var committed = new List<JournalTransaction>();
-            int maxScan = (int)(jc.MaxLen - jc.First);
-            long budget = (long)maxScan * 2;
-
-            for (int step = 0; step < maxScan && cur < (uint)jc.Blocks.Count; step++)
-            {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] blk = JournalBlock(c, jc, cur);
-                if (blk == null || Be32(blk, 0) != 0xC03B3998U) break;
-                uint seq = Be32(blk, 8);
-                if (seq != expectedSeq) break;
-
-                JournalTransaction trans; string failure; uint next;
-                if (!TryJournalTransaction(c, jc, cur, out trans, out next, out failure, ref budget)) {
-                    Skip(c, failure); v.Report.JournalStatus = failure;
-                    // An unfinished tail is normal; a damaged committed log cannot
-                    // establish authoritative current allocation state.
-                    if (failure != "journal_transaction_uncommitted") { v.Overlay.Clear(); return; }
-                    break;
-                }
-                cur = next;
-                committed.Add(trans);
-                expectedSeq++;
-            }
-
-            if (committed.Count == 0) return;
-
-            var revokeTable = JournalRevokes(committed);
-
-            foreach (var trans in committed)
-            {
-                foreach (var item in trans.DataBlocks)
-                {
-                    ulong dest = item.Item1.DestinationBlock;
-                    uint flags = item.Item1.Flags;
-                    ulong phys = item.Item2;
-
-                    uint revSeq;
-                    if (revokeTable.TryGetValue(dest, out revSeq) && SequenceAtOrAfter(revSeq, trans.Sequence))
-                        continue;
-
-                    if (!BlockRange(v, dest, 1)) continue;
-                    byte[] data = Read(c, v.Offset + (long)phys * v.BlockBytes, v.BlockBytes);
-                    if (data == null) continue;
-
-                    byte[] replayed = (byte[])data.Clone();
-                    if ((flags & 1) != 0)
-                    {
-                        replayed[0] = 0xC0; replayed[1] = 0x3B; replayed[2] = 0x39; replayed[3] = 0x98;
-                    }
-                    v.Overlay[dest] = replayed;
-                }
-            }
-            v.JournalReplayApplied = true;
-            v.Report.JournalReplayApplied = true;
-            v.Report.JournalStatus = "committed_transactions_replayed_in_memory";
+            ReplayJournalCheckpointed(c, jc, null, null);
         }
 
         static Group FindInodeTableGroup(Volume v, ulong block)

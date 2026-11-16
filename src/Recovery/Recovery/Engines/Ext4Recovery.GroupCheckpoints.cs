@@ -37,11 +37,15 @@ namespace UsbRecovery
             // this history scan. A later replay starts a fresh source scope.
             public string BindJournal(JournalContext journal, Func<string> calculate)
             {
-                if (new JavaScriptSerializer().Serialize(owner.Limits) != limits)
-                    throw new IOException("EXT4_JOURNAL_LIMITS_CHANGED");
+                ValidateLimits();
                 string value;
                 if (!journalBindings.TryGetValue(journal, out value)) journalBindings[journal] = value = calculate();
                 return value;
+            }
+            public void ValidateLimits()
+            {
+                if (new JavaScriptSerializer().Serialize(owner.Limits) != limits)
+                    throw new IOException("EXT4_JOURNAL_LIMITS_CHANGED");
             }
             public void Dispose() { owner.CheckpointSource = previous; lease.Dispose(); }
         }

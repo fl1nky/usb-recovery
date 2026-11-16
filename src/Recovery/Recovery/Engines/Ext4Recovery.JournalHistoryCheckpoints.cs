@@ -120,9 +120,13 @@ namespace UsbRecovery
         }
         static RecoveryCheckpointContext JournalChild(RecoveryCheckpointContext parent, string name,
             RecoveryMethodCheckpoint anchor, Action<RecoveryMethodCheckpoint> commit)
+        { return JournalPhaseChild(parent, "history", name, anchor, commit); }
+        static RecoveryCheckpointContext JournalPhaseChild(RecoveryCheckpointContext parent, string phase, string name,
+            RecoveryMethodCheckpoint anchor, Action<RecoveryMethodCheckpoint> commit)
         {
             if (parent == null) return null;
-            string directory = Path.GetDirectoryName(RecoveryCatalog.SafeFile(parent.Directory, "ext4.state/history/" + name + "/guard"));
+            if (phase != "history" && phase != "replay") throw new IOException("EXT4_JOURNAL_CHILD_PHASE_INVALID");
+            string directory = Path.GetDirectoryName(RecoveryCatalog.SafeFile(parent.Directory, "ext4.state/" + phase + "/" + name + "/guard"));
             RecoveryMethodCheckpoint resume = null;
             if (anchor != null)
             {
@@ -131,7 +135,7 @@ namespace UsbRecovery
                     Sha256 = anchor.Sha256, Sequence = anchor.Sequence };
             }
             return new RecoveryCheckpointContext { Directory = directory, Method = "ext4", SourceSha256 = parent.SourceSha256,
-                Settings = GroupBytesHash(Encoding.UTF8.GetBytes(parent.Settings)) + ":history:" + name, Resume = resume,
+                Settings = GroupBytesHash(Encoding.UTF8.GetBytes(parent.Settings)) + ":" + phase + ":" + name, Resume = resume,
                 Commit = value => commit(RelativeJournalChild(parent, value)) };
         }
         static string AttemptName(int number) { return "attempt-" + number.ToString("D8", CultureInfo.InvariantCulture); }

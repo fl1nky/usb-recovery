@@ -34,7 +34,7 @@ try {
     $xml.Save($manifest)
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
     $suites = @()
-    foreach ($name in 'Ext4GroupCheckpointTests', 'Ext4InodeCheckpointTests', 'Ext4JournalCheckpointTests', 'Ext4JournalHistoryCheckpointTests', 'Ext4GroupMetadataTests', 'Ext4RecoveryTests', 'Ext4DirectoryEvidenceTests') {
+    foreach ($name in 'Ext4GroupCheckpointTests', 'Ext4InodeCheckpointTests', 'Ext4JournalCheckpointTests', 'Ext4JournalHistoryCheckpointTests', 'Ext4ReplayCheckpointTests', 'Ext4GroupMetadataTests', 'Ext4RecoveryTests', 'Ext4DirectoryEvidenceTests') {
         $exe = Join-Path $project ('.build/app/' + $name + '-Ext4CI.exe')
         & $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:" + $manifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:" + $app) ("/out:" + $exe) (Join-Path $project ('tests/' + $name + '.cs')) (Join-Path $project 'tests/FrameworkTarget.cs')
         if ($LASTEXITCODE -ne 0) { throw ('Compilation failed: ' + $name) }
