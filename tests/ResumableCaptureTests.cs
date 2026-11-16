@@ -27,6 +27,7 @@ public static class ResumableCaptureTests
     {
         public string Folder,Partial,Head,Map;
         public Run(string name){Folder=Path.Combine(root,name+"-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(Folder);Partial=Path.Combine(Folder,"usb.dd.partial");Head=Path.Combine(Folder,"capture-resume.json");Map=Path.Combine(Folder,"usb.dd.read-errors.json");}
+        public Run(string folder,bool existing){if(!existing||!Directory.Exists(folder))throw new IOException("Owned capture folder is missing");Folder=folder;Partial=Path.Combine(Folder,"usb.dd.partial");Head=Path.Combine(Folder,"capture-resume.json");Map=Path.Combine(Folder,"usb.dd.read-errors.json");}
     }
     static void Check(bool value,string message){checks++;if(!value)throw new Exception(message);}
     static string Hash(byte[] b){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(b)).Replace("-","").ToLowerInvariant();}
@@ -213,15 +214,83 @@ public static class ResumableCaptureTests
             Check(ResumableCapture.Inspect(run.Head).Status=="copying","held checkpoint retains previous valid durable status");
         }
     }
+    static void KilledCaptureProcess()
+    {
+        var run=new Run("process-kill");string source=Path.Combine(run.Folder,"source.bin"),ready=Path.Combine(run.Folder,"ready.txt");
+        File.WriteAllBytes(source,data);string original=Hash(source);
+        var start=new System.Diagnostics.ProcessStartInfo(typeof(ResumableCaptureTests).Assembly.Location,
+            "--capture-worker \""+source+"\" \""+run.Folder+"\" \""+ready+"\"")
+            {UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};
+        using(var child=System.Diagnostics.Process.Start(start))
+        {
+            try
+            {
+                var timer=System.Diagnostics.Stopwatch.StartNew();
+                while(!File.Exists(ready)&&!child.HasExited&&timer.Elapsed<TimeSpan.FromSeconds(30))Thread.Sleep(10);
+                Check(File.Exists(ready),"owned capture worker reaches a flushed and committed chunk");
+                child.Kill();Check(child.WaitForExit(10000),"owned capture worker terminates without graceful cleanup");
+            }
+            finally{if(!child.HasExited){child.Kill();child.WaitForExit(10000);}}
+        }
+        Check(ResumableCapture.Inspect(run.Head).CompletedBytes==ResumableCapture.ChunkBytes,"process crash preserves the exact durable capture prefix");
+        using(var input=new TestSource(data))
+        {
+            var result=Copy(input,run,true);
+            Check(result.ResumedBytes==ResumableCapture.ChunkBytes&&result.Sha256==original,"fresh parent resumes killed capture to exact source SHA");
+            Check(!input.Reads.Any(x=>x.Offset==0&&x.Count==ResumableCapture.ChunkBytes),"crash resume does not copy the acknowledged source body again");
+            Check(input.Writes==0,"crash resume keeps the source read-only");
+        }
+        Check(Hash(source)==original&&ResumableCapture.VerifyCompletedImage(run.Head,run.Partial,CancellationToken.None).Sha256==original,
+            "killed capture verifies its completed image and preserves the owned source file");
+    }
+    static void OutputWriteFailure()
+    {
+        var run=new Run("output-write-denied");FileStream held=null;bool failed=false;
+        using(var input=new TestSource(data))
+        {
+            input.BeforeRead=(at,count)=>
+            {
+                if(held!=null||at!=ResumableCapture.ChunkBytes||count!=ResumableCapture.ChunkBytes)return;
+                held=new FileStream(run.Partial,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);
+                held.Lock(ResumableCapture.ChunkBytes,512);
+            };
+            try{Copy(input,run);}catch(IOException){failed=true;}
+            finally{if(held!=null){held.Unlock(ResumableCapture.ChunkBytes,512);held.Dispose();}}
+            Check(failed&&held!=null,"real OS output range lock interrupts capture writing");
+            Check(input.Writes==0,"output write failure never writes source bytes");
+        }
+        var info=ResumableCapture.Inspect(run.Head);
+        Check(info.CompletedBytes==ResumableCapture.ChunkBytes&&info.Status=="incomplete","failed output write cannot acknowledge an unfinished chunk");
+        using(var input=new TestSource(data))
+        {
+            var result=Copy(input,run,true);
+            Check(result.ResumedBytes==ResumableCapture.ChunkBytes&&result.Sha256==Hash(data),"capture resumes exactly after the OS output lock closes");
+            Check(!input.Reads.Any(x=>x.Offset==0&&x.Count==ResumableCapture.ChunkBytes),"output failure resume retains confirmed source progress");
+        }
+    }
     public static int Main(string[] args)
     {
         try{
             if(args.Length==2&&args[0]=="--inspect"){var info=ResumableCapture.Inspect(args[1]);Console.WriteLine("INSPECT OK "+info.Status);return 0;}
+            if(args.Length==4&&args[0]=="--capture-worker")
+            {
+                var run=new Run(args[2],true);
+                using(var source=new FileStream(args[1],FileMode.Open,FileAccess.Read,FileShare.Read))
+                    ResumableCapture.Copy(source,run.Partial,source.Length,512,Identity,run.Head,run.Map,CancellationToken.None,
+                        (done,total)=>{if(done==ResumableCapture.ChunkBytes){File.WriteAllText(args[3],"committed");Thread.Sleep(Timeout.Infinite);}},()=>true);
+                return 3;
+            }
             string project=Path.GetFullPath(args.Length>0?args[0]:Directory.GetCurrentDirectory());root=Path.Combine(project,".build","resume-capture-tests-"+DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ"));Directory.CreateDirectory(root);data=new byte[ResumableCapture.ChunkBytes*2+512];new Random(3301).NextBytes(data);string original=Hash(data);
-            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();AtomicReaders();CaptureAtomicCancellation();CaptureAtomicFailure();IncompleteAtomicReaderPreservesOriginalError();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
-            string summary="PASS ResumableCapture: "+checks+" checks; exact/rescue resume, output hashes and journal/source identity,16x4KiB sampled source checks (not arbitrary-write detection), good-first late bounded retry, bad ranges, transactional torn repair, cancellation/disconnect/EOF/alignment, tamper/path/hardlink rejection, bounded atomic reader retries/cancellation and unchanged durable data; synthetic regular files/streams only. Results: "+root;
+            ExactAndResume();Rejections();ReadErrors();PendingRepair(false,false);PendingRepair(true,false);PendingRepair(false,true);SmallGeometry();CompletedVerification();AtomicReaders();CaptureAtomicCancellation();CaptureAtomicFailure();IncompleteAtomicReaderPreservesOriginalError();KilledCaptureProcess();OutputWriteFailure();Check(Hash(data)==original,"all synthetic source bytes remain unchanged");
+            string summary="PASS ResumableCapture: "+checks+" checks; exact/rescue resume, output hashes and journal/source identity,16x4KiB sampled source checks (not arbitrary-write detection), good-first late bounded retry, bad ranges, transactional torn repair, cancellation/disconnect/EOF/alignment, tamper/path/hardlink rejection, owned worker kill, OS output range-lock, bounded atomic reader retries/cancellation and unchanged durable data; synthetic regular files/streams only. Results: "+root;
             Console.WriteLine(summary);File.WriteAllText(Path.Combine(project,"tests","ResumableCaptureTests.result.txt"),summary,Encoding.UTF8);return 0;
-        }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
+        }catch(Exception ex){
+            if(Environment.GetEnvironmentVariable("GITHUB_ACTIONS")=="true"){
+                var frames=new System.Diagnostics.StackTrace(ex,false).GetFrames()??new System.Diagnostics.StackFrame[0];
+                Console.WriteLine("::error title=Capture check failure location::"+ex.GetType().Name+"; hr="+ex.HResult.ToString("x8")+"; "+String.Join(" > ",frames.Take(6).Select(frame=>frame.GetMethod()==null?"unknown":frame.GetMethod().Name)));
+            }
+            Console.Error.WriteLine(ex);return 1;
+        }
     }
     static void SmallGeometry()
     {

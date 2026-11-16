@@ -69,7 +69,7 @@ try{
   if($taskLevels.Count-ne1-or@($taskXml.GetElementsByTagName('longPathAware')|Where-Object InnerText -eq 'true').Count-ne1){throw 'Missing compatibility attributes.'}
   $taskLevels[0].SetAttribute('level','asInvoker');$taskXml.Save($taskManifest)
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','FilesystemRecoveryTests','FatCheckpointTests','Ext4DirectoryEvidenceTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
+  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','ResumableCaptureTests','CaptureProvenanceTests','FilesystemRecoveryTests','FatCheckpointTests','Ext4DirectoryEvidenceTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Flash.exe')
    $taskTestSources=@((Join-Path $taskLayout.Tests ($taskName+'.cs')),(Join-Path $taskLayout.Tests 'FrameworkTarget.cs'))

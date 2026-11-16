@@ -141,7 +141,7 @@ def audit():
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
     # These are C# application regression inputs, supplied with the application
     # source rather than the helper-only Python rebuild bundle.
-    for name in ("MetadataRescueTests.cs", "NtfsRecordCheckpointTests.cs", "NtfsRecordReadBudgetTests.cs", "Ext4DirectoryEvidenceTests.cs", "Ext4RecoveryTests.cs", "build_ntfs_record_checkpoint_fixtures.py"):
+    for name in ("MetadataRescueTests.cs", "NtfsRecordCheckpointTests.cs", "NtfsRecordReadBudgetTests.cs", "Ext4DirectoryEvidenceTests.cs", "Ext4RecoveryTests.cs", "ResumableCaptureTests.cs", "CaptureProvenanceTests.cs", "build_ntfs_record_checkpoint_fixtures.py"):
         require(sha(ROOT / "tests" / name) == sha(READY / "source/tests" / name), "NTFS source test missing or stale: " + name)
     ntfs_source = ROOT / "tests/fixtures/ntfs-records"
     ntfs_delivered = READY / "source/tests/fixtures/ntfs-records"
