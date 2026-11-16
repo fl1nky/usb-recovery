@@ -48,6 +48,11 @@ namespace UsbRecovery
             public string Note = "Сохранившаяся карта удалённого inode. Свободные блоки могли быть перезаписаны до снимка; контрольной суммы исходного содержимого в ext4 нет.";
             public List<Extent> Extents = new List<Extent>();
             public List<NameLink> Names = new List<NameLink>();
+            internal Entry HeaderCopy()
+            {
+                var copy = (Entry)MemberwiseClone();
+                copy.Extents = new List<Extent>(); copy.Names = new List<NameLink>(); return copy;
+            }
         }
         public sealed class VolumeReport
         {
@@ -342,72 +347,7 @@ namespace UsbRecovery
             }
 
             var names = DirectoryNames(c, v, directories, journalDirBlocks);
-            foreach (Inode inode in deleted) {
-                c.Cancel.ThrowIfCancellationRequested(); c.Report.Candidates++;
-                var entry = new Entry { VolumeOffset = v.Offset, InodeOffset = inode.Offset, Inode = inode.Number, Generation = inode.Generation,
-                    DeletionTime = inode.Dtime, DeclaredSize = inode.Size > long.MaxValue ? long.MaxValue : (long)inode.Size,
-                    InodeChecksumVerified = v.Csum, Status = "not_recovered" };
-                c.Report.Entries.Add(entry);
-                List<NameLink> links; if (names.TryGetValue(inode.Number, out links)) entry.Names = links;
-                if (inode.Size == 0 || inode.Size > (ulong)c.Limits.MaximumFileBytes) {
-                    entry.Reason = "empty_or_file_size_limit";
-                    if (inode.Size > (ulong)c.Limits.MaximumFileBytes) { c.Report.Limited = true; Skip(c, "file_size_limit"); }
-                    continue;
-                }
-                if (PrepareMappedEntry(c, v, inode, entry)) WriteFile(c, entry);
-            }
-
-            if (historicalInodes != null)
-            {
-                foreach (HistoricalCandidate cand in historicalInodes.Values)
-                {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    if (c.Report.Entries.Any(x => x.VolumeOffset == v.Offset && x.Inode == cand.Number && x.Output != null)) continue;
-                    if (!IsCandidateDeletedInLiveFs(c, v, cand)) continue;
-
-                    if (c.Report.Entries.Count >= c.Limits.MaximumCandidates)
-                    {
-                        c.Report.Limited = true;
-                        Skip(c, "candidate_limit");
-                        break;
-                    }
-
-                    var inode = new Inode
-                    {
-                        Number = cand.Number,
-                        Offset = v.Offset + (long)cand.TargetDiskBlock * v.BlockBytes + (long)cand.OffsetInBlock,
-                        Mode = cand.Mode,
-                        Links = cand.Links,
-                        Dtime = cand.Dtime,
-                        Flags = cand.Flags,
-                        Generation = cand.Generation,
-                        Size = cand.Size,
-                        Allocated = false,
-                        Bytes = cand.InodeBytes
-                    };
-
-                    c.Report.Candidates++;
-                    var entry = new Entry
-                    {
-                        VolumeOffset = v.Offset,
-                        InodeOffset = inode.Offset,
-                        Inode = inode.Number,
-                        Generation = inode.Generation,
-                        DeletionTime = inode.Dtime,
-                        DeclaredSize = inode.Size > long.MaxValue ? long.MaxValue : (long)inode.Size,
-                        InodeChecksumVerified = v.Csum,
-                        Status = "not_recovered",
-                        DeletionEvidence = "journal_transaction_pre_deletion_record",
-                        Note = "Историческая карта inode из транзакции журнала JBD2 (seq " + cand.TransactionSeq + "). Свободные блоки могли быть перезаписаны до снимка; контрольной суммы исходного содержимого в ext4 нет."
-                    };
-                    c.Report.Entries.Add(entry);
-
-                    List<NameLink> links;
-                    if (names.TryGetValue(inode.Number, out links)) entry.Names = links;
-
-                    if (PrepareMappedEntry(c, v, inode, entry)) WriteFile(c, entry);
-                }
-            }
+            ExportVolumeCandidatesLegacy(c, v, deleted, historicalInodes, names);
 
             v.Report.Status = c.Report.Limited ? "limited" : "complete";
         }

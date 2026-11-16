@@ -103,7 +103,7 @@ namespace UsbRecovery
         static string MetadataBlobPath(RecoveryCheckpointContext context, string folder, string hash)
         {
             if (!GroupDigest(hash) || folder != "group-blobs" && folder != "inode-blobs" && folder != "journal-blobs" &&
-                folder != "history-blobs" && folder != "directory-blobs" && folder != "candidate-blobs")
+                folder != "history-blobs" && folder != "directory-blobs" && folder != "candidate-blobs" && folder != "export-blobs")
                 throw new IOException("EXT4_GROUP_BLOB_INVALID");
             return RecoveryCatalog.SafeFile(context.Directory, "ext4.state/" + folder + "/blob-" + hash + ".json");
         }
