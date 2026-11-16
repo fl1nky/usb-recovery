@@ -87,7 +87,7 @@ namespace UsbRecovery
             int files = 0;
             foreach (string path in Files(key))
             {
-                if (++files > 100000)
+                if (++files > RecoveryArtifactInventory.MaximumArtifacts)
                     throw new IOException("Слишком много файлов предыдущей попытки. Создай новый поиск.");
                 RecoveryCatalog.SafeFile(root, path.Substring(root.TrimEnd('\\').Length + 1));
             }

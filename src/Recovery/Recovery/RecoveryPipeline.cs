@@ -54,7 +54,7 @@ namespace UsbRecovery
                 return Execute(prepared.Image, directory, request.Options, cancel, progress, prepared.Checksum, started, activity);
             }
 
-            var saved = RecoverySession.Read(directory);
+            var saved = RecoverySession.Read(directory, cancel);
             if (String.Equals(Path.GetFullPath(saved.SourcePath), ForensicImageSource.WorkingPath(directory), StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Параметры подготовки образа утрачены.");
             return Execute(saved.SourcePath, directory, saved.Options, cancel, progress, null, true, activity);
@@ -107,7 +107,7 @@ namespace UsbRecovery
                 string expected;
                 if (resume)
                 {
-                    var saved = RecoverySession.Read(directory);
+                    var saved = RecoverySession.Read(directory, cancel);
                     expected = saved.SourceSha256;
                     if (!String.Equals(RecoveryCore.HashFile(image, cancel, (a, b) => observe("running", a, b, -1)), expected, StringComparison.OrdinalIgnoreCase))
                         throw new IOException("Образ изменился после сохранения сессии. Продолжение остановлено.");

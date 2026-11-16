@@ -54,6 +54,12 @@ namespace UsbRecovery
 
         public static RecoverySessionState Read(string root)
         {
+            return Read(root, CancellationToken.None);
+        }
+
+        public static RecoverySessionState Read(string root, CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
             string file = RecoveryCatalog.SafeFile(root, FileName);
             if (!File.Exists(file) || new FileInfo(file).Length > 64L * 1024 * 1024)
                 throw new IOException("Сохранённая сессия не найдена или слишком велика.");
@@ -63,7 +69,7 @@ namespace UsbRecovery
                 {
                     MaxJsonLength = 64 * 1024 * 1024
                 }.Deserialize<RecoverySessionState>(File.ReadAllText(file, Encoding.UTF8));
-                if (state == null || state.Schema != 1 || state.Options == null || !Hash(state.SourceSha256) || state.SourceBytes <= 0 || String.IsNullOrEmpty(state.SourcePath) || state.Stages == null || state.Stages.Count > Keys.Length)
+                if (state == null || state.Schema != 1 && state.Schema != 2 || state.Options == null || !Hash(state.SourceSha256) || state.SourceBytes <= 0 || String.IsNullOrEmpty(state.SourcePath) || state.Stages == null || state.Stages.Count > Keys.Length)
                     throw new IOException("Сессия повреждена или имеет неподдерживаемую версию.");
                 if (state.SourceInWorkingDirectory)
                 {
@@ -84,10 +90,13 @@ namespace UsbRecovery
                     throw new IOException("Неизвестное состояние сессии.");
                 state.Options.Validate();
                 SourceLocation(root, state.SourcePath);
+                if ((state.Schema == 2) != state.Stages.Any(stage => stage != null && stage.ArtifactIndex != null))
+                    throw new IOException("Некорректная версия списка результатов сессии.");
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var stage in state.Stages)
                 {
-                    if (stage == null || !Keys.Contains(stage.Key) || !seen.Add(stage.Key) || stage.Artifacts == null || stage.Artifacts.Count > 100000 || stage.Candidates < 0 || !new[]
+                    cancel.ThrowIfCancellationRequested();
+                    if (stage == null || !Keys.Contains(stage.Key) || !seen.Add(stage.Key) || stage.Artifacts == null || stage.Artifacts.Count > RecoveryArtifactInventory.LegacyInlineArtifacts || stage.Candidates < 0 || !new[]
                     {
                         "running",
                         "complete",
@@ -95,9 +104,16 @@ namespace UsbRecovery
                         "cancelled"
                     }.Contains(stage.Status))
                         throw new IOException("Некорректные этапы сохранённой сессии.");
+                    if (stage.ArtifactIndex != null)
+                    {
+                        if (stage.Status != "complete" || stage.Artifacts.Count != 0)
+                            throw new IOException("Некорректный список результатов завершённого этапа.");
+                        stage.Artifacts = RecoveryArtifactInventory.Read(root, stage.Key, stage.ArtifactIndex, cancel);
+                    }
                     var artifactNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var artifact in stage.Artifacts)
                     {
+                        cancel.ThrowIfCancellationRequested();
                         if (artifact == null || !artifactNames.Add(artifact.Path) || !Hash(artifact.Sha256) || artifact.Bytes < 0)
                             throw new IOException("Некорректная контрольная сумма результата.");
                         RecoveryCatalog.SafeFile(root, artifact.Path);
@@ -167,7 +183,7 @@ namespace UsbRecovery
 
         public static RecoverySession Open(string root, string image, RecoveryOptions options, CancellationToken cancel, Action<string> progress)
         {
-            var state = Read(root);
+            var state = Read(root, cancel);
             if (state.SourceBytes != new FileInfo(image).Length || !String.Equals(state.SourcePath, Path.GetFullPath(image), StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Источник сессии изменился.");
             string map = RecoveryCatalog.SafeFile(root, "source-read-errors.json");
@@ -377,7 +393,7 @@ namespace UsbRecovery
             foreach (string file in Files(key))
             {
                 cancel.ThrowIfCancellationRequested();
-                if (artifacts.Count >= 100000)
+                if (artifacts.Count >= RecoveryArtifactInventory.MaximumArtifacts)
                     throw new IOException("Слишком много файлов для безопасного сохранения этапа.");
                 string relative = file.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/');
                 RecoveryCatalog.SafeFile(root, relative);
@@ -386,14 +402,27 @@ namespace UsbRecovery
                 }) });
             }
 
+            var index = RecoveryArtifactInventory.Write(root, key, artifacts, cancel);
             cancel.ThrowIfCancellationRequested();
             lock (gate)
             {
+                var previousArtifacts = stage.Artifacts;
+                var previousIndex = stage.ArtifactIndex;
+                int previousCount = stage.Candidates;
+                bool previousWarnings = stage.Warnings;
+                string previousStatus = stage.Status;
                 stage.Artifacts = artifacts;
+                stage.ArtifactIndex = index;
                 stage.Candidates = count;
                 stage.Warnings = warnings;
                 stage.Status = "complete";
-                Save();
+                try { Save(); }
+                catch
+                {
+                    stage.Artifacts = previousArtifacts; stage.ArtifactIndex = previousIndex;
+                    stage.Candidates = previousCount; stage.Warnings = previousWarnings; stage.Status = previousStatus;
+                    throw;
+                }
             }
         }
 
@@ -476,8 +505,11 @@ namespace UsbRecovery
         {
             lock (gate)
             {
-                State.UpdatedUtc = DateTime.UtcNow.ToString("o");
-                RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root, FileName), State, 64 * 1024 * 1024);
+                var stored = State.StorageCopy();
+                stored.UpdatedUtc = DateTime.UtcNow.ToString("o");
+                RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root, FileName), stored, 64 * 1024 * 1024);
+                State.UpdatedUtc = stored.UpdatedUtc;
+                State.Schema = stored.Schema;
             }
         }
 

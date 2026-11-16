@@ -86,7 +86,7 @@ namespace UsbRecovery
         {
             object raw;long schema;sha=null;bytes=-1;
             if(session==null||!session.TryGetValue("SourceSha256",out raw)||!(raw is string))return false;
-            sha=(string)raw;return MappingNumber(session,"Schema",out schema)&&schema==1&&MappingNumber(session,"SourceBytes",out bytes)&&bytes>0&&ValidSha(sha);
+            sha=(string)raw;return MappingNumber(session,"Schema",out schema)&&(schema==1||schema==2)&&MappingNumber(session,"SourceBytes",out bytes)&&bytes>0&&ValidSha(sha);
         }
         static bool ValidSha(string sha){return sha!=null&&sha.Length==64&&sha.All(Uri.IsHexDigit);}
         static void BindSource(EvidenceEntry entry,Dictionary<string,object> report,Dictionary<string,object> session,bool sessionFallback=false)

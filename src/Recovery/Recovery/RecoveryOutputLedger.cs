@@ -21,6 +21,8 @@ namespace UsbRecovery
         public List<T> Records;
     }
 
+    internal enum RecoveryLedgerScope { MethodOutput, SessionArtifacts }
+
     // A checkpoint pins one head. Each immutable page pins the previous page,
     // so a large output inventory needs no growing root JSON or full-prefix
     // rehash on every scan block. Orphan pages are never discovered as results.
@@ -30,6 +32,9 @@ namespace UsbRecovery
         readonly RecoveryCheckpointContext context;
         readonly CancellationToken cancel;
         readonly int maximumRecords;
+        readonly string prefix;
+        readonly long maximumBytes;
+        long chainBytes;
         public readonly List<T> Records = new List<T>();
 
         string Hash(string file)
@@ -39,7 +44,6 @@ namespace UsbRecovery
 
         string FileFor(RecoveryOutputHead head)
         {
-            string prefix = context.Method + ".state/outputs/page-";
             if (head == null || head.Count < 1 || head.Count > maximumRecords ||
                 head.Path == null || !head.Path.StartsWith(prefix, StringComparison.Ordinal) ||
                 !head.Path.EndsWith(".json", StringComparison.Ordinal) || head.Path.Length != prefix.Length + 37 ||
@@ -56,11 +60,19 @@ namespace UsbRecovery
         }
 
         public RecoveryOutputLedger(RecoveryCheckpointContext checkpoint, RecoveryOutputHead head,
-            int maximum, CancellationToken token)
+            int maximum, CancellationToken token, RecoveryLedgerScope scope = RecoveryLedgerScope.MethodOutput,
+            long maximumPageChainBytes = Int64.MaxValue)
         {
             context = checkpoint;
             maximumRecords = maximum;
             cancel = token;
+            maximumBytes = maximumPageChainBytes;
+            if (maximum < 1 || maximumBytes < 1 || scope != RecoveryLedgerScope.MethodOutput && scope != RecoveryLedgerScope.SessionArtifacts)
+                throw new ArgumentException("Invalid ledger bounds.");
+            if (scope == RecoveryLedgerScope.SessionArtifacts && (context == null || !RecoveryStageFiles.Keys.Contains(context.Method)))
+                throw new IOException("SESSION_ARTIFACT_INVENTORY_CONTEXT_INVALID");
+            if (context != null) prefix = scope == RecoveryLedgerScope.SessionArtifacts
+                ? "session-inventories/" + context.Method + "/page-" : context.Method + ".state/outputs/page-";
             if (Empty(head)) return;
             if (context == null) throw new IOException("METHOD_OUTPUT_LEDGER_CONTEXT_REQUIRED");
             int expected = head.Count;
@@ -72,7 +84,12 @@ namespace UsbRecovery
                 RecoveryOutputPage<T> page;
                 using (var guard = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    if (guard.Length <= 0 || guard.Length > MaximumPageBytes || Hash(file) != head.Sha256)
+                    if (guard.Length <= 0 || guard.Length > MaximumPageBytes)
+                        throw new IOException("METHOD_OUTPUT_LEDGER_CHANGED");
+                    if (guard.Length > maximumBytes - chainBytes)
+                        throw new IOException("METHOD_OUTPUT_LEDGER_BYTES_LIMIT");
+                    chainBytes += guard.Length;
+                    if (Hash(file) != head.Sha256)
                         throw new IOException("METHOD_OUTPUT_LEDGER_CHANGED");
                     try
                     {
@@ -126,10 +143,13 @@ namespace UsbRecovery
                     page.Records.Add(records[at++]);
                     bytes += added;
                 }
-                string relative = context.Method + ".state/outputs/page-" + Guid.NewGuid().ToString("N") + ".json";
+                if (bytes + 8L > maximumBytes - chainBytes)
+                    throw new IOException("METHOD_OUTPUT_LEDGER_BYTES_LIMIT");
+                string relative = prefix + Guid.NewGuid().ToString("N") + ".json";
                 string path = RecoveryCatalog.SafeFile(context.Directory, relative);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 RecoveryCore.SaveJsonBounded(path, page, MaximumPageBytes);
+                chainBytes += new FileInfo(path).Length;
                 count += page.Records.Count;
                 head = new RecoveryOutputHead { Path = relative, Sha256 = Hash(path), Count = count };
             }

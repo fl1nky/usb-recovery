@@ -283,7 +283,10 @@ namespace UsbRecovery
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var hash = SHA256.Create())
             {
-                byte[] buffer = new byte[ChunkSize]; long total = stream.Length, done = 0; int count;
+                long total = stream.Length, done = 0; int count;
+                // Large recovered sets contain many tiny files. Keep the large
+                // sequential buffer for images without allocating it per tiny file.
+                byte[] buffer = new byte[(int)Math.Min(ChunkSize, Math.Max(1L, total))];
                 while ((count = stream.Read(buffer, 0, buffer.Length)) != 0)
                 {
                     cancel.ThrowIfCancellationRequested(); hash.TransformBlock(buffer, 0, count, null, 0); done += count; progress(done, total);
