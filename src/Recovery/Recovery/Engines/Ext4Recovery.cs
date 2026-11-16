@@ -410,20 +410,20 @@ namespace UsbRecovery
             v.Report.Status = c.Report.Limited ? "limited" : "complete";
         }
 
-        static Mapping Map(Context c, Volume v, Inode inode)
+        static Mapping Map(Context c, Volume v, Inode inode, Func<ulong, byte[]> readBlock = null)
         {
             var map = new Mapping { Kind = (inode.Flags & 0x80000) != 0 ? "extent_tree" : "direct_indirect" };
             if ((inode.Flags & (0x800U | 0x10000000U | 4U | 0x100000U | 0x200000U)) != 0) { map.Failure = "encrypted_inline_compressed_verity_or_ea_inode"; return map; }
             ulong needed = (inode.Size + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes;
             if ((inode.Flags & 0x80000) != 0) {
                 byte[] root = new byte[60]; Buffer.BlockCopy(inode.Bytes, 0x28, root, 0, 60);
-                ExtentNode(c, v, inode, map, root, -1, 0, 0x100000000UL);
+                ExtentNode(c, v, inode, map, root, -1, 0, 0x100000000UL, readBlock);
             } else {
                 ulong logical = 0;
                 for (int i = 0; i < 12 && logical < needed; i++, logical++) AddRun(c, v, map, logical, U32(inode.Bytes, 0x28 + i * 4), 1, false);
                 for (int depth = 1; depth <= 3 && logical < needed && map.Failure == null; depth++) {
                     ulong capacity = 1; for (int i = 0; i < depth; i++) capacity *= (uint)(v.BlockBytes / 4);
-                    Indirect(c, v, map, U32(inode.Bytes, 0x28 + (11 + depth) * 4), depth, logical, needed);
+                    Indirect(c, v, map, U32(inode.Bytes, 0x28 + (11 + depth) * 4), depth, logical, needed, readBlock);
                     logical += capacity;
                 }
                 if (logical < needed && map.Failure == null) map.Failure = "indirect_mapping_size_limit";
@@ -442,7 +442,8 @@ namespace UsbRecovery
             return map;
         }
 
-        static void ExtentNode(Context c, Volume v, Inode inode, Mapping map, byte[] bytes, int expectedDepth, ulong lower, ulong upper)
+        static void ExtentNode(Context c, Volume v, Inode inode, Mapping map, byte[] bytes, int expectedDepth, ulong lower, ulong upper,
+            Func<ulong, byte[]> readBlock)
         {
             if (map.Failure != null) return; c.Cancel.ThrowIfCancellationRequested();
             int entries = U16(bytes, 2), maximum = U16(bytes, 4), depth = U16(bytes, 6);
@@ -464,22 +465,25 @@ namespace UsbRecovery
                     ulong next = i + 1 < entries ? U32(bytes, at + 12) : upper;
                     ulong block = U32(bytes, at + 4) | (ulong)U16(bytes, at + 8) << 32;
                     if (next <= logical || !TreeBlock(c, v, map, block)) { if (map.Failure == null) map.Failure = "extent_index_invalid"; return; }
-                    byte[] child = Block(c, v, block); if (child == null) { map.Failure = "extent_node_read_failed"; return; }
-                    ExtentNode(c, v, inode, map, child, depth - 1, logical, next); previous = next;
+                    byte[] child = readBlock == null ? Block(c, v, block) : readBlock(block);
+                    if (child == null) { map.Failure = "extent_node_read_failed"; return; }
+                    ExtentNode(c, v, inode, map, child, depth - 1, logical, next, readBlock); previous = next;
                 }
             }
         }
-        static void Indirect(Context c, Volume v, Mapping map, ulong block, int depth, ulong logical, ulong needed)
+        static void Indirect(Context c, Volume v, Mapping map, ulong block, int depth, ulong logical, ulong needed,
+            Func<ulong, byte[]> readBlock)
         {
             if (map.Failure != null || logical >= needed) return;
             if (block == 0) { map.Failure = "sparse_indirect_pointer"; return; }
             if (!TreeBlock(c, v, map, block)) return;
-            byte[] bytes = Block(c, v, block); if (bytes == null) { map.Failure = "indirect_block_read_failed"; return; }
+            byte[] bytes = readBlock == null ? Block(c, v, block) : readBlock(block);
+            if (bytes == null) { map.Failure = "indirect_block_read_failed"; return; }
             ulong stride = 1; for (int i = 1; i < depth; i++) stride *= (uint)(v.BlockBytes / 4);
             for (int i = 0; i < bytes.Length / 4 && logical < needed && map.Failure == null; i++, logical += stride) {
                 c.Cancel.ThrowIfCancellationRequested(); ulong pointer = U32(bytes, i * 4);
                 if (depth == 1) AddRun(c, v, map, logical, pointer, 1, false);
-                else Indirect(c, v, map, pointer, depth - 1, logical, needed);
+                else Indirect(c, v, map, pointer, depth - 1, logical, needed, readBlock);
             }
         }
         static bool TreeBlock(Context c, Volume v, Mapping map, ulong block)
