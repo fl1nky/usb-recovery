@@ -210,6 +210,38 @@ namespace UsbRecovery
 
         static Volume OpenVolume(Context c, long offset)
         {
+            Volume v = OpenVolumeHeader(c, offset);
+            if (v == null || v.Report.Status != "header_ready") return v;
+            byte[] sb = v.Superblock;
+            VolumeReport vr = v.Report;
+            vr.Status = "rejected";
+            ulong groups = (ulong)vr.Groups, gdStart = v.FirstData + 1UL;
+            var fixedReserved = v.Reserved.ToList();
+            ReadGroups(c, v, groups, gdStart, fixedReserved);
+            if ((v.Incompat & 0x4) != 0)
+            {
+                JournalContext jc = LoadJournal(c, v, sb);
+                if (jc != null)
+                {
+                    ReplayJournal(c, jc);
+                    if (!v.JournalReplayApplied && jc.Start != 0 && v.Report.JournalStatus != "journal_transaction_uncommitted") {
+                        vr.Reason = v.Report.JournalStatus ?? "journal_replay_failed"; return v;
+                    }
+                    if (v.Overlay.Count > 0)
+                    {
+                        if (!ReplaySuperblockGeometry(c, v, sb)) { vr.Reason = vr.JournalStatus; return v; }
+                        v.Groups.Clear(); v.Reserved = fixedReserved.ToList();
+                        ReadGroups(c, v, groups, gdStart, fixedReserved);
+                    }
+                }
+                else { vr.Reason = vr.JournalStatus ?? "journal_unavailable_for_dirty_volume"; return v; }
+            }
+            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
+            vr.Status = "ready"; return v;
+        }
+
+        static Volume OpenVolumeHeader(Context c, long offset)
+        {
             byte[] sb = Read(c, offset + 1024, 1024);
             if (sb == null || U16(sb, 0x38) != 0xef53) return null;
             var vr = new VolumeReport { Offset = offset, Status = "rejected" }; c.Report.Volumes.Add(vr);
@@ -249,29 +281,8 @@ namespace UsbRecovery
             for (uint g = 1; g < groups; g++) if (HasSuper(sb, v, g))
                 v.Reserved.Add(new Range { Start = v.FirstData + (ulong)g * v.BlocksPerGroup, Length = fixedLength });
             if (v.Reserved.Any(x => x.Start >= v.Blocks || x.Length > v.Blocks - x.Start)) { vr.Reason = "reserved_metadata_bounds"; return v; }
-            var fixedReserved = v.Reserved.ToList();
-            ReadGroups(c, v, groups, gdStart, fixedReserved);
-            if ((v.Incompat & 0x4) != 0)
-            {
-                JournalContext jc = LoadJournal(c, v, sb);
-                if (jc != null)
-                {
-                    ReplayJournal(c, jc);
-                    if (!v.JournalReplayApplied && jc.Start != 0 && v.Report.JournalStatus != "journal_transaction_uncommitted") {
-                        vr.Reason = v.Report.JournalStatus ?? "journal_replay_failed"; return v;
-                    }
-                    if (v.Overlay.Count > 0)
-                    {
-                        if (!ReplaySuperblockGeometry(c, v, sb)) { vr.Reason = vr.JournalStatus; return v; }
-                        v.Groups.Clear(); v.Reserved = fixedReserved.ToList();
-                        ReadGroups(c, v, groups, gdStart, fixedReserved);
-                    }
-                }
-                else { vr.Reason = vr.JournalStatus ?? "journal_unavailable_for_dirty_volume"; return v; }
-            }
             v.Superblock = sb;
-            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
-            vr.Status = "ready"; return v;
+            vr.Status = "header_ready"; return v;
         }
 
         static byte[] GroupDescriptor(Context c, Volume v, ulong gdStart, uint group)
@@ -308,9 +319,7 @@ namespace UsbRecovery
 
         static void ReadGroups(Context c, Volume v, ulong groups, ulong gdStart, List<Range> fixedReserved)
         {
-            for (uint number = 0; number < groups; number++)
-                ApplyGroupMetadata(c, v, ReadGroupMetadata(c, v, gdStart, number, fixedReserved));
-            ValidateGroupOverlaps(c, v);
+            ReadGroupsCheckpointed(c, v, groups, gdStart, fixedReserved, null, null);
         }
 
         static void ScanVolume(Context c, Volume v, Action<string> progress)

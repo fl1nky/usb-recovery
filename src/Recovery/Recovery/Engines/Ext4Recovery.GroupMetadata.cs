@@ -19,9 +19,17 @@ namespace UsbRecovery
             uint number, List<Range> fixedReserved)
         {
             c.Cancel.ThrowIfCancellationRequested();
+            byte[] descriptor = GroupDescriptor(c, v, gdStart, number);
+            return ParseGroupMetadata(c, v, number, fixedReserved, descriptor,
+                (block, inode) => RequiredGroupBlock(c, v, block));
+        }
+
+        static GroupMetadataUnit ParseGroupMetadata(Context c, Volume v, uint number,
+            List<Range> fixedReserved, byte[] desc, Func<ulong, bool, byte[]> bitmap)
+        {
+            c.Cancel.ThrowIfCancellationRequested();
             var unit = new GroupMetadataUnit { Group = new Group { Number = number } };
             Group group = unit.Group;
-            byte[] desc = GroupDescriptor(c, v, gdStart, number);
             group.Descriptor = desc;
             if (desc == null) throw new EndOfStreamException("EXT4_GROUP_DESCRIPTOR_SHORT_READ");
             if (!GroupChecksum(v, number, desc))
@@ -57,12 +65,12 @@ namespace UsbRecovery
             group.Valid = true;
             if ((group.Flags & 1) == 0)
             {
-                group.Inodes = RequiredGroupBlock(c, v, group.InodeBitmap);
+                group.Inodes = bitmap(group.InodeBitmap, true);
                 group.InodeMapValid = BitmapChecksum(v, group, group.Inodes, true);
             }
             if ((group.Flags & 2) == 0)
             {
-                group.Blocks = RequiredGroupBlock(c, v, group.BlockBitmap);
+                group.Blocks = bitmap(group.BlockBitmap, false);
                 group.BlockMapValid = BitmapChecksum(v, group, group.Blocks, false);
             }
             if (!group.InodeMapValid) unit.Diagnostics.Add("inode_bitmap_uninitialized_or_invalid");
