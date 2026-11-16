@@ -95,6 +95,19 @@ namespace UsbRecovery
                 a.NameNote == b.NameNote && a.Start == b.Start && a.Length == b.Length &&
                 a.ValidLength == b.ValidLength && a.Contiguous == b.Contiguous;
         }
+        static bool SamePlan(FsCandidatePlan a, FsCandidatePlan b)
+        {
+            // JSON member order is not part of the repair identity. Every
+            // value, including ordered source extents, still has to agree.
+            return a != null && b != null && a.Schema == b.Schema && a.VolumeIndex == b.VolumeIndex &&
+                a.CandidateIndex == b.CandidateIndex && a.Number == b.Number && SameCandidate(a.Candidate, b.Candidate) &&
+                a.FileSystem == b.FileSystem && a.Method == b.Method && a.Status == b.Status && a.Reason == b.Reason &&
+                a.Path == b.Path && a.Sha256 == b.Sha256 && a.VolumeOffset == b.VolumeOffset && a.Bytes == b.Bytes &&
+                a.InitializedBytes == b.InitializedBytes && a.MappingComplete == b.MappingComplete &&
+                a.Ranges != null && b.Ranges != null && a.Ranges.Count == b.Ranges.Count &&
+                a.Ranges.Zip(b.Ranges, (left, right) => left != null && right != null &&
+                    left.Offset == right.Offset && left.Length == right.Length).All(equal => equal);
+        }
         static void ValidateCandidate(Volume v, Candidate candidate)
         {
             if (candidate == null || String.IsNullOrEmpty(candidate.Name) || candidate.Name.Length > 512 ||

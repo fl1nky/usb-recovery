@@ -287,8 +287,7 @@ namespace UsbRecovery
                                 throw new IOException("FAT_REPAIR_CANDIDATE_CHANGED");
                             var rebuilt = PrepareCandidate(image, view.Volume, view.Volume.Candidates[row.CandidateIndex], root,
                                 row.VolumeIndex, row.CandidateIndex, plan.Number, cancel);
-                            var json = new JavaScriptSerializer { MaxJsonLength = MaximumPlanBytes };
-                            if (json.Serialize(rebuilt) != json.Serialize(plan)) throw new IOException("FAT_REPAIR_PLAN_CHANGED");
+                            if (!SamePlan(rebuilt, plan)) throw new IOException("FAT_REPAIR_PLAN_CHANGED");
                         }
                     }
                     PublishPlan(root, plan, cancel);

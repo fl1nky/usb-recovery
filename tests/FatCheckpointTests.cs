@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -215,6 +216,55 @@ public static class FatCheckpointTests
         Check(File.Exists(previous), "missing previous-volume output repaired using that volume's pinned ownership metadata");
         Validate(root, true);
     }
+    static void AlternateFreshProcess()
+    {
+        string root = Path.Combine(work, "alternate-fresh-process");
+        var start = new ProcessStartInfo(Assembly.GetExecutingAssembly().Location,
+            "alternate \"" + root + "\" \"" + fixtures + "\"")
+            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        using (var child = Process.Start(start))
+        {
+            try {
+                Check(child.WaitForExit(60000), "fresh-process alternate FAT repair completes within the test deadline");
+                string output = child.StandardOutput.ReadToEnd(), error = child.StandardError.ReadToEnd();
+                if (child.ExitCode != 0) { Console.Error.WriteLine(output); Console.Error.WriteLine(error); }
+                Check(child.ExitCode == 0, "alternate FAT missing output is repaired in a clean en-US process");
+            } finally { if (!child.HasExited) { child.Kill(); child.WaitForExit(10000); } }
+        }
+    }
+    static void PlanIdentity()
+    {
+        Type type = typeof(FilesystemRecovery).GetNestedType("FsCandidatePlan", BindingFlags.NonPublic);
+        MethodInfo compare = typeof(FilesystemRecovery).GetMethod("SamePlan", BindingFlags.NonPublic | BindingFlags.Static);
+        string sample = "{\"Schema\":1,\"VolumeIndex\":0,\"CandidateIndex\":1,\"Number\":2,\"Candidate\":{\"Name\":\"photo.jpg\",\"OriginalPath\":\"/photo.jpg\",\"NameNote\":\"owned identity control\",\"Start\":10,\"Length\":1024,\"ValidLength\":1024,\"Contiguous\":true},\"FileSystem\":\"FAT16\",\"Method\":\"contiguous-guess\",\"Status\":\"uncertain\",\"Reason\":\"owned control\",\"Path\":\"filesystem/files/control.bin\",\"Sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"VolumeOffset\":0,\"Bytes\":1024,\"InitializedBytes\":1024,\"MappingComplete\":true,\"Ranges\":[{\"Offset\":4096,\"Length\":512},{\"Offset\":8192,\"Length\":512}]}";
+        object original = Json.Deserialize(sample, type);
+        Check((bool)compare.Invoke(null, new[] { original, Json.Deserialize(sample, type) }), "independent objects with identical plan values have the same repair identity");
+        foreach (FieldInfo field in type.GetFields())
+        {
+            object changed = Json.Deserialize(sample, type), value = field.GetValue(changed);
+            if (field.FieldType == typeof(int)) field.SetValue(changed, (int)value + 1);
+            else if (field.FieldType == typeof(long)) field.SetValue(changed, (long)value + 1);
+            else if (field.FieldType == typeof(bool)) field.SetValue(changed, !(bool)value);
+            else if (field.FieldType == typeof(string)) field.SetValue(changed, (string)value + "changed");
+            else field.SetValue(changed, null);
+            Check(!(bool)compare.Invoke(null, new[] { original, changed }), "repair identity rejects changed plan field " + field.Name);
+        }
+        var candidateField = type.GetField("Candidate");
+        foreach (FieldInfo field in candidateField.FieldType.GetFields())
+        {
+            object changed = Json.Deserialize(sample, type), candidate = candidateField.GetValue(changed), value = field.GetValue(candidate);
+            if (field.FieldType == typeof(uint)) field.SetValue(candidate, (uint)value + 1);
+            else if (field.FieldType == typeof(long)) field.SetValue(candidate, (long)value + 1);
+            else if (field.FieldType == typeof(bool)) field.SetValue(candidate, !(bool)value);
+            else field.SetValue(candidate, (string)value + "changed");
+            Check(!(bool)compare.Invoke(null, new[] { original, changed }), "repair identity rejects changed candidate field " + field.Name);
+        }
+        object moved = Json.Deserialize(sample, type);
+        var ranges = (List<FileExtent>)type.GetField("Ranges").GetValue(moved); ranges.Reverse();
+        Check(!(bool)compare.Invoke(null, new[] { original, moved }), "repair identity preserves source extent order");
+        moved = Json.Deserialize(sample, type); ((List<FileExtent>)type.GetField("Ranges").GetValue(moved))[0].Length--;
+        Check(!(bool)compare.Invoke(null, new[] { original, moved }), "repair identity preserves each source extent length");
+    }
     static byte[] Pattern(int size, int seed) { byte[] bytes = new byte[size]; new Random(seed).NextBytes(bytes); return bytes; }
     static void Exfat()
     {
@@ -285,6 +335,14 @@ public static class FatCheckpointTests
     }
     public static int Main(string[] args)
     {
+        if (args.Length == 3 && args[0] == "alternate")
+        {
+            try {
+                Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+                work = Path.GetFullPath(args[1]); fixtures = Path.GetFullPath(args[2]); Directory.CreateDirectory(work);
+                AlternateFat(); Console.WriteLine("PASS isolated alternate FAT repair: " + checks); return 0;
+            } catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        }
         if (args.Length == 4 && args[0] == "child")
         {
             RecoveryPipeline.Run(args[1], args[2], Options(), CancellationToken.None,
@@ -305,6 +363,8 @@ public static class FatCheckpointTests
             RunCase("worker-killed", KilledProcess);
             RunCase("orphan-cancel", OrphanResume);
             RunCase("alternate-fat", AlternateFat);
+            RunCase("alternate-fat-fresh-process", AlternateFreshProcess);
+            RunCase("plan-identity-fields", PlanIdentity);
             RunCase("exfat", Exfat);
             RunCase("report-publish-denied", ReportsAfterFailure);
             RunCase("large-map-repair", TruncatedEvidenceRepair);
