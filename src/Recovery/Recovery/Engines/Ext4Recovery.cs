@@ -308,38 +308,9 @@ namespace UsbRecovery
 
         static void ReadGroups(Context c, Volume v, ulong groups, ulong gdStart, List<Range> fixedReserved)
         {
-            for (uint g = 0; g < groups; g++) {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] desc = GroupDescriptor(c, v, gdStart, g);
-                var group = new Group { Number = g, Descriptor = desc }; v.Groups.Add(group);
-                if (desc == null || !GroupChecksum(v, g, desc)) { Skip(c, "group_descriptor_checksum_invalid"); continue; }
-                group.BlockBitmap = Wide(desc, 0, 0x20); group.InodeBitmap = Wide(desc, 4, 0x24); group.InodeTable = Wide(desc, 8, 0x28); group.Flags = U16(desc, 0x12);
-                if ((group.Flags & ~7) != 0) { Skip(c, "group_flags_unsupported"); continue; }
-                ulong tableBlocks = ((ulong)v.InodesPerGroup * (uint)v.InodeBytes + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes;
-                if (group.BlockBitmap == 0 || group.InodeBitmap == 0 || group.InodeTable == 0 || !BlockRange(v, group.BlockBitmap, 1) || !BlockRange(v, group.InodeBitmap, 1) || !BlockRange(v, group.InodeTable, tableBlocks) ||
-                    group.BlockBitmap == group.InodeBitmap || (group.BlockBitmap >= group.InodeTable && group.BlockBitmap - group.InodeTable < tableBlocks) || (group.InodeBitmap >= group.InodeTable && group.InodeBitmap - group.InodeTable < tableBlocks)) { Skip(c, "group_metadata_bounds_or_overlap"); continue; }
-                if (fixedReserved.Any(x => Overlap(x, group.BlockBitmap, 1) || Overlap(x, group.InodeBitmap, 1) || Overlap(x, group.InodeTable, tableBlocks))) { Skip(c, "group_metadata_overlaps_super_or_gdt"); continue; }
-                group.Valid = true; v.Report.CheckedGroups++;
-                v.Reserved.Add(new Range { Start = group.BlockBitmap, Length = 1 }); v.Reserved.Add(new Range { Start = group.InodeBitmap, Length = 1 });
-                v.Reserved.Add(new Range { Start = group.InodeTable, Length = tableBlocks });
-                if ((group.Flags & 1) == 0) { group.Inodes = Block(c, v, group.InodeBitmap); group.InodeMapValid = BitmapChecksum(v, group, group.Inodes, true); }
-                if ((group.Flags & 2) == 0) { group.Blocks = Block(c, v, group.BlockBitmap); group.BlockMapValid = BitmapChecksum(v, group, group.Blocks, false); }
-                if (!group.InodeMapValid) Skip(c, "inode_bitmap_uninitialized_or_invalid");
-                if (!group.BlockMapValid) Skip(c, "block_bitmap_uninitialized_or_invalid");
-            }
-            var areas = new List<MetadataArea>();
-            foreach (Group group in v.Groups.Where(x => x.Valid)) {
-                areas.Add(new MetadataArea { Owner = group, Start = group.BlockBitmap, Length = 1 });
-                areas.Add(new MetadataArea { Owner = group, Start = group.InodeBitmap, Length = 1 });
-                areas.Add(new MetadataArea { Owner = group, Start = group.InodeTable, Length = ((ulong)v.InodesPerGroup * (uint)v.InodeBytes + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes });
-            }
-            MetadataArea previous = null;
-            foreach (MetadataArea area in areas.OrderBy(x => x.Start)) {
-                if (previous != null && area.Start < previous.Start + previous.Length) {
-                    area.Owner.Valid = previous.Owner.Valid = false; Skip(c, "cross_group_metadata_overlap");
-                }
-                if (previous == null || area.Start + area.Length > previous.Start + previous.Length) previous = area;
-            }
+            for (uint number = 0; number < groups; number++)
+                ApplyGroupMetadata(c, v, ReadGroupMetadata(c, v, gdStart, number, fixedReserved));
+            ValidateGroupOverlaps(c, v);
         }
 
         static void ScanVolume(Context c, Volume v, Action<string> progress)
