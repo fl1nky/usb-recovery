@@ -158,6 +158,7 @@ namespace UsbRecovery
             public CancellationToken Cancel;
             public Limits Limits;
             public Report Report;
+            public MetadataSourceScope CheckpointSource;
             public int InodesRead, DirectoryCount, NameCount;
             public long DirectoryBytes;
         }
@@ -952,29 +953,8 @@ namespace UsbRecovery
             journalDirBlocks = new List<JournalDirectoryBlock>();
             if (jc == null || jc.Blocks.Count < 2) return;
 
-            var starts = new Dictionary<uint, List<uint>>();
-            for (uint logBlk = jc.First; logBlk < jc.MaxLen; logBlk++)
-            {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] hblk = JournalBlock(c, jc, logBlk);
-                if (hblk == null || Be32(hblk, 0) != 0xc03b3998 || (Be32(hblk, 4) != 1 && Be32(hblk, 4) != 5)) continue;
-                uint sequence = Be32(hblk, 8); List<uint> positions;
-                if (!starts.TryGetValue(sequence, out positions)) starts[sequence] = positions = new List<uint>();
-                positions.Add(logBlk);
-            }
-            var transactions = new List<JournalTransaction>();
-            long budget = (long)(jc.MaxLen - jc.First) * 4;
-            foreach (var candidate in starts) {
-                foreach (uint start in candidate.Value) {
-                    JournalTransaction transaction; uint next; string failure;
-                    if (TryJournalTransaction(c, jc, start, out transaction, out next, out failure, ref budget) &&
-                        transaction.HeaderBlocks.SetEquals(candidate.Value)) {
-                        transactions.Add(transaction); break;
-                    }
-                    if (budget < 0) { Skip(c, "journal_work_limit"); return; }
-                    Skip(c, failure);
-                }
-            }
+            var transactions = ReadJournalHistoryTransactionsCheckpointed(c, jc, null, null);
+            if (transactions == null) return;
             var revokes = JournalRevokes(transactions);
             foreach (JournalTransaction transaction in transactions) {
                 uint seq = transaction.Sequence;

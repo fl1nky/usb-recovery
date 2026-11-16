@@ -44,6 +44,11 @@ namespace UsbRecovery
         }
         static string JournalIdentity(Context c, JournalContext jc)
         {
+            return c.CheckpointSource == null ? CalculateJournalIdentity(c, jc) :
+                c.CheckpointSource.BindJournal(jc, () => CalculateJournalIdentity(c, jc));
+        }
+        static string CalculateJournalIdentity(Context c, JournalContext jc)
+        {
             var shape = new {
                 jc.Volume.Offset, Header = GroupBytesHash(jc.Volume.Superblock),
                 Overlay = GroupOverlayHash(c, jc.Volume), jc.BlockBytes, jc.MaxLen, jc.First,

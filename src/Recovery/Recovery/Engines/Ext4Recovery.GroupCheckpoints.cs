@@ -11,6 +11,40 @@ namespace UsbRecovery
 {
     public static partial class Ext4Recovery
     {
+        // A scan may have many child journals. Verify the source once while an
+        // owned read lease prevents writes/deletion for the entire scan scope.
+        sealed class MetadataSourceScope : IDisposable
+        {
+            readonly Context owner;
+            readonly MetadataSourceScope previous;
+            readonly FileStream input, lease;
+            readonly string hash, limits;
+            readonly Dictionary<JournalContext, string> journalBindings = new Dictionary<JournalContext, string>();
+            public MetadataSourceScope(Context c, RecoveryCheckpointContext context)
+            {
+                owner = c; previous = c.CheckpointSource; input = c.Input;
+                limits = new JavaScriptSerializer().Serialize(c.Limits);
+                lease = new FileStream(LocalFile(input.Name), FileMode.Open, FileAccess.Read, FileShare.Read);
+                try {
+                    hash = HashStream(lease, c.Cancel);
+                    if (hash != context.SourceSha256) throw new IOException("EXT4_GROUP_SOURCE_CHANGED");
+                    c.CheckpointSource = this;
+                } catch { lease.Dispose(); throw; }
+            }
+            public bool Matches(Context c, string expected)
+            { return Object.ReferenceEquals(input, c.Input) && lease.CanRead && hash == expected; }
+            // Journal geometry/overlay are private and remain immutable during
+            // this history scan. A later replay starts a fresh source scope.
+            public string BindJournal(JournalContext journal, Func<string> calculate)
+            {
+                if (new JavaScriptSerializer().Serialize(owner.Limits) != limits)
+                    throw new IOException("EXT4_JOURNAL_LIMITS_CHANGED");
+                string value;
+                if (!journalBindings.TryGetValue(journal, out value)) journalBindings[journal] = value = calculate();
+                return value;
+            }
+            public void Dispose() { owner.CheckpointSource = previous; lease.Dispose(); }
+        }
         const int MaximumGroupBlobBytes = 1024 * 1024;
         sealed class GroupProgress
         {
@@ -151,7 +185,8 @@ namespace UsbRecovery
             if (source.Equals(stateRoot, StringComparison.OrdinalIgnoreCase) ||
                 source.StartsWith(stateRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("EXT4_GROUP_SOURCE_IN_STATE");
-            if (RecoveryCore.HashFile(source, c.Cancel, (a, b) => { }) != context.SourceSha256)
+            if (!(c.CheckpointSource != null && c.CheckpointSource.Matches(c, context.SourceSha256)) &&
+                RecoveryCore.HashFile(source, c.Cancel, (a, b) => { }) != context.SourceSha256)
                 throw new IOException("EXT4_GROUP_SOURCE_CHANGED");
         }
         // The future full-engine controller can nest this phase's acknowledged
