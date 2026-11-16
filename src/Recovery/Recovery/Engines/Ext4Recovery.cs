@@ -252,7 +252,10 @@ namespace UsbRecovery
 
         static Volume OpenVolumeHeader(Context c, long offset)
         {
-            byte[] sb = Read(c, offset + 1024, 1024);
+            return ParseVolumeHeader(c, offset, Read(c, offset + 1024, 1024));
+        }
+        static Volume ParseVolumeHeader(Context c, long offset, byte[] sb)
+        {
             if (sb == null || U16(sb, 0x38) != 0xef53) return null;
             var vr = new VolumeReport { Offset = offset, Status = "rejected" }; c.Report.Volumes.Add(vr);
             var v = new Volume { Offset = offset, Report = vr, Inodes = U32(sb, 0), FirstData = U32(sb, 0x14),
@@ -603,6 +606,10 @@ namespace UsbRecovery
 
         static JournalContext LoadJournal(Context c, Volume v, byte[] sb)
         {
+            return LoadJournalWithReader(c, v, sb, number => Block(c, v, number));
+        }
+        static JournalContext LoadJournalWithReader(Context c, Volume v, byte[] sb, Func<ulong, byte[]> readBlock)
+        {
             if (v.JournalLoaded) return v.Journal;
             v.JournalLoaded = true;
             if (sb == null) return JournalFailure(c, v, "journal_superblock_unavailable");
@@ -614,7 +621,7 @@ namespace UsbRecovery
             if (groupIndex >= v.Groups.Count || !v.Groups[(int)groupIndex].Valid) return JournalFailure(c, v, "journal_inode_group_invalid");
             ulong tableBlock = v.Groups[(int)groupIndex].InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
             int offsetInBlock = (int)(((long)at * v.InodeBytes) % v.BlockBytes);
-            byte[] blockData = Block(c, v, tableBlock);
+            byte[] blockData = readBlock(tableBlock);
             if (blockData == null || blockData.Length < offsetInBlock + v.InodeBytes) return null;
             byte[] inodeBytes = new byte[v.InodeBytes];
             Buffer.BlockCopy(blockData, offsetInBlock, inodeBytes, 0, v.InodeBytes);
@@ -632,7 +639,7 @@ namespace UsbRecovery
                 Size = U32(inodeBytes, 4) | ((ulong)U32(inodeBytes, 0x6C) << 32)
             };
 
-            Mapping map = Map(c, v, journalInode);
+            Mapping map = Map(c, v, journalInode, readBlock);
             if (map.Failure != null || map.Runs.Count == 0) return JournalFailure(c, v, "journal_mapping_invalid");
             ulong journalBlocks = map.Runs.Aggregate(0UL, (total, run) => total + run.Count);
             if (journalBlocks > (ulong)c.Limits.MaximumJournalBlocks || journalInode.Size > (ulong)c.Limits.MaximumJournalBytes) {
@@ -646,7 +653,7 @@ namespace UsbRecovery
 
             if (jc.Blocks.Count < 2) return null;
 
-            byte[] jsb = Block(c, v, jc.Blocks[0]);
+            byte[] jsb = readBlock(jc.Blocks[0]);
             if (jsb == null || jsb.Length < 1024) return null;
             if (Be32(jsb, 0) != 0xC03B3998U) return null;
             uint blockType = Be32(jsb, 4);
