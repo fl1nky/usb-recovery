@@ -21,6 +21,7 @@ namespace UsbRecovery
             public int MaximumCandidates = 10000, MaximumExtents = 100000, MaximumTreeBlocks = 4096;
             public int MaximumDirectories = 20000, MaximumNames = 100000;
             public int InodesPerCheckpoint = 256;
+            public int AllocationBlocksPerCheckpoint = 4096;
             public int MaximumJournalBlocks = 262144;
             public long MaximumJournalBytes = 256L * 1024 * 1024;
             public long MaximumDirectoryBytes = 256L * 1024 * 1024;
@@ -179,6 +180,7 @@ namespace UsbRecovery
                 limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
                 limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
                 limits.InodesPerCheckpoint < 1 || limits.InodesPerCheckpoint > 256 ||
+                limits.AllocationBlocksPerCheckpoint < 1 || limits.AllocationBlocksPerCheckpoint > MaximumAllocationUnitBlocks ||
                 limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
                 throw new ArgumentException("Неверные ограничения ext4");
             Directory.CreateDirectory(Path.Combine(root, "files"));
@@ -504,15 +506,6 @@ namespace UsbRecovery
             }
             if (map.Runs.Count >= c.Limits.MaximumExtents) { map.Failure = "extent_count_limit"; c.Report.Limited = true; return; }
             map.Runs.Add(new BlockRun { Logical = logical, Physical = physical, Count = count, Unwritten = unwritten });
-        }
-        static string Allocation(Context c, Volume v, Mapping map)
-        {
-            foreach (ulong tree in map.TreeBlocks) { string failure = FreeBlock(v, tree); if (failure != null) return "mapping_" + failure; }
-            foreach (BlockRun run in map.Runs) for (ulong i = 0; i < run.Count; i++) {
-                if ((i & 4095) == 0) c.Cancel.ThrowIfCancellationRequested();
-                string failure = FreeBlock(v, run.Physical + i); if (failure != null) return failure;
-            }
-            return v.Csum ? "currently_free" : "currently_free_unchecksummed_bitmap";
         }
         static string FreeBlock(Volume v, ulong block)
         {

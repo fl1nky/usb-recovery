@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -70,7 +69,7 @@ namespace UsbRecovery
                     if (physical[i - 1].Length > physical[i].ImageOffset - physical[i - 1].ImageOffset)
                         throw new IOException("EXT4_FILE_MAP_OVERLAP");
                 if (covered != size) throw new IOException("EXT4_FILE_MAP_INVALID");
-                identity = FileCopyIdentity(c, entry, context); limits = new JavaScriptSerializer().Serialize(c.Limits);
+                identity = FileCopyIdentity(c, entry, context); limits = Ext4LimitsIdentity(c.Limits);
                 journal = new RecoveryMethodJournal<FileCopyProgress>(c.Input.Name,
                     new FileCopyProgress { Identity = identity, Limits = limits }, context, c.Cancel);
                 state = journal.Payload;

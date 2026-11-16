@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -54,7 +53,7 @@ namespace UsbRecovery
                 ValidateMetadataSource(c, context);
                 var initial = new DirectoryProgress { Identity = DirectoryInputsHash(c, v, directories, history),
                     Header = GroupBytesHash(v.Superblock), Overlay = GroupOverlayHash(c, v), Groups = InodeGroupsHash(c, v),
-                    Limits = new JavaScriptSerializer().Serialize(c.Limits) };
+                    Limits = Ext4LimitsIdentity(c.Limits) };
                 journal = new RecoveryMethodJournal<DirectoryProgress>(c.Input.Name, initial, context, c.Cancel);
                 state = journal.Payload;
                 if (state.Schema != 1 || state.Next < 0 || state.Identity != initial.Identity || state.Header != initial.Header ||

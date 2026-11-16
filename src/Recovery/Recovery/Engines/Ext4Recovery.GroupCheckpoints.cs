@@ -24,7 +24,7 @@ namespace UsbRecovery
             public MetadataSourceScope(Context c, RecoveryCheckpointContext context)
             {
                 owner = c; previous = c.CheckpointSource; input = c.Input;
-                limits = new JavaScriptSerializer().Serialize(c.Limits);
+                limits = Ext4LimitsIdentity(c.Limits);
                 if (previous != null && previous.Matches(c, context.SourceSha256))
                 {
                     previous.ValidateLimits(); lease = previous.lease; hash = previous.hash;
@@ -51,7 +51,7 @@ namespace UsbRecovery
             }
             public void ValidateLimits()
             {
-                if (new JavaScriptSerializer().Serialize(owner.Limits) != limits)
+                if (Ext4LimitsIdentity(owner.Limits) != limits)
                     throw new IOException("EXT4_JOURNAL_LIMITS_CHANGED");
             }
             public void Dispose() { owner.CheckpointSource = previous; if (ownsLease) lease.Dispose(); }
@@ -103,7 +103,7 @@ namespace UsbRecovery
         static string MetadataBlobPath(RecoveryCheckpointContext context, string folder, string hash)
         {
             if (!GroupDigest(hash) || folder != "group-blobs" && folder != "inode-blobs" && folder != "journal-blobs" &&
-                folder != "history-blobs" && folder != "directory-blobs")
+                folder != "history-blobs" && folder != "directory-blobs" && folder != "candidate-blobs")
                 throw new IOException("EXT4_GROUP_BLOB_INVALID");
             return RecoveryCatalog.SafeFile(context.Directory, "ext4.state/" + folder + "/blob-" + hash + ".json");
         }

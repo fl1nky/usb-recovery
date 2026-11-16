@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -144,7 +143,7 @@ namespace UsbRecovery
                 GroupIndex = firstGroup, NextInode = firstInode, Complete = firstGroup == v.Groups.Count,
                 HeaderSha256 = context == null ? null : GroupBytesHash(v.Superblock),
                 OverlaySha256 = context == null ? null : GroupOverlayHash(c, v),
-                GroupsSha256 = context == null ? null : InodeGroupsHash(c, v), Limits = new JavaScriptSerializer().Serialize(c.Limits) };
+                GroupsSha256 = context == null ? null : InodeGroupsHash(c, v), Limits = Ext4LimitsIdentity(c.Limits) };
             var journal = new RecoveryMethodJournal<InodeProgress>(c.Input.Name, initial, context, c.Cancel);
             InodeProgress state = journal.Payload;
             if (state.Schema != 1 || state.VolumeOffset != initial.VolumeOffset || state.BaseInodes != initial.BaseInodes ||

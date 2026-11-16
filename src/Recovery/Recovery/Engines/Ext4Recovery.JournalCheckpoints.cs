@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
-using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -49,15 +49,17 @@ namespace UsbRecovery
         }
         static string CalculateJournalIdentity(Context c, JournalContext jc)
         {
-            var shape = new {
-                jc.Volume.Offset, Header = GroupBytesHash(jc.Volume.Superblock),
-                Overlay = GroupOverlayHash(c, jc.Volume), jc.BlockBytes, jc.MaxLen, jc.First,
-                jc.Sequence, jc.Start, jc.Incompat, jc.Seed, jc.HasCsumV1, jc.HasCsumV2,
-                jc.HasCsumV3, jc.Is64Bit, Uuid = Convert.ToBase64String(jc.Uuid),
-                jc.Blocks, c.Limits
-            };
-            return GroupBytesHash(Encoding.UTF8.GetBytes(new JavaScriptSerializer {
-                MaxJsonLength = 16 * 1024 * 1024 }.Serialize(shape)));
+            using (var sha = SHA256.Create()) using (var stream = new CryptoStream(Stream.Null, sha, CryptoStreamMode.Write))
+            using (var writer = new BinaryWriter(stream, new UTF8Encoding(false, true)))
+            {
+                writer.Write(jc.Volume.Offset); writer.Write(GroupBytesHash(jc.Volume.Superblock));
+                writer.Write(GroupOverlayHash(c, jc.Volume)); writer.Write(jc.BlockBytes); writer.Write(jc.MaxLen); writer.Write(jc.First);
+                writer.Write(jc.Sequence); writer.Write(jc.Start); writer.Write(jc.Incompat); writer.Write(jc.Seed);
+                writer.Write(jc.HasCsumV1); writer.Write(jc.HasCsumV2); writer.Write(jc.HasCsumV3); writer.Write(jc.Is64Bit);
+                writer.Write(jc.Uuid.Length); writer.Write(jc.Uuid); writer.Write(jc.Blocks.Count);
+                foreach (ulong block in jc.Blocks) { c.Cancel.ThrowIfCancellationRequested(); writer.Write(block); }
+                writer.Write(Ext4LimitsIdentity(c.Limits)); writer.Flush(); stream.FlushFinalBlock(); return Hex(sha.Hash);
+            }
         }
         static string JournalStop(JournalMachine machine)
         {

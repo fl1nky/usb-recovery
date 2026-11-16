@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace UsbRecovery
 {
@@ -7,8 +8,17 @@ namespace UsbRecovery
         // Current and journal candidates share mapping, allocation and output
         // budget checks. Their deletion evidence and names remain distinct.
         static bool PrepareMappedEntry(Context c, Volume v, Inode inode, Entry entry)
+        { return PrepareMappedEntryCore(c, v, inode, entry, null); }
+
+        static bool PrepareMappedEntryCore(Context c, Volume v, Inode inode, Entry entry, CandidatePreparationCheckpoint checkpoint)
         {
-            Mapping map = Map(c, v, inode);
+            Mapping map = Map(c, v, inode, block =>
+            {
+                byte[] bytes = checkpoint == null ? Block(c, v, block) : checkpoint.ReadTree(block);
+                if (bytes == null || bytes.Length != v.BlockBytes) throw new EndOfStreamException("EXT4_CANDIDATE_TREE_SHORT_READ");
+                return bytes;
+            });
+            if (checkpoint != null) checkpoint.ConfirmMap(map);
             entry.Mapping = map.Kind;
             entry.MappingIntegrity = map.Kind == "direct_indirect"
                 ? "inode_only_indirect_blocks_have_no_checksum"
@@ -31,7 +41,7 @@ namespace UsbRecovery
                 });
             }
 
-            string allocation = Allocation(c, v, map);
+            string allocation = CheckCandidateAllocation(c, v, map, checkpoint);
             entry.AllocationStatus = allocation;
             if (allocation != "currently_free" && allocation != "currently_free_unchecksummed_bitmap")
             {
