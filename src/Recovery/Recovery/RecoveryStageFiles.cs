@@ -17,7 +17,7 @@ namespace UsbRecovery
         static readonly Dictionary<string, string[]> OutputNames = new Dictionary<string, string[]>
         {
             { "partitions", new[] { "partition-search.json", "partitions.state" } },
-            { "fat", new[] { "filesystem" } },
+            { "fat", new[] { "filesystem", "fat.state" } },
             { "ntfs", new[] { "ntfs" } },
             { "ext4", new[] { "ext4" } },
             { "refs", new[] { "refs" } },

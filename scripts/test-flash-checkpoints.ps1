@@ -54,6 +54,9 @@ try{
   $taskInventory=Join-Path $taskLog 'session-inventory'
   & $taskEnvPython (Join-Path $taskLayout.Tests 'build_session_inventory_fixtures.py') $taskInventory 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'session-inventory-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Session inventory fixtures failed.'}
+  $taskFatCheckpoints=Join-Path $taskLog 'fat-checkpoints'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_fat_checkpoint_fixtures.py') $taskFatCheckpoints 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'fat-checkpoint-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'FAT checkpoint fixtures failed.'}
   & $taskEnvPython (Join-Path $taskLayout.Tests 'DeepRecoveryFixtures.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'container-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Container fixtures failed.'}
   $taskManifest=Join-Path $taskLog 'console.manifest'
@@ -63,10 +66,16 @@ try{
   if($taskLevels.Count-ne1-or@($taskXml.GetElementsByTagName('longPathAware')|Where-Object InnerText -eq 'true').Count-ne1){throw 'Missing compatibility attributes.'}
   $taskLevels[0].SetAttribute('level','asInvoker');$taskXml.Save($taskManifest)
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','SessionInventoryTests'){
+  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','FilesystemRecoveryTests','FatCheckpointTests','SessionInventoryTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Flash.exe')
-   & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) (Join-Path $taskLayout.Tests ($taskName+'.cs')) (Join-Path $taskLayout.Tests 'FrameworkTarget.cs')
+   $taskTestSources=@((Join-Path $taskLayout.Tests ($taskName+'.cs')),(Join-Path $taskLayout.Tests 'FrameworkTarget.cs'))
+   $taskCompilerOptions=@()
+   if($taskName-eq'FatCheckpointTests'){
+    $taskTestSources+=(Join-Path $taskLayout.Tests 'FilesystemRecoveryTests.cs')
+    $taskCompilerOptions+='/main:FatCheckpointTests'
+   }
+   & $taskCompiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:"+$taskManifest) /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll ("/reference:"+$taskApp) ("/out:"+$taskExe) @taskCompilerOptions @taskTestSources
    if($LASTEXITCODE-ne0){throw ('Compilation failed: '+$taskName)}
    Copy-Item -LiteralPath ($taskApp+'.config') -Destination ($taskExe+'.config')
    Block-FlashProgram $taskExe
@@ -76,6 +85,7 @@ try{
    if($taskName-eq'FragmentedZipCheckpointTests'){$taskArguments+=$taskFragmentedCheckpoints}
    if($taskName-eq'FragmentedZipRecoveryTests'){$taskArguments=@($taskFragmentedLegacy)}
    if($taskName-eq'SessionInventoryTests'){$taskArguments+=$taskInventory}
+   if($taskName-eq'FatCheckpointTests'){$taskArguments+=$taskFatCheckpoints}
    & $taskExe @taskArguments 2>&1|Tee-Object -FilePath (Join-Path $taskLog ($taskName+'.log'))
    if($LASTEXITCODE-ne0){throw ('Focused flash test failed: '+$taskName)}
    $taskSuites+=$taskName

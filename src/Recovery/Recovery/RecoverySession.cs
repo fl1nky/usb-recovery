@@ -294,7 +294,7 @@ namespace UsbRecovery
 
         static bool CheckpointSupported(string key)
         {
-            return key == "fragmented-photos" || key == "text" || key == "partitions" || key == "photos" || key == "containers" || key == "user-signatures" || key == "archive-members" || key == "fragmented-zip";
+            return key == "fragmented-photos" || key == "text" || key == "partitions" || key == "photos" || key == "containers" || key == "user-signatures" || key == "archive-members" || key == "fragmented-zip" || key == "fat";
         }
 
         static bool CheckpointName(string key, string path, long sequence)
@@ -393,7 +393,7 @@ namespace UsbRecovery
             foreach (string file in Files(key))
             {
                 cancel.ThrowIfCancellationRequested();
-                if (artifacts.Count >= RecoveryArtifactInventory.MaximumArtifacts)
+                if (artifacts.Count >= RecoveryArtifactInventory.MaximumFor(key))
                     throw new IOException("Слишком много файлов для безопасного сохранения этапа.");
                 string relative = file.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/');
                 RecoveryCatalog.SafeFile(root, relative);

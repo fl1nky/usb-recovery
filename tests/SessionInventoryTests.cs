@@ -292,6 +292,41 @@ public static class SessionInventoryTests
         catch (TargetInvocationException error) { rejected = error.InnerException is IOException; }
         Check(rejected && Hash(parent) == before, "write budget failure cannot publish a new inventory head");
     }
+    static void FatInventoryBound()
+    {
+        string root = NewRoot("fat-inventory-bound"); Directory.CreateDirectory(root);
+        var type = typeof(RecoverySession).Assembly.GetType("UsbRecovery.RecoveryArtifactInventory", true);
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
+        var maximum = type.GetMethod("MaximumFor", flags);
+        Check((int)maximum.Invoke(null, new object[] { "fat" }) == 400000 &&
+            (int)maximum.Invoke(null, new object[] { "photos" }) == 250000,
+            "FAT has room for data, plans and pages; other method bounds are preserved");
+        var write = type.GetMethod("Write", flags);
+        var read = type.GetMethod("Read", flags);
+        string hash = new string('a', 64);
+        var rows = new List<SessionArtifact>(300003);
+        for (int i = 0; i < 300003; i++) rows.Add(new SessionArtifact {
+            Path = "fat.state/plans/owned-" + i.ToString("D6") + ".json", Bytes = 4, Sha256 = hash });
+        bool rejected = false;
+        try { write.Invoke(null, new object[] { root, "photos", rows, CancellationToken.None }); }
+        catch (TargetInvocationException error) { rejected = error.InnerException is IOException; }
+        Check(rejected, "larger FAT inventory does not relax another method's row limit");
+        var head = (RecoveryOutputHead)write.Invoke(null, new object[] { root, "fat", rows, CancellationToken.None });
+        var loaded = (List<SessionArtifact>)read.Invoke(null, new object[] { root, "fat", head, CancellationToken.None });
+        Check(head.Count == rows.Count && loaded.Count == rows.Count &&
+            loaded.Zip(rows, (a, b) => a.Path == b.Path && a.Bytes == b.Bytes && a.Sha256 == b.Sha256).All(x => x),
+            "actual 300003-row FAT index round-trips data/plan/page capacity; rows are metadata, not recovered files");
+        rows.Clear();
+        rows.AddRange(new SessionArtifact[400001]);
+        rejected = false;
+        try { write.Invoke(null, new object[] { root, "fat", rows, CancellationToken.None }); }
+        catch (TargetInvocationException error) { rejected = error.InnerException is IOException; }
+        Check(rejected, "FAT inventory writer rejects rows above its finite bound");
+        head.Count = 400001; rejected = false;
+        try { read.Invoke(null, new object[] { root, "fat", head, CancellationToken.None }); }
+        catch (TargetInvocationException error) { rejected = error.InnerException is IOException; }
+        Check(rejected, "FAT inventory reader rejects excessive count before reading pages");
+    }
     public static int Main(string[] args)
     {
         if (args.Length == 3 && args[0] == "orphan-worker")
@@ -308,7 +343,7 @@ public static class SessionInventoryTests
             project = Path.GetFullPath(args[0]); fixtures = Path.GetFullPath(args[1]);
             work = Path.Combine(project, ".build", "session-inventory-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(work);
             if (args.Length == 2) LargeBoundary();
-            Tamper(); FailedPersistence(); LegacyAndCancellation(); RelocationAndSourceMapping(); HashControls(); KillBeforeCommit(); ByteBudgets();
+            Tamper(); FailedPersistence(); LegacyAndCancellation(); RelocationAndSourceMapping(); HashControls(); KillBeforeCommit(); ByteBudgets(); FatInventoryBound();
             Check(Hash(Path.Combine(fixtures, "source.dd")) == (string)Object(Path.Combine(fixtures, "inventory-fixture.json"))["source_sha256"], "fixture source remains unchanged");
             if (args.Length == 2) LargeArchive();
             string scope = args.Length == 2 ? "actual 100000-file inventory and archival; " : "focused controls only; large corpus not rerun; ";

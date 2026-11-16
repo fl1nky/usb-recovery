@@ -9,7 +9,7 @@ using System.Threading;
 namespace UsbRecovery
 {
     // Reads regular images only. Never opens a physical device and never changes filesystem metadata.
-    public static class FilesystemRecovery
+    public static partial class FilesystemRecovery
     {
         const int MaxDirectories = 10000, MaxEntries = 2000000, MaxClusters = 2000000, MaxCandidates = 100000;
         const long MaxDirectoryBytes = 32L * 1024 * 1024, MaxFileBytes = 64L * 1024 * 1024 * 1024;
@@ -40,6 +40,7 @@ namespace UsbRecovery
             public long BitmapLength;
             public List<uint> BitmapChain;
             public readonly HashSet<uint> LiveClusters = new HashSet<uint>();
+            public readonly List<uint> PendingLiveClusters = new List<uint>();
             public readonly HashSet<uint> Directories = new HashSet<uint>();
             public readonly List<Candidate> Candidates = new List<Candidate>();
         }
@@ -174,7 +175,7 @@ namespace UsbRecovery
             foreach (uint cluster in chain)
             {
                 if (v.LiveClusters.Count >= MaxClusters && !v.LiveClusters.Contains(cluster)) { v.AllocationComplete = false; return false; }
-                v.LiveClusters.Add(cluster);
+                if (v.LiveClusters.Add(cluster)) v.PendingLiveClusters.Add(cluster);
             }
             if (!complete) v.AllocationComplete = false;
             return complete;
@@ -389,7 +390,7 @@ namespace UsbRecovery
                 }
             return text.Length > 0 && text.Length <= 255 ? text.ToString() : null;
         }
-        static void FatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, Queue<DirectoryTask> queue, ref int entries, CancellationToken cancel)
+        static void FatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, DirectoryQueue queue, ref int entries, CancellationToken cancel)
         {
             var lfn = new List<int>();
             for (int at = 0; at + 32 <= bytes.Length; at += 32)
@@ -446,7 +447,7 @@ namespace UsbRecovery
             }
             return (ushort)checksum;
         }
-        static void ExfatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, Queue<DirectoryTask> queue, ref int entries, CancellationToken cancel)
+        static void ExfatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, DirectoryQueue queue, ref int entries, CancellationToken cancel)
         {
             for (int at = 0; at + 32 <= bytes.Length; at += 32)
             {
@@ -499,31 +500,6 @@ namespace UsbRecovery
                 at += setBytes - 32;
             }
         }
-        static void Enumerate(ImageReader image, Volume v, List<string> notes, CancellationToken cancel)
-        {
-            var queue = new Queue<DirectoryTask>();
-            queue.Enqueue(new DirectoryTask { FixedRoot = !v.Exfat && v.Bits != 32, Start = v.RootCluster, Path = "", Depth = 0 });
-            if (v.RootCluster != 0) { v.Directories.Add(v.RootCluster); MarkLive(image, v, v.RootCluster, -1, false, cancel); }
-            int visited = 0, entries = 0;
-            while (queue.Count > 0 && visited < MaxDirectories && entries < MaxEntries)
-            {
-                cancel.ThrowIfCancellationRequested();
-                DirectoryTask task = queue.Dequeue(); visited++;
-                byte[] bytes = DirectoryBytes(image, v, task, cancel);
-                if (v.Exfat) ExfatDirectory(image, v, bytes, task, queue, ref entries, cancel);
-                else FatDirectory(image, v, bytes, task, queue, ref entries, cancel);
-            }
-            if (queue.Count > 0 || entries >= MaxEntries) { v.AllocationComplete = false; notes.Add(v.Kind + ": directory traversal limit reached; allocated FAT candidates will be skipped."); }
-            if (v.Exfat && v.BitmapStart != 0)
-            {
-                bool complete;
-                v.BitmapChain = Chain(image, v, v.BitmapStart, v.BitmapLength, false, out complete, cancel);
-                if (!complete) { v.BitmapChain = null; v.AllocationComplete = false; notes.Add("exFAT: allocation bitmap is truncated or corrupt; deleted candidates will be skipped."); }
-            }
-            if (v.Exfat && v.BitmapChain == null) { v.AllocationComplete = false; notes.Add("exFAT: no valid active allocation bitmap; deleted candidates will be skipped."); }
-            if (!v.AllocationComplete) notes.Add(v.Kind + ": current allocation ownership could not be completely enumerated.");
-            notes.Add(v.Kind + " at offset " + v.Offset + ": " + visited + " directories, " + v.Candidates.Count + " deleted file records.");
-        }
         static bool BitmapAllocated(ImageReader image, Volume v, uint c)
         {
             if (v.BitmapChain == null) return true;
@@ -531,30 +507,6 @@ namespace UsbRecovery
             if (byteIndex >= v.BitmapLength || chainIndex >= v.BitmapChain.Count) return true;
             long offset = ClusterOffset(v, v.BitmapChain[(int)chainIndex]) + byteIndex % v.ClusterBytes;
             return (image.Integer(offset, 1) & (1U << (int)(bit % 8))) != 0;
-        }
-        static void OrphanDirectories(ImageReader image,Volume v,List<string> notes,CancellationToken cancel,Action<string> progress)
-        {
-            if(v.Exfat){notes.Add("Orphan-directory sweep: exFAT is not supported by this detector.");return;}
-            if(!v.AllocationComplete){notes.Add("Orphan-directory sweep skipped: live ownership incomplete.");return;}
-            int found=0,entries=0;long visited=0;byte[] dot=Encoding.ASCII.GetBytes(".          "),dotdot=Encoding.ASCII.GetBytes("..         ");
-            long chunk=Math.Max(4L*1024*1024,v.ClusterBytes);byte[] data=new byte[(int)chunk];
-            for(long first=0;first<v.ClusterCount;){
-                cancel.ThrowIfCancellationRequested();int clusters=(int)Math.Min(chunk/v.ClusterBytes,v.ClusterCount-first);int count=(int)(clusters*v.ClusterBytes);image.Read(v.DataOffset+first*v.ClusterBytes,data,count);
-                for(int c=0;c<clusters;c++){
-                    uint cluster=(uint)(first+c+2);int at=(int)(c*v.ClusterBytes);if(v.Directories.Contains(cluster)||v.LiveClusters.Contains(cluster))continue;
-                    bool signature=true;for(int n=0;n<11;n++)if(data[at+n]!=dot[n]||data[at+32+n]!=dotdot[n]){signature=false;break;}
-                    if(!signature||data[at+11]!=0x10||data[at+43]!=0x10||U32(data,at+28)!=0||U32(data,at+60)!=0)continue;
-                    uint self=U16(data,at+26),parent=U16(data,at+58);if(v.Bits==32){self|=(uint)U16(data,at+20)<<16;parent|=(uint)U16(data,at+52)<<16;}
-                    if(self!=cluster||(parent!=0&&!ClusterValid(v,parent))||data[at+64]==0)continue;
-                    bool useful=false;for(int entry=64;entry+32<=Math.Min(v.ClusterBytes,4096);entry+=32){if(data[at+entry]==0)break;if(data[at+entry+11]!=0x0f&&ValidShortName(data,at+entry,data[at+entry]==0xe5)&&(data[at+entry+11]&0xc8)==0){useful=true;break;}}
-                    if(!useful)continue;
-                    var queue=new Queue<DirectoryTask>();v.Directories.Add(cluster);queue.Enqueue(new DirectoryTask{Start=cluster,Deleted=true,Path="/orphan-directory-cluster-"+cluster,Depth=0});
-                    while(queue.Count>0&&visited<MaxDirectories&&entries<MaxEntries){cancel.ThrowIfCancellationRequested();var task=queue.Dequeue();visited++;var bytes=DirectoryBytes(image,v,task,cancel);FatDirectory(image,v,bytes,task,queue,ref entries,cancel);}
-                    found++;if(found>=10000||visited>=MaxDirectories||entries>=MaxEntries){notes.Add("Orphan-directory sweep limit reached.");v.AllocationComplete=false;return;}
-                }
-                first+=clusters;if(progress!=null)progress("Потерянные каталоги FAT: "+(first*100/Math.Max(1,v.ClusterCount))+"%");
-            }
-            notes.Add("Orphan-directory candidates: "+found+". Parent/deletion state not inferred; live clusters excluded.");
         }
         static string SafeName(string name)
         {
@@ -596,170 +548,19 @@ namespace UsbRecovery
                 DirectoryInfo parent = Directory.GetParent(current); current = parent == null ? null : parent.FullName;
             }
         }
-        static long RecoverCandidate(ImageReader image, Volume v, Candidate candidate, string volumeDirectory, int number, StreamWriter csv, CancellationToken cancel, StreamWriter evidence, string runRoot)
-        {
-            bool contiguous = candidate.Contiguous;
-            string method, reason = "", status = "candidate", output = "";
-            long written = 0;
-            var ranges = new List<FileExtent>();
-            bool mappingComplete = true;
-            string copiedSha256 = null;
-            bool complete;
-            if (candidate.Length <= 0 || candidate.Length > MaxFileBytes || candidate.Length > v.Length) reason = "invalid size";
-            else if (v.Exfat && v.BitmapChain == null) reason = "allocation bitmap unavailable";
-            if (v.Exfat) method = contiguous ? "exfat-contiguous" : "exfat-fat-chain";
-            else
-            {
-                uint firstFat = Fat(image, v, candidate.Start);
-                contiguous = firstFat == 0;
-                method = contiguous ? "contiguous-guess" : "retained-fat-uncertain";
-                if (!contiguous && !v.AllocationComplete) reason = "current ownership incomplete; retained FAT allocation not safe to attribute";
-            }
-            if (reason.Length == 0)
-            {
-                List<uint> chain = Chain(image, v, candidate.Start, candidate.Length, contiguous, out complete, cancel);
-                var accepted = new List<uint>();
-                foreach (uint c in chain)
-                {
-                    cancel.ThrowIfCancellationRequested();
-                    if (v.LiveClusters.Contains(c)) { reason = "cluster currently owned by a live file/directory"; break; }
-                    if (v.Exfat && BitmapAllocated(image, v, c)) { reason = "cluster marked allocated in active exFAT bitmap"; break; }
-                    if (!v.Exfat && contiguous && Fat(image, v, c) != 0) { reason = "cluster currently allocated in FAT; contiguous reconstruction stopped"; break; }
-                    accepted.Add(c);
-                }
-                if (accepted.Count > 0)
-                {
-                    bool partial = !complete || accepted.Count != chain.Count || (long)accepted.Count * v.ClusterBytes < candidate.Length;
-                    status = partial ? "partial" : (method == "contiguous-guess" || method == "retained-fat-uncertain" ? "uncertain" : "candidate");
-                    if (reason.Length == 0 && !complete) reason = "incomplete/corrupt cluster chain";
-                    if(candidate.OriginalPath.StartsWith("/orphan-directory-",StringComparison.Ordinal))method="orphan-"+method;
-                    string directory = OutputPath(volumeDirectory, method);
-                    RejectReparseParents(directory); Directory.CreateDirectory(directory);
-                    string prefix = number.ToString("D6", CultureInfo.InvariantCulture) + (partial ? "_PARTIAL_" : "_");
-                    output = OutputPath(directory, prefix + SafeName(candidate.Name));
-                    RejectReparseParents(output);
-                    string temporary = output + "." + Guid.NewGuid().ToString("N") + ".partial";
-                    try
-                    {
-                        using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                        using (var hash = System.Security.Cryptography.SHA256.Create())
-                        {
-                            byte[] buffer = new byte[(int)Math.Min(1024 * 1024, v.ClusterBytes)];
-                            foreach (uint c in accepted)
-                            {
-                                cancel.ThrowIfCancellationRequested();
-                                long offset = ClusterOffset(v, c), amount = Math.Min(v.ClusterBytes, candidate.Length - written);
-                                long position = 0;
-                                while (position < amount)
-                                {
-                                    int count = (int)Math.Min(buffer.Length, amount - position);
-                                    // exFAT bytes after ValidDataLength are uninitialized and must read as zero.
-                                    long valid = Math.Max(0, Math.Min(count, candidate.ValidLength - written));
-                                    if (valid > 0) {
-                                        image.Read(offset + position, buffer, (int)valid);
-                                        long sourceOffset=offset+position;
-                                        if(ranges.Count>0 && ranges[ranges.Count-1].Offset+ranges[ranges.Count-1].Length==sourceOffset)ranges[ranges.Count-1].Length+=valid;
-                                        else if(ranges.Count<100000)ranges.Add(new FileExtent{Offset=sourceOffset,Length=valid});
-                                        else mappingComplete=false;
-                                    }
-                                    if (valid < count) Array.Clear(buffer, (int)valid, count - (int)valid);
-                                    file.Write(buffer, 0, count); hash.TransformBlock(buffer,0,count,null,0); written += count; position += count;
-                                }
-                            }
-                            hash.TransformFinalBlock(new byte[0],0,0);copiedSha256=BitConverter.ToString(hash.Hash).Replace("-", "").ToLowerInvariant();
-                        }
-                        cancel.ThrowIfCancellationRequested();
-                        File.Move(temporary, output);
-                    }
-                    catch { if (File.Exists(temporary)) File.Delete(temporary); throw; }
-                }
-                else status = "skipped";
-            }
-            else status = "skipped";
-            if (method == "retained-fat-uncertain" && reason.Length == 0) reason = "FAT chain retained but allocation is ambiguous; no known live owner; content not validated";
-            if (method == "contiguous-guess" && reason.Length == 0) reason = "FAT chain erased; consecutive free clusters assumed; fragmentation cannot be reconstructed";
-            if (v.Exfat && reason.Length == 0) reason = "metadata checksum and allocation checked; content may still be overwritten";
-            csv.WriteLine(Quote(v.Kind) + "," + v.Offset + "," + Quote(candidate.OriginalPath) + "," + candidate.Start + "," + candidate.Length + "," + written + "," + Quote(method) + "," + Quote(status) + "," + Quote(reason) + "," + Quote(candidate.NameNote) + "," + Quote(output));
-            csv.Flush();
-            if(written>0) {
-                evidence.WriteLine(new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength=16*1024*1024 }.Serialize(new { path=output.Substring(runRoot.TrimEnd('\\').Length+1).Replace('\\','/'),ranges=ranges,mappingComplete=mappingComplete,status=status,expectedBytes=candidate.Length,bytes=written,sha256=copiedSha256,originalPath=candidate.OriginalPath,volumeOffset=v.Offset,nameEvidence=candidate.NameNote,initializedBytes=Math.Min(candidate.ValidLength,written),note="Ranges identify source bytes copied, not proof of original content. Bytes after exFAT valid-data length are logical zeroes." }));
-                evidence.Flush();
-            }
-            return written;
-        }
-
         public static int Recover(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress)
-        { return Recover(imagePath, runDirectory, cancel, progress, null, false); }
-        public static int Recover(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress, IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories = false)
         {
-            cancel.ThrowIfCancellationRequested();
-            string imageFull = Path.GetFullPath(imagePath), runFull = Path.GetFullPath(runDirectory);
-            if (imageFull.StartsWith("\\\\", StringComparison.Ordinal) || imageFull.IndexOf(':', 2) >= 0 || !File.Exists(imageFull) || (File.GetAttributes(imageFull) & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0)
-                throw new IOException("Filesystem recovery requires a regular local image file.");
-            RejectReparseParents(imageFull); RejectReparseParents(runFull);
-            string recoveryRoot = OutputPath(runFull, "filesystem");
-            if (imageFull.Equals(recoveryRoot, StringComparison.OrdinalIgnoreCase) || imageFull.StartsWith(recoveryRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new IOException("Source image must be outside the recovery output directory.");
-            if (Directory.Exists(recoveryRoot)) throw new IOException("Filesystem output directory already exists; choose a fresh recovery run.");
-            Directory.CreateDirectory(recoveryRoot);
-            var notes = new List<string>();
-            int recovered = 0, number = 0;
-            long recoveredBytes = 0;
-            int supportedVolumes = 0;
-            bool limited = false, completed = false;
-            try
-            {
-                using (var image = new ImageReader(imageFull, cancel))
-                using (var csv = new StreamWriter(Path.Combine(recoveryRoot, "metadata.csv"), false, new UTF8Encoding(true)))
-                using (var evidence = new StreamWriter(Path.Combine(recoveryRoot, "file-extents.jsonl"), false, new UTF8Encoding(false)))
-                {
-                    csv.WriteLine("filesystem,volume_offset,original_path,start_cluster,expected_bytes,recovered_bytes,method,status,reason,name_evidence,output_path");
-                    List<Volume> volumes = Discover(image, notes, cancel, discovered, alternateFat);
-                    supportedVolumes = volumes.Count;
-                    if (volumes.Count == 0) notes.Add("No supported FAT/exFAT volume found. Signature recovery remains available; damaged boot metadata and NTFS are outside this parser's scope.");
-                    for (int i = 0; i < volumes.Count; i++)
-                    {
-                        cancel.ThrowIfCancellationRequested();
-                        Volume volume = volumes[i];
-                        if (progress != null) progress("Поиск удалённых записей " + volume.Kind + "…");
-                        Enumerate(image, volume, notes, cancel);
-                        if(orphanDirectories)OrphanDirectories(image,volume,notes,cancel,progress);
-                        if (!volume.AllocationComplete) limited = true;
-                        string filesDirectory = OutputPath(recoveryRoot, "files");
-                        Directory.CreateDirectory(filesDirectory);
-                        string volumeDirectory = OutputPath(filesDirectory, "volume-" + (i + 1).ToString("D3") + "-" + volume.Kind);
-                        Directory.CreateDirectory(volumeDirectory);
-                        foreach (Candidate candidate in volume.Candidates)
-                        {
-                            cancel.ThrowIfCancellationRequested();
-                            if (number >= MaxCandidates || candidate.Length > image.Length * 2L - recoveredBytes) { limited = true; notes.Add("Recovery output budget reached; remaining metadata candidates not exported."); break; }
-                            long bytes = RecoverCandidate(image, volume, candidate, volumeDirectory, ++number, csv, cancel, evidence, runFull);
-                            if (bytes > 0) { recovered++; recoveredBytes += bytes; }
-                            if (number % 100 == 0 && progress != null) progress("По метаданным сохранено: " + recovered + "; проверено записей: " + number);
-                        }
-                        // Drop potentially large ownership/name collections before the next independent partition.
-                        volumes[i] = null;
-                    }
-                }
-                notes.Add((limited ? "Incomplete metadata scan. " : "Completed. ") + "Exported " + recovered + " metadata candidates (including partial/uncertain files), " + recoveredBytes + " bytes. No content-integrity guarantee.");
-                completed = !limited;
-            }
-            catch (OperationCanceledException) { notes.Add("Cancelled. Previously completed exports retained. The current interrupted export was removed."); throw; }
-            catch (Exception ex) { limited = true; notes.Add("Metadata recovery interrupted: " + ex.Message); throw; }
-            finally
-            {
-                string explanation = "ПОИСК ПО ЗАПИСЯМ ФАЙЛОВОЙ СИСТЕМЫ\r\n\r\n" +
-                    "Исходный образ открыт только для чтения. Здесь находятся файлы с сохранившимися удалёнными записями FAT12/FAT16/FAT32/exFAT. Имена и путь из записей перечислены в metadata.csv.\r\n" +
-                    "contiguous-guess: цепочка FAT стёрта; предполагается последовательное расположение. Фрагментированный файл так восстановить нельзя.\r\n" +
-                    "retained-fat-uncertain: цепочка FAT сохранилась, но принадлежность выделенных кластеров неоднозначна; известные текущие файлы исключены.\r\n" +
-                    "exfat-contiguous / exfat-fat-chain: используются сведения exFAT и карта занятости; занятые кластеры не копируются.\r\n" +
-                    "PARTIAL: сохранена только безопасная начальная часть. Удалённые короткие имена FAT теряют первый символ. Длинные имена могут сохраниться, но порядок удалённых LFN-записей выводится по их расположению.\r\n" +
-                    "Отсутствие занятости не доказывает сохранность данных. Статус candidate означает найденный вариант, а не гарантированное восстановление. NTFS, повреждённые загрузочные записи и сложные утраченные цепочки требуют отдельного поиска.\r\n\r\n" + String.Join("\r\n", notes.ToArray());
-                File.WriteAllText(Path.Combine(recoveryRoot, "ПРОЧИТАЙ О РЕЗУЛЬТАТАХ.txt"), explanation, new UTF8Encoding(true));
-                File.WriteAllText(Path.Combine(recoveryRoot, "report.json"), "{\"supportedVolumes\":" + supportedVolumes + ",\"recovered\":" + recovered +
-                    ",\"recoveredBytes\":" + recoveredBytes + ",\"limited\":" + (limited ? "true" : "false") + ",\"completed\":" + (completed ? "true" : "false") + "}", new UTF8Encoding(false));
-            }
-            if (limited) throw new IOException("Поиск по метаданным завершён частично: повреждение или предел обработки. Сохранённые кандидаты и отчёт доступны в filesystem.");
-            return recovered;
+            return Recover(imagePath, runDirectory, cancel, progress, null, false);
+        }
+        public static int Recover(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress,
+            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories = false)
+        {
+            return RecoverCheckpointed(imagePath, runDirectory, cancel, progress, discovered, alternateFat, orphanDirectories, null);
+        }
+        internal static int Recover(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress,
+            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories, RecoveryCheckpointContext checkpoint)
+        {
+            return RecoverCheckpointed(imagePath, runDirectory, cancel, progress, discovered, alternateFat, orphanDirectories, checkpoint);
         }
     }
 }
