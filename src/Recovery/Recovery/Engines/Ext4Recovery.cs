@@ -13,7 +13,7 @@ namespace UsbRecovery
     // consistency, never the historical contents of a deleted file's blocks.
     // On-disk definitions: kernel.org/doc/html/latest/filesystems/ext4/ and
     // e2fsprogs lib/ext2fs/csum.c. Journal replay is an in-memory overlay only.
-    public static class Ext4Recovery
+    public static partial class Ext4Recovery
     {
         public sealed class Limits
         {
@@ -401,18 +401,7 @@ namespace UsbRecovery
                     if (inode.Size > (ulong)c.Limits.MaximumFileBytes) { c.Report.Limited = true; Skip(c, "file_size_limit"); }
                     continue;
                 }
-                Mapping map = Map(c, v, inode); entry.Mapping = map.Kind;
-                entry.MappingIntegrity = map.Kind == "direct_indirect" ? "inode_only_indirect_blocks_have_no_checksum" : v.Csum ? "inode_and_extent_nodes_crc32c" : "structural_only_no_metadata_checksum";
-                if (map.Failure != null) { entry.Reason = map.Failure; Skip(c, map.Failure); continue; }
-                foreach (BlockRun run in map.Runs) {
-                    long logical = (long)run.Logical * v.BlockBytes;
-                    entry.Extents.Add(new Extent { ImageOffset = v.Offset + (long)run.Physical * v.BlockBytes, LogicalOffset = logical,
-                        Length = Math.Min((long)run.Count * v.BlockBytes, (long)inode.Size - logical) });
-                }
-                string allocation = Allocation(c, v, map); entry.AllocationStatus = allocation;
-                if (allocation != "currently_free" && allocation != "currently_free_unchecksummed_bitmap") { entry.Reason = allocation; Skip(c, allocation); continue; }
-                if ((long)inode.Size > c.Limits.MaximumOutputBytes - c.Report.OutputBytes) { c.Report.Limited = true; entry.Reason = "output_limit"; continue; }
-                WriteFile(c, entry);
+                if (PrepareMappedEntry(c, v, inode, entry)) WriteFile(c, entry);
             }
 
             if (historicalInodes != null)
@@ -463,39 +452,7 @@ namespace UsbRecovery
                     List<NameLink> links;
                     if (names.TryGetValue(inode.Number, out links)) entry.Names = links;
 
-                    Mapping map = Map(c, v, inode);
-                    entry.Mapping = map.Kind;
-                    entry.MappingIntegrity = map.Kind == "direct_indirect" ? "inode_only_indirect_blocks_have_no_checksum" : v.Csum ? "inode_and_extent_nodes_crc32c" : "structural_only_no_metadata_checksum";
-                    if (map.Failure != null) { entry.Reason = map.Failure; Skip(c, map.Failure); continue; }
-
-                    foreach (BlockRun run in map.Runs)
-                    {
-                        long logical = (long)run.Logical * v.BlockBytes;
-                        entry.Extents.Add(new Extent
-                        {
-                            ImageOffset = v.Offset + (long)run.Physical * v.BlockBytes,
-                            LogicalOffset = logical,
-                            Length = Math.Min((long)run.Count * v.BlockBytes, (long)inode.Size - logical)
-                        });
-                    }
-
-                    string allocation = Allocation(c, v, map);
-                    entry.AllocationStatus = allocation;
-                    if (allocation != "currently_free" && allocation != "currently_free_unchecksummed_bitmap")
-                    {
-                        entry.Reason = allocation;
-                        Skip(c, allocation);
-                        continue;
-                    }
-
-                    if ((long)inode.Size > c.Limits.MaximumOutputBytes - c.Report.OutputBytes)
-                    {
-                        c.Report.Limited = true;
-                        entry.Reason = "output_limit";
-                        continue;
-                    }
-
-                    WriteFile(c, entry);
+                    if (PrepareMappedEntry(c, v, inode, entry)) WriteFile(c, entry);
                 }
             }
 
