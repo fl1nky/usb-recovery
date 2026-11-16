@@ -22,7 +22,7 @@ namespace UsbRecovery
             { "ext4", new[] { "ext4" } },
             { "refs", new[] { "refs" } },
             { "apfs", new[] { "apfs" } },
-            { "ntfs-records", new[] { "metadata-rescue" } },
+            { "ntfs-records", new[] { "metadata-rescue", "ntfs-records.state" } },
             { "photorec", new[] { "photorec.log", "photorec.ses" } },
             { "photos", new[] { "extra-photos", "photos.state", "extra-photo-search.json" } },
             { "containers", new[] { "containers", "containers.state", "container-search.json" } },

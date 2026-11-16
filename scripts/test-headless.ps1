@@ -104,6 +104,9 @@ try{
   $taskFatCheckpoints=Join-Path $taskLogRoot 'fat-checkpoints'
   & $taskEnvPython (Join-Path $taskLayout.Tests 'build_fat_checkpoint_fixtures.py') $taskFatCheckpoints 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'fat-checkpoint-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'FAT checkpoint fixtures failed.'}
+  $taskNtfsRecords=Join-Path $taskLogRoot 'ntfs-record-checkpoints'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_ntfs_record_checkpoint_fixtures.py') $taskNtfsRecords 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot 'ntfs-record-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'NTFS record fixtures failed.'}
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
   # Retain compatibility attributes, especially longPathAware, while giving
   # only these ordinary-file console tests their own asInvoker execution level.
@@ -116,7 +119,7 @@ try{
   $taskLevels[0].SetAttribute('level','asInvoker')
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
-  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','FilesystemRecoveryTests','FatCheckpointTests','SessionInventoryTests'){
+  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','FilesystemRecoveryTests','FatCheckpointTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    $taskTestSources=@((Join-Path $taskLayout.Tests ($taskName+'.cs')),(Join-Path $taskLayout.Tests 'FrameworkTarget.cs'))
@@ -138,6 +141,7 @@ try{
    if($taskName-eq'FragmentedZipRecoveryTests'){$taskArguments=@($taskFragmentedLegacy)}
    if($taskName-eq'SessionInventoryTests'){$taskArguments+=$taskInventory}
    if($taskName-eq'FatCheckpointTests'){$taskArguments+=$taskFatCheckpoints}
+   if($taskName-eq'MetadataRescueTests'-or$taskName-eq'NtfsRecordCheckpointTests'-or$taskName-eq'NtfsRecordReadBudgetTests'){$taskArguments+=$taskNtfsRecords}
    & $taskExe @taskArguments 2>&1|Tee-Object -FilePath (Join-Path $taskLogRoot ($taskName+'.log'))
    if($LASTEXITCODE-ne0){throw ('Headless test failed: '+$taskName)}
    $taskResults+=$taskName

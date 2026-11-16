@@ -15,7 +15,7 @@ concurrency:
 jobs:
   focused-windows:
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         shell: pwsh

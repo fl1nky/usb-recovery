@@ -164,9 +164,10 @@ public static class MetadataRescueTests
             Assert(report.RecoveredFiles == 0 && report.InvalidSignatures == 1, "Malformed/sparse run list not guessed");
         }
     }
-    static void KnownPayloadFixture(string project)
+    static void KnownPayloadFixture(string project, string source = null)
     {
-        string image = Path.Combine(project, "tests", "AdvancedNtfs.dd"), expected = Path.Combine(project, "tests", "photorec-20261011T231546120952Z", "fixtures", "expected.jpg");
+        string image = source == null ? Path.Combine(project, "tests", "AdvancedNtfs.dd") : Path.Combine(source, "legacy-usa-torn.dd");
+        string expected = source == null ? Path.Combine(project, "tests", "photorec-20261011T231546120952Z", "fixtures", "expected.jpg") : Path.Combine(source, "legacy-expected.jpg");
         Assert(File.Exists(image) && File.Exists(expected), "Existing NTFS fixture and known expected photo present");
         string before = Hash(image); MetadataRescue.Report report; string root = Run("known-ntfs-result", image, out report);
         Assert(report.RecoveredFiles == 0 && report.InvalidSignatures > 0, "Existing legacy fixture with invalid deleted-record USA must be rejected");
@@ -338,7 +339,7 @@ public static class MetadataRescueTests
         try {
             string project = args.Length == 0 ? Directory.GetCurrentDirectory() : Path.GetFullPath(args[0]);
             fixtures = Path.Combine(project, ".build", "metadata-rescue-tests-" + DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ")); Directory.CreateDirectory(fixtures);
-            ResidentAndValidation(); NonresidentAndOwnership(); KnownPayloadFixture(project); ReadErrorAllocationBoundary(); DirectoryStructure(); UnknownAllocation();
+            ResidentAndValidation(); NonresidentAndOwnership(); KnownPayloadFixture(project, args.Length > 1 ? args[1] : null); ReadErrorAllocationBoundary(); DirectoryStructure(); UnknownAllocation();
             string summary = "PASS MetadataRescue: " + assertions + " assertions; whole-image NTFS FILE scan, USA/resident/Unicode/provenance, signed fragmented runs, current $Bitmap ownership including fragmented MFT, partial stops, unsupported/corrupt records, cancellation/per-file budget/path isolation; original paths only through validated current-MFT slot, exact parent sequences/root, Unicode/DOS namespace, deleted-directory evidence; stale/cyclic/unsafe/ambiguous paths remain unknown and ancestry depth bounded; old fixture with torn USA rejected; known fragmented JPEG SHA256 exact after USA repair on generated copy; unread/invalid maps disable nonresident allocation and path claims; source SHA256 unchanged. Synthetic/known-payload tests only. Fixtures: " + fixtures;
             Console.WriteLine(summary); File.WriteAllText(Path.Combine(project, "tests", "MetadataRescueTests.result.txt"), summary, Encoding.UTF8); return 0;
         } catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }

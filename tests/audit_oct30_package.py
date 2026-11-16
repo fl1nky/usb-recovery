@@ -139,6 +139,17 @@ def audit():
     for name in required_tests:
         require(sha(ROOT / "tests" / name) == sha(helper / "rebuild/tests" / name), "rebuild test missing or stale: " + name)
         rebuild_tests.append({"path": name, "sha256": sha(ROOT / "tests" / name), "matched": True})
+    # These are C# application regression inputs, supplied with the application
+    # source rather than the helper-only Python rebuild bundle.
+    for name in ("MetadataRescueTests.cs", "NtfsRecordCheckpointTests.cs", "NtfsRecordReadBudgetTests.cs", "build_ntfs_record_checkpoint_fixtures.py"):
+        require(sha(ROOT / "tests" / name) == sha(READY / "source/tests" / name), "NTFS source test missing or stale: " + name)
+    ntfs_source = ROOT / "tests/fixtures/ntfs-records"
+    ntfs_delivered = READY / "source/tests/fixtures/ntfs-records"
+    ntfs_files = {p.relative_to(ntfs_source).as_posix() for p in ntfs_source.rglob("*") if p.is_file()}
+    require(ntfs_files == {p.relative_to(ntfs_delivered).as_posix() for p in ntfs_delivered.rglob("*") if p.is_file()},
+            "NTFS application fixture inventory mismatch")
+    for name in ntfs_files:
+        require(sha(ntfs_source / name) == sha(ntfs_delivered / name), "NTFS application fixture missing or stale: " + name)
     for fixture in ("telegram-cache-profiles", "telegram-document-empty", "telegram-document-descriptor", "telegram-platforms", "telegram-postbox", "telegram-webpage", "forensic-images", "video-bframes"):
         fixture_source = ROOT / "tests/fixtures" / fixture
         fixture_rebuild = helper / "rebuild/tests/fixtures" / fixture

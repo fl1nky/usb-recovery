@@ -46,7 +46,7 @@ foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
 foreach($relative in 'fixtures\media-units','fixtures\hevc-recovery','fixtures\hevc-validation','fixtures\aac-islands','fixtures\aac-lc','fixtures\ext4','fixtures\refs','fixtures\raid-md','fixtures\raid-controller','fixtures\apfs-salvage','fixtures\telegram-cache-profiles','fixtures\telegram-document-empty','fixtures\telegram-document-descriptor','fixtures\telegram-document-descriptor-portable','fixtures\telegram-document-attributes','fixtures\telegram-document-attributes-compatibility','fixtures\telegram-media-only','fixtures\video-stz2','fixtures\video-fmp4','fixtures\document-media-preview','fixtures\telegram-platforms','fixtures\telegram-postbox','postbox_oracle','fixtures\telegram-webpage','fixtures\forensic-images','fixtures\video-bframes','telegram_platforms_oracle','telegram_webpage_oracle','benchmarks','TelegramNativeFixtures','TelegramMediaFixtures','StorageFixtures','photorec-20261011T231546120952Z\fixtures'){
  Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
 }
-foreach($relative in 'fixtures\telegram-desktop-kdf','telegram_desktop_kdf_oracle','fixtures\raid10'){
+foreach($relative in 'fixtures\telegram-desktop-kdf','telegram_desktop_kdf_oracle','fixtures\raid10','fixtures\ntfs-records'){
  Copy-RecoveryTree (Join-Path $taskLayout.Tests $relative) (Join-Path $taskSource ('tests\'+$relative))
 }
 $taskBdeManifest=Join-Path $taskSource 'tests\fixtures\bitlocker-full-volume'

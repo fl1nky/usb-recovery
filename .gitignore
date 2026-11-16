@@ -92,6 +92,7 @@
 !/tests/fixtures/raid-md/
 !/tests/fixtures/ext4/
 !/tests/fixtures/refs/
+!/tests/fixtures/ntfs-records/
 !/tests/fixtures/raid-controller/
 !/tests/fixtures/apfs-salvage/
 !/tests/fixtures/telegram-cache-profiles/

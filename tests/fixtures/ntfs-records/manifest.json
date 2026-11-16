@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "scope": "Historical mkntfs/ntfscp-produced project fixture with controlled deletion/fragmentation and torn USA; exact native tool versions not retained. The positive case repairs four USA sequence bytes on a generated copy, not on this fixture. This is not physical-device evidence.",
+  "image": {
+    "compressed": "legacy-usa-torn.dd.gz",
+    "compressed_bytes": 202448,
+    "compressed_sha256": "c2c985d1d8ce2df6fcbeda2501dc92b0c9a1aaf8379dead8c5c344ad421c5077",
+    "bytes": 67108864,
+    "sha256": "528d21591d9d76887780a65d9d8a523d17646b4bc80b74104111deffa233185c"
+  },
+  "expected": {
+    "path": "legacy-expected.jpg",
+    "bytes": 8746,
+    "sha256": "08d0c3aa75b9b357ad9ce43b39cf8a8e039f462863fe983f66c4726e36d7c282"
+  },
+  "record_offset": 81920,
+  "record_number": 64,
+  "original_name": "grandma-photo.jpg"
+}

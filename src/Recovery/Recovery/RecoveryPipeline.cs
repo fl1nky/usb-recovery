@@ -265,7 +265,12 @@ namespace UsbRecovery
                         if (options.MetadataRescue)
                             methods.Add(new Work { Key = "ntfs-records", Name = "Независимые уцелевшие записи NTFS", Run = () =>
                             {
-                                int found = MetadataRescue.Recover(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null, options.UnknownNtfsAllocation);
+                                int found = MetadataRescue.Recover(image, directory, cancel, progress,
+                                    options.LostPartitions ? bootCandidates : null, options.UnknownNtfsAllocation,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "ntfs-records", SourceSha256 = expected,
+                                        Settings = new JavaScriptSerializer().Serialize(new { unknownAllocation = options.UnknownNtfsAllocation,
+                                            discovered = options.LostPartitions ? bootCandidates : null }),
+                                        Resume = session.MethodCheckpoint("ntfs-records"), Commit = value => session.CaptureMethodCheckpoint("ntfs-records", value) });
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 128 * 1024 * 1024

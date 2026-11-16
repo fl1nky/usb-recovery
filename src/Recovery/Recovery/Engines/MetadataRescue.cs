@@ -11,7 +11,7 @@ namespace UsbRecovery
 {
     // Read-only NTFS 3.1 record salvage. A valid old record is evidence, not proof
     // that its nonresident clusters still contain the original file.
-    public static class MetadataRescue
+    public static partial class MetadataRescue
     {
         public const int MaximumCandidates = 20000;
         public const long MaximumFileBytes = 2L * 1024 * 1024 * 1024;
@@ -54,6 +54,7 @@ namespace UsbRecovery
             public int DirectoryEvidenceLinks, PathReportCharacters;
             public long InputBytes, ScannedBytes, OutputBytes;
             public bool Cancelled, CandidateLimitReached, OutputLimitReached, Failed, PathResolutionLimited;
+            public bool Completed, ReportsPending;
             public string Method = "orphan_ntfs_records";
             public List<string> Warnings = new List<string>();
             public List<Entry> Entries = new List<Entry>();
@@ -95,143 +96,21 @@ namespace UsbRecovery
             public int CacheLength;
             public readonly Dictionary<long, PathNode> PathNodes = new Dictionary<long, PathNode>();
             public readonly HashSet<long> InvalidPathNodes = new HashSet<long>();
+            public readonly List<PathNode> NewPathNodes = new List<PathNode>();
+            public readonly List<long> NewInvalidPathNodes = new List<long>();
         }
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel,
             Action<string> progress, IList<BootCandidate> discovered = null, bool allowUnknownAllocation = false)
         {
-            string full = LocalImage(image), root = Path.GetFullPath(Path.Combine(runDirectory, "metadata-rescue"));
-            SafeAncestors(Path.GetDirectoryName(root));
-            if (Directory.Exists(root) || File.Exists(root)) throw new IOException("Папка поиска записей NTFS уже существует");
-            cancel.ThrowIfCancellationRequested();
-            var report = new Report();
-            report.Warnings.Add("Просматриваются записи FILE на границах 512 байт. Проверка USA обнаруживает повреждённую запись, но не является контрольной суммой содержимого файла.");
-            report.Warnings.Add("Поддерживаются заголовки NTFS 3.1 с отдельным номером записи; старые заголовки с USA до смещения 48 пропускаются.");
-            report.Warnings.Add("Сжатие, шифрование, разреженные потоки, ATTRIBUTE_LIST и потоки из нескольких записей не восстанавливаются. Путь строится только по однозначной текущей карте MFT и совпавшим sequence родительских ссылок; прежние перемещения не угадываются.");
-            report.Warnings.Add("OriginalPath — виртуальный путь из снимка метаданных, он не используется как путь записи. RecordOffset в DirectoryChain обозначает начало записи; для фрагментированной MFT запись читается по всей карте потоков.");
-            Directory.CreateDirectory(root);
-            string files = Path.Combine(root, "files"); Directory.CreateDirectory(files);
-            try {
-                using (var input = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 4 * 1024 * 1024)) {
-                    report.InputBytes = input.Length;
-                    bool allocationUntrusted = UntrustedReadMap(full, runDirectory, input.Length);
-                    if (allocationUntrusted) report.Warnings.Add("В образе известны пропуски чтения либо карта ошибок неполна/повреждена. Занятость кластеров NTFS не считается подтверждённой: nonresident-потоки пропущены; resident-кандидаты также могут содержать пропуски.");
-                    var volumes = new List<Volume>();
-                    if (discovered != null) foreach (BootCandidate known in discovered) {
-                        if (known.Kind != "NTFS") continue;
-                        byte[] boot = Read(input, known.BootOffset, 512);
-                        if (boot != null) AddVolume(volumes, DecodeBoot(boot, known.Offset, input.Length));
-                    }
-                    var candidates = new List<Record>(); byte[] block = new byte[4 * 1024 * 1024];
-                    int totalRuns = 0;
-                    for (long position = 0; position < input.Length; position += block.Length) {
-                        cancel.ThrowIfCancellationRequested();
-                        input.Position = position;
-                        int count = ReadInto(input, block, 0, (int)Math.Min(block.Length, input.Length - position));
-                        for (int at = 0; at + 48 <= count; at += Stride) {
-                            if ((at & 65535) == 0) cancel.ThrowIfCancellationRequested();
-                            long offset = position + at;
-                            if (at + 512 <= count && block[at + 3] == 'N' && block[at + 4] == 'T' && block[at + 5] == 'F' && block[at + 6] == 'S') {
-                                byte[] boot = new byte[512]; Buffer.BlockCopy(block, at, boot, 0, 512);
-                                AddVolume(volumes, DecodeBoot(boot, offset, input.Length, allowUnknownAllocation));
-                                long length = BootLength(boot);
-                                if (length >= 512 && offset >= length - 512)
-                                    AddVolume(volumes, DecodeBoot(boot, offset - length + 512, input.Length));
-                            }
-                            if (block[at] != 'F' || block[at + 1] != 'I' || block[at + 2] != 'L' || block[at + 3] != 'E') continue;
-                            Record record = ParseAt(input, offset);
-                            if (record == null) { report.InvalidSignatures++; continue; }
-                            report.ValidatedRecords++;
-                            if (record.Flags != 0 || record.Name == null || record.Data == null || record.Number < 16) continue;
-                            report.DeletedCandidates++;
-                            int runs = record.Data.Runs.Count;
-                            if (candidates.Count >= MaximumCandidates || runs > MaximumTotalRuns - totalRuns) {
-                                report.CandidateLimitReached = true; continue;
-                            }
-                            candidates.Add(record); totalRuns += runs;
-                        }
-                        report.ScannedBytes = position + count;
-                        if (progress != null) progress("Записи NTFS: просмотрено " + (report.ScannedBytes / (1024 * 1024)) + " МБ, кандидатов " + candidates.Count);
-                    }
-                    foreach (Volume volume in volumes) {
-                        cancel.ThrowIfCancellationRequested();
-                        if (allocationUntrusted) volume.BitmapProblem = "source_read_errors_allocation_untrusted";
-                        else PrepareBitmap(input, volume, cancel);
-                    }
-                    if (report.CandidateLimitReached) report.Warnings.Add("Достигнут предел кандидатов или экстентов; остальные подписи проверены без добавления результатов.");
-                    foreach (Record record in candidates) {
-                        cancel.ThrowIfCancellationRequested();
-                        Entry item = new Entry { RecordOffset = record.Offset, RecordNumber = record.Number, Sequence = record.Sequence,
-                            Name = record.Name, ParentRecordNumber = record.Parent & 0x0000ffffffffffffL, ParentSequence = record.ParentSequence,
-                            DeclaredSize = record.Data.FileSize, InitializedBytes = record.Data.ValidLength, Status = "not_extracted", UsaFixupsRestored = record.Data.Resident };
-                        if (allocationUntrusted) item.Note += "; у образа есть пропуски чтения или недостоверная карта ошибок: сохранность байтов записи не подтверждена";
-                        ResolvePath(input, volumes, record, item, report, allocationUntrusted, cancel);
-                        report.Entries.Add(item);
-                        if (record.AttributeList) { item.Reason = "attribute_list_unsupported"; continue; }
-                        if (record.Data.Unsupported != null) { item.Reason = record.Data.Unsupported; continue; }
-                        if (record.Data.FileSize == 0) { item.Reason = "empty_stream"; continue; }
-                        if (record.Data.FileSize > MaximumFileBytes) { item.Reason = "file_size_limit"; continue; }
-                        byte[] fixedRecord = null;
-                        bool unknownAllocation = false;
-                        long available = record.Data.FileSize;
-                        if (record.Data.Resident) {
-                            fixedRecord = FixedRecord(input, record.Offset);
-                            if (fixedRecord == null) { item.Reason = "record_changed_or_damaged"; continue; }
-                            item.Note += "; Extents задают позиции содержимого до восстановления USA: заменённые слова в конце секторов берутся из массива USA, поэтому это не точная побайтовая карта источника";
-                            item.Extents.Add(new Extent { ImageOffset = record.Offset + record.Data.ValueOffset, LogicalOffset = 0, Length = available });
-                        } else {
-                            if (allocationUntrusted) { item.Reason = "source_read_errors_allocation_untrusted"; continue; }
-                            List<Volume> matches = volumes.Where(v => record.Offset >= v.Offset && record.Offset < v.Offset + v.Length && (v.Bitmap != null || allowUnknownAllocation)).ToList();
-                            if (matches.Count != 1) { item.Reason = matches.Count > 1 ? "ambiguous_volume" : "current_bitmap_unavailable"; continue; }
-                            Volume volume = matches[0]; item.VolumeOffset = volume.Offset;
-                            if (!CheckRuns(record.Data, volume)) { item.Reason = "invalid_cluster_bounds"; continue; }
-                            available = Math.Min(record.Data.FileSize, record.Data.ValidLength);
-                            unknownAllocation = volume.Bitmap == null;
-                            long prefix = unknownAllocation ? available : FreePrefix(input, volume, record.Data, available, cancel);
-                            if (unknownAllocation) {
-                                item.Reason = "allocation_unknown";
-                                item.Note += "; карта занятости недоступна: байты прочитаны по уцелевшим экстентам, но могли принадлежать другому файлу или быть перезаписаны";
-                            }
-                            if (prefix < available) { available = prefix; item.Reason = "allocated_cluster_stop"; }
-                            if (available == 0) { if (item.Reason == null) item.Reason = "no_initialized_bytes"; continue; }
-                            if (available < record.Data.FileSize && item.Reason == null) item.Reason = "uninitialized_tail_not_invented";
-                            AddExtents(item.Extents, record.Data, volume, available);
-                        }
-                        if (available > MaximumOutputBytes - report.OutputBytes) {
-                            item.Reason = "output_budget"; report.OutputLimitReached = true; continue;
-                        }
-                        bool partial = available < record.Data.FileSize;
-                        string relative = "files/" + (partial ? "PARTIAL_" : "") + "record-" + record.Offset.ToString("x") + "-" + SafeName(record.Name);
-                        string target = Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar));
-                        string pending = target + ".partial";
-                        try {
-                            using (var output = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
-                                if (fixedRecord != null) {
-                                    cancel.ThrowIfCancellationRequested();
-                                    output.Write(fixedRecord, record.Data.ValueOffset, checked((int)available));
-                                } else CopyExtents(input, output, item.Extents, cancel);
-                                output.Flush(true);
-                            }
-                            cancel.ThrowIfCancellationRequested();
-                            File.Move(pending, target);
-                        } finally { if (File.Exists(pending)) File.Delete(pending); }
-                        item.Output = relative; item.RecoveredBytes = available;
-                        using (var payload = File.OpenRead(target)) using (var sha = SHA256.Create())
-                            item.Sha256 = BitConverter.ToString(sha.ComputeHash(payload)).Replace("-", "").ToLowerInvariant();
-                        item.Status = partial ? "partial_candidate" : fixedRecord != null ? "resident_candidate" : unknownAllocation ? "allocation_unknown_candidate" : "unallocated_candidate";
-                        if (item.Reason == null) item.Reason = fixedRecord != null ? "validated_record_resident_data" : "all_copied_clusters_currently_free";
-                        report.RecoveredFiles++; report.OutputBytes += available;
-                    }
-                    foreach (Volume volume in volumes.Where(v => v.Bitmap == null))
-                        report.Warnings.Add("Том " + volume.Offset + (allowUnknownAllocation ? ": занятость nonresident-потоков неизвестна (" : ": nonresident-потоки пропущены (") + volume.BitmapProblem + ")");
-                }
-                return report.RecoveredFiles;
-            } catch (OperationCanceledException) { report.Cancelled = true; throw; }
-            catch { report.Failed = true; throw; }
-            finally {
-                string json = new JavaScriptSerializer { MaxJsonLength = 128 * 1024 * 1024, RecursionLimit = 32 }.Serialize(report);
-                File.WriteAllText(Path.Combine(root, "report.json"), json, new UTF8Encoding(false));
-            }
+            return Recover(image, runDirectory, cancel, progress, discovered, allowUnknownAllocation, null);
+        }
+
+        internal static int Recover(string image, string runDirectory, CancellationToken cancel,
+            Action<string> progress, IList<BootCandidate> discovered, bool allowUnknownAllocation,
+            RecoveryCheckpointContext checkpoint)
+        {
+            return RecoverCheckpointed(image, runDirectory, cancel, progress, discovered, allowUnknownAllocation, checkpoint);
         }
 
         static string LocalImage(string image)
@@ -495,10 +374,10 @@ namespace UsbRecovery
             report.DirectoryRecordsChecked++; cancel.ThrowIfCancellationRequested();
             byte[] bytes = LogicalRead(input, volume.Mft, volume, number * volume.RecordBytes, volume.RecordBytes, cancel);
             Record record = bytes == null || !FixLogicalRecord(bytes) ? null : ParseRecord(bytes, at);
-            if (record == null || record.Number != number || record.Size != volume.RecordBytes) { volume.InvalidPathNodes.Add(number); problem = "invalid_parent_record"; return null; }
+            if (record == null || record.Number != number || record.Size != volume.RecordBytes) { volume.InvalidPathNodes.Add(number); volume.NewInvalidPathNodes.Add(number); problem = "invalid_parent_record"; return null; }
             cached = new PathNode { Number = number, Offset = at, Name = record.Name, Parent = record.Parent & 0x0000ffffffffffffL,
                 Sequence = record.Sequence, ParentSequence = record.ParentSequence, Flags = record.Flags, AmbiguousName = record.AmbiguousName, AttributeList = record.AttributeList };
-            volume.PathNodes.Add(number, cached); return cached;
+            volume.PathNodes.Add(number, cached); volume.NewPathNodes.Add(cached); return cached;
         }
         static void UnknownPath(Entry item, Report report, string status)
         {

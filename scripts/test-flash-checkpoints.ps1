@@ -57,6 +57,9 @@ try{
   $taskFatCheckpoints=Join-Path $taskLog 'fat-checkpoints'
   & $taskEnvPython (Join-Path $taskLayout.Tests 'build_fat_checkpoint_fixtures.py') $taskFatCheckpoints 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'fat-checkpoint-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'FAT checkpoint fixtures failed.'}
+  $taskNtfsRecords=Join-Path $taskLog 'ntfs-record-checkpoints'
+  & $taskEnvPython (Join-Path $taskLayout.Tests 'build_ntfs_record_checkpoint_fixtures.py') $taskNtfsRecords 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'ntfs-record-fixtures.log')
+  if($LASTEXITCODE-ne0){throw 'NTFS record fixtures failed.'}
   & $taskEnvPython (Join-Path $taskLayout.Tests 'DeepRecoveryFixtures.py') 2>&1|Tee-Object -FilePath (Join-Path $taskLog 'container-fixtures.log')
   if($LASTEXITCODE-ne0){throw 'Container fixtures failed.'}
   $taskManifest=Join-Path $taskLog 'console.manifest'
@@ -66,7 +69,7 @@ try{
   if($taskLevels.Count-ne1-or@($taskXml.GetElementsByTagName('longPathAware')|Where-Object InnerText -eq 'true').Count-ne1){throw 'Missing compatibility attributes.'}
   $taskLevels[0].SetAttribute('level','asInvoker');$taskXml.Save($taskManifest)
   $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','FilesystemRecoveryTests','FatCheckpointTests','SessionInventoryTests'){
+  foreach($taskName in 'ExtraPhotoTests','PartitionCheckpointTests','RangeCarverCheckpointTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','UserSignatureRecoveryTests','ContainerCarverCompatibilityTests','RecoveryContinuityTests','RecoveryRestartTests','FilesystemRecoveryTests','FatCheckpointTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Flash.exe')
    $taskTestSources=@((Join-Path $taskLayout.Tests ($taskName+'.cs')),(Join-Path $taskLayout.Tests 'FrameworkTarget.cs'))
@@ -86,6 +89,7 @@ try{
    if($taskName-eq'FragmentedZipRecoveryTests'){$taskArguments=@($taskFragmentedLegacy)}
    if($taskName-eq'SessionInventoryTests'){$taskArguments+=$taskInventory}
    if($taskName-eq'FatCheckpointTests'){$taskArguments+=$taskFatCheckpoints}
+   if($taskName-eq'MetadataRescueTests'-or$taskName-eq'NtfsRecordCheckpointTests'-or$taskName-eq'NtfsRecordReadBudgetTests'){$taskArguments+=$taskNtfsRecords}
    & $taskExe @taskArguments 2>&1|Tee-Object -FilePath (Join-Path $taskLog ($taskName+'.log'))
    if($LASTEXITCODE-ne0){throw ('Focused flash test failed: '+$taskName)}
    $taskSuites+=$taskName
