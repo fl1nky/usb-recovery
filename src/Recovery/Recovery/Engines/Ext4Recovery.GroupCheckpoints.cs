@@ -54,9 +54,11 @@ namespace UsbRecovery
             }
         }
         static string GroupBlobPath(RecoveryCheckpointContext context, string hash)
+        { return MetadataBlobPath(context, "group-blobs", hash); }
+        static string MetadataBlobPath(RecoveryCheckpointContext context, string folder, string hash)
         {
-            if (!GroupDigest(hash)) throw new IOException("EXT4_GROUP_BLOB_INVALID");
-            return RecoveryCatalog.SafeFile(context.Directory, "ext4.state/group-blobs/blob-" + hash + ".json");
+            if (!GroupDigest(hash) || folder != "group-blobs" && folder != "inode-blobs") throw new IOException("EXT4_GROUP_BLOB_INVALID");
+            return RecoveryCatalog.SafeFile(context.Directory, "ext4.state/" + folder + "/blob-" + hash + ".json");
         }
         static string StoreGroupPayload(RecoveryCheckpointContext context, Group group, CancellationToken cancel)
         {
@@ -64,10 +66,14 @@ namespace UsbRecovery
                 Descriptor = Convert.ToBase64String(group.Descriptor),
                 Inodes = group.Inodes == null ? null : Convert.ToBase64String(group.Inodes),
                 Blocks = group.Blocks == null ? null : Convert.ToBase64String(group.Blocks) };
+            return StoreMetadataPayload(context, "group-blobs", payload, cancel);
+        }
+        static string StoreMetadataPayload(RecoveryCheckpointContext context, string folder, object payload, CancellationToken cancel)
+        {
             byte[] bytes = new UTF8Encoding(false, true).GetBytes(new JavaScriptSerializer
                 { MaxJsonLength = MaximumGroupBlobBytes }.Serialize(payload));
             if (bytes.Length > MaximumGroupBlobBytes) throw new IOException("EXT4_GROUP_BLOB_LIMIT");
-            string hash = GroupBytesHash(bytes), path = GroupBlobPath(context, hash);
+            string hash = GroupBytesHash(bytes), path = MetadataBlobPath(context, folder, hash);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             cancel.ThrowIfCancellationRequested();
             if (!File.Exists(path))
@@ -103,18 +109,7 @@ namespace UsbRecovery
         static GroupMetadataUnit RestoreGroupPayload(Context c, Volume v, List<Range> fixedReserved,
             RecoveryCheckpointContext context, GroupFact fact)
         {
-            string path = GroupBlobPath(context, fact.BlobSha256);
-            GroupPayload payload;
-            using (var guard = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                if (guard.Length <= 0 || guard.Length > MaximumGroupBlobBytes ||
-                    RecoveryCore.HashFile(path, c.Cancel, (a, b) => { }) != fact.BlobSha256)
-                    throw new IOException("EXT4_GROUP_BLOB_CHANGED");
-                try { payload = new JavaScriptSerializer { MaxJsonLength = MaximumGroupBlobBytes, RecursionLimit = 8 }
-                    .Deserialize<GroupPayload>(File.ReadAllText(path, new UTF8Encoding(false, true))); }
-                catch (ArgumentException) { throw new IOException("EXT4_GROUP_BLOB_INVALID"); }
-                catch (InvalidOperationException) { throw new IOException("EXT4_GROUP_BLOB_INVALID"); }
-            }
+            var payload = ReadMetadataPayload<GroupPayload>(context, "group-blobs", fact.BlobSha256, c.Cancel);
             if (payload == null || payload.Schema != 1 || payload.Number != fact.Number) throw new IOException("EXT4_GROUP_BLOB_INVALID");
             bool usedInodes = false, usedBlocks = false;
             var unit = ParseGroupMetadata(c, v, fact.Number, fixedReserved,
@@ -127,6 +122,37 @@ namespace UsbRecovery
                 throw new IOException("EXT4_GROUP_BLOB_INVALID");
             return unit;
         }
+        static T ReadMetadataPayload<T>(RecoveryCheckpointContext context, string folder, string hash, CancellationToken cancel) where T : class
+        {
+            string path = MetadataBlobPath(context, folder, hash);
+            using (var guard = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (guard.Length <= 0 || guard.Length > MaximumGroupBlobBytes ||
+                    RecoveryCore.HashFile(path, cancel, (a, b) => { }) != hash)
+                    throw new IOException("EXT4_GROUP_BLOB_CHANGED");
+                try
+                {
+                    T payload = new JavaScriptSerializer { MaxJsonLength = MaximumGroupBlobBytes, RecursionLimit = 8 }
+                        .Deserialize<T>(File.ReadAllText(path, new UTF8Encoding(false, true)));
+                    if (payload == null) throw new IOException("EXT4_GROUP_BLOB_INVALID");
+                    return payload;
+                }
+                catch (ArgumentException) { throw new IOException("EXT4_GROUP_BLOB_INVALID"); }
+                catch (InvalidOperationException) { throw new IOException("EXT4_GROUP_BLOB_INVALID"); }
+            }
+        }
+        static void ValidateMetadataSource(Context c, RecoveryCheckpointContext context)
+        {
+            if (context == null) return;
+            if (context.Method != "ext4") throw new IOException("EXT4_GROUP_CONTEXT_INVALID");
+            string source = Path.GetFullPath(c.Input.Name);
+            string stateRoot = Path.GetDirectoryName(Path.GetDirectoryName(GroupBlobPath(context, new string('0', 64))));
+            if (source.Equals(stateRoot, StringComparison.OrdinalIgnoreCase) ||
+                source.StartsWith(stateRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("EXT4_GROUP_SOURCE_IN_STATE");
+            if (RecoveryCore.HashFile(source, c.Cancel, (a, b) => { }) != context.SourceSha256)
+                throw new IOException("EXT4_GROUP_SOURCE_CHANGED");
+        }
         // The future full-engine controller can nest this phase's acknowledged
         // anchor in its own state. Normal legacy initialization shares the same
         // units with a null context; this is not yet whole-engine resume.
@@ -135,18 +161,7 @@ namespace UsbRecovery
         {
             if (v.Groups.Count != 0 || groups != (ulong)v.Report.Groups || groups > (ulong)c.Limits.MaximumGroups ||
                 v.Superblock == null || v.Superblock.Length != 1024) throw new IOException("EXT4_GROUP_PHASE_INVALID");
-            if (context != null)
-            {
-                if (context.Method != "ext4") throw new IOException("EXT4_GROUP_CONTEXT_INVALID");
-                string source = Path.GetFullPath(c.Input.Name);
-                string stateRoot = Path.GetDirectoryName(GroupBlobPath(context, new string('0', 64)));
-                stateRoot = Path.GetDirectoryName(stateRoot);
-                if (source.Equals(stateRoot, StringComparison.OrdinalIgnoreCase) ||
-                    source.StartsWith(stateRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                    throw new IOException("EXT4_GROUP_SOURCE_IN_STATE");
-                if (RecoveryCore.HashFile(source, c.Cancel, (a, b) => { }) != context.SourceSha256)
-                    throw new IOException("EXT4_GROUP_SOURCE_CHANGED");
-            }
+            ValidateMetadataSource(c, context);
             var initial = new GroupProgress { VolumeOffset = v.Offset, Groups = groups, DescriptorStart = gdStart,
                 HeaderSha256 = context == null ? null : GroupBytesHash(v.Superblock),
                 OverlaySha256 = context == null ? null : GroupOverlayHash(c, v) };

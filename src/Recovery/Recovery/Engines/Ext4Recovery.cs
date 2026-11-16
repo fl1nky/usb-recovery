@@ -20,6 +20,7 @@ namespace UsbRecovery
             public int MaximumVolumes = 32, MaximumGroups = 65536, MaximumInodes = 1000000;
             public int MaximumCandidates = 10000, MaximumExtents = 100000, MaximumTreeBlocks = 4096;
             public int MaximumDirectories = 20000, MaximumNames = 100000;
+            public int InodesPerCheckpoint = 256;
             public int MaximumJournalBlocks = 262144;
             public long MaximumJournalBytes = 256L * 1024 * 1024;
             public long MaximumDirectoryBytes = 256L * 1024 * 1024;
@@ -176,6 +177,7 @@ namespace UsbRecovery
             if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
                 limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
                 limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
+                limits.InodesPerCheckpoint < 1 || limits.InodesPerCheckpoint > 256 ||
                 limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
                 throw new ArgumentException("Неверные ограничения ext4");
             Directory.CreateDirectory(Path.Combine(root, "files"));
@@ -324,42 +326,8 @@ namespace UsbRecovery
 
         static void ScanVolume(Context c, Volume v, Action<string> progress)
         {
-            var deleted = new List<Inode>(); var directories = new Dictionary<uint, Inode>();
-            foreach (Group group in v.Groups) {
-                if (!group.Valid || !group.InodeMapValid) continue;
-                uint count = Math.Min(v.InodesPerGroup, v.Inodes - group.Number * v.InodesPerGroup);
-                for (uint at = 0; at < count; at++) {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    if (++c.InodesRead > c.Limits.MaximumInodes) { c.Report.Limited = true; Skip(c, "inode_limit"); break; }
-                    uint number = group.Number * v.InodesPerGroup + at + 1;
-                    ulong tableBlock = group.InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
-                    int offsetInBlock = (int)(((long)at * v.InodeBytes) % v.BlockBytes);
-                    byte[] tableData = Block(c, v, tableBlock);
-                    if (tableData == null || tableData.Length < offsetInBlock + v.InodeBytes) continue;
-                    byte[] bytes = new byte[v.InodeBytes];
-                    Buffer.BlockCopy(tableData, offsetInBlock, bytes, 0, v.InodeBytes);
-                    long position = v.Offset + (long)tableBlock * v.BlockBytes + (long)offsetInBlock;
-                    ushort mode = U16(bytes, 0); if ((mode & 0xf000) != 0x8000 && (mode & 0xf000) != 0x4000) continue;
-                    if (!InodeChecksum(v, number, bytes)) { Skip(c, "inode_checksum_invalid"); continue; }
-                    v.Report.CheckedInodes++;
-                    var inode = new Inode { Number = number, Offset = position, Mode = mode, Links = U16(bytes, 0x1a), Dtime = U32(bytes, 0x14),
-                        Flags = U32(bytes, 0x20), Generation = U32(bytes, 0x64), Size = U32(bytes, 4) | (ulong)U32(bytes, 0x6c) << 32,
-                        Allocated = Bit(group.Inodes, at), Bytes = bytes };
-                    if (inode.Allocated && inode.Links > 0 && inode.Dtime == 0) {
-                        v.Report.LiveInodes++;
-                        if ((mode & 0xf000) == 0x4000) {
-                            if (directories.Count >= c.Limits.MaximumDirectories) { c.Report.Limited = true; Skip(c, "directory_count_limit"); }
-                            else directories[number] = inode;
-                        }
-                        continue;
-                    }
-                    if ((mode & 0xf000) != 0x8000 || inode.Allocated || inode.Links != 0 || inode.Dtime == 0 || number < Math.Max(11, v.FirstInode)) continue;
-                    if (c.Report.Entries.Count + deleted.Count >= c.Limits.MaximumCandidates) { c.Report.Limited = true; Skip(c, "candidate_limit"); continue; }
-                    deleted.Add(inode);
-                }
-                if (progress != null) progress("ext4: inode " + Math.Min(c.InodesRead, c.Limits.MaximumInodes) + ", удалённых кандидатов " + deleted.Count);
-                if (c.InodesRead > c.Limits.MaximumInodes) break;
-            }
+            List<Inode> deleted; Dictionary<uint, Inode> directories;
+            ScanInodesCheckpointed(c, v, null, progress, out deleted, out directories);
 
             JournalContext jc = LoadJournal(c, v, v.Superblock);
             Dictionary<uint, HistoricalCandidate> historicalInodes = null;
