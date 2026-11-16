@@ -30,6 +30,8 @@ namespace UsbRecovery
         {
             public uint DirectoryInode, TargetInode;
             public long EntryOffset;
+            public long? JournalBlockOffset, TargetBlockOffset;
+            public uint? JournalTransactionSequence;
             public string Name, DirectoryPath, Status = "validated_directory_reference_no_inode_generation";
             public bool DirectoryChecksumVerified;
         }
@@ -381,7 +383,7 @@ namespace UsbRecovery
 
             JournalContext jc = LoadJournal(c, v, v.Superblock);
             Dictionary<uint, HistoricalCandidate> historicalInodes = null;
-            List<Tuple<ulong, byte[]>> journalDirBlocks = null;
+            List<JournalDirectoryBlock> journalDirBlocks = null;
             if (jc != null)
             {
                 SweepJournalHistory(c, v, jc, out historicalInodes, out journalDirBlocks);
@@ -566,154 +568,6 @@ namespace UsbRecovery
             Group group = v.Groups[(int)index];
             if (!group.Valid || !group.BlockMapValid) return "allocation_bitmap_unknown_or_invalid";
             return Bit(group.Blocks, (uint)((block - v.FirstData) % v.BlocksPerGroup)) ? "currently_allocated_block_conflict" : null;
-        }
-
-        static Dictionary<uint, List<NameLink>> DirectoryNames(Context c, Volume v, Dictionary<uint, Inode> directories, List<Tuple<ulong, byte[]>> journalDirBlocks = null)
-        {
-            var links = new Dictionary<uint, List<NameLink>>(); var directoryPaths = new Dictionary<uint, string>(); directoryPaths[2] = "/";
-            foreach (Inode inode in directories.Values) {
-                c.Cancel.ThrowIfCancellationRequested(); if (++c.DirectoryCount > c.Limits.MaximumDirectories) { c.Report.Limited = true; break; }
-                if (inode.Size == 0 || inode.Size > 64L * 1024 * 1024) continue;
-                Mapping map = Map(c, v, inode); if (map.Failure != null) continue;
-                if (map.TreeBlocks.Any(x => FreeBlock(v, x) != "currently_allocated_block_conflict")) continue;
-                foreach (BlockRun run in map.Runs) for (ulong i = 0; i < run.Count; i++) {
-                    if (c.DirectoryBytes > c.Limits.MaximumDirectoryBytes - v.BlockBytes) { c.Report.Limited = true; Skip(c, "directory_byte_limit"); return links; }
-                    c.DirectoryBytes += v.BlockBytes;
-                    if (FreeBlock(v, run.Physical + i) != "currently_allocated_block_conflict") continue;
-                    c.Cancel.ThrowIfCancellationRequested(); byte[] bytes = Block(c, v, run.Physical + i); if (bytes == null) continue;
-                    int end = bytes.Length; bool checkedCsum = false;
-                    if (v.Csum) {
-                        int tail = bytes.Length - 12;
-                        if (U32(bytes, tail) != 0 || U16(bytes, tail + 4) != 12 || bytes[tail + 6] != 0 || bytes[tail + 7] != 0xde || Crc(InodeSeed(v, inode.Number, inode.Generation), bytes, 0, tail) != U32(bytes, tail + 8)) continue;
-                        checkedCsum = true; end = tail;
-                    }
-                    var blockLinks = new List<NameLink>(); int at = 0; bool valid = true;
-                    while (at < end) {
-                        if (at + 8 > end) { valid = false; break; }
-                        uint target = U32(bytes, at); int length = U16(bytes, at + 4), nameLength = (v.Incompat & 2) != 0 ? bytes[at + 6] : U16(bytes, at + 6);
-                        if (length < 8 || (length & 3) != 0 || length > end - at || nameLength > 255 || nameLength > length - 8) { valid = false; break; }
-                        if (target > 0 && target <= v.Inodes && nameLength > 0) {
-                            try {
-                                string name = Utf8.GetString(bytes, at + 8, nameLength);
-                                if (name != "." && name != ".." && name.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                    blockLinks.Add(new NameLink { DirectoryInode = inode.Number, TargetInode = target, Name = name,
-                                        EntryOffset = v.Offset + (long)(run.Physical + i) * v.BlockBytes + at, DirectoryChecksumVerified = checkedCsum });
-                            } catch (DecoderFallbackException) { }
-                        }
-                        int actual = (8 + nameLength + 3) & ~3;
-                        int slack = at + actual;
-                        while (slack + 8 <= at + length)
-                        {
-                            uint unlinkedTarget = U32(bytes, slack);
-                            int unlinkedLen = U16(bytes, slack + 4);
-                            int unlinkedNameLen = (v.Incompat & 2) != 0 ? bytes[slack + 6] : U16(bytes, slack + 6);
-                            if (unlinkedLen < 8 || (unlinkedLen & 3) != 0 || slack + unlinkedLen > at + length ||
-                                unlinkedNameLen == 0 || unlinkedNameLen > unlinkedLen - 8) break;
-                            if (unlinkedTarget > 0 && unlinkedTarget <= v.Inodes)
-                            {
-                                try
-                                {
-                                    string unlinkedName = Utf8.GetString(bytes, slack + 8, unlinkedNameLen);
-                                    if (unlinkedName != "." && unlinkedName != ".." && unlinkedName.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                    {
-                                        blockLinks.Add(new NameLink
-                                        {
-                                            DirectoryInode = inode.Number,
-                                            TargetInode = unlinkedTarget,
-                                            Name = unlinkedName,
-                                            EntryOffset = v.Offset + (long)(run.Physical + i) * v.BlockBytes + slack,
-                                            DirectoryChecksumVerified = checkedCsum,
-                                            Status = "unlinked_directory_slack_reference"
-                                        });
-                                    }
-                                }
-                                catch (DecoderFallbackException) { }
-                            }
-                            slack += unlinkedLen;
-                        }
-                        at += length;
-                    }
-                    if (!valid) continue;
-                    foreach (NameLink link in blockLinks) {
-                        if (++c.NameCount > c.Limits.MaximumNames) { c.Report.Limited = true; return links; }
-                        List<NameLink> existing; if (!links.TryGetValue(link.TargetInode, out existing)) { existing = new List<NameLink>(); links[link.TargetInode] = existing; }
-                        existing.Add(link);
-                    }
-                }
-            }
-            if (journalDirBlocks != null)
-            {
-                foreach (var jdb in journalDirBlocks)
-                {
-                    byte[] bytes = jdb.Item2;
-                    ulong diskBlock = jdb.Item1;
-                    if (bytes == null || bytes.Length < 12) continue;
-                    int end = bytes.Length;
-                    bool checkedCsum = false;
-                    if (v.Csum)
-                    {
-                        int tail = bytes.Length - 12;
-                        if (U32(bytes, tail) == 0 && U16(bytes, tail + 4) == 12 && bytes[tail + 6] == 0 && bytes[tail + 7] == 0xDE)
-                        {
-                            checkedCsum = true;
-                            end = tail;
-                        }
-                    }
-                    uint dirIno = 0;
-                    if (bytes.Length > 24 && bytes[6] == 1 && bytes[8] == '.')
-                    {
-                        dirIno = U32(bytes, 0);
-                    }
-                    int at = 0;
-                    while (at < end)
-                    {
-                        if (at + 8 > end) break;
-                        uint target = U32(bytes, at);
-                        int length = U16(bytes, at + 4);
-                        int nameLength = (v.Incompat & 2) != 0 ? bytes[at + 6] : U16(bytes, at + 6);
-                        if (length < 8 || (length & 3) != 0 || length > end - at || nameLength > 255 || nameLength > length - 8) break;
-                        if (target > 0 && target <= v.Inodes && nameLength > 0)
-                        {
-                            try
-                            {
-                                string name = Utf8.GetString(bytes, at + 8, nameLength);
-                                if (name != "." && name != ".." && name.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                {
-                                    List<NameLink> existing;
-                                    if (!links.TryGetValue(target, out existing)) { existing = new List<NameLink>(); links[target] = existing; }
-                                    if (!existing.Any(x => x.TargetInode == target && x.Name == name))
-                                    {
-                                        existing.Add(new NameLink
-                                        {
-                                            DirectoryInode = dirIno,
-                                            TargetInode = target,
-                                            Name = name,
-                                            EntryOffset = v.Offset + (long)diskBlock * v.BlockBytes + at,
-                                            DirectoryChecksumVerified = checkedCsum,
-                                            Status = "historical_journal_directory_reference"
-                                        });
-                                    }
-                                }
-                            }
-                            catch (DecoderFallbackException) { }
-                        }
-                        at += length;
-                    }
-                }
-            }
-            // Only a connected, unambiguous current directory chain gets a path.
-            for (int depth = 0; depth < 128; depth++) {
-                bool changed = false;
-                foreach (uint number in directories.Keys) {
-                    if (directoryPaths.ContainsKey(number)) continue; List<NameLink> names;
-                    if (!links.TryGetValue(number, out names) || names.Count != 1 || !directoryPaths.ContainsKey(names[0].DirectoryInode)) continue;
-                    string path = directoryPaths[names[0].DirectoryInode] + names[0].Name + "/"; if (path.Length > 32768) continue;
-                    directoryPaths[number] = path; changed = true;
-                }
-                if (!changed) break;
-            }
-            foreach (List<NameLink> names in links.Values) foreach (NameLink name in names) { string path; if (directoryPaths.TryGetValue(name.DirectoryInode, out path)) name.DirectoryPath = path; }
-            return links;
         }
 
         static void WriteFile(Context c, Entry entry)
@@ -1197,10 +1051,10 @@ namespace UsbRecovery
 
         static void SweepJournalHistory(Context c, Volume v, JournalContext jc,
             out Dictionary<uint, HistoricalCandidate> historicalInodes,
-            out List<Tuple<ulong, byte[]>> journalDirBlocks)
+            out List<JournalDirectoryBlock> journalDirBlocks)
         {
             historicalInodes = new Dictionary<uint, HistoricalCandidate>();
-            journalDirBlocks = new List<Tuple<ulong, byte[]>>();
+            journalDirBlocks = new List<JournalDirectoryBlock>();
             if (jc == null || jc.Blocks.Count < 2) return;
 
             var starts = new Dictionary<uint, List<uint>>();
@@ -1317,7 +1171,10 @@ namespace UsbRecovery
                         }
                         if (IsDirectoryBlock(data))
                         {
-                            journalDirBlocks.Add(Tuple.Create(targetDiskBlk, data));
+                            journalDirBlocks.Add(new JournalDirectoryBlock {
+                                TargetDiskBlock = targetDiskBlk, JournalBlock = dataPhys,
+                                TransactionSequence = seq, Bytes = data
+                            });
                         }
                     }
                 }

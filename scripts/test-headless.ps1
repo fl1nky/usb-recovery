@@ -119,7 +119,7 @@ try{
   $taskLevels[0].SetAttribute('level','asInvoker')
   $taskManifestXml.Save($taskManifest)
   $taskManifestSha=(Get-FileHash -LiteralPath $taskManifest -Algorithm SHA256).Hash.ToLowerInvariant()
-  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','FilesystemRecoveryTests','FatCheckpointTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
+  foreach($taskName in 'RaidRecoveryTests','Raid10LayoutTests','StorageWorkflowTests','RecoveryContinuityTests','RecoveryRestartTests','TextCheckpointTests','SessionCheckpointSaveTests','TextUnicodeRecoveryTests','PartitionCheckpointTests','RangeCarverCheckpointTests','UserSignatureRecoveryTests','ExtraPhotoTests','ContainerCarverCompatibilityTests','ArchiveCheckpointTests','ArchiveSalvageTests','ArchiveIoFailureTests','FragmentedZipCheckpointTests','FragmentedZipRecoveryTests','FilesystemRecoveryTests','FatCheckpointTests','Ext4DirectoryEvidenceTests','MetadataRescueTests','NtfsRecordCheckpointTests','NtfsRecordReadBudgetTests','SessionInventoryTests'){
    $taskStage=$taskName
    $taskExe=Join-Path $taskLayout.App ($taskName+'-Headless.exe')
    $taskTestSources=@((Join-Path $taskLayout.Tests ($taskName+'.cs')),(Join-Path $taskLayout.Tests 'FrameworkTarget.cs'))

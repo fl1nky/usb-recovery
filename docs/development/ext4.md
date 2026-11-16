@@ -23,6 +23,21 @@
 
 `ext4/report.json` содержит исходный SHA256, inode/generation, диапазоны образа, полученный SHA256, причину отказа, список обработанных (`HandledFeatures`) и неподдерживаемых (`UnsupportedFeatures`) флагов тома, а также статус replay журнала (`JournalReplayAttempted`, `JournalReplayApplied`) и количество найденных исторических inode (`JournalHistoricalInodesFound`). `ContentAuthenticityVerified` всегда `false`; успешный файл имеет статус `deleted_inode_candidate`.
 
+Имена из истории журнала сохраняются отдельно от текущих ссылок каталога.
+У них `EntryOffset` указывает на запись в самом журнале; `JournalBlockOffset`,
+`TargetBlockOffset` и `JournalTransactionSequence` разделяют источник записи,
+целевой блок и транзакцию. Разные транзакции не объединяются по совпадению имени.
+Для исторического блока наличие checksum-tail и проверка JBD2 не подтверждают
+контрольную сумму каталога: она также зависит от inode и его generation.
+Без подтверждённой связи `DirectoryChecksumVerified` остаётся `false`, а
+`DirectoryPath` — неизвестным; история не строит текущую цепочку родителей.
+Текущие и исторические ссылки расходуют общий `MaximumNames`; превышение
+помечает отчёт как неполный. См. [формат каталогов ext4](https://kernel.org/doc/html/latest/filesystems/ext4/directory.html).
+
+Структурные проверки этих границ находятся в `Ext4DirectoryEvidenceTests.cs`.
+Они проверяют уже выделенные записи каталога и не заменяют испытания полного
+native JBD2-журнала или настоящего устройства.
+
 ## Журнал JBD2 и безопасный replay в памяти
 
 Если том был отмонтирован некорректно (установлен флаг `INCOMPAT_RECOVER` 0x4), `Ext4Recovery` выполняет симуляцию наката журнала:
