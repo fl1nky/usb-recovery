@@ -851,60 +851,7 @@ namespace UsbRecovery
         static bool TryJournalTransaction(Context c, JournalContext jc, uint start, out JournalTransaction trans,
             out uint next, out string failure, ref long budget)
         {
-            trans = new JournalTransaction(); next = start; failure = "journal_transaction_uncommitted";
-            var visited = new HashSet<uint>(); uint oldChecksum = 0xffffffff;
-            byte[] first = JournalBlock(c, jc, start);
-            if (first == null) return false;
-            trans.Sequence = Be32(first, 8);
-            while (true) {
-                c.Cancel.ThrowIfCancellationRequested();
-                if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
-                if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
-                byte[] block = JournalBlock(c, jc, next);
-                if (block == null || Be32(block, 0) != 0xc03b3998 || Be32(block, 8) != trans.Sequence) return false;
-                uint current = next, type = Be32(block, 4); next = NextJournalBlock(next, jc.First, jc.MaxLen);
-                if (type == 2) {
-                    if (!JournalMetadataChecksum(jc, block, 16) || (jc.HasCsumV1 &&
-                        !(block[12] == 1 && block[13] == 4 && Be32(block, 16) == oldChecksum))) {
-                        failure = "journal_commit_checksum_invalid"; return false;
-                    }
-                    trans.Committed = true; return true;
-                }
-                if (type == 5) {
-                    trans.HeaderBlocks.Add(current);
-                    if ((jc.Incompat & 1) == 0) { failure = "journal_revoke_feature_missing"; return false; }
-                    if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_revoke_checksum_invalid"; return false; }
-                    uint count = Be32(block, 12); int width = jc.Is64Bit ? 8 : 4;
-                    int limit = block.Length - (jc.HasCsumV2 || jc.HasCsumV3 ? 4 : 0);
-                    if (count < 16 || count > limit || (count - 16) % width != 0) { failure = "journal_revoke_bounds"; return false; }
-                    for (int at = 16; at < count; at += width) {
-                        ulong revoked = jc.Is64Bit ? Be64(block, at) : Be32(block, at);
-                        if (!BlockRange(jc.Volume, revoked, 1)) { failure = "journal_revoke_bounds"; return false; }
-                        trans.RevokedBlocks.Add(revoked);
-                    }
-                    continue;
-                }
-                if (type != 1) return false;
-                trans.HeaderBlocks.Add(current);
-                if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_descriptor_checksum_invalid"; return false; }
-                var tags = ParseDescriptorTags(block, jc);
-                if (tags == null || tags.Count == 0) { failure = "journal_descriptor_tags_invalid"; return false; }
-                if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, block);
-                foreach (JournalTag tag in tags) {
-                    if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
-                    if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
-                    byte[] data = JournalBlock(c, jc, next);
-                    if (data == null) return false;
-                    if (jc.HasCsumV2 || jc.HasCsumV3) {
-                        byte[] sequence = { (byte)(trans.Sequence >> 24), (byte)(trans.Sequence >> 16), (byte)(trans.Sequence >> 8), (byte)trans.Sequence };
-                        uint checksum = Crc(Crc(jc.Seed, sequence, 0, 4), data, 0, data.Length);
-                        if ((jc.HasCsumV3 ? checksum : checksum & 65535) != tag.Checksum) { failure = "journal_data_checksum_invalid"; return false; }
-                    }
-                    if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, data);
-                    trans.DataBlocks.Add(Tuple.Create(tag, jc.Blocks[(int)next]));
-                    next = NextJournalBlock(next, jc.First, jc.MaxLen);
-                }
-            }
+            return TryJournalTransactionCheckpointed(c, jc, start, out trans, out next, out failure, ref budget, null, null);
         }
 
         static bool SequenceAtOrAfter(uint sequence, uint other) { return unchecked((int)(sequence - other)) >= 0; }

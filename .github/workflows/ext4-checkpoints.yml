@@ -9,6 +9,7 @@ on:
       - 'tests/ext4_fixture_generator.py'
       - 'tests/fixtures/ext4/**'
       - 'scripts/build-app.ps1'
+      - 'scripts/test-ext4-checkpoints.ps1'
       - '.github/workflows/ext4-checkpoints.yml'
   workflow_dispatch:
 
@@ -33,47 +34,15 @@ jobs:
         with:
           python-version: '3.12.10'
           architecture: x64
-      - name: Extract checksum-pinned native-format controls without WSL
-        run: |
-          & '${{ steps.python.outputs.python-path }}' tests/ext4_fixture_generator.py --extract tests/fixtures/ext4 --destination .build/ext4-ci-fixtures
-          if ($LASTEXITCODE -ne 0) { throw 'Ext4 fixture integrity verification failed.' }
-      - name: Verify initialization transactions and legacy recovery without GUI
-        run: |
-          $ErrorActionPreference = 'Stop'
-          . .\scripts\build-app.ps1
-          $app = Join-Path $PWD '.build\app\USB-Recovery.exe'
-          $appHash = (Get-FileHash -LiteralPath $app).Hash.ToLowerInvariant()
-          $suites = @()
-          $evidence = Join-Path $PWD '.build\ext4-ci-evidence'
-          New-Item -ItemType Directory -Path $evidence | Out-Null
-          $manifest = Join-Path $evidence 'as-invoker.manifest'
-          $xml = [Xml.XmlDocument]::new()
-          $xml.PreserveWhitespace = $true
-          $xml.XmlResolver = $null
-          $xml.Load((Join-Path $PWD 'src\Recovery\app.manifest'))
-          $levels = @($xml.GetElementsByTagName('requestedExecutionLevel'))
-          if ($levels.Count -ne 1) { throw 'Missing execution-level manifest.' }
-          $levels[0].SetAttribute('level', 'asInvoker')
-          $xml.Save($manifest)
-          $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-          foreach ($name in 'Ext4GroupCheckpointTests', 'Ext4InodeCheckpointTests', 'Ext4GroupMetadataTests', 'Ext4RecoveryTests', 'Ext4DirectoryEvidenceTests') {
-            $exe = Join-Path $PWD ('.build\app\' + $name + '-Ext4CI.exe')
-            & $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:" + $manifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:" + $app) ("/out:" + $exe) (Join-Path $PWD ('tests\' + $name + '.cs')) (Join-Path $PWD 'tests\FrameworkTarget.cs')
-            if ($LASTEXITCODE -ne 0) { throw ('Compilation failed: ' + $name) }
-            Copy-Item -LiteralPath ($app + '.config') -Destination ($exe + '.config')
-            $arguments = @($PWD.Path, (Join-Path $PWD '.build\ext4-ci-fixtures'))
-            if ($name -eq 'Ext4RecoveryTests') { $arguments = @((Join-Path $PWD '.build\ext4-ci-fixtures'), (Join-Path $PWD '.build\ext4-ci-legacy-results')) }
-            if ($name -eq 'Ext4DirectoryEvidenceTests') { $arguments = @() }
-            & $exe @arguments 2>&1 | Tee-Object -FilePath (Join-Path $evidence ($name + '.log'))
-            if ($LASTEXITCODE -ne 0) { throw ('Ext4 validation failed: ' + $name) }
-            $suites += $name
-          }
-          if ((Get-FileHash -LiteralPath $app).Hash.ToLowerInvariant() -ne $appHash) { throw 'Application changed during validation.' }
-          @{status='passed';scope='Ext4 initialization phase and legacy controls, not full-engine resume';source_sha=$env:GITHUB_SHA;app_sha256=$appHash;suites=$suites;gui_tests_run=$false;real_devices_tested=$false;network_isolation_requested=$false} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $evidence 'receipt.json') -Encoding UTF8
+      - name: Verify checkpoint components and native-format controls without GUI
+        run: ./scripts/test-ext4-checkpoints.ps1 -Python '${{ steps.python.outputs.python-path }}'
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: ext4-initialization-evidence
-          path: .build/ext4-ci-evidence/*
+          path: |
+            .build/ext4-ci-evidence/*.log
+            .build/ext4-ci-evidence/*.json
+            .build/ext4-ci-evidence/*.manifest
           include-hidden-files: true
           retention-days: 7
