@@ -193,7 +193,11 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("ext4: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = Ext4Recovery.Recover(image, directory, cancel, progress);
+                                int found = Ext4Recovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "ext4",
+                                        SourceSha256 = expected, Settings = "ext4-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("ext4"),
+                                        Commit = value => session.CaptureMethodCheckpoint("ext4", value) });
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024

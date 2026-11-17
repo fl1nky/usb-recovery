@@ -23,7 +23,7 @@ concurrency:
 jobs:
   initialization-windows:
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 35
     defaults:
       run:
         shell: pwsh

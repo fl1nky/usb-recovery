@@ -34,7 +34,7 @@ try {
     $xml.Save($manifest)
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
     $suites = @()
-    foreach ($name in 'Ext4LimitsIdentityTests', 'Ext4GroupCheckpointTests', 'Ext4JournalLoadCheckpointTests', 'Ext4InitializationCheckpointTests', 'Ext4InodeCheckpointTests', 'Ext4JournalCheckpointTests', 'Ext4JournalHistoryCheckpointTests', 'Ext4ReplayCheckpointTests', 'Ext4HistoryCandidateCheckpointTests', 'Ext4DirectoryCheckpointTests', 'Ext4CandidateCheckpointTests', 'Ext4EntryPlanTests', 'Ext4FileCheckpointTests', 'Ext4ExportCheckpointTests', 'Ext4ReportCheckpointTests', 'Ext4OutputSafetyTests', 'Ext4GroupMetadataTests', 'Ext4RecoveryTests', 'Ext4DirectoryEvidenceTests') {
+    foreach ($name in 'Ext4LimitsIdentityTests', 'Ext4GroupCheckpointTests', 'Ext4JournalLoadCheckpointTests', 'Ext4InitializationCheckpointTests', 'Ext4InodeCheckpointTests', 'Ext4JournalCheckpointTests', 'Ext4JournalHistoryCheckpointTests', 'Ext4ReplayCheckpointTests', 'Ext4HistoryCandidateCheckpointTests', 'Ext4DirectoryCheckpointTests', 'Ext4CandidateCheckpointTests', 'Ext4EntryPlanTests', 'Ext4FileCheckpointTests', 'Ext4ExportCheckpointTests', 'Ext4ReportCheckpointTests', 'Ext4EngineCheckpointTests', 'Ext4SessionCheckpointTests', 'Ext4OutputSafetyTests', 'Ext4GroupMetadataTests', 'Ext4RecoveryTests', 'Ext4DirectoryEvidenceTests') {
         $exe = Join-Path $project ('.build/app/' + $name + '-Ext4CI.exe')
         & $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:" + $manifest) /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Web.Extensions.dll ("/reference:" + $app) ("/out:" + $exe) (Join-Path $project ('tests/' + $name + '.cs')) (Join-Path $project 'tests/FrameworkTarget.cs')
         if ($LASTEXITCODE -ne 0) { throw ('Compilation failed: ' + $name) }
@@ -47,6 +47,6 @@ try {
         $suites += $name
     }
     if ((Get-FileHash -LiteralPath $app).Hash.ToLowerInvariant() -ne $appHash) { throw 'Application changed during validation.' }
-    @{status='passed';scope='Ext4 volume initialization, canonical limits, metadata/journal/name components, candidate preparation, paged plans, copy, volume export, report publication and legacy controls; not full-engine resume';source_sha=$env:GITHUB_SHA;app_sha256=$appHash;suites=$suites;gui_tests_run=$false;real_devices_tested=$false;network_isolation_requested=$false} |
+    @{status='passed';scope='Ext4 full managed engine and Pipeline/Session continuation, component cursors and legacy native-format controls; not packaged/offline or real-device acceptance';source_sha=$env:GITHUB_SHA;app_sha256=$appHash;suites=$suites;gui_tests_run=$false;real_devices_tested=$false;network_isolation_requested=$false} |
         ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $evidence 'receipt.json') -Encoding UTF8
 } finally { Pop-Location }

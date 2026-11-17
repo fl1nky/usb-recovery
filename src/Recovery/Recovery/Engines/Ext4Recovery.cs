@@ -181,17 +181,9 @@ namespace UsbRecovery
                 throw new IOException("Источник находится в папке результатов ext4");
             if (Directory.Exists(root) || File.Exists(root)) throw new IOException("Папка результатов ext4 уже существует");
             limits = limits ?? new Limits();
-            if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
-                limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
-                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
-                limits.InodesPerCheckpoint < 1 || limits.InodesPerCheckpoint > 256 ||
-                limits.AllocationBlocksPerCheckpoint < 1 || limits.AllocationBlocksPerCheckpoint > MaximumAllocationUnitBlocks ||
-                limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
-                throw new ArgumentException("Неверные ограничения ext4");
+            ValidateExt4Limits(limits);
             Directory.CreateDirectory(Path.Combine(root, "files"));
-            var report = new Report { Status = "running" };
-            report.Warnings.Add("Восстанавливаются удалённые inode с полной инициализированной картой, включая зафиксированные транзакции JBD2. Replay выполняется только в памяти. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и fast commit не подменяются исходными байтами.");
-            report.Warnings.Add("Проверенные CRC метаданных и свободный bitmap не доказывают сохранность старого содержимого. Имена — ссылки текущего проверенного каталога; ext4 dirent не содержит generation inode.");
+            var report = NewExt4Report();
             try {
                 using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024)) {
                     var c = new Context { Input = input, Root = root, Cancel = cancel, Limits = limits, Report = report };
@@ -216,6 +208,23 @@ namespace UsbRecovery
             } catch (OperationCanceledException) { report.Cancelled = true; report.Status = "cancelled"; throw; }
               catch { report.Failed = true; report.Status = "failed"; throw; }
             finally { File.WriteAllText(Path.Combine(root, "report.json"), new JavaScriptSerializer { MaxJsonLength = 64 * 1024 * 1024 }.Serialize(report), new UTF8Encoding(false)); }
+        }
+        static void ValidateExt4Limits(Limits limits)
+        {
+            if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
+                limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
+                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
+                limits.InodesPerCheckpoint < 1 || limits.InodesPerCheckpoint > 256 ||
+                limits.AllocationBlocksPerCheckpoint < 1 || limits.AllocationBlocksPerCheckpoint > MaximumAllocationUnitBlocks ||
+                limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
+                throw new ArgumentException("Неверные ограничения ext4");
+        }
+        static Report NewExt4Report()
+        {
+            var report = new Report { Status = "running" };
+            report.Warnings.Add("Восстанавливаются удалённые inode с полной инициализированной картой, включая зафиксированные транзакции JBD2. Replay выполняется только в памяти. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и fast commit не подменяются исходными байтами.");
+            report.Warnings.Add("Проверенные CRC метаданных и свободный bitmap не доказывают сохранность старого содержимого. Имена — ссылки текущего проверенного каталога; ext4 dirent не содержит generation inode.");
+            return report;
         }
 
         static Volume OpenVolume(Context c, long offset)

@@ -19,7 +19,7 @@ namespace UsbRecovery
             { "partitions", new[] { "partition-search.json", "partitions.state" } },
             { "fat", new[] { "filesystem", "fat.state" } },
             { "ntfs", new[] { "ntfs" } },
-            { "ext4", new[] { "ext4" } },
+            { "ext4", new[] { "ext4", "ext4.state" } },
             { "refs", new[] { "refs" } },
             { "apfs", new[] { "apfs" } },
             { "ntfs-records", new[] { "metadata-rescue", "ntfs-records.state" } },
