@@ -24,7 +24,14 @@ jobs:
         with:
           python-version: '3.14'
       - name: Restore pinned archives without installers
-        run: ./scripts/restore-native-build-inputs.ps1
+        run: |
+          ./scripts/restore-native-build-inputs.ps1 2>&1 | Tee-Object -FilePath native-restore.log
+          $nativeRestoreExit = $LASTEXITCODE
+          if ($nativeRestoreExit -ne 0) {
+            $nativeRestoreDetail = (Get-Content -LiteralPath native-restore.log -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output ('::error title=Native dependency restore log::'+$nativeRestoreDetail)
+            exit $nativeRestoreExit
+          }
       - name: Restore isolated compiler from verified archives
         run: python scripts/prepare-native-toolchain.py --destination .build/native-toolchain --archive-cache .build/native-archives --offline --runtime-sources
       - name: Build NTFS worker and source bundle
@@ -61,5 +68,6 @@ jobs:
             .build/native-fixtures/derived/expected.bin
             .build/native-install-evidence/receipt.json
             .build/native-input-tests.log
+            native-restore.log
           retention-days: 14
           include-hidden-files: true

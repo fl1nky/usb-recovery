@@ -25,13 +25,28 @@ foreach($row in $rows){
     if(-not(Test-Path -LiteralPath $target)){
         if($Offline){throw ('Missing pinned input: '+$row.path)}
         New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent)|Out-Null
-        $pending=$target+'.'+[Guid]::NewGuid().ToString('N')+'.partial'
-        # Certificate verification stays enabled. No installer is launched.
-        Invoke-WebRequest -Uri $row.uri -OutFile $pending -TimeoutSec 120 -MaximumRedirection 5
-        $size=(Get-Item -LiteralPath $pending).Length
-        if($size-lt 1-or $size-gt 256MB-or $row.bytes-gt 0-and $size-ne $row.bytes-or
-            (Get-FileHash -LiteralPath $pending -Algorithm $row.algorithm).Hash.ToLowerInvariant()-ne $row.sha){throw ('Native archive validation failed: '+$row.path)}
-        Move-Item -LiteralPath $pending -Destination $target
+        for($attempt=1;$attempt-le3;$attempt++){
+            $pending=$target+'.'+[Guid]::NewGuid().ToString('N')+'.partial'
+            try{
+                Write-Output ('Downloading pinned native input: '+$row.path+' (attempt '+$attempt+')')
+                # Certificate verification stays enabled. Failed partials remain
+                # separate; a retry cannot publish unverified or stale bytes.
+                Invoke-WebRequest -Uri $row.uri -OutFile $pending -TimeoutSec 120 -MaximumRedirection 5
+                $size=(Get-Item -LiteralPath $pending).Length
+                if($size-lt 1-or $size-gt 256MB-or $row.bytes-gt 0-and $size-ne $row.bytes-or
+                    (Get-FileHash -LiteralPath $pending -Algorithm $row.algorithm).Hash.ToLowerInvariant()-ne $row.sha){throw ('Native archive validation failed: '+$row.path)}
+                Move-Item -LiteralPath $pending -Destination $target
+                break
+            }catch{
+                $detail='Native input '+$row.path+': '+$_.Exception.Message
+                if($attempt-eq3){
+                    if($env:GITHUB_ACTIONS-eq'true') {Write-Output ('::error title=Native dependency restore::'+$detail.Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A'))}
+                    throw $detail
+                }
+                Write-Warning $detail
+                Start-Sleep -Seconds (2*$attempt)
+            }
+        }
     }
     $size=(Get-Item -LiteralPath $target).Length
     if($size-lt 1-or $size-gt 256MB-or $row.bytes-gt 0-and $size-ne $row.bytes-or
@@ -40,3 +55,4 @@ foreach($row in $rows){
 @{schema=1;status='native_build_inputs_verified';archives=$rows.Count;offline=[bool]$Offline;installers_run=$false;certificate_checks_disabled=$false}|
     ConvertTo-Json|Set-Content -LiteralPath (Join-Path $cache 'restore-receipt.json') -Encoding UTF8
 Write-Output ('Verified native build inputs: '+$rows.Count)
+exit 0
