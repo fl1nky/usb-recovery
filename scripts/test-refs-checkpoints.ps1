@@ -36,7 +36,7 @@ try {
     $xml.Save($manifest)
     $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
     $suites = @()
-    foreach ($name in 'RefsMetadataCheckpointTests', 'RefsOutputSafetyTests', 'RefsRecoveryTests', 'RefsChallenger1Tests') {
+    foreach ($name in 'RefsMetadataCheckpointTests', 'RefsFileCheckpointTests', 'RefsOutputSafetyTests', 'RefsRecoveryTests', 'RefsChallenger1Tests') {
         $exe = Join-Path $project ('.build/app/' + $name + '-RefsCI.exe')
         & $compiler /nologo /target:exe /platform:x64 /optimize+ /warnaserror+ /codepage:65001 ("/win32manifest:" + $manifest) /reference:System.Web.Extensions.dll ("/reference:" + $app) ("/out:" + $exe) (Join-Path $project ('tests/' + $name + '.cs')) (Join-Path $project 'tests/FrameworkTarget.cs')
         if ($LASTEXITCODE -ne 0) { throw ('Compilation failed: ' + $name) }
@@ -50,6 +50,6 @@ try {
         $suites += $name
     }
     if ((Get-FileHash -LiteralPath $app).Hash.ToLowerInvariant() -ne $appHash) { throw 'Application changed during validation.' }
-    @{status='passed';scope='ReFS bounded raw metadata cursor, actual anchor/tree parsing and output collision safety; not whole-engine continuation';source_sha=$env:GITHUB_SHA;app_sha256=$appHash;suites=$suites;native_metadata_image_requested=[bool]$NativeImage;gui_tests_run=$false;real_devices_tested=$false;network_isolation_requested=$false} |
+    @{status='passed';scope='ReFS bounded raw metadata cursor, mapped/resident/sparse file publisher, actual anchor/tree parsing and output collision safety; not whole-engine continuation';source_sha=$env:GITHUB_SHA;app_sha256=$appHash;suites=$suites;native_metadata_image_requested=[bool]$NativeImage;gui_tests_run=$false;real_devices_tested=$false;network_isolation_requested=$false} |
         ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $evidence 'receipt.json') -Encoding UTF8
 } finally { Pop-Location }

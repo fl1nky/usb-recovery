@@ -141,6 +141,7 @@ namespace UsbRecovery
             public Limits Limits;
             public Report Report;
             public Func<long, int, byte[]> MetadataRead;
+            public Action<Entry, byte[], string> PublishFile = null;
             public int DirectoryCount;
             public int EntryCount;
             public long OutputBytes;
@@ -1117,46 +1118,19 @@ namespace UsbRecovery
                 c.Report.Limited = true; Skip(c, "output_limit"); return;
             }
             string outName = string.Format("volume_{0}_entry_{1}_{2}", geom.VolumeOffset, c.Report.Entries.Count, SanitizeFileName(name));
-            string dest = Path.Combine(c.Root, "files", outName), temp = dest + ".partial";
-            byte[] buffer = new byte[1024 * 1024];
-            string hash;
-            bool ownsTemporary = false;
-            try
-            {
-                using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                {
-                    ownsTemporary = true;
-                    if (resident != null) output.Write(resident, 0, resident.Length);
-                    else foreach (var extent in extents)
-                    {
-                        if (extent.ImageOffset >= 0) c.Input.Position = extent.ImageOffset;
-                        long remaining = extent.Length;
-                        if (extent.ImageOffset < 0) Array.Clear(buffer, 0, buffer.Length);
-                        while (remaining > 0)
-                        {
-                            c.Cancel.ThrowIfCancellationRequested();
-                            int n = extent.ImageOffset < 0 ? (int)Math.Min(remaining, buffer.Length) : c.Input.Read(buffer, 0, (int)Math.Min(remaining, buffer.Length));
-                            if (n == 0) throw new EndOfStreamException("Неполное чтение refs");
-                            output.Write(buffer, 0, n); remaining -= n;
-                        }
-                    }
-                    output.Flush(true);
-                }
-                using (var source = File.OpenRead(temp)) using (var sha = SHA256.Create()) hash = Hex(sha.ComputeHash(source));
-                c.Cancel.ThrowIfCancellationRequested(); File.Move(temp, dest);
-            }
-            finally { if (ownsTemporary && File.Exists(temp)) File.Delete(temp); }
             var entry = new Entry { VolumeOffset = geom.VolumeOffset, ObjectId = objectId,
                 ParentObjectId = parentObjectId, Name = name, RelativePath = relativePath, DeclaredSize = declaredSize,
-                RecoveredBytes = declaredSize, CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
+                CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
                 LastWriteTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 8)),
                 EntryChangeTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 16)),
                 LastAccessTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 24)), FileAttributes = attrs,
-                Status = isLive ? "recovered_live" : "unreferenced_refs_candidate", Output = "files/" + outName,
-                Sha256 = hash, IsResident = resident != null, MetadataChecksumVerified = verified,
+                Status = isLive ? "recovered_live" : "unreferenced_refs_candidate",
+                IsResident = resident != null, MetadataChecksumVerified = verified,
                 ContentAuthenticityVerified = false, DeletionEvidence = null,
                 Note = isLive ? "Контрольные суммы метаданных проверены; целостность файловых данных отдельно не подтверждена." :
                     "Структурный кандидат вне посещённых деревьев; удаление, свободное состояние и checksum не подтверждены.", Extents = extents };
+            if (c.PublishFile != null) c.PublishFile(entry, resident, "files/" + outName);
+            else WriteFileLegacy(c, entry, resident, "files/" + outName);
             c.Report.Entries.Add(entry); c.Report.Candidates++; c.Report.RecoveredFiles++; c.Report.OutputBytes += declaredSize;
             c.OutputBytes += declaredSize; vr.RecoveredFiles++;
         }
