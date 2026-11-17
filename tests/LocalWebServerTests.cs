@@ -129,7 +129,47 @@ public static class LocalWebServerTests
                     Check(content == "USB-Recovery offline test payload", "File content streamed accurately");
                 }
 
-                // Test 7: 404 on unknown endpoint
+                // Test 7: GET /api/export-zip streaming
+                using (var client = new WebClient())
+                {
+                    byte[] zipBytes = client.DownloadData(baseUrl + "/api/export-zip");
+                    Check(zipBytes != null && zipBytes.Length > 30, "Zip bytes downloaded");
+                    Check(zipBytes[0] == 0x50 && zipBytes[1] == 0x4B && zipBytes[2] == 0x03 && zipBytes[3] == 0x04, "Zip file starts with PK 03 04 signature");
+                    string zipAscii = Encoding.ASCII.GetString(zipBytes);
+                    Check(zipAscii.Contains("recovered_file.txt"), "Zip archive contains recovered_file.txt entry name");
+                    Check(zipAscii.Contains("USB-Recovery offline test payload"), "Zip archive contains file payload");
+                }
+
+                // Test 8: GET /api/report?format=json
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string reportJson = client.DownloadString(baseUrl + "/api/report?format=json");
+                    var serializer = new JavaScriptSerializer();
+                    var report = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(reportJson);
+                    Check(report != null, "Report JSON parsed");
+                    Check(report.ContainsKey("chainOfCustodySha256"), "Report contains chainOfCustodySha256");
+                    string chainHash = report["chainOfCustodySha256"].ToString();
+                    Check(chainHash.Length == 64, "Chain of custody hash is 64 hex characters: " + chainHash);
+                    Check(report.ContainsKey("files"), "Report contains files list");
+                    var repFiles = (System.Collections.ArrayList)report["files"];
+                    Check(repFiles.Count >= 1, "Report contains at least 1 file record");
+                    var firstFile = (System.Collections.Generic.Dictionary<string, object>)repFiles[0];
+                    Check(firstFile.ContainsKey("sha256"), "File record contains sha256");
+                    Check(firstFile["sha256"].ToString().Length == 64, "File sha256 is 64 hex characters");
+                }
+
+                // Test 9: GET /api/report?format=html
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string reportHtml = client.DownloadString(baseUrl + "/api/report?format=html");
+                    Check(reportHtml.Contains("USB-Recovery Forensic Report"), "Report HTML contains title");
+                    Check(reportHtml.Contains("Chain of Custody Master Hash"), "Report HTML contains master hash");
+                    Check(reportHtml.Contains("recovered_file.txt"), "Report HTML contains artifact row");
+                }
+
+                // Test 10: 404 on unknown endpoint
                 bool got404 = false;
                 try
                 {
@@ -150,6 +190,38 @@ public static class LocalWebServerTests
                 Check(!server.IsRunning, "Server stops cleanly");
             }
 
+            // Test 11: Virtual Disk VHD Reader Integration
+            byte[] vhdBytes = CreateSyntheticFixedVhd(imageBytes);
+            string testVhd = Path.Combine(tempDir, "test_disk.vhd");
+            File.WriteAllBytes(testVhd, vhdBytes);
+
+            int vhdPort = 19080 + (new Random().Next(100, 900));
+            using (var vhdServer = new LocalWebServer(testVhd, outputDir, vhdPort))
+            {
+                vhdServer.Start();
+                string vhdUrl = "http://127.0.0.1:" + vhdServer.Port;
+
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string statusJson = client.DownloadString(vhdUrl + "/api/status");
+                    var serializer = new JavaScriptSerializer();
+                    var status = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(statusJson);
+                    Check(Convert.ToInt64(status["imageSize"]) == 65536, "VHD logical image size is 65536");
+
+                    string reportJson = client.DownloadString(vhdUrl + "/api/report?format=json");
+                    var report = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(reportJson);
+                    var target = (System.Collections.Generic.Dictionary<string, object>)report["targetImage"];
+                    Check(target["format"].ToString().Contains("VHD"), "Report detects VHD container format: " + target["format"]);
+
+                    string hexJson = client.DownloadString(vhdUrl + "/api/hex?offset=510&length=2");
+                    var hex = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(hexJson);
+                    Check(hex["hex"].ToString() == "55AA", "VHD boot signature hex read accurately: " + hex["hex"]);
+                }
+
+                vhdServer.Stop();
+            }
+
             Console.WriteLine("PASS LocalWebServer: {0} checks; localhost loopback Web-UI, cluster map, hex inspector, and REST endpoints verified.", checks);
             return 0;
         }
@@ -168,4 +240,41 @@ public static class LocalWebServerTests
             catch { }
         }
     }
+
+    private static byte[] CreateSyntheticFixedVhd(byte[] guestPayload)
+    {
+        long diskSize = guestPayload.Length;
+        byte[] vhd = new byte[diskSize + 512];
+        Array.Copy(guestPayload, 0, vhd, 0, guestPayload.Length);
+
+        byte[] footer = new byte[512];
+        Encoding.ASCII.GetBytes("conectix").CopyTo(footer, 0);
+        footer[11] = 0x02; // Features
+        footer[12] = 0; footer[13] = 1; footer[14] = 0; footer[15] = 0; // Version 1.0
+        for (int i = 16; i < 24; i++) footer[i] = 0xFF; // DataOffset = 0xFFFFFFFFFFFFFFFF
+
+        uint ts = 100000;
+        footer[24] = (byte)(ts >> 24); footer[25] = (byte)(ts >> 16);
+        footer[26] = (byte)(ts >> 8);  footer[27] = (byte)ts;
+
+        Encoding.ASCII.GetBytes("test").CopyTo(footer, 28);
+        for (int i = 0; i < 8; i++)
+        {
+            byte b = (byte)((diskSize >> (8 * (7 - i))) & 0xFF);
+            footer[40 + i] = b;
+            footer[48 + i] = b;
+        }
+
+        footer[56] = 0; footer[57] = 1; footer[58] = 1; footer[59] = 1; // Geometry
+        footer[63] = 2; // DiskType = 2 (Fixed)
+        Guid.NewGuid().ToByteArray().CopyTo(footer, 68);
+
+        uint csum = VhdImageReader.ComputeFooterChecksum(footer);
+        footer[64] = (byte)(csum >> 24); footer[65] = (byte)(csum >> 16);
+        footer[66] = (byte)(csum >> 8);  footer[67] = (byte)csum;
+
+        Array.Copy(footer, 0, vhd, diskSize, 512);
+        return vhd;
+    }
 }
+

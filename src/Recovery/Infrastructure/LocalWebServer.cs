@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -54,6 +55,48 @@ namespace UsbRecovery
                         this.imageSize = new FileInfo(imagePath).Length;
                     }
                 }
+                else if (VhdImageReader.IsVhdFile(imagePath))
+                {
+                    try
+                    {
+                        using (var vhd = VhdImageReader.Open(imagePath))
+                        {
+                            this.imageSize = vhd.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
+                else if (VhdxImageReader.IsVhdxFile(imagePath))
+                {
+                    try
+                    {
+                        using (var vhdx = VhdxImageReader.Open(imagePath))
+                        {
+                            this.imageSize = vhdx.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
+                else if (VmdkImageReader.IsVmdkFile(imagePath))
+                {
+                    try
+                    {
+                        using (var vmdk = VmdkImageReader.Open(imagePath))
+                        {
+                            this.imageSize = vmdk.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
                 else
                 {
                     this.imageSize = new FileInfo(imagePath).Length;
@@ -95,6 +138,18 @@ namespace UsbRecovery
             if (E01ImageReader.IsE01File(imagePath))
             {
                 return E01ImageReader.Open(imagePath);
+            }
+            if (VhdImageReader.IsVhdFile(imagePath))
+            {
+                return VhdImageReader.Open(imagePath);
+            }
+            if (VhdxImageReader.IsVhdxFile(imagePath))
+            {
+                return VhdxImageReader.Open(imagePath);
+            }
+            if (VmdkImageReader.IsVmdkFile(imagePath))
+            {
+                return VmdkImageReader.Open(imagePath);
             }
             return new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
@@ -195,6 +250,14 @@ namespace UsbRecovery
                 else if (path == "/api/file")
                 {
                     ServeFileContent(req, res);
+                }
+                else if (path == "/api/export-zip")
+                {
+                    ServeExportZip(req, res);
+                }
+                else if (path == "/api/report")
+                {
+                    ServeReport(req, res);
                 }
                 else if (path == "/api/scan" && req.HttpMethod == "POST")
                 {
@@ -562,6 +625,222 @@ namespace UsbRecovery
             res.OutputStream.Write(fileBytes, 0, fileBytes.Length);
         }
 
+        void ServeExportZip(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            if (string.IsNullOrEmpty(outputPath) || !Directory.Exists(outputPath))
+            {
+                res.StatusCode = (int)HttpStatusCode.NotFound;
+                WriteText(res, "No recovered files directory found");
+                return;
+            }
+
+            var dir = new DirectoryInfo(outputPath);
+            FileInfo[] allFiles = dir.GetFiles("*", SearchOption.AllDirectories);
+            if (allFiles.Length == 0)
+            {
+                res.StatusCode = (int)HttpStatusCode.NotFound;
+                WriteText(res, "No recovered files to export");
+                return;
+            }
+
+            string filterParam = req.QueryString["files"];
+            HashSet<string> requestedFiles = null;
+            if (!string.IsNullOrEmpty(filterParam))
+            {
+                requestedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                string[] parts = filterParam.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    requestedFiles.Add(parts[i].Trim());
+                }
+            }
+
+            List<FileInfo> filesToExport = new List<FileInfo>();
+            for (int i = 0; i < allFiles.Length; i++)
+            {
+                var f = allFiles[i];
+                string relPath = f.FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/');
+                if (requestedFiles == null || requestedFiles.Contains(relPath) || requestedFiles.Contains(f.Name))
+                {
+                    filesToExport.Add(f);
+                }
+            }
+
+            if (filesToExport.Count == 0)
+            {
+                res.StatusCode = (int)HttpStatusCode.NotFound;
+                WriteText(res, "No matching files found for export");
+                return;
+            }
+
+            res.ContentType = "application/zip";
+            res.Headers.Add("Content-Disposition", "attachment; filename=\"USB-Recovery-Export.zip\"");
+            res.SendChunked = true;
+
+            ZipStreamingWriter.StreamZip(filesToExport, dir.FullName, res.OutputStream);
+        }
+
+        void ServeReport(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            string format = (req.QueryString["format"] ?? "html").ToLowerInvariant();
+
+            string detectedFormat = "RAW / Physical Disk";
+            if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            {
+                if (E01ImageReader.IsE01File(imagePath)) detectedFormat = "Expert Witness E01 (zlib compressed)";
+                else if (VhdImageReader.IsVhdFile(imagePath)) detectedFormat = "Microsoft VHD (Virtual Hard Disk)";
+                else if (VhdxImageReader.IsVhdxFile(imagePath)) detectedFormat = "Microsoft VHDX (V2 Virtual Hard Disk)";
+                else if (VmdkImageReader.IsVmdkFile(imagePath)) detectedFormat = "VMware VMDK (Virtual Machine Disk)";
+            }
+
+            var fileRecords = new List<Dictionary<string, object>>();
+            var shaList = new List<string>();
+
+            if (Directory.Exists(outputPath))
+            {
+                var dir = new DirectoryInfo(outputPath);
+                var files = dir.GetFiles("*", SearchOption.AllDirectories).OrderBy(f => f.FullName).ToArray();
+                using (var sha = SHA256.Create())
+                {
+                    for (int fi = 0; fi < files.Length; fi++)
+                    {
+                        var f = files[fi];
+                        string rel = f.FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
+                        byte[] fileBytes = File.ReadAllBytes(f.FullName);
+                        byte[] hBytes = sha.ComputeHash(fileBytes);
+                        var hSb = new StringBuilder(64);
+                        for (int i = 0; i < hBytes.Length; i++) hSb.Append(hBytes[i].ToString("x2"));
+                        string hashStr = hSb.ToString();
+                        shaList.Add(hashStr);
+
+                        var r = new Dictionary<string, object>();
+                        r["name"] = f.Name;
+                        r["relativePath"] = rel;
+                        r["size"] = f.Length;
+                        r["sizeHuman"] = FormatBytes(f.Length);
+                        r["sha256"] = hashStr;
+                        r["createdUtc"] = f.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+                        r["modifiedUtc"] = f.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+                        r["extension"] = f.Extension.TrimStart('.').ToUpperInvariant();
+                        fileRecords.Add(r);
+                    }
+                }
+            }
+
+            // Compute Chain of Custody hash (SHA-256 over concatenated hashes)
+            string chainOfCustodyHash = "";
+            using (var sha = SHA256.Create())
+            {
+                byte[] chainBytes = Encoding.UTF8.GetBytes(string.Join("\n", shaList.ToArray()));
+                byte[] chH = sha.ComputeHash(chainBytes);
+                var chSb = new StringBuilder(64);
+                for (int i = 0; i < chH.Length; i++) chSb.Append(chH[i].ToString("x2"));
+                chainOfCustodyHash = chSb.ToString();
+            }
+
+            if (format == "json")
+            {
+                var reportObj = new
+                {
+                    reportTitle = "USB-Recovery Forensic Chain-of-Custody Manifest",
+                    version = "2026.11",
+                    generator = "USB-Recovery Pure C# DFIR Engine",
+                    generatedUtc = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    targetImage = new
+                    {
+                        path = imagePath,
+                        name = !string.IsNullOrEmpty(imagePath) ? Path.GetFileName(imagePath) : "None",
+                        format = detectedFormat,
+                        logicalSize = imageSize,
+                        logicalSizeHuman = FormatBytes(imageSize)
+                    },
+                    fileCount = fileRecords.Count,
+                    chainOfCustodySha256 = chainOfCustodyHash,
+                    files = fileRecords
+                };
+                WriteJson(res, reportObj);
+            }
+            else
+            {
+                // HTML format
+                res.ContentType = "text/html; charset=utf-8";
+                string html = GenerateReportHtml(detectedFormat, chainOfCustodyHash, fileRecords);
+                byte[] bytes = Encoding.UTF8.GetBytes(html);
+                res.ContentLength64 = bytes.Length;
+                res.OutputStream.Write(bytes, 0, bytes.Length);
+            }
+        }
+
+        string GenerateReportHtml(string detectedFormat, string chainOfCustodyHash, List<Dictionary<string, object>> files)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\"/>\n");
+            sb.Append("<title>USB-Recovery — Forensic Chain-of-Custody Report</title>\n");
+            sb.Append("<style>\n");
+            sb.Append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 32px; line-height: 1.5; }\n");
+            sb.Append(".report-container { max-width: 1100px; margin: 0 auto; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }\n");
+            sb.Append(".header { border-bottom: 2px solid #38bdf8; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }\n");
+            sb.Append(".title { font-size: 24px; font-weight: 800; color: #fff; }\n");
+            sb.Append(".badge { background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 4px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; }\n");
+            sb.Append(".meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; background: rgba(15, 23, 42, 0.6); padding: 16px; border-radius: 8px; border: 1px solid #334155; }\n");
+            sb.Append(".meta-item { font-size: 13px; }\n");
+            sb.Append(".meta-label { color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 11px; margin-bottom: 4px; }\n");
+            sb.Append(".meta-value { color: #fff; font-weight: 500; font-family: 'Consolas', monospace; word-break: break-all; }\n");
+            sb.Append(".chain-box { background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 24px; }\n");
+            sb.Append(".chain-title { font-size: 13px; font-weight: 700; color: #4ade80; text-transform: uppercase; margin-bottom: 6px; }\n");
+            sb.Append(".chain-hash { font-family: 'Consolas', monospace; font-size: 14px; color: #fff; word-break: break-all; }\n");
+            sb.Append("table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; margin-top: 16px; }\n");
+            sb.Append("th { background: #0f172a; padding: 10px 12px; border-bottom: 1px solid #334155; color: #94a3b8; text-transform: uppercase; font-size: 11px; }\n");
+            sb.Append("td { padding: 10px 12px; border-bottom: 1px solid rgba(51, 65, 85, 0.4); }\n");
+            sb.Append(".hash-col { font-family: 'Consolas', monospace; color: #38bdf8; }\n");
+            sb.Append("@media print { body { background: #fff; color: #000; padding: 0; } .report-container { border: none; box-shadow: none; background: #fff; } th { background: #f1f5f9; color: #000; } td { color: #000; } .meta-grid { background: #f8fafc; border: 1px solid #cbd5e1; } .meta-label { color: #64748b; } .meta-value { color: #000; } .hash-col { color: #0369a1; } .chain-box { background: #f0fdf4; border-color: #86efac; } .chain-hash { color: #000; } }\n");
+            sb.Append("</style>\n</head>\n<body>\n");
+            sb.Append("<div class=\"report-container\">\n");
+            sb.Append("<div class=\"header\"><div><div class=\"title\">⚡ USB-Recovery Forensic Report</div><div style=\"color: #94a3b8; font-size: 13px;\">Cryptographic Chain-of-Custody Manifest</div></div><span class=\"badge\">ISO/IEC 27037 Compatible</span></div>\n");
+
+            sb.Append("<div class=\"meta-grid\">\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Evidence Target</div><div class=\"meta-value\">").Append(WebUtility.HtmlEncode(string.IsNullOrEmpty(imagePath) ? "None" : Path.GetFileName(imagePath))).Append("</div></div>\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Container Format</div><div class=\"meta-value\">").Append(WebUtility.HtmlEncode(detectedFormat)).Append("</div></div>\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Evidence Size</div><div class=\"meta-value\">").Append(FormatBytes(imageSize)).Append(" (").Append(imageSize).Append(" bytes)</div></div>\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Audit Timestamp (UTC)</div><div class=\"meta-value\">").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")).Append("</div></div>\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Total Recovered Items</div><div class=\"meta-value\">").Append(files.Count).Append(" items</div></div>\n");
+            sb.Append("<div class=\"meta-item\"><div class=\"meta-label\">Engine Version</div><div class=\"meta-value\">USB-Recovery 2026.11 (AGPL-3.0)</div></div>\n");
+            sb.Append("</div>\n");
+
+            sb.Append("<div class=\"chain-box\">\n");
+            sb.Append("<div class=\"chain-title\">🔒 Chain of Custody Master Hash (SHA-256)</div>\n");
+            sb.Append("<div class=\"chain-hash\">").Append(string.IsNullOrEmpty(chainOfCustodyHash) ? "EMPTY" : chainOfCustodyHash).Append("</div>\n");
+            sb.Append("<div style=\"font-size: 11px; color: #94a3b8; margin-top: 4px;\">Computed over ordered SHA-256 hashes of all recovered artifacts. Any bitwise alteration invalidates this seal.</div>\n");
+            sb.Append("</div>\n");
+
+            sb.Append("<h3 style=\"font-size: 16px; margin-bottom: 8px; color: #fff;\">Recovered Artifact Manifest</h3>\n");
+            sb.Append("<table><thead><tr><th>#</th><th>Artifact Path</th><th>Size</th><th>Last Modified (UTC)</th><th>SHA-256 Checksum</th></tr></thead><tbody>\n");
+
+            if (files.Count == 0)
+            {
+                sb.Append("<tr><td colspan=\"5\" style=\"text-align: center; color: #94a3b8;\">No artifacts recovered.</td></tr>\n");
+            }
+            else
+            {
+                for (int i = 0; i < files.Count; i++)
+                {
+                    var f = files[i];
+                    sb.Append("<tr>\n");
+                    sb.Append("<td>").Append(i + 1).Append("</td>\n");
+                    sb.Append("<td><strong>").Append(WebUtility.HtmlEncode(f["relativePath"].ToString())).Append("</strong></td>\n");
+                    sb.Append("<td>").Append(WebUtility.HtmlEncode(f["sizeHuman"].ToString())).Append("</td>\n");
+                    sb.Append("<td>").Append(WebUtility.HtmlEncode(f["modifiedUtc"].ToString())).Append("</td>\n");
+                    sb.Append("<td class=\"hash-col\"><code>").Append(WebUtility.HtmlEncode(f["sha256"].ToString())).Append("</code></td>\n");
+                    sb.Append("</tr>\n");
+                }
+            }
+
+            sb.Append("</tbody></table>\n");
+            sb.Append("<div style=\"margin-top: 32px; padding-top: 16px; border-top: 1px solid #334155; font-size: 11px; color: #64748b; text-align: center;\">Generated 100% offline by USB-Recovery Local Web Engine. Zero outbound telemetry. Write-blocking strictly enforced.</div>\n");
+            sb.Append("</div>\n</body>\n</html>");
+            return sb.ToString();
+        }
+
         void ServeStartScan(HttpListenerResponse res)
         {
             lock (scanLock)
@@ -874,6 +1153,16 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <div id=""files"" class=""tab-content"">
     <div class=""card"">
       <h2>📁 Recovered Files Inventory</h2>
+      <div style=""display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;"">
+        <div style=""display: flex; gap: 10px; align-items: center; flex-wrap: wrap;"">
+          <a href=""/api/export-zip"" class=""btn"" download=""USB-Recovery-Export.zip"">📦 Download All as ZIP</a>
+          <a href=""/api/report?format=html"" class=""btn"" style=""background: linear-gradient(135deg, #10b981, #059669); border-color: #34d399;"" target=""_blank"">📋 Chain-of-Custody Report (HTML)</a>
+          <a href=""/api/report?format=json"" class=""btn"" style=""background: #334155; border-color: #475569;"" target=""_blank"">📄 JSON Manifest</a>
+        </div>
+        <div>
+          <input type=""text"" id=""file-search"" placeholder=""Filter by name/ext..."" class=""hex-input"" style=""width: 200px;"" oninput=""filterFiles()""/>
+        </div>
+      </div>
       <div style=""overflow-x: auto;"">
         <table class=""file-table"">
           <thead>
@@ -1054,21 +1343,33 @@ function stepHex(delta) {
   loadHex();
 }
 
+let allLoadedFiles = [];
 async function loadFiles() {
   try {
     const res = await fetch('/api/files');
     const data = await res.json();
-    const tbody = document.getElementById('file-tbody');
-    if (!data.files || data.files.length === 0) {
-      tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">No files recovered yet. Run a scan to discover files.</td></tr>';
-      return;
-    }
-    let html = '';
-    data.files.forEach(f => {
-      html += `<tr><td><strong>${f.name}</strong></td><td><span class=""logo-badge"">${f.extension}</span></td><td>${f.sizeHuman}</td><td>${f.modified}</td><td><a href=""/api/file?name=${encodeURIComponent(f.relativePath)}"" class=""btn"" style=""padding: 4px 10px; font-size: 12px;"" target=""_blank"">Open / Download</a></td></tr>`;
-    });
-    tbody.innerHTML = html;
+    allLoadedFiles = data.files || [];
+    renderFilesTable(allLoadedFiles);
   } catch (e) { }
+}
+
+function filterFiles() {
+  const query = (document.getElementById('file-search').value || '').toLowerCase();
+  const filtered = allLoadedFiles.filter(f => (f.name || '').toLowerCase().includes(query) || (f.extension || '').toLowerCase().includes(query));
+  renderFilesTable(filtered);
+}
+
+function renderFilesTable(files) {
+  const tbody = document.getElementById('file-tbody');
+  if (!files || files.length === 0) {
+    tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">No files match the filter.</td></tr>';
+    return;
+  }
+  let html = '';
+  files.forEach(f => {
+    html += `<tr><td><strong>${f.name}</strong></td><td><span class=""logo-badge"">${f.extension}</span></td><td>${f.sizeHuman}</td><td>${f.modified}</td><td><a href=""/api/file?name=${encodeURIComponent(f.relativePath)}"" class=""btn"" style=""padding: 4px 10px; font-size: 12px;"" target=""_blank"">Open / Download</a></td></tr>`;
+  });
+  tbody.innerHTML = html;
 }
 
 async function startScan() {
@@ -1088,5 +1389,192 @@ setInterval(refreshStatus, 1500);
 </script>
 </body>
 </html>";
+    }
+
+    internal static class ZipStreamingWriter
+    {
+        private static readonly uint[] CrcTable = InitializeCrcTable();
+
+        private static uint[] InitializeCrcTable()
+        {
+            uint[] table = new uint[256];
+            for (uint i = 0; i < 256; i++)
+            {
+                uint entry = i;
+                for (int j = 0; j < 8; j++)
+                {
+                    if ((entry & 1) == 1)
+                        entry = (entry >> 1) ^ 0xEDB88320u;
+                    else
+                        entry >>= 1;
+                }
+                table[i] = entry;
+            }
+            return table;
+        }
+
+        public static uint ComputeCrc32(byte[] data, int offset, int length)
+        {
+            uint crc = 0xFFFFFFFFu;
+            for (int i = 0; i < length; i++)
+            {
+                byte b = data[offset + i];
+                crc = (crc >> 8) ^ CrcTable[(crc & 0xFF) ^ b];
+            }
+            return ~crc;
+        }
+
+        private struct ZipEntryRecord
+        {
+            public string RelativePath;
+            public uint Crc32;
+            public uint UncompressedSize;
+            public uint CompressedSize;
+            public uint HeaderOffset;
+            public ushort DosTime;
+            public ushort DosDate;
+        }
+
+        public static void StreamZip(List<FileInfo> files, string baseDirectory, Stream output)
+        {
+            List<ZipEntryRecord> entries = new List<ZipEntryRecord>();
+            uint currentOffset = 0;
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                FileInfo fi = files[i];
+                string rel = fi.FullName.Substring(baseDirectory.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
+                byte[] nameBytes = Encoding.UTF8.GetBytes(rel);
+
+                byte[] fileData = File.ReadAllBytes(fi.FullName);
+                uint crc = ComputeCrc32(fileData, 0, fileData.Length);
+                uint size = (uint)fileData.Length;
+
+                DateTime mod = fi.LastWriteTime;
+                ushort dosTime = (ushort)(((mod.Hour & 0x1F) << 11) | ((mod.Minute & 0x3F) << 5) | ((mod.Second / 2) & 0x1F));
+                ushort dosDate = (ushort)((((Math.Max(1980, mod.Year) - 1980) & 0x7F) << 9) | ((mod.Month & 0x0F) << 5) | (mod.Day & 0x1F));
+
+                ZipEntryRecord rec = new ZipEntryRecord();
+                rec.RelativePath = rel;
+                rec.Crc32 = crc;
+                rec.UncompressedSize = size;
+                rec.CompressedSize = size; // Store
+                rec.HeaderOffset = currentOffset;
+                rec.DosTime = dosTime;
+                rec.DosDate = dosDate;
+                entries.Add(rec);
+
+                // Local file header (30 bytes + name length)
+                byte[] localHeader = new byte[30 + nameBytes.Length];
+                // Signature 0x04034b50
+                localHeader[0] = 0x50; localHeader[1] = 0x4b; localHeader[2] = 0x03; localHeader[3] = 0x04;
+                // Version needed (20)
+                localHeader[4] = 20; localHeader[5] = 0;
+                // General purpose bit flag (bit 11 = UTF-8)
+                localHeader[6] = 0x00; localHeader[7] = 0x08;
+                // Compression method (0 = Store)
+                localHeader[8] = 0; localHeader[9] = 0;
+                // Mod time & date
+                localHeader[10] = (byte)(dosTime & 0xFF); localHeader[11] = (byte)((dosTime >> 8) & 0xFF);
+                localHeader[12] = (byte)(dosDate & 0xFF); localHeader[13] = (byte)((dosDate >> 8) & 0xFF);
+                // CRC32
+                localHeader[14] = (byte)(crc & 0xFF); localHeader[15] = (byte)((crc >> 8) & 0xFF);
+                localHeader[16] = (byte)((crc >> 16) & 0xFF); localHeader[17] = (byte)((crc >> 24) & 0xFF);
+                // Compressed size
+                localHeader[18] = (byte)(size & 0xFF); localHeader[19] = (byte)((size >> 8) & 0xFF);
+                localHeader[20] = (byte)((size >> 16) & 0xFF); localHeader[21] = (byte)((size >> 24) & 0xFF);
+                // Uncompressed size
+                localHeader[22] = (byte)(size & 0xFF); localHeader[23] = (byte)((size >> 8) & 0xFF);
+                localHeader[24] = (byte)((size >> 16) & 0xFF); localHeader[25] = (byte)((size >> 24) & 0xFF);
+                // File name length
+                localHeader[26] = (byte)(nameBytes.Length & 0xFF); localHeader[27] = (byte)((nameBytes.Length >> 8) & 0xFF);
+                // Extra field length = 0
+                localHeader[28] = 0; localHeader[29] = 0;
+                Array.Copy(nameBytes, 0, localHeader, 30, nameBytes.Length);
+
+                output.Write(localHeader, 0, localHeader.Length);
+                output.Write(fileData, 0, fileData.Length);
+
+                currentOffset += (uint)(localHeader.Length + fileData.Length);
+            }
+
+            uint centralDirOffset = currentOffset;
+            uint centralDirSize = 0;
+
+            // Write Central Directory headers
+            for (int i = 0; i < entries.Count; i++)
+            {
+                ZipEntryRecord rec = entries[i];
+                byte[] nameBytes = Encoding.UTF8.GetBytes(rec.RelativePath);
+                byte[] cdHeader = new byte[46 + nameBytes.Length];
+
+                // Signature 0x02014b50
+                cdHeader[0] = 0x50; cdHeader[1] = 0x4b; cdHeader[2] = 0x01; cdHeader[3] = 0x02;
+                // Version made by
+                cdHeader[4] = 20; cdHeader[5] = 0;
+                // Version needed
+                cdHeader[6] = 20; cdHeader[7] = 0;
+                // Flag (UTF-8)
+                cdHeader[8] = 0x00; cdHeader[9] = 0x08;
+                // Compression method (0)
+                cdHeader[10] = 0; cdHeader[11] = 0;
+                // Time & Date
+                cdHeader[12] = (byte)(rec.DosTime & 0xFF); cdHeader[13] = (byte)((rec.DosTime >> 8) & 0xFF);
+                cdHeader[14] = (byte)(rec.DosDate & 0xFF); cdHeader[15] = (byte)((rec.DosDate >> 8) & 0xFF);
+                // CRC32
+                cdHeader[16] = (byte)(rec.Crc32 & 0xFF); cdHeader[17] = (byte)((rec.Crc32 >> 8) & 0xFF);
+                cdHeader[18] = (byte)((rec.Crc32 >> 16) & 0xFF); cdHeader[19] = (byte)((rec.Crc32 >> 24) & 0xFF);
+                // Compressed size
+                cdHeader[20] = (byte)(rec.CompressedSize & 0xFF); cdHeader[21] = (byte)((rec.CompressedSize >> 8) & 0xFF);
+                cdHeader[22] = (byte)((rec.CompressedSize >> 16) & 0xFF); cdHeader[23] = (byte)((rec.CompressedSize >> 24) & 0xFF);
+                // Uncompressed size
+                cdHeader[24] = (byte)(rec.UncompressedSize & 0xFF); cdHeader[25] = (byte)((rec.UncompressedSize >> 8) & 0xFF);
+                cdHeader[26] = (byte)((rec.UncompressedSize >> 16) & 0xFF); cdHeader[27] = (byte)((rec.UncompressedSize >> 24) & 0xFF);
+                // File name length
+                cdHeader[28] = (byte)(nameBytes.Length & 0xFF); cdHeader[29] = (byte)((nameBytes.Length >> 8) & 0xFF);
+                // Extra field length (0)
+                cdHeader[30] = 0; cdHeader[31] = 0;
+                // Comment length (0)
+                cdHeader[32] = 0; cdHeader[33] = 0;
+                // Disk start (0)
+                cdHeader[34] = 0; cdHeader[35] = 0;
+                // Internal attrs (0)
+                cdHeader[36] = 0; cdHeader[37] = 0;
+                // External attrs (0x81A40000 -> regular file 0644)
+                cdHeader[38] = 0x00; cdHeader[39] = 0x00; cdHeader[40] = 0xA4; cdHeader[41] = 0x81;
+                // Offset of local header
+                cdHeader[42] = (byte)(rec.HeaderOffset & 0xFF); cdHeader[43] = (byte)((rec.HeaderOffset >> 8) & 0xFF);
+                cdHeader[44] = (byte)((rec.HeaderOffset >> 16) & 0xFF); cdHeader[45] = (byte)((rec.HeaderOffset >> 24) & 0xFF);
+                Array.Copy(nameBytes, 0, cdHeader, 46, nameBytes.Length);
+
+                output.Write(cdHeader, 0, cdHeader.Length);
+                centralDirSize += (uint)cdHeader.Length;
+            }
+
+            // End of Central Directory record (22 bytes)
+            byte[] eocd = new byte[22];
+            // Signature 0x06054b50
+            eocd[0] = 0x50; eocd[1] = 0x4b; eocd[2] = 0x05; eocd[3] = 0x06;
+            // Disk number (0)
+            eocd[4] = 0; eocd[5] = 0;
+            // Central directory disk (0)
+            eocd[6] = 0; eocd[7] = 0;
+            // Entries this disk
+            ushort count = (ushort)entries.Count;
+            eocd[8] = (byte)(count & 0xFF); eocd[9] = (byte)((count >> 8) & 0xFF);
+            // Total entries
+            eocd[10] = (byte)(count & 0xFF); eocd[11] = (byte)((count >> 8) & 0xFF);
+            // Size of central directory
+            eocd[12] = (byte)(centralDirSize & 0xFF); eocd[13] = (byte)((centralDirSize >> 8) & 0xFF);
+            eocd[14] = (byte)((centralDirSize >> 16) & 0xFF); eocd[15] = (byte)((centralDirSize >> 24) & 0xFF);
+            // Offset of central directory
+            eocd[16] = (byte)(centralDirOffset & 0xFF); eocd[17] = (byte)((centralDirOffset >> 8) & 0xFF);
+            eocd[18] = (byte)((centralDirOffset >> 16) & 0xFF); eocd[19] = (byte)((centralDirOffset >> 24) & 0xFF);
+            // Comment length (0)
+            eocd[20] = 0; eocd[21] = 0;
+
+            output.Write(eocd, 0, eocd.Length);
+            output.Flush();
+        }
     }
 }
