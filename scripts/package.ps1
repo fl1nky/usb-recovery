@@ -18,10 +18,12 @@ function Copy-RecoveryTree([string]$Source,[string]$Target){
  & (Join-Path $env:WINDIR 'System32\robocopy.exe') $Source $Target /E /XJ /R:1 /W:1 /MT:16 /NFL /NDL /NJH /NJS /NP /XD .git __pycache__ .pytest_cache bin obj|Out-Null
  if($LASTEXITCODE-ge8){throw 'Package copying failed.'}
 }
-foreach($relative in '.build\app\USB-Recovery.exe','.build\app\USB-Recovery.exe.config','tools\recovery-helper\recovery-helper.exe','tools\platform-tools\adb.exe','tools\testdisk-7.2\photorec_win.exe'){
+foreach($relative in '.build\app\USB-Recovery.exe','.build\app\USB-Recovery.exe.config','tools\recovery-helper\recovery-helper.exe','tools\platform-tools\adb.exe','tools\testdisk-7.2\photorec_win.exe','tools\native-recovery\runtime.json'){
  if(-not(Test-Path -LiteralPath (Join-Path $taskRoot $relative) -PathType Leaf)){throw ('Missing dependency: '+$relative)}
 }
 $null=Assert-RecoveryPath $taskStage
+& (Join-Path $PSScriptRoot 'install-native-runtime.ps1') -RuntimeDirectory (Join-Path $taskLayout.Tools 'native-recovery') -VerifyOnly
+if($LASTEXITCODE-ne0){throw 'Native runtime verification failed.'}
 New-Item -ItemType Directory -Path $taskStage -Force|Out-Null
 Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe') -Destination (Join-Path $taskStage 'USB-Recovery.exe')
 Copy-Item -LiteralPath (Join-Path $taskLayout.App 'USB-Recovery.exe.config') -Destination (Join-Path $taskStage 'USB-Recovery.exe.config')
@@ -30,7 +32,7 @@ if(Test-Path -LiteralPath (Join-Path $taskRoot 'README.ru.md')){Copy-Item -Liter
 if(Test-Path -LiteralPath (Join-Path $taskRoot 'LICENSE')){Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination (Join-Path $taskStage 'LICENSE')}
 Copy-RecoveryTree (Join-Path $taskRoot 'docs') (Join-Path $taskStage 'docs')
 $taskSource=Join-Path $taskStage 'source'
-foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-backup-decrypt','vendor\ewfprobe','docs'){
+foreach($relative in 'src','scripts','helpers\recovery_engine','vendor\iphone-backup-decrypt','vendor\ewfprobe','docs','.github'){
  Copy-RecoveryTree (Join-Path $taskRoot $relative) (Join-Path $taskSource $relative)
 }
 Copy-Item -LiteralPath (Join-Path $taskRoot 'build.ps1') -Destination (Join-Path $taskSource 'build.ps1')
@@ -39,7 +41,7 @@ if(Test-Path -LiteralPath (Join-Path $taskRoot 'README.ru.md')){Copy-Item -Liter
 if(Test-Path -LiteralPath (Join-Path $taskRoot 'LICENSE')){Copy-Item -LiteralPath (Join-Path $taskRoot 'LICENSE') -Destination (Join-Path $taskSource 'LICENSE')}
 New-Item -ItemType Directory -Path (Join-Path $taskSource 'tests') -Force|Out-Null
 foreach($file in (Get-ChildItem -LiteralPath $taskLayout.Tests -File)){
- if($file.Extension-in'.cs','.py','.ps1'-or$file.Name-match'(result\.txt|-validation\.json)$'-or$file.Name-in'CommercialComparison-after.json','CommercialComparison-baseline.json','October30-package-audit.json'){
+ if($file.Extension-in'.cs','.c','.py','.ps1'-or$file.Name-match'(result\.txt|-validation\.json)$'-or$file.Name-in'CommercialComparison-after.json','CommercialComparison-baseline.json','October30-package-audit.json'){
   Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $taskSource ('tests\'+$file.Name))
  }
 }
@@ -52,7 +54,7 @@ foreach($relative in 'fixtures\telegram-desktop-kdf','telegram_desktop_kdf_oracl
 $taskBdeManifest=Join-Path $taskSource 'tests\fixtures\bitlocker-full-volume'
 New-Item -ItemType Directory -Path $taskBdeManifest -Force|Out-Null
 Copy-Item -LiteralPath (Join-Path $taskLayout.Tests 'fixtures\bitlocker-full-volume\GTekSD.json') -Destination (Join-Path $taskBdeManifest 'GTekSD.json')
-foreach($name in 'recovery-helper','testdisk-7.2'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}
+foreach($name in 'recovery-helper','testdisk-7.2','native-recovery'){Copy-RecoveryTree (Join-Path $taskLayout.Tools $name) (Join-Path $taskStage ('tools\'+$name))}
 $taskAdb=Join-Path $taskStage 'tools\platform-tools';New-Item -ItemType Directory -Path $taskAdb -Force|Out-Null
 foreach($name in 'adb.exe','AdbWinApi.dll','AdbWinUsbApi.dll','NOTICE.txt','source.properties'){Copy-Item -LiteralPath (Join-Path $taskLayout.Tools ('platform-tools\'+$name)) -Destination (Join-Path $taskAdb $name)}
 $taskHashes=Get-ChildItem -LiteralPath $taskStage -Recurse -File|Where-Object {$_.Extension-in'.exe','.dll','.pyd','.config'}|ForEach-Object{[pscustomobject]@{path=$_.FullName.Substring($taskStage.Length+1).Replace('\','/');sha256=(Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant();bytes=$_.Length}}
@@ -67,3 +69,4 @@ if(Test-Path -LiteralPath $taskReady){
 Move-Item -LiteralPath $taskStage -Destination $taskReady
 Write-Output ('Packaged: '+$taskReady)
 Write-Output ('Runtime files hashed: '+@($taskHashes).Count)
+exit 0

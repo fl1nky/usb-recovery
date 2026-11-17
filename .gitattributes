@@ -7,6 +7,10 @@
 *.txt text eol=lf
 *.png binary
 *.jpg binary
+# Native build inputs and unified patches keep their upstream line endings.
+/src/Recovery.Native/** text eol=lf
+/tests/Native*.c text eol=lf
+/src/Recovery.Native/Patches/*.patch whitespace=-blank-at-eol,-blank-at-eof
 /tests/fixtures/ntfs-records/*.gz -text
 *.db binary
 *.db-wal binary

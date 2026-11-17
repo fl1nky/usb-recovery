@@ -15,7 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  native-ntfs:
+    uses: ./.github/workflows/ntfs-checkpoints.yml
   build-and-test:
+    needs: native-ntfs
     runs-on: windows-2022
     timeout-minutes: 40
     defaults:
@@ -40,9 +43,25 @@ jobs:
         run: |
           & '${{ steps.python.outputs.python-path }}' scripts/bootstrap-build.py --native-tools
           if ($LASTEXITCODE -ne 0) { throw 'Pinned dependency restore failed.' }
+      - name: Download tested native NTFS runtime
+        uses: actions/download-artifact@v7
+        with:
+          name: native-ntfs-checkpoints
+          path: .build/ci-native
+      - name: Install verified native NTFS runtime
+        run: |
+          ./scripts/install-native-runtime.ps1 -RuntimeDirectory .build/ci-native/native-build/runtime
+          if ($LASTEXITCODE -ne 0) { throw 'Native NTFS runtime installation failed.' }
       - name: Build and verify without devices or GUI
+        # Native artifact is produced and tested by the reusable job above.
         run: |
           .\scripts\test-headless.ps1 -Python312 '${{ steps.python.outputs.python-path }}' -BlockNetwork
+      - name: Verify packaged NTFS without Python on child PATH
+        run: |
+          ./scripts/package.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed.' }
+          & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsPackagedTests.py --package dist/USB-Recovery --image .build/ci-native/native-fixtures/derived/deleted-small-mft-derived.dd --expected .build/ci-native/native-fixtures/derived/expected.bin --evidence .build/native-package-ci
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged NTFS validation failed.' }
       - name: Retain test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -53,5 +72,7 @@ jobs:
             .build/bootstrap-build.json
             .build/headless-*/*.log
             .build/headless-*/*.manifest
+            .build/native-package-ci/receipt.json
+            .build/native-package-ci/*.log
           include-hidden-files: true
           retention-days: 7

@@ -25,6 +25,8 @@
 # Test source and small explicitly synthetic fixtures, never generated recoveries
 /tests/*
 !/tests/*.cs
+!/tests/NativeRecoveryProtocolWorker.c
+!/tests/NativeNtfsLayoutWorker.c
 !/tests/*.py
 !/tests/*.ps1
 !/tests/TelegramNativeFixtures/

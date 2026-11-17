@@ -11,7 +11,8 @@ $taskPython=[IO.Path]::GetFullPath($Python312)
 $taskEnvPython=Join-Path $taskLayout.Root '.build\engine-env\Scripts\python.exe'
 $taskHelper=Join-Path $taskLayout.Tools 'recovery-helper\recovery-helper.exe'
 $taskApp=Join-Path $taskLayout.App 'USB-Recovery.exe'
-$taskPrograms=@($taskPython,$taskEnvPython,$taskHelper,$taskApp)|Select-Object -Unique
+$taskNative=Join-Path $taskLayout.Tools 'native-recovery\ntfs_worker.exe'
+$taskPrograms=@($taskPython,$taskEnvPython,$taskHelper,$taskApp,$taskNative)|Select-Object -Unique
 $taskLogRoot=Join-Path $taskLayout.Root ('.build\headless-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $taskLogRoot -Force|Out-Null
 $taskInitialOutputs=@($taskEnvPython,$taskHelper,$taskApp)|Where-Object {Test-Path -LiteralPath $_}

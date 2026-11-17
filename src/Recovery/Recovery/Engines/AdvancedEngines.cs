@@ -13,7 +13,7 @@ namespace UsbRecovery
 {
     // Only ordinary disk-image files are accepted. Every child runs with a read-only
     // sharing guard held over the image; none of these commands repairs a filesystem.
-    public static class AdvancedEngines
+    public static partial class AdvancedEngines
     {
         public static string DeepPhotoRecCommand { get { return BuildCommand(true); } }
         public static string BuildCommand(bool deep)

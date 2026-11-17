@@ -1,0 +1,333 @@
+{
+  "schema": 1,
+  "metadata_sha256": "1c22f5503f9e24f6782e761d8617b526cd1ef56bd7be36dac36e93e822aac7fc",
+  "roots": [
+    "gcc-core",
+    "make",
+    "bash",
+    "coreutils",
+    "grep",
+    "sed",
+    "gawk",
+    "findutils",
+    "diffutils",
+    "binutils",
+    "cygwin-devel",
+    "libiconv-devel",
+    "libjpeg-devel",
+    "zlib-devel"
+  ],
+  "packages": {
+    "zlib-devel": {
+      "version": "1.4-1",
+      "path": "x86_64/release/zlib/zlib-devel/zlib-devel-1.4-1-x86_64.tar.zst",
+      "bytes": 189685,
+      "sha512": "2e78ad4bd448c41cab1b02813a6cd17e189654391d3872795edd197cea1383572e8e6eb7da8ce7f67a06333c8be43ba5fd1a03543bc293af76067c1020c11930"
+    },
+    "zlib0": {
+      "version": "1.4-1",
+      "path": "x86_64/release/zlib/zlib0/zlib0-1.4-1-x86_64.tar.zst",
+      "bytes": 46925,
+      "sha512": "2aa35b5560283f6ace3f53af7df5feab55de5f3bed4edbb4ee8da9d2a498ff9c031b3276a8267cc963fe717f5ee25c6440ec42103b6cc92f7ecc387f9f0bb63c"
+    },
+    "cygwin": {
+      "version": "3.6.12-1",
+      "path": "x86_64/release/cygwin/cygwin-3.6.12-1-x86_64.tar.xz",
+      "bytes": 1621132,
+      "sha512": "c2ceaed3f6fb6c52c30c3fc06fe0ace4b5d9c452dc0a20fd31ffbeb46fd3f98cdea82136ff2feb6d889cb56731336808925f93b85bd9315f5fd544848a2bc582"
+    },
+    "libzstd1": {
+      "version": "1.5.7-1",
+      "path": "x86_64/release/zstd/libzstd1/libzstd1-1.5.7-1.tar.zst",
+      "bytes": 253786,
+      "sha512": "f89cdaa004487ec8c4796b8f56887c81f6f497873c1495b9cb585ffe6c8d6e6b8ad4b52617d5238075f965f1fe001da287d9a00d121590274b2d87672b415a0f"
+    },
+    "libintl8": {
+      "version": "0.26-1",
+      "path": "x86_64/release/gettext/libintl8/libintl8-0.26-1-x86_64.tar.xz",
+      "bytes": 60324,
+      "sha512": "7366bfe8a92c8992bc8d428143b3664d8b87f566060910efb4c4d37bba65026faeac4bcd93d67b6e0390b8d82bf787d9fec4bbbea488d10fd349f238e54ff9e2"
+    },
+    "libiconv2": {
+      "version": "1.19-2",
+      "path": "x86_64/release/libiconv/libiconv2/libiconv2-1.19-2-x86_64.tar.xz",
+      "bytes": 555664,
+      "sha512": "a1b23e24e0a495e7163923bcf40a4b933403e0826cfc0d9bde785bc92c909b8c4fb94b1e6b2c0242f4328a723855e72ff3baab9f557ef855b7fe7a7d901b0943"
+    },
+    "libgcc1": {
+      "version": "14.4.0-1",
+      "path": "x86_64/release/gcc/libgcc1/libgcc1-14.4.0-1-x86_64.tar.zst",
+      "bytes": 59166,
+      "sha512": "5ac8a56e5eee285efcd6dbd05a473e795e181021d7194b8a98dfe2fa201a71f0abe2908e0b4c81490eb5ef472efaeac8e56a61a5f289eee4ad6e90e52a844ff8"
+    },
+    "bash": {
+      "version": "5.2.21-1",
+      "path": "x86_64/release/bash/bash-5.2.21-1.tar.xz",
+      "bytes": 1650932,
+      "sha512": "c3a5594f1c248dd27a3b5aa10c31fb1651072eae878479d3d8cab09c28354ce4509a2fe230f176ad200a6484a561bc10c2dc9c74c4e9f03164190dac2e683d65"
+    },
+    "libreadline7": {
+      "version": "8.2-2",
+      "path": "x86_64/release/readline/libreadline7/libreadline7-8.2-2.tar.xz",
+      "bytes": 113340,
+      "sha512": "1d27576cf49b056f35f90ad933e39c5d946bc271ddcd109daa98f95b97123b428256827889ff45ca8a76409cdb1afd0146e99c9b70150b302538356512acfe38"
+    },
+    "libncursesw10": {
+      "version": "6.5+20240427-1",
+      "path": "x86_64/release/ncurses/libncursesw10/libncursesw10-6.5+20240427-1.tar.xz",
+      "bytes": 393928,
+      "sha512": "08102f7a7083cb5663fecc46d819f2ece4123444a8f94c42300f03f7eebd40395f556c44b22ab58bf57321b44d9b8fb8b19358e535c7500d36e52d48b05dcca8"
+    },
+    "terminfo": {
+      "version": "6.5+20240427-1",
+      "path": "x86_64/release/ncurses/terminfo/terminfo-6.5+20240427-1.tar.xz",
+      "bytes": 94760,
+      "sha512": "128fb04f188bbf2af3060416193c9879a9cbbf7e5486febf851f35c3d9d00b9d61a0e2bf4be575d2308fd665a224ce5674485dcfd071125c3a8d199a4b88a042"
+    },
+    "pkg-config": {
+      "version": "3.0.10-1",
+      "path": "x86_64/release/pkgconf/pkg-config/pkg-config-3.0.10-1-x86_64.tar.zst",
+      "bytes": 11223,
+      "sha512": "5a2263b4794baedcad2a5c1a1d63fa9afa16d1a2e298e417d14e4137e59daaf0b196f0560fa8221bb68a4ffd8181ad5dd75346b912b7e1c6f55d967ca368e67d"
+    },
+    "pkgconf": {
+      "version": "3.0.10-1",
+      "path": "x86_64/release/pkgconf/pkgconf-3.0.10-1-x86_64.tar.zst",
+      "bytes": 73886,
+      "sha512": "fde95bfb3ad9c26db205356d415de2e1d7664bbbb03654bc88b3b1913ca384178f384c3d10225397318bf9a52f9266c1917683f591f8aaf6b62e16253947a94a"
+    },
+    "libpkgconf8": {
+      "version": "3.0.10-1",
+      "path": "x86_64/release/pkgconf/libpkgconf8/libpkgconf8-3.0.10-1-x86_64.tar.zst",
+      "bytes": 36289,
+      "sha512": "9b2ae1436c058d281ec83556a8eced5f5fabdf3e71e2f3427c49eb333006d1cf4e553571fd49e5d4c094ef4ed841fab3cae473f74c729e4f0e047da3f7cd97a8"
+    },
+    "libjpeg-devel": {
+      "version": "3.2.0-1",
+      "path": "x86_64/release/libjpeg-turbo/libjpeg-devel/libjpeg-devel-3.2.0-1-x86_64.tar.xz",
+      "bytes": 31660,
+      "sha512": "7e8f13accc69fe97ba9cb167edffa8d19b23deb0aafa14492ce61b1be971516b1f512065c5781fbfad5ad922203ee99c9ba7e4bf592b049e399f479a8964c8dc"
+    },
+    "libjpeg8": {
+      "version": "3.2.0-1",
+      "path": "x86_64/release/libjpeg-turbo/libjpeg8/libjpeg8-3.2.0-1-x86_64.tar.xz",
+      "bytes": 198004,
+      "sha512": "0f090b63f980aa761a23fce123ceec97d2f4d4e76fd432ced76ca54deb2f271f58bf24238a106d4b12c7ef21d40820e2f7f176de0581edb87200a5e9274eab78"
+    },
+    "libiconv-devel": {
+      "version": "1.19-2",
+      "path": "x86_64/release/libiconv/libiconv-devel/libiconv-devel-1.19-2-x86_64.tar.xz",
+      "bytes": 751764,
+      "sha512": "c9e68c5b333a23ad5c81922ccd189ff02658f185ea9aa68e78495b1d07ca5f80524c1bc1ff2035f13c7ea7b593d42ad9c54c66526aacdab5ce1d824828146440"
+    },
+    "libcharset1": {
+      "version": "1.19-2",
+      "path": "x86_64/release/libiconv/libcharset1/libcharset1-1.19-2-x86_64.tar.xz",
+      "bytes": 2100,
+      "sha512": "a3271ab0eb182ad37e53c39964194f0af37a449fd445ac8aea36c2f5ede2a1701dc9572e567f63686973824c0d271f47ca3e6e948ae1f8f6fe996cde2c206c24"
+    },
+    "cygwin-devel": {
+      "version": "3.6.12-1",
+      "path": "x86_64/release/cygwin/cygwin-devel/cygwin-devel-3.6.12-1-x86_64.tar.xz",
+      "bytes": 320264,
+      "sha512": "923b4b3215f4432a444d1e77170eaea4cbfb08b537942cc2df29f6137c7bc49543131fd09a6d49c874bf4b4dec06fb2b3f55b203df5842dbc81505181af4bf8a"
+    },
+    "binutils": {
+      "version": "2.47-1",
+      "path": "x86_64/release/binutils/binutils-2.47-1-x86_64.tar.zst",
+      "bytes": 9267975,
+      "sha512": "25cf6a54f9a085e62d8cd0d37afa0d7b5e913e502d8d14c8bbe1cfffd2451dba5adee65602d57f158f03312bfcc3871fc40307e8096270acc888848f29738121"
+    },
+    "diffutils": {
+      "version": "3.12-1",
+      "path": "x86_64/release/diffutils/diffutils-3.12-1-x86_64.tar.xz",
+      "bytes": 431400,
+      "sha512": "2a9d8fa0acd5a6108f74afe515f55a2a7cade6fa7f96368e46a6f33cf3b49d270b50dc3cee0320740c8f1729edcbf8dd3824f4b268261fba7aeed0d75a4e943c"
+    },
+    "findutils": {
+      "version": "4.11.0-1",
+      "path": "x86_64/release/findutils/findutils-4.11.0-1-x86_64.tar.xz",
+      "bytes": 768172,
+      "sha512": "cbb1359fd81c55f98da1485f84f11f905a7a3fe9ce1676424e86da4d7f0effa5fc298546bd5c62c9707e8ddf93c31597d6da01e60be0610c50b9b22ef9475814"
+    },
+    "coreutils": {
+      "version": "9.0-1",
+      "path": "x86_64/release/coreutils/coreutils-9.0-1.tar.xz",
+      "bytes": 2767296,
+      "sha512": "530f47640d878f5953580f3556c492a93786191abe573322026b70206a46c7f17d05927784db3e7f2c044d1555f35941880316f7288b887eaec770a9eda4c687"
+    },
+    "tzcode": {
+      "version": "2026f-1",
+      "path": "x86_64/release/tzcode/tzcode-2026f-1-x86_64.tar.xz",
+      "bytes": 187836,
+      "sha512": "fa4bb1117c7faa0efc23a69a2576956c831943c71e4cbf593c992840e1770cbffbc4011cb0269e22d560f960ff2eb8bd86e5d54690f2901c4d860387cf102d5b"
+    },
+    "tzdata": {
+      "version": "2026f-1",
+      "path": "noarch/release/tzdata/tzdata-2026f-1-noarch.tar.xz",
+      "bytes": 186144,
+      "sha512": "581e9a9f9310081ec8357c3038b6822fdf68a4f96a89c0b64b5c74cae12fb1961b4ea3cbdf47754f5cf82e1cf31c532f3a7a81d66f82a6463b8fa9fd746dfa79"
+    },
+    "libgmp10": {
+      "version": "6.3.0-1",
+      "path": "x86_64/release/gmp/libgmp10/libgmp10-6.3.0-1.tar.zst",
+      "bytes": 254680,
+      "sha512": "947cd56e1945ddf180622b453f17e6655b4ee3e79fcc91238370a8826b88cd07c31d939f1ed7b87d91344d46fee90af2560105267a9207dcca800cba72459191"
+    },
+    "libattr1": {
+      "version": "2.5.2-2",
+      "path": "x86_64/release/attr/libattr1/libattr1-2.5.2-2-x86_64.tar.xz",
+      "bytes": 6160,
+      "sha512": "345b8f84b9c4df2eeea5e211dbaff5e0382aaee788435e1f4cc69f546e1603bbb45e9baec02a37d935674fcd55fb782d924c3a1540d2f829bde4969c96945ce4"
+    },
+    "gawk": {
+      "version": "5.4.0-1",
+      "path": "x86_64/release/gawk/gawk-5.4.0-1-x86_64.tar.xz",
+      "bytes": 1496256,
+      "sha512": "3604c99921d0cff387279aec1d3b332e8afcd2746b052304c0511221efdb6ae6d4a3117b36593e44adc43c67b6f6c4c48bccf6b686e2e1a5cac644c89613d829"
+    },
+    "libreadline8": {
+      "version": "8.3-1",
+      "path": "x86_64/release/readline/libreadline8/libreadline8-8.3-1-x86_64.tar.xz",
+      "bytes": 120084,
+      "sha512": "64142c5f305b9836c5be9a4271e4163d8b3e739a0451c0d152373eeb3338342f7cf5691e4437b8e6d0a8404c30ea7a21832e342e7a1ca3b5f3e8e3403051b96e"
+    },
+    "libmpfr6": {
+      "version": "4.2.2-1",
+      "path": "x86_64/release/mpfr/libmpfr6/libmpfr6-4.2.2-1.tar.zst",
+      "bytes": 284416,
+      "sha512": "8203dc61bf646041c71f7fece9fe59422ded96ac28dd24826ffb00a9607f274f3226673f9bee441f32b424a7e26c2f178281bd7836db26b0253d37da208d06a8"
+    },
+    "sed": {
+      "version": "4.10-1",
+      "path": "x86_64/release/sed/sed-4.10-1-x86_64.tar.xz",
+      "bytes": 359252,
+      "sha512": "da5475344a1693f90fb560773ccca48eaf13af0e6bbcada9dcea658862bf7f46043b2d7365de0e2e235fb9a874fe784ad83bc29eb2fdbf3207cd8ad5e127b8b9"
+    },
+    "grep": {
+      "version": "3.12-1",
+      "path": "x86_64/release/grep/grep-3.12-1-x86_64.tar.xz",
+      "bytes": 418788,
+      "sha512": "2ba28b5d93c352bc3f3f0f232e2052e6651b71cc535841f4ff8cedb23e61e9e4c030d7d5516ed9c797074e1a59cbf3a56732ca678cb0e986e86dcbbf25955976"
+    },
+    "libpcre2_8_0": {
+      "version": "10.49-1",
+      "path": "x86_64/release/pcre2/libpcre2_8_0/libpcre2_8_0-10.49-1-x86_64.tar.zst",
+      "bytes": 244195,
+      "sha512": "4093be5fdc2077d078865c1a553df6bc2fe5c02b4ea106e605c4d92dfd876c68ca894908539e86fdb089d60b376776a941f2645c21b2cad76027a335ac338bb0"
+    },
+    "make": {
+      "version": "4.4.1-2",
+      "path": "x86_64/release/make/make-4.4.1-2.tar.xz",
+      "bytes": 598004,
+      "sha512": "9a89a0f4ceadf5c2d0390029d16274fbed0190d2410ad6beb76e39b7153f38d0d1169ad0abf57c96929e6ab0523a0a76c345868e9ae46f9cd3d708d23f6fa3e6"
+    },
+    "libguile3.0_1": {
+      "version": "3.0.11-1",
+      "path": "x86_64/release/guile3.0/libguile3.0_1/libguile3.0_1-3.0.11-1-x86_64.tar.xz",
+      "bytes": 6969492,
+      "sha512": "a559914ed5d62d0a701e4ce3810276436cf1ce54d579c72fc72c3b4688f2af71ef93f3cdae7089ad7f85107c7ca5c87f2e497cac6f2550b38df1bc6ba7f16230"
+    },
+    "libunistring5": {
+      "version": "1.4.1-1",
+      "path": "x86_64/release/libunistring/libunistring5/libunistring5-1.4.1-1-x86_64.tar.xz",
+      "bytes": 498220,
+      "sha512": "cbd454f5068bfb9291d440a3b03b0c58437aa0342a199007d5cce6fa006b6b5ea4d3ba10c136fb0257ffb0d0199db73484275c632506e4ec31c81e1746667b80"
+    },
+    "libgc1": {
+      "version": "8.2.12-1",
+      "path": "x86_64/release/libgc/libgc1/libgc1-8.2.12-1-x86_64.tar.xz",
+      "bytes": 62392,
+      "sha512": "faf226ea2b58949da714e2c50f1aa95738082c3499e2ae4828af5173bdd617248f000bf4868636b31a2b76b3a905057ab307c4f6a0d7112f23422531a97be92d"
+    },
+    "libffi8": {
+      "version": "3.8.0-1",
+      "path": "x86_64/release/libffi/libffi8/libffi8-3.8.0-1-x86_64.tar.xz",
+      "bytes": 196924,
+      "sha512": "935a0567f740a314d70ecd4adc8c4cf5ad37c6fb43f2d26dee882d4fda71f08efb2646bee10cee6e2000f52e25cce87fa29ce07665ba6d22532e0daa76bc887c"
+    },
+    "libcrypt2": {
+      "version": "4.5.2-1",
+      "path": "x86_64/release/libxcrypt/libcrypt2/libcrypt2-4.5.2-1-x86_64.tar.xz",
+      "bytes": 106104,
+      "sha512": "7668d29aaebba8ca94e48e810d92108db72b067b2786cea8dcf4a049c29f20f0aeb8653a6e9524869c69e0b1df9d4d0ac499a052a86f0d44178e8a8167002c97"
+    },
+    "gcc-core": {
+      "version": "14.4.0-1",
+      "path": "x86_64/release/gcc/gcc-core/gcc-core-14.4.0-1-x86_64.tar.zst",
+      "bytes": 39606756,
+      "sha512": "c463f27075353dbbbb05878a3695c2651a81da0032f75b71f121dece745aa3d646b7f03180618844aa5372be358d5dc2e0efc0fffde80f9216eae3ef5b3d963e"
+    },
+    "windows-default-manifest": {
+      "version": "6.5-1",
+      "path": "x86_64/release/windows-default-manifest/windows-default-manifest-6.5-1-x86_64.tar.xz",
+      "bytes": 1244,
+      "sha512": "ab99a93fb744c7be84fbd3d0f81cb4429b5e784655e4b8e02f436c36378dbd7688f8ea74ac646354c1f7ba9dc6cdeba05d109b76cd455c1a75791a93e1b9e08d"
+    },
+    "w32api-runtime": {
+      "version": "14.0.0-1",
+      "path": "x86_64/release/w32api-runtime/w32api-runtime-14.0.0-1-x86_64.tar.xz",
+      "bytes": 3484152,
+      "sha512": "d06e35dfeb4cf86faf59bd512d192870f8711ee581bae127beecd8be82800dca84c0f69e27921317ea6db217864dd942bd777d72efd43a47720f0e507c7cb253"
+    },
+    "w32api-headers": {
+      "version": "14.0.0-1",
+      "path": "x86_64/release/w32api-headers/w32api-headers-14.0.0-1-x86_64.tar.xz",
+      "bytes": 6178248,
+      "sha512": "b2b6ecd2a17cbfe42593d92eb067bff56a0870d7c601ec7b0aeb9511b91e0557f07a939e57b337f0ab1da5fdf97980e705ba8ba0520994362060bd2a89925edf"
+    },
+    "libquadmath0": {
+      "version": "14.4.0-1",
+      "path": "x86_64/release/gcc/libquadmath0/libquadmath0-14.4.0-1-x86_64.tar.zst",
+      "bytes": 159401,
+      "sha512": "ec6dcea72ccd9cbb5a5c7572d98d624e6564199929b019bb19ca06c2394ad606efa0a620a7da21ccc3290c99a5d5a7959a4d6e00306c22675fa1eefee0835e44"
+    },
+    "libmpc3": {
+      "version": "1.4.1-1",
+      "path": "x86_64/release/mpclib/libmpc3/libmpc3-1.4.1-1-x86_64.tar.zst",
+      "bytes": 51914,
+      "sha512": "f99f877aed04b5c732805dc154505dc9530c77010f88e25e249c953f9eec0b7d8c03d26f2d5ec3b3a7a169978484017ba59ab88d9866564e935127cd6348b843"
+    },
+    "libisl23": {
+      "version": "0.28-1",
+      "path": "x86_64/release/isl/libisl23/libisl23-0.28-1-x86_64.tar.zst",
+      "bytes": 628562,
+      "sha512": "d96e2b9b20dbc7b110bb9457c2156849fad6f415077142bdcca61a326ecfad1c6ca3e1801a909e92928f62be69127b526120897158904986780898cab3266ddb"
+    },
+    "libintl-devel": {
+      "version": "0.26-1",
+      "path": "x86_64/release/gettext/libintl-devel/libintl-devel-0.26-1-x86_64.tar.xz",
+      "bytes": 17500,
+      "sha512": "17743401c8156bf64c185ab3a7f893152c819932753e50cf102af6bd1d34cb5efdaaf5f17792b61ace2ba1d47f57025d422c6330a9e0c2e35f7db388cd30ee70"
+    },
+    "libgomp1": {
+      "version": "14.4.0-1",
+      "path": "x86_64/release/gcc/libgomp1/libgomp1-14.4.0-1-x86_64.tar.zst",
+      "bytes": 112610,
+      "sha512": "dbc36b7182d25ca655f23105997a5d1f0d3e1a9e82dbf38928750dff00e1af411af1c9c6f2020d828dbb676e984a17444c8ff5cddfd0769f96ea6a85100ddb8d"
+    },
+    "libatomic1": {
+      "version": "14.4.0-1",
+      "path": "x86_64/release/gcc/libatomic1/libatomic1-14.4.0-1-x86_64.tar.zst",
+      "bytes": 6589,
+      "sha512": "c8a034dd05167576a80cf006c84e41e1f34f735dea32923a4241a62288a13312afc659a4bbb8ca7a8fda9a2df535834acf98a6442f4aa65464a06fa64fbb638a"
+    }
+  },
+  "runtime_sources": {
+    "cygwin": {
+      "path": "src/release/cygwin/cygwin-3.6.12-1-src.tar.xz",
+      "bytes": 9318356,
+      "sha512": "9d70312a931f06d1158e7e913a23fb4aec4bb5fce6c5b55caf274a6d63905248625beaf1391f2d4518fbf5099523fdab2aa26834651856f4693fbf8862027889"
+    },
+    "libiconv2": {
+      "path": "src/release/libiconv/libiconv-1.19-2-src.tar.xz",
+      "bytes": 5086384,
+      "sha512": "62288f9458b6c5a9eec369900971e9c552747b03df0198fbe1749ca93f76bf3d3079109f115ec0f53b2dc2f72c0c8624e21fa439fc41b9a0be339465fce1c534"
+    },
+    "zlib0": {
+      "path": "src/release/zlib/zlib-1.4-1-src.tar.zst",
+      "bytes": 1322042,
+      "sha512": "346253796d80bb47ab86d6c8ffd47fd139cf48dd2353e8a11d96e47fb655832475dc570d00fd95ed653fb9c738341c387cedb59a83530f71182e71d662b9b8f2"
+    }
+  }
+}

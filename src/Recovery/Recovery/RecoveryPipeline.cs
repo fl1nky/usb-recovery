@@ -274,7 +274,10 @@ namespace UsbRecovery
                                         orphanDirectories = options.OrphanDirectories, discovered = options.LostPartitions ? bootCandidates : null }),
                                     Resume = session.MethodCheckpoint("fat"), Commit = value => session.CaptureMethodCheckpoint("fat", value) }) });
                         if (options.NtfsMetadata && !unsafeMetadata)
-                            methods.Add(new Work { Key = "ntfs", Name = "Записи удалённых файлов NTFS", Run = () => AdvancedEngines.RecoverNtfs(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null) });
+                            methods.Add(new Work { Key = "ntfs", Name = "Записи удалённых файлов NTFS", Run = () => AdvancedEngines.RecoverNtfsCheckpointed(image, directory, cancel, progress,
+                                options.LostPartitions ? bootCandidates : null,new RecoveryCheckpointContext {Directory=directory,Method="ntfs",SourceSha256=expected,
+                                    Settings=new JavaScriptSerializer().Serialize(new {profile="native-ntfs-checkpoint-v1",discovered=options.LostPartitions?bootCandidates:null}),
+                                    Resume=session.MethodCheckpoint("ntfs"),Commit=value=>session.CaptureMethodCheckpoint("ntfs",value)}) });
                         if (options.MetadataRescue)
                             methods.Add(new Work { Key = "ntfs-records", Name = "Независимые уцелевшие записи NTFS", Run = () =>
                             {

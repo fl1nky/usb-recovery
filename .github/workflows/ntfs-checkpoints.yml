@@ -1,0 +1,57 @@
+name: Native NTFS checkpoints
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ntfs-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-ntfs-windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Restore pinned archives without installers
+        run: ./scripts/restore-native-build-inputs.ps1
+      - name: Restore isolated compiler from verified archives
+        run: python scripts/prepare-native-toolchain.py --destination .build/native-toolchain --archive-cache .build/native-archives --offline --runtime-sources
+      - name: Build NTFS worker and source bundle
+        run: python scripts/build-native-recovery.py --toolchain .build/native-toolchain --archive-cache .build/native-archives --testdisk-archive .build/native-archives/upstream/testdisk-7.2-source.tar.bz2 --ntfs-archive .build/native-archives/upstream/ntfs-3g_ntfsprogs-2026.9.28.tgz --destination .build/native-build
+      - name: Install independent fixture parser with pinned wheels
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r scripts/native-ntfs-test-requirements.txt
+      - name: Prepare pinned native and authored fixtures
+        run: python tests/prepare_native_ntfs_fixtures.py --destination .build/native-fixtures --packed .build/native-archives/fixtures/ntfs.bin.gz
+      - name: Verify build-input rejection boundaries
+        run: python tests/NativeBuildInputsTests.py
+      - name: Verify runtime installation and rejection controls
+        run: ./tests/NativeRuntimeInstallTests.ps1 -RuntimeDirectory .build/native-build/runtime -EvidenceDirectory .build/native-install-evidence
+      - name: Verify actual native worker and managed pipeline
+        run: ./scripts/test-native-ntfs-checkpoints.ps1 -Worker .build/native-build/runtime/ntfs_worker.exe -Fixture .build/native-fixtures/derived/deleted-resident-derived.dd -LargeFixture .build/native-fixtures/derived/deleted-large-derived.dd -ExpectedPayload .build/native-fixtures/derived/expected.bin -PipelineFixture .build/native-fixtures/derived/deleted-small-mft-derived.dd -EvidenceDirectory .build/native-checkpoint-evidence
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: native-ntfs-checkpoints
+          path: |
+            .build/native-build/runtime
+            .build/native-build/logs
+            .build/native-checkpoint-evidence/receipt.json
+            .build/native-checkpoint-evidence/source-manifest.json
+            .build/native-checkpoint-evidence/*.log
+            .build/native-fixtures/derived/deleted-small-mft-derived.dd
+            .build/native-fixtures/derived/expected.bin
+            .build/native-install-evidence/receipt.json
+          retention-days: 14
+          include-hidden-files: true

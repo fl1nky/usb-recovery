@@ -1,0 +1,12 @@
+--- a/include/ntfs-3g/compat.h
++++ b/include/ntfs-3g/compat.h
+@@ -80,7 +80,9 @@
+ #define atoll			_atoi64
+ #define fdatasync		commit
+ #define __inline__		inline
++#ifndef __GNUC__
+ #define __attribute__(X)	/*nothing*/
++#endif
+ 
+ #else /* !defined WINDOWS */
+ 
