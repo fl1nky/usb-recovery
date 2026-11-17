@@ -41,16 +41,17 @@ namespace UsbRecovery
                 throw new IOException("REFS_FILE_PLAN_INVALID");
             string identity = FilePlanIdentity(c, entry);
             FileStream input = c.Input;
+            RecoveryVerifiedImage verifiedImage = c.VerifiedImage;
             var plan = new RecoveryMappedFilePlan { ArchiveRoot = Path.GetDirectoryName(Path.GetFullPath(c.Root)), OutputRoot = c.Root, RelativeOutput = relativeOutput, Provenance = identity,
                 Length = entry.DeclaredSize, Resident = resident,
                 Ranges = entry.Extents.Select(x => new RecoveryMappedRange { ImageOffset = x.ImageOffset, LogicalOffset = x.LogicalOffset, Length = x.Length }).ToList() };
             Action guard = () => {
-                if (c.Input != input || Path.GetFullPath(c.Root) != Path.GetFullPath(plan.OutputRoot) ||
+                if (c.Input != input || c.VerifiedImage != verifiedImage || Path.GetFullPath(c.Root) != Path.GetFullPath(plan.OutputRoot) ||
                     entry.Output != null || entry.Sha256 != null || entry.RecoveredBytes != 0 || FilePlanIdentity(c, entry) != identity)
                     throw new IOException("REFS_FILE_PLAN_CHANGED");
             };
             string digest;
-            using (var publisher = new RecoveryMappedFilePublisher(c.Input, plan, context, c.Cancel, guard, progress)) digest = publisher.Run();
+            using (var publisher = new RecoveryMappedFilePublisher(c.Input, plan, context, c.Cancel, guard, progress, c.VerifiedImage)) digest = publisher.Run();
             guard(); entry.Output = relativeOutput; entry.Sha256 = digest; entry.RecoveredBytes = entry.DeclaredSize;
         }
     }

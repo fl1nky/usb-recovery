@@ -211,7 +211,12 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("refs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = RefsRecovery.Recover(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null);
+                                int found = RefsRecovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "refs",
+                                        SourceSha256 = expected, Settings = "refs-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("refs"),
+                                        Commit = value => session.CaptureMethodCheckpoint("refs", value) },
+                                    options.LostPartitions ? bootCandidates.Select(b => b.Offset) : null);
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024

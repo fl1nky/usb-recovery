@@ -388,6 +388,7 @@ namespace UsbRecovery
             string fragments = Path.Combine(runDirectory, "text-fragments"); if (Directory.Exists(fragments)) roots.Add(fragments);
             string records = Path.Combine(runDirectory, "metadata-rescue", "files"); if (Directory.Exists(records)) roots.Add(records);
             string ext4 = Path.Combine(runDirectory, "ext4", "files"); if (Directory.Exists(ext4)) roots.Add(ext4);
+            string refs = Path.Combine(runDirectory, "refs", "files"); if (Directory.Exists(refs)) roots.Add(refs);
             string members = Path.Combine(runDirectory, "salvage-content"); if (Directory.Exists(members)) roots.Add(members);
             string assembled = Path.Combine(runDirectory, "fragmented-archives"); if (Directory.Exists(assembled)) roots.Add(assembled);
             string photoPieces=Path.Combine(runDirectory,"fragmented-photos"),videoPieces=Path.Combine(runDirectory,"fragmented-media");

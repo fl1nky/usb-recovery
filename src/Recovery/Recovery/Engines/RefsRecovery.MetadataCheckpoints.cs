@@ -97,6 +97,7 @@ namespace UsbRecovery
             readonly RecoveryMethodJournal<MetadataProgress> journal;
             readonly RecoveryOutputLedger<MetadataFact> ledger;
             readonly FileStream lease;
+            readonly RecoveryVerifiedImage verifiedImage;
             readonly string limits;
             readonly Func<long,int,byte[]> reader;
             MetadataProgress state;
@@ -113,11 +114,13 @@ namespace UsbRecovery
                 stateRoot = Path.GetDirectoryName(stateRoot);
                 if (source.Equals(stateRoot,StringComparison.OrdinalIgnoreCase) || source.StartsWith(stateRoot+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))
                     throw new IOException("REFS_SOURCE_IN_STATE");
-                lease = new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read);
+                verifiedImage = c.VerifiedImage;
+                if (verifiedImage == null) lease = new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read);
                 try {
-                    if (!MetadataDigest((context.SourceSha256 ?? "").ToLowerInvariant()) ||
-                        !String.Equals(HashStream(lease,c.Cancel),context.SourceSha256,StringComparison.OrdinalIgnoreCase))
+                    if (!MetadataDigest((context.SourceSha256 ?? "").ToLowerInvariant()))
                         throw new IOException("REFS_METADATA_SOURCE_CHANGED");
+                    if (verifiedImage != null) verifiedImage.Validate(c.Input,context.SourceSha256);
+                    else if (!String.Equals(HashStream(lease,c.Cancel),context.SourceSha256,StringComparison.OrdinalIgnoreCase)) throw new IOException("REFS_METADATA_SOURCE_CHANGED");
                     journal = new RecoveryMethodJournal<MetadataProgress>(source,new MetadataProgress { Limits = limits },context,c.Cancel); state = journal.Payload;
                     if (state.Schema != 1 || state.Limits != limits || state.Next < 0 || journal.Resumed && state.Next == 0)
                         throw new IOException("REFS_METADATA_CHECKPOINT_INVALID");
@@ -126,13 +129,14 @@ namespace UsbRecovery
                     if (state.Next != ledger.Records.Count || state.Complete != (state.Next != 0 && Unit(state.Next-1).End))
                         throw new IOException("REFS_METADATA_CURSOR_INVALID");
                     reader = ReadBytes; c.MetadataRead = reader;
-                } catch { lease.Dispose(); throw; }
+                } catch { if (lease != null) lease.Dispose(); throw; }
             }
             void Guard()
             {
                 c.Cancel.ThrowIfCancellationRequested();
-                if (disposed || MetadataLimitsIdentity(c.Limits) != limits || c.MetadataRead != reader)
+                if (disposed || MetadataLimitsIdentity(c.Limits) != limits || c.MetadataRead != reader || c.VerifiedImage != verifiedImage)
                     throw new IOException("REFS_METADATA_CONTEXT_CHANGED");
+                if (verifiedImage != null) verifiedImage.Validate(c.Input,context.SourceSha256);
             }
             MetadataUnit Unit(int index)
             {
@@ -189,7 +193,7 @@ namespace UsbRecovery
                 Guard(); finished = true;
             }
             public void Dispose()
-            { if (disposed) return; disposed = true; c.MetadataRead = null; lease.Dispose(); }
+            { if (disposed) return; disposed = true; c.MetadataRead = null; if (lease != null) lease.Dispose(); }
         }
     }
 }

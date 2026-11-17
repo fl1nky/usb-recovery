@@ -446,6 +446,13 @@ namespace UsbRecovery
                     :"Сохранилась карта удалённого inode. Блоки свободны в этом образе, но могли быть перезаписаны после удаления. Исходное имя и содержимое не подтверждены.";
                 item.IntegrityDetail+=" "+record.Note+" Ссылки каталогов без поколения inode приведены только в ext4/report.json; исходный путь по ним не восстанавливается.";
             }
+            if(record!=null&&record.Kind=="refs_recovered_file"){
+                item.Method="ReFS · запись файла";item.Status="Сохранившийся файл ReFS";
+                if(!PreserveProblem(item)){item.Quality="metadata_candidate";item.QualityLabel="Метаданные согласованы";}
+                item.SourceVolumeOffset=record.VolumeOffset;
+                item.Note="Имя и карта файла прочитаны из метаданных ReFS. Факт удаления и подлинность содержимого не подтверждены.";
+                item.IntegrityDetail+=" "+record.Note;
+            }
             if(!HasReadErrors)return;
             if(item.SourceMapGroupsLimited){item.UnreadBytes=null;return;}
             bool legacySingleOrigin=SingleLocalLegacyOrigin(record,matching)&&item.SourceMapGroups.Count==1&&item.SourceMapGroups[0].Maps.Count==1;

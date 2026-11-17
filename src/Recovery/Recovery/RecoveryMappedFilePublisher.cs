@@ -40,6 +40,7 @@ namespace UsbRecovery
         sealed class CopyFact { public long At; public int Length; public string Sha256; }
 
         readonly FileStream input, sourceLease;
+        readonly RecoveryVerifiedImage verifiedImage;
         readonly RecoveryMappedFilePlan plan;
         readonly RecoveryCheckpointContext context;
         readonly CancellationToken cancel;
@@ -111,16 +112,18 @@ namespace UsbRecovery
             if (covered != plan.Length) throw new IOException("MAPPED_FILE_RANGE_INVALID");
         }
         public RecoveryMappedFilePublisher(FileStream source, RecoveryMappedFilePlan candidate, RecoveryCheckpointContext checkpoint,
-            CancellationToken token, Action guard, Action<string> notify)
+            CancellationToken token, Action guard, Action<string> notify, RecoveryVerifiedImage verified = null)
         {
             input = source; plan = candidate; context = checkpoint; cancel = token; validate = guard; progress = notify;
             if (context == null || !RecoveryStageFiles.Keys.Contains(context.Method) || input == null || input.CanWrite)
                 throw new IOException("MAPPED_FILE_CONTEXT_INVALID");
             contextRoot = Path.GetFullPath(context.Directory); method = context.Method; settings = context.Settings; sourceHash = context.SourceSha256;
             ValidatePlan(); size = plan.Length; identity = Identity();
-            sourceLease = new FileStream(input.Name, FileMode.Open, FileAccess.Read, FileShare.Read);
+            verifiedImage = verified;
+            if (verifiedImage == null) sourceLease = new FileStream(input.Name, FileMode.Open, FileAccess.Read, FileShare.Read);
             try {
-                if (!String.Equals(Hash(sourceLease), context.SourceSha256, StringComparison.OrdinalIgnoreCase)) throw new IOException("MAPPED_FILE_SOURCE_CHANGED");
+                if (verifiedImage != null) verifiedImage.Validate(input, context.SourceSha256);
+                else if (!String.Equals(Hash(sourceLease), context.SourceSha256, StringComparison.OrdinalIgnoreCase)) throw new IOException("MAPPED_FILE_SOURCE_CHANGED");
                 journal = new RecoveryMethodJournal<CopyState>(input.Name, new CopyState { Identity = identity }, context, cancel); state = journal.Payload;
                 if (state.Schema != 1 || state.Identity != identity || state.Next < 0 || state.Next > size ||
                     state.WorkBytes < 0 || state.WorkBytes > state.Next || state.Repairing != (state.WorkBytes != state.Next) ||
@@ -137,13 +140,14 @@ namespace UsbRecovery
                     next += fact.Length; if (next == state.WorkBytes) boundary = true;
                 }
                 if (next != state.Next || !boundary) throw new IOException("MAPPED_FILE_CURSOR_INVALID");
-            } catch { sourceLease.Dispose(); throw; }
+            } catch { if (sourceLease != null) sourceLease.Dispose(); throw; }
         }
         void Guard()
         {
             cancel.ThrowIfCancellationRequested(); if (disposed) throw new ObjectDisposedException("RecoveryMappedFilePublisher");
             if (Path.GetFullPath(context.Directory) != contextRoot || context.Method != method || context.Settings != settings || context.SourceSha256 != sourceHash)
                 throw new IOException("MAPPED_FILE_CONTEXT_CHANGED");
+            if (verifiedImage != null) verifiedImage.Validate(input, sourceHash);
             if (validate != null) validate(); ValidatePlan();
             if (Identity() != identity) throw new IOException("MAPPED_FILE_PLAN_CHANGED");
         }
@@ -256,6 +260,6 @@ namespace UsbRecovery
             Guard(); string destination = Destination(); Directory.CreateDirectory(Path.GetDirectoryName(destination)); File.Move(WorkFile(), destination);
             using (var final = ExistingOutput()) { if (final == null) throw new IOException("MAPPED_FILE_OUTPUT_MISSING"); return Published(); }
         }
-        public void Dispose() { if (disposed) return; disposed = true; sourceLease.Dispose(); }
+        public void Dispose() { if (disposed) return; disposed = true; if (sourceLease != null) sourceLease.Dispose(); }
     }
 }

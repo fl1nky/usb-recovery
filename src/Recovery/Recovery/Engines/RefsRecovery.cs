@@ -142,6 +142,7 @@ namespace UsbRecovery
             public Report Report;
             public Func<long, int, byte[]> MetadataRead;
             public Action<Entry, byte[], string> PublishFile = null;
+            public RecoveryVerifiedImage VerifiedImage = null;
             public int DirectoryCount;
             public int EntryCount;
             public long OutputBytes;
@@ -335,69 +336,7 @@ namespace UsbRecovery
                     report.InputBytes = input.Length;
                     report.SourceSha256 = HashStream(input, cancel);
 
-                    var locations = offsets == null ? Discover(input) : offsets.Distinct().ToList();
-                    foreach (long offset in locations)
-                    {
-                        cancel.ThrowIfCancellationRequested();
-                        if (report.Volumes.Count >= limits.MaximumVolumes)
-                        {
-                            report.Limited = true;
-                            Skip(c, "volume_limit");
-                            break;
-                        }
-                        if (offset < 0 || (offset & 511) != 0 || offset > input.Length - 1024)
-                        {
-                            Skip(c, "invalid_partition_offset");
-                            continue;
-                        }
-
-                        VolumeGeometry geom = ReadVbr(c, offset);
-                        if (geom == null) continue;
-
-                        var vr = new VolumeReport
-                        {
-                            Offset = offset,
-                            Bytes = (long)(geom.NumberOfSectors * geom.BytesPerSector),
-                            Version = string.Format("{0}.{1}", geom.MajorVersion, geom.MinorVersion),
-                            SectorSize = geom.BytesPerSector,
-                            ClusterSize = geom.ClusterBlockSize,
-                            BlockSize = geom.MetadataBlockSize,
-                            ContainerSize = geom.ContainerSize,
-                            Status = "rejected"
-                        };
-                        report.Volumes.Add(vr);
-
-                        // Check supported versions
-                        if (geom.MajorVersion != 1 && geom.MajorVersion != 3)
-                        {
-                            vr.Reason = string.Format("unsupported_refs_major_version_{0}", geom.MajorVersion);
-                            vr.Capabilities.UnsupportedFeatures.Add(vr.Reason);
-                            report.Capabilities.UnsupportedFeatures.Add(vr.Reason);
-                            continue;
-                        }
-
-                        vr.Capabilities.ReFSVersion = vr.Version;
-                        vr.Capabilities.BytesPerSector = geom.BytesPerSector;
-                        vr.Capabilities.ClusterBlockSize = geom.ClusterBlockSize;
-                        vr.Capabilities.MetadataBlockSize = geom.MetadataBlockSize;
-                        vr.Capabilities.ContainerSize = geom.ContainerSize;
-                        vr.Capabilities.PrimaryVbrValid = geom.PrimaryVbrValid;
-                        vr.Capabilities.BackupVbrUsed = geom.BackupVbrUsed;
-                        vr.Capabilities.SupportedFeatures.Add("vbr_fsrs_parsed");
-                        if (geom.BackupVbrUsed) vr.Capabilities.SupportedFeatures.Add("backup_vbr_fallback");
-
-                        // Update top-level report capabilities
-                        report.Capabilities.ReFSVersion = vr.Capabilities.ReFSVersion;
-                        report.Capabilities.BytesPerSector = vr.Capabilities.BytesPerSector;
-                        report.Capabilities.ClusterBlockSize = vr.Capabilities.ClusterBlockSize;
-                        report.Capabilities.MetadataBlockSize = vr.Capabilities.MetadataBlockSize;
-                        report.Capabilities.ContainerSize = vr.Capabilities.ContainerSize;
-                        report.Capabilities.PrimaryVbrValid = vr.Capabilities.PrimaryVbrValid;
-                        report.Capabilities.BackupVbrUsed = vr.Capabilities.BackupVbrUsed;
-
-                        if (progress != null) progress(string.Format("ReFS: разбор метаданных, раздел {0}", offset));
-                        ScanVolume(c, geom, vr, progress);
-                    }
+                    RunVolumes(c, offsets, progress);
 
                     report.SourceUnchanged = input.Length == report.InputBytes && HashStream(input, cancel) == report.SourceSha256;
                     if (!report.SourceUnchanged)
@@ -1294,12 +1233,12 @@ namespace UsbRecovery
             return buffer;
         }
 
-        private static List<long> Discover(FileStream input)
+        private static List<long> Discover(Context c)
         {
             var positions = new List<long> { 0 };
-            byte[] mbr = new byte[512];
-            input.Position = 0;
-            if (input.Read(mbr, 0, 512) != 512 || BitConverter.ToUInt16(mbr, 510) != 0xaa55)
+            var input = c.Input;
+            byte[] mbr = Read(c, 0, 512);
+            if (mbr == null || BitConverter.ToUInt16(mbr, 510) != 0xaa55)
                 return positions;
 
             for (int i = 0; i < 4; i++)
@@ -1309,9 +1248,8 @@ namespace UsbRecovery
             }
 
             // GPT entries
-            byte[] header = new byte[512];
-            input.Position = 512;
-            if (input.Read(header, 0, 512) == 512 && Encoding.ASCII.GetString(header, 0, 8) == "EFI PART")
+            byte[] header = Read(c, 512, 512);
+            if (header != null && Encoding.ASCII.GetString(header, 0, 8) == "EFI PART")
             {
                 ulong table = BitConverter.ToUInt64(header, 72);
                 uint count = BitConverter.ToUInt32(header, 80);
@@ -1319,11 +1257,10 @@ namespace UsbRecovery
                 if (table <= (ulong)(input.Length / 512) && count <= 16384 && size >= 128 && size <= 4096 &&
                     (ulong)count * size <= (ulong)input.Length - table * 512)
                 {
-                    byte[] entry = new byte[size];
                     for (uint i = 0; i < count; i++)
                     {
-                        input.Position = (long)table * 512 + (long)i * size;
-                        if (input.Read(entry, 0, entry.Length) != entry.Length) break;
+                        byte[] entry = Read(c, (long)table * 512 + (long)i * size, (int)size);
+                        if (entry == null) break;
                         ulong lba = BitConverter.ToUInt64(entry, 32);
                         if (entry.Take(16).Any(x => x != 0) && lba > 0 && lba <= (ulong)((input.Length - 2048) / 512))
                             positions.Add((long)lba * 512);

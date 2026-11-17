@@ -20,7 +20,7 @@ namespace UsbRecovery
             { "fat", new[] { "filesystem", "fat.state" } },
             { "ntfs", new[] { "ntfs" } },
             { "ext4", new[] { "ext4", "ext4.state" } },
-            { "refs", new[] { "refs" } },
+            { "refs", new[] { "refs", "refs.state" } },
             { "apfs", new[] { "apfs" } },
             { "ntfs-records", new[] { "metadata-rescue", "ntfs-records.state" } },
             { "photorec", new[] { "photorec.log", "photorec.ses" } },

@@ -8,6 +8,10 @@ on:
       - 'src/Recovery/Recovery/RecoveryMethodJournal.cs'
       - 'src/Recovery/Recovery/RecoveryOutputLedger.cs'
       - 'src/Recovery/Recovery/RecoveryMappedFilePublisher.cs'
+      - 'src/Recovery/Recovery/RecoveryVerifiedImage.cs'
+      - 'src/Recovery/Recovery/RecoveryPipeline.cs'
+      - 'src/Recovery/Recovery/RecoverySession.cs'
+      - 'src/Recovery/Recovery/RecoveryStageFiles.cs'
       - 'src/Recovery/Recovery/Results/RecoveryCatalog*.cs'
       - 'src/Recovery/Infrastructure/RecoveryCore.cs'
       - 'tests/Refs*.cs'
@@ -28,7 +32,7 @@ concurrency:
 jobs:
   components-windows:
     runs-on: windows-2022
-    timeout-minutes: 10
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
