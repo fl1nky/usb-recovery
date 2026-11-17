@@ -348,11 +348,14 @@ namespace UsbRecovery
                                 progress("Фрагменты фотографий: " + done * 100 / Math.Max(1, total) + "%");
                             }, session.PhotoCheckpoint(), session.CapturePhotoCheckpoint, expected, options.StreamingPngIndex) });
                         if (options.FragmentedVideo)
-                            methods.Add(new Work { Key = "fragmented-media", Name = "Сборка фрагментов MP4 / MOV", Run = () => FragmentedMediaRecovery.Recover(image, directory, cancel, (done, total) =>
+                            methods.Add(new Work { Key = "fragmented-media", Name = "Сборка фрагментов MP4 / MOV", Run = () => FragmentedMediaRecovery.RecoverCheckpointed(image, directory, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Фрагменты видео: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, progress, new RecoveryCheckpointContext { Directory = directory, Method = "fragmented-media",
+                                SourceSha256 = expected, Settings = "iso-bmff-structural-assembly-v1",
+                                Resume = session.MethodCheckpoint("fragmented-media"),
+                                Commit = value => session.CaptureMethodCheckpoint("fragmented-media", value) }) });
                         if (options.CustomSignatures)
                             methods.Add(new Work { Key = "user-signatures", Name = "Свои типы файлов", Run = () => UserSignatureRecovery.Recover(image, directory, options.CustomRules, cancel, (done, total) =>
                             {

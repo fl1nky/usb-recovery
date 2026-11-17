@@ -18,8 +18,10 @@ namespace UsbRecovery
     internal sealed class RecoveryMappedFilePlan
     {
         public string ArchiveRoot, OutputRoot, RelativeOutput, Provenance;
+        public string ExpectedSha256 = null;
         public long Length;
         public byte[] Resident;
+        public bool ContentAddressed = false;
         public List<RecoveryMappedRange> Ranges = new List<RecoveryMappedRange>();
     }
 
@@ -80,6 +82,12 @@ namespace UsbRecovery
                 if (plan.Resident != null) { writer.Write(plan.Resident.Length); writer.Write(Hash(plan.Resident)); }
                 writer.Write(plan.Ranges.Count);
                 foreach (var range in plan.Ranges) { cancel.ThrowIfCancellationRequested(); writer.Write(range.ImageOffset); writer.Write(range.LogicalOffset); writer.Write(range.Length); }
+                // Keep the original plan identity for existing APFS/ReFS checkpoints.
+                // Hash-named output and an expected digest are opt-in extensions.
+                if (plan.ContentAddressed || plan.ExpectedSha256 != null) {
+                    writer.Write("mapped-content-identity-v1"); writer.Write(plan.ContentAddressed);
+                    writer.Write(plan.ExpectedSha256 != null); if (plan.ExpectedSha256 != null) writer.Write(plan.ExpectedSha256);
+                }
                 writer.Flush(); stream.FlushFinalBlock(); return Hex(sha.Hash);
             }
         }
@@ -90,6 +98,10 @@ namespace UsbRecovery
             if (plan == null || plan.Provenance == null || plan.Ranges == null || plan.Ranges.Count > 1000000 || plan.Length < 0 ||
                 String.IsNullOrWhiteSpace(plan.ArchiveRoot) || String.IsNullOrWhiteSpace(plan.OutputRoot) || String.IsNullOrWhiteSpace(plan.RelativeOutput)) throw new IOException("MAPPED_FILE_PLAN_INVALID");
             string destination = RecoveryCatalog.SafeFile(plan.OutputRoot, plan.RelativeOutput);
+            if (plan.ContentAddressed && (plan.RelativeOutput.IndexOf("{sha256}",StringComparison.Ordinal) < 0 ||
+                plan.RelativeOutput.IndexOf("{sha256}",StringComparison.Ordinal) != plan.RelativeOutput.LastIndexOf("{sha256}",StringComparison.Ordinal)))
+                throw new IOException("MAPPED_FILE_HASH_NAME_INVALID");
+            if (plan.ExpectedSha256 != null && !Digest(plan.ExpectedSha256)) throw new IOException("MAPPED_FILE_EXPECTED_HASH_INVALID");
             string root = Path.GetFullPath(plan.OutputRoot), source = Path.GetFullPath(input.Name);
             string stateRoot = Path.GetDirectoryName(RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/guard"));
             string archive = Path.GetFullPath(plan.ArchiveRoot);
@@ -131,6 +143,8 @@ namespace UsbRecovery
                     state.Phase == "copy" && (journal.Resumed && state.Next == size || state.Sha256 != null) ||
                     state.Phase != "copy" && (state.Next != size || !Digest(state.Sha256)) || journal.Resumed && !WorkId(state.WorkId))
                     throw new IOException("MAPPED_FILE_CHECKPOINT_INVALID");
+                if (state.Phase != "copy" && plan.ExpectedSha256 != null && state.Sha256 != plan.ExpectedSha256)
+                    throw new IOException("MAPPED_FILE_EXPECTED_HASH_MISMATCH");
                 int maximum = (int)Math.Min(Int32.MaxValue, Math.Max(1, size / UnitBytes + (size % UnitBytes == 0 ? 0 : 1)));
                 ledger = new RecoveryOutputLedger<CopyFact>(context, state.Facts, maximum, cancel, RecoveryLedgerScope.MethodOutput, Math.Max(1024, (long)maximum * 1024));
                 long next = 0; bool boundary = state.WorkBytes == 0;
@@ -166,7 +180,11 @@ namespace UsbRecovery
             if (!WorkId(state.WorkId)) throw new IOException("MAPPED_FILE_WORK_INVALID");
             return RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/work/copy-" + state.WorkId + ".partial");
         }
-        string Destination() { return RecoveryCatalog.SafeFile(plan.OutputRoot, plan.RelativeOutput); }
+        string Destination()
+        {
+            if (plan.ContentAddressed && !Digest(state.Sha256)) throw new IOException("MAPPED_FILE_HASH_NOT_READY");
+            return RecoveryCatalog.SafeFile(plan.OutputRoot,plan.ContentAddressed ? plan.RelativeOutput.Replace("{sha256}",state.Sha256) : plan.RelativeOutput);
+        }
         FileStream Create(string id)
         {
             if (!WorkId(id)) throw new IOException("MAPPED_FILE_WORK_INVALID");
@@ -222,6 +240,7 @@ namespace UsbRecovery
         }
         FileStream ExistingOutput()
         {
+            if (plan.ContentAddressed && state.Phase == "copy") return null;
             string path = Destination(); if (Directory.Exists(path)) throw new IOException("MAPPED_FILE_OUTPUT_CHANGED");
             if (!File.Exists(path)) return null;
             if (state.Phase == "copy") throw new IOException("MAPPED_FILE_OUTPUT_UNPLANNED");
@@ -232,6 +251,7 @@ namespace UsbRecovery
         string Published()
         {
             Guard(); if (state.Phase != "published") { var next = Clone(); next.Phase = "published"; Save(next); }
+            Guard();
             return state.Sha256;
         }
         public string Run()
@@ -240,6 +260,7 @@ namespace UsbRecovery
             if (!journal.Resumed) {
                 var initial = Clone(); initial.WorkId = Guid.NewGuid().ToString("N");
                 if (size == 0) { initial.Phase = "ready"; initial.Sha256 = Hash(new byte[0]); }
+                if (size == 0 && plan.ExpectedSha256 != null && plan.ExpectedSha256 != initial.Sha256) throw new IOException("MAPPED_FILE_EXPECTED_HASH_MISMATCH");
                 using (var created = Create(initial.WorkId)) { created.Flush(true); Save(initial); }
             }
             using (var existing = ExistingOutput()) if (existing != null) return Published();
@@ -252,12 +273,15 @@ namespace UsbRecovery
                 while (state.Next < size) {
                     byte[] bytes = ReadMapped(state.Next, (int)Math.Min(UnitBytes, size - state.Next)); WriteUnit(file, bytes);
                     var next = Clone(); long at = next.Next; next.Next = next.WorkBytes = next.Next + bytes.Length;
-                    if (next.Next == size) { next.Phase = "ready"; next.Sha256 = Hash(file); }
+                    if (next.Next == size) { next.Phase = "ready"; next.Sha256 = Hash(file);
+                        if (plan.ExpectedSha256 != null && plan.ExpectedSha256 != next.Sha256) throw new IOException("MAPPED_FILE_EXPECTED_HASH_MISMATCH"); }
                     Save(next, new CopyFact { At = at, Length = bytes.Length, Sha256 = Hash(bytes) });
                 }
                 if (Hash(file) != state.Sha256) throw new IOException("MAPPED_FILE_WORK_CHANGED");
             }
-            Guard(); string destination = Destination(); Directory.CreateDirectory(Path.GetDirectoryName(destination)); File.Move(WorkFile(), destination);
+            Guard();
+            if (plan.ContentAddressed) using (var existing = ExistingOutput()) if (existing != null) return Published();
+            string destination = Destination(); Directory.CreateDirectory(Path.GetDirectoryName(destination)); File.Move(WorkFile(), destination);
             using (var final = ExistingOutput()) { if (final == null) throw new IOException("MAPPED_FILE_OUTPUT_MISSING"); return Published(); }
         }
         public void Dispose() { if (disposed) return; disposed = true; if (sourceLease != null) sourceLease.Dispose(); }

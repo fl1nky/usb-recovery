@@ -1,0 +1,84 @@
+name: Media assembly checkpoints
+
+on:
+  push:
+    branches: [ "feat/flash-recovery-complete-20261115" ]
+    paths:
+      - 'src/Recovery/Recovery/Engines/FragmentedMediaRecovery*.cs'
+      - 'src/Recovery/Recovery/Engines/Fmp4Recovery.cs'
+      - 'src/Recovery/Recovery/RecoveryMetadataReads.cs'
+      - 'src/Recovery/Recovery/RecoveryMappedFilePublisher.cs'
+      - 'src/Recovery/Recovery/RecoveryVerifiedImage.cs'
+      - 'src/Recovery/Recovery/RecoveryMethodJournal.cs'
+      - 'src/Recovery/Recovery/RecoveryOutputLedger.cs'
+      - 'src/Recovery/Recovery/RecoveryPipeline.cs'
+      - 'src/Recovery/Recovery/RecoverySession.cs'
+      - 'src/Recovery/Recovery/RecoveryStageFiles.cs'
+      - 'src/Recovery/Recovery/Results/*.cs'
+      - 'tests/FragmentedMedia*.cs'
+      - 'tests/MappedContentCheckpointTests.cs'
+      - 'tests/FragmentedAacRecoveryTests.cs'
+      - 'tests/HevcRecoveryTests.cs'
+      - 'tests/Fmp4RecoveryTests.cs'
+      - 'tests/build_fragmented_media_fixtures.py'
+      - 'tests/build_media_unit_fixtures.py'
+      - 'tests/build_aac_recovery_fixtures.py'
+      - 'tests/fixture_bundle.py'
+      - 'tests/prepare_fmp4_media_fixtures.py'
+      - 'tests/fixtures/media-units/**'
+      - 'tests/fixtures/aac-islands/**'
+      - 'tests/fixtures/hevc-recovery/**'
+      - 'tests/fixtures/video-fmp4/**'
+      - 'scripts/build-app.ps1'
+      - 'scripts/bootstrap-build.py'
+      - 'helpers/recovery_engine/requirements-wheel-lock.txt'
+      - 'helpers/recovery_engine/wheels/SHA256.json'
+      - 'tests/BootstrapBuildTests.py'
+      - 'scripts/test-media-checkpoints.ps1'
+      - '.github/workflows/media-checkpoints.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: media-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  owned-media-windows:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - name: Restore checksum-pinned fixture encoder
+        run: |
+          $python = '${{ steps.python.outputs.python-path }}'
+          & $python tests/BootstrapBuildTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Bootstrap integrity controls failed.' }
+          & $python scripts/bootstrap-build.py
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned build dependency restore failed.' }
+          $pillow = @(Get-Content -LiteralPath helpers/recovery_engine/requirements-wheel-lock.txt | Where-Object { $_ -match '^pillow==' })
+          if ($pillow.Count -ne 1) { throw 'Missing pinned Pillow requirement.' }
+          $pillow | Set-Content -LiteralPath .build/media-pillow-lock.txt -Encoding utf8
+          & $python -m pip install --no-index --no-deps --require-hashes --find-links helpers/recovery_engine/wheels -r .build/media-pillow-lock.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned fixture encoder installation failed.' }
+      - name: Verify media continuation without GUI
+        run: ./scripts/test-media-checkpoints.ps1 -Python '${{ steps.python.outputs.python-path }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: media-checkpoint-evidence
+          path: |
+            .build/media-checkpoint-evidence/*.log
+            .build/media-checkpoint-evidence/*.json
+            .build/media-checkpoint-evidence/*.manifest
+          include-hidden-files: true

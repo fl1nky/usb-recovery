@@ -29,7 +29,7 @@ namespace UsbRecovery
             { "archive-members", new[] { "salvage-content", "archive-members.state", "archive-salvage.json" } },
             { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.state", "fragmented-zip.json" } },
             { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },
-            { "fragmented-media", new[] { "fragmented-media", "fragmented-media.json" } },
+            { "fragmented-media", new[] { "fragmented-media", "fragmented-media.state", "fragmented-media.json" } },
             { "user-signatures", new[] { "user-signatures", "user-signatures.state", "user-signatures.json" } },
             { "text", new[] { "text-fragments", "text.state", "text-search.json" } },
         };

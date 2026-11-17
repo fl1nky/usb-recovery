@@ -294,7 +294,7 @@ namespace UsbRecovery
 
         static bool CheckpointSupported(string key)
         {
-            return key == "fragmented-photos" || key == "text" || key == "partitions" || key == "photos" || key == "containers" || key == "user-signatures" || key == "archive-members" || key == "fragmented-zip" || key == "fat" || key == "ntfs-records" || key == "ext4" || key == "refs" || key == "apfs";
+            return key == "fragmented-photos" || key == "fragmented-media" || key == "text" || key == "partitions" || key == "photos" || key == "containers" || key == "user-signatures" || key == "archive-members" || key == "fragmented-zip" || key == "fat" || key == "ntfs-records" || key == "ext4" || key == "refs" || key == "apfs";
         }
 
         static bool CheckpointName(string key, string path, long sequence)
