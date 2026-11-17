@@ -50,8 +50,15 @@ jobs:
           path: .build/ci-native
       - name: Install verified native NTFS runtime
         run: |
-          ./scripts/install-native-runtime.ps1 -RuntimeDirectory .build/ci-native/native-build/runtime
-          if ($LASTEXITCODE -ne 0) { throw 'Native NTFS runtime installation failed.' }
+          try {
+            ./scripts/install-native-runtime.ps1 -RuntimeDirectory .build/ci-native/native-build/runtime
+            if ($LASTEXITCODE -ne 0) { throw 'Native NTFS runtime installation failed.' }
+          } catch {
+            $nativeInstallDetail = ($_ | Out-String).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output ('::error title=Native runtime installation::' + $nativeInstallDetail)
+            Get-ChildItem -LiteralPath .build/ci-native -Recurse -Filter runtime.json | Select-Object FullName
+            exit 1
+          }
       - name: Build and verify without devices or GUI
         # Native artifact is produced and tested by the reusable job above.
         run: |
@@ -62,6 +69,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed.' }
           & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsPackagedTests.py --package dist/USB-Recovery --image .build/ci-native/native-fixtures/derived/deleted-small-mft-derived.dd --expected .build/ci-native/native-fixtures/derived/expected.bin --evidence .build/native-package-ci
           if ($LASTEXITCODE -ne 0) { throw 'Packaged NTFS validation failed.' }
+          & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsParentCrashTests.py --package dist/USB-Recovery --image .build/ci-native/native-fixtures/derived/deleted-small-mft-derived.dd --expected .build/ci-native/native-fixtures/derived/expected.bin --evidence .build/native-parent-crash-ci
+          if ($LASTEXITCODE -ne 0) { throw 'Post-crash NTFS continuation failed.' }
       - name: Retain test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -74,5 +83,7 @@ jobs:
             .build/headless-*/*.manifest
             .build/native-package-ci/receipt.json
             .build/native-package-ci/*.log
+            .build/native-parent-crash-ci/receipt.json
+            .build/native-parent-crash-ci/*.log
           include-hidden-files: true
           retention-days: 7
