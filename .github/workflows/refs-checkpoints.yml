@@ -1,0 +1,52 @@
+name: ReFS checkpoint components
+
+on:
+  push:
+    branches: [ "feat/flash-recovery-complete-20261115" ]
+    paths:
+      - 'src/Recovery/Recovery/Engines/RefsRecovery*.cs'
+      - 'src/Recovery/Recovery/RecoveryMethodJournal.cs'
+      - 'src/Recovery/Recovery/RecoveryOutputLedger.cs'
+      - 'src/Recovery/Recovery/Results/RecoveryCatalog*.cs'
+      - 'src/Recovery/Infrastructure/RecoveryCore.cs'
+      - 'tests/Refs*.cs'
+      - 'tests/*refs*generator.py'
+      - 'tests/fixtures/refs/**'
+      - 'scripts/build-app.ps1'
+      - 'scripts/test-refs-checkpoints.ps1'
+      - '.github/workflows/refs-checkpoints.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refs-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  components-windows:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - name: Verify ReFS metadata cursor and safety without GUI
+        run: ./scripts/test-refs-checkpoints.ps1 -Python '${{ steps.python.outputs.python-path }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: refs-checkpoint-component-evidence
+          path: |
+            .build/refs-ci-evidence/*.log
+            .build/refs-ci-evidence/*.json
+            .build/refs-ci-evidence/*.manifest
+          include-hidden-files: true
+          retention-days: 7

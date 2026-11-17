@@ -18,7 +18,7 @@ namespace UsbRecovery
     /// Unreferenced pages are structural candidates, never proof of deletion or allocation state.
     /// All access is strictly read-only; source SHA256 immutability is strictly asserted.
     /// </summary>
-    public static class RefsRecovery
+    public static partial class RefsRecovery
     {
         // -------------------------------------------------------------
         // Resource Limits & Safety Bounds
@@ -140,6 +140,7 @@ namespace UsbRecovery
             public CancellationToken Cancel;
             public Limits Limits;
             public Report Report;
+            public Func<long, int, byte[]> MetadataRead;
             public int DirectoryCount;
             public int EntryCount;
             public long OutputBytes;
@@ -1119,10 +1120,12 @@ namespace UsbRecovery
             string dest = Path.Combine(c.Root, "files", outName), temp = dest + ".partial";
             byte[] buffer = new byte[1024 * 1024];
             string hash;
+            bool ownsTemporary = false;
             try
             {
                 using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
+                    ownsTemporary = true;
                     if (resident != null) output.Write(resident, 0, resident.Length);
                     else foreach (var extent in extents)
                     {
@@ -1142,7 +1145,7 @@ namespace UsbRecovery
                 using (var source = File.OpenRead(temp)) using (var sha = SHA256.Create()) hash = Hex(sha.ComputeHash(source));
                 c.Cancel.ThrowIfCancellationRequested(); File.Move(temp, dest);
             }
-            finally { if (File.Exists(temp)) File.Delete(temp); }
+            finally { if (ownsTemporary && File.Exists(temp)) File.Delete(temp); }
             var entry = new Entry { VolumeOffset = geom.VolumeOffset, ObjectId = objectId,
                 ParentObjectId = parentObjectId, Name = name, RelativePath = relativePath, DeclaredSize = declaredSize,
                 RecoveredBytes = declaredSize, CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
@@ -1302,6 +1305,7 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         private static byte[] Read(Context c, long offset, int bytes)
         {
+            if (c.MetadataRead != null) return c.MetadataRead(offset, bytes);
             c.Cancel.ThrowIfCancellationRequested();
             if (offset < 0 || bytes <= 0 || offset > c.Input.Length - bytes) return null;
             byte[] buffer = new byte[bytes];
