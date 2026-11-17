@@ -230,7 +230,11 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("apfs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = ApfsRecovery.Recover(image, directory, cancel, progress, options.LostPartitions && bootCandidates != null ? bootCandidates.Select(b => b.Offset) : null);
+                                int found = ApfsRecovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "apfs",
+                                        SourceSha256 = expected, Settings = "apfs-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("apfs"), Commit = value => session.CaptureMethodCheckpoint("apfs", value) },
+                                    options.LostPartitions && bootCandidates != null ? bootCandidates.Select(b => b.Offset) : null);
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024

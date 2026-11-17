@@ -9,6 +9,7 @@ on:
       - 'src/Recovery/Recovery/RecoveryOutputLedger.cs'
       - 'src/Recovery/Recovery/RecoveryMappedFilePublisher.cs'
       - 'src/Recovery/Recovery/RecoveryVerifiedImage.cs'
+      - 'src/Recovery/Recovery/RecoveryMetadataReads.cs'
       - 'src/Recovery/Recovery/RecoveryPipeline.cs'
       - 'src/Recovery/Recovery/RecoverySession.cs'
       - 'src/Recovery/Recovery/RecoveryStageFiles.cs'

@@ -1,0 +1,57 @@
+name: APFS managed checkpoints
+
+on:
+  push:
+    branches: [ "feat/flash-recovery-complete-20261115" ]
+    paths:
+      - 'src/Recovery/Recovery/Engines/ApfsRecovery*.cs'
+      - 'src/Recovery/Recovery/RecoveryMetadataReads.cs'
+      - 'src/Recovery/Recovery/RecoveryMappedFilePublisher.cs'
+      - 'src/Recovery/Recovery/RecoveryVerifiedImage.cs'
+      - 'src/Recovery/Recovery/RecoveryMethodJournal.cs'
+      - 'src/Recovery/Recovery/RecoveryOutputLedger.cs'
+      - 'src/Recovery/Recovery/RecoveryPipeline.cs'
+      - 'src/Recovery/Recovery/RecoverySession.cs'
+      - 'src/Recovery/Recovery/RecoveryStageFiles.cs'
+      - 'src/Recovery/Recovery/Results/RecoveryCatalog*.cs'
+      - 'src/Recovery/Infrastructure/RecoveryCore.cs'
+      - 'tests/Apfs*.cs'
+      - 'tests/apfs_salvage_fixture_generator.py'
+      - 'tests/fixtures/apfs-salvage/**'
+      - 'scripts/build-app.ps1'
+      - 'scripts/test-apfs-checkpoints.ps1'
+      - '.github/workflows/apfs-checkpoints.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apfs-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  structural-windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        id: python
+        with:
+          python-version: '3.12.10'
+          architecture: x64
+      - name: Verify managed APFS resume without GUI
+        run: ./scripts/test-apfs-checkpoints.ps1 -Python '${{ steps.python.outputs.python-path }}'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: apfs-checkpoint-evidence
+          path: |
+            .build/apfs-checkpoint-evidence/*.log
+            .build/apfs-checkpoint-evidence/*.json
+            .build/apfs-checkpoint-evidence/*.manifest
+          include-hidden-files: true

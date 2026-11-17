@@ -21,7 +21,7 @@ namespace UsbRecovery
             { "ntfs", new[] { "ntfs" } },
             { "ext4", new[] { "ext4", "ext4.state" } },
             { "refs", new[] { "refs", "refs.state" } },
-            { "apfs", new[] { "apfs" } },
+            { "apfs", new[] { "apfs", "apfs.state" } },
             { "ntfs-records", new[] { "metadata-rescue", "ntfs-records.state" } },
             { "photorec", new[] { "photorec.log", "photorec.ses" } },
             { "photos", new[] { "extra-photos", "photos.state", "extra-photo-search.json" } },
