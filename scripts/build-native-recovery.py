@@ -181,6 +181,7 @@ def main() -> None:
     td, ntfs = destination / "testdisk" / SOURCES["testdisk"][1], destination / "ntfs" / SOURCES["ntfs"][1]
     patches = PROJECT / "src/Recovery.Native/Patches"
     apply_patch(td, patches / "testdisk-7.2-compat.patch")
+    apply_patch(td, patches / "testdisk-7.2-ntfs-record-validation.patch")
     apply_patch(ntfs, patches / "ntfs3g-2026.9.28-gcc-packing.patch")
     runtime = destination / "runtime"
     runtime.mkdir()

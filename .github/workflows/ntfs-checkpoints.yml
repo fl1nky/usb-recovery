@@ -42,6 +42,8 @@ jobs:
           python -m pip install --require-hashes --only-binary=:all: -r scripts/native-ntfs-test-requirements.txt
       - name: Prepare pinned native and authored fixtures
         run: python tests/prepare_native_ntfs_fixtures.py --destination .build/native-fixtures --packed .build/native-archives/fixtures/ntfs.bin.gz
+      - name: Prepare independently parsed stream corpus
+        run: python tests/build_native_ntfs_corpus.py --base .build/native-fixtures/derived/deleted-small-mft-derived.dd --destination .build/native-stream-corpus
       - name: Verify build-input rejection boundaries
         run: |
           python tests/NativeBuildInputsTests.py 2>&1 | Tee-Object -FilePath .build/native-input-tests.log
@@ -68,6 +70,7 @@ jobs:
             .build/native-checkpoint-evidence/*.log
             .build/native-fixtures/derived/deleted-small-mft-derived.dd
             .build/native-fixtures/derived/expected.bin
+            .build/native-stream-corpus
             .build/native-install-evidence/receipt.json
             .build/native-input-tests.log
             .build/native-restore.log

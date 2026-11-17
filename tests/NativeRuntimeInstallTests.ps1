@@ -29,6 +29,13 @@ $manifest=Join-Path $changed 'runtime.json';$originalManifest=[IO.File]::ReadAll
 [IO.File]::WriteAllText($manifest,$originalManifest.Replace('ntfs_worker.exe','../ntfs_worker.exe'),[Text.UTF8Encoding]::new($false))
 Reject-NativeInstall {& $installer -RuntimeDirectory $changed -VerifyOnly}
 [IO.File]::WriteAllText($manifest,$originalManifest,[Text.UTF8Encoding]::new($false))
+$buildReceipt=Join-Path $changed 'build-receipt.json';$originalReceipt=[IO.File]::ReadAllText($buildReceipt)
+$incomplete=$originalReceipt|ConvertFrom-Json
+$removedSource=@($incomplete.owned_sources.PSObject.Properties)[0].Name
+$incomplete.owned_sources.PSObject.Properties.Remove($removedSource)
+[IO.File]::WriteAllText($buildReceipt,($incomplete|ConvertTo-Json -Depth 20),[Text.UTF8Encoding]::new($false))
+Reject-NativeInstall {& $installer -RuntimeDirectory $changed -VerifyOnly}
+[IO.File]::WriteAllText($buildReceipt,$originalReceipt,[Text.UTF8Encoding]::new($false))
 & $installer -RuntimeDirectory $changed -VerifyOnly|Out-Null
 Check-NativeInstall ($LASTEXITCODE-eq 0) 'Restored candidate failed verification.'
 @{status='passed';checks=$checks;scope='Actual runtime installer, binary/source/license/traversal refusal and current-install preservation';gui_tests_run=$false;real_devices_tested=$false}|

@@ -71,6 +71,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Packaged NTFS validation failed.' }
           & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsParentCrashTests.py --package dist/USB-Recovery --image .build/ci-native/native-fixtures/derived/deleted-small-mft-derived.dd --expected .build/ci-native/native-fixtures/derived/expected.bin --evidence .build/native-parent-crash-ci
           if ($LASTEXITCODE -ne 0) { throw 'Post-crash NTFS continuation failed.' }
+          & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsStreamCorpusTests.py --package dist/USB-Recovery --corpus .build/ci-native/native-stream-corpus --evidence .build/native-stream-corpus-ci
+          if ($LASTEXITCODE -ne 0) { throw 'NTFS stream corpus failed.' }
+          & '${{ steps.python.outputs.python-path }}' tests/NativeNtfsParentCrashTests.py --package dist/USB-Recovery --image .build/ci-native/native-stream-corpus/fragmented/image.dd --expected .build/ci-native/native-stream-corpus/fragmented/0.bin --evidence .build/native-fragmented-crash-ci
+          if ($LASTEXITCODE -ne 0) { throw 'Post-crash fragmented NTFS continuation failed.' }
       - name: Retain test evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -85,5 +89,9 @@ jobs:
             .build/native-package-ci/*.log
             .build/native-parent-crash-ci/receipt.json
             .build/native-parent-crash-ci/*.log
+            .build/native-fragmented-crash-ci/receipt.json
+            .build/native-fragmented-crash-ci/*.log
+            .build/native-stream-corpus-ci/receipt.json
+            .build/native-stream-corpus-ci/*/*.log
           include-hidden-files: true
           retention-days: 7

@@ -49,13 +49,19 @@ function Native-Verify([string]$Root){
         $file=Native-Path (Join-Path $Root ('sources/'+[IO.Path]::GetFileName($row.path)))
         if((Get-Item -LiteralPath $file).Length-ne$row.bytes-or(Get-FileHash -LiteralPath $file -Algorithm SHA512).Hash.ToLowerInvariant()-cne$row.sha512){throw 'Native runtime corresponding source changed.'}
     }
+    $ownedRoot=Join-Path $project 'src/Recovery.Native'
+    $expectedOwned=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($file in Get-ChildItem -LiteralPath $ownedRoot -Recurse -File){
+        [void]$expectedOwned.Add($file.FullName.Substring($ownedRoot.Length+1).Replace('\','/'))
+    }
+    if($expectedOwned.Count-lt 8-or@($receipt.owned_sources.PSObject.Properties).Count-ne$expectedOwned.Count){throw 'Native corresponding source inventory differs from maintained source.'}
     foreach($row in $receipt.owned_sources.PSObject.Properties){
+        if(-not$expectedOwned.Contains($row.Name)){throw 'Native corresponding source inventory differs from maintained source.'}
         if([IO.Path]::IsPathRooted($row.Name)-or$row.Name.Contains('..')-or$row.Name.Contains('\')-or$row.Name.Contains(':')){throw 'Invalid native owned source path.'}
         $file=Native-Path (Join-Path $Root ('sources/Recovery.Native/'+$row.Name))
         $current=Native-Path (Join-Path $project ('src/Recovery.Native/'+$row.Name))
         if((Get-FileHash -LiteralPath $file).Hash.ToLowerInvariant()-cne$row.Value-or(Get-FileHash -LiteralPath $current).Hash.ToLowerInvariant()-cne$row.Value){throw 'Native runtime differs from current maintained source.'}
     }
-    if(@($receipt.owned_sources.PSObject.Properties).Count-lt 8){throw 'Native corresponding source inventory missing.'}
     $inventory=@{}
     foreach($file in Get-ChildItem -LiteralPath $Root -Recurse -File){$inventory[$file.FullName.Substring($Root.Length+1).Replace('\','/')]=(Get-FileHash -LiteralPath $file.FullName).Hash.ToLowerInvariant()}
     return $inventory
