@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import io
+import os
 from pathlib import Path
 import tarfile
 import tempfile
@@ -27,7 +28,7 @@ class Inputs(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="usb-native-inputs-")
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
 
     def archive(self, name, members):
         path = self.root / name
@@ -44,6 +45,17 @@ class Inputs(unittest.TestCase):
 
     def test_safe_relative_input(self):
         self.assertEqual(build.safe(self.root, "dir/file.c"), self.root / "dir/file.c")
+
+    @unittest.skipUnless(os.name == "nt", "Windows filesystem alias regression")
+    def test_safe_root_short_alias(self):
+        import ctypes
+        buffer = ctypes.create_unicode_buffer(32768)
+        count = ctypes.windll.kernel32.GetShortPathNameW(str(self.root), buffer, len(buffer))
+        if not count:
+            self.skipTest("Volume does not expose an 8.3 alias")
+        alias = Path(buffer.value)
+        self.assertEqual(alias.resolve(), self.root)
+        self.assertEqual(build.safe(alias, "dir/file.c"), self.root / "dir/file.c")
 
     def test_unsafe_paths(self):
         for name in ("../file", "/file", "C:/file", "dir\\file", "dir/../../file"):

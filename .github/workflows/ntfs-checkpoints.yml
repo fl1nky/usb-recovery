@@ -35,7 +35,14 @@ jobs:
       - name: Prepare pinned native and authored fixtures
         run: python tests/prepare_native_ntfs_fixtures.py --destination .build/native-fixtures --packed .build/native-archives/fixtures/ntfs.bin.gz
       - name: Verify build-input rejection boundaries
-        run: python tests/NativeBuildInputsTests.py
+        run: |
+          python tests/NativeBuildInputsTests.py 2>&1 | Tee-Object -FilePath .build/native-input-tests.log
+          $nativeInputExit = $LASTEXITCODE
+          if ($nativeInputExit -ne 0) {
+            $nativeInputDetail = (Get-Content -LiteralPath .build/native-input-tests.log -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output ('::error title=Native build input controls::' + $nativeInputDetail)
+            exit $nativeInputExit
+          }
       - name: Verify runtime installation and rejection controls
         run: ./tests/NativeRuntimeInstallTests.ps1 -RuntimeDirectory .build/native-build/runtime -EvidenceDirectory .build/native-install-evidence
       - name: Verify actual native worker and managed pipeline
@@ -53,5 +60,6 @@ jobs:
             .build/native-fixtures/derived/deleted-small-mft-derived.dd
             .build/native-fixtures/derived/expected.bin
             .build/native-install-evidence/receipt.json
+            .build/native-input-tests.log
           retention-days: 14
           include-hidden-files: true
