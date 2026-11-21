@@ -262,6 +262,10 @@ namespace UsbRecovery
                 {
                     ServeReport(req, res);
                 }
+                else if (path == "/api/registry")
+                {
+                    ServeRegistry(req, res);
+                }
                 else if (path == "/api/scan" && req.HttpMethod == "POST")
                 {
                     ServeStartScan(res);
@@ -862,6 +866,207 @@ namespace UsbRecovery
             return sb.ToString();
         }
 
+        void ServeRegistry(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            if (string.IsNullOrEmpty(outputPath) || !Directory.Exists(outputPath))
+            {
+                WriteJson(res, new { error = "No output directory configured or found" });
+                return;
+            }
+
+            string rel = req.QueryString["path"];
+            string outFull = Path.GetFullPath(outputPath);
+            string action = (req.QueryString["action"] ?? "list").ToLowerInvariant();
+
+            if (action == "list")
+            {
+                var hivesList = new List<object>();
+                var dir = new DirectoryInfo(outputPath);
+                var allFiles = dir.GetFiles("*", SearchOption.AllDirectories);
+                for (int i = 0; i < allFiles.Length; i++)
+                {
+                    var f = allFiles[i];
+                    if (RegistryHive.IsRegistryHive(f.FullName))
+                    {
+                        string rPath = f.FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
+                        hivesList.Add(new
+                        {
+                            name = f.Name,
+                            relativePath = rPath,
+                            size = f.Length,
+                            sizeHuman = FormatBytes(f.Length),
+                            modifiedUtc = f.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")
+                        });
+                    }
+                }
+                WriteJson(res, new { count = hivesList.Count, hives = hivesList });
+                return;
+            }
+
+            string targetHivePath = null;
+            if (!string.IsNullOrEmpty(rel))
+            {
+                string candidate = Path.GetFullPath(Path.Combine(outputPath, rel.TrimStart('/', '\\')));
+                if (candidate.StartsWith(outFull, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate))
+                {
+                    targetHivePath = candidate;
+                }
+            }
+            else
+            {
+                var dir = new DirectoryInfo(outputPath);
+                var allFiles = dir.GetFiles("*", SearchOption.AllDirectories);
+                for (int i = 0; i < allFiles.Length; i++)
+                {
+                    if (RegistryHive.IsRegistryHive(allFiles[i].FullName))
+                    {
+                        targetHivePath = allFiles[i].FullName;
+                        rel = allFiles[i].FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
+                        break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(targetHivePath) || !File.Exists(targetHivePath))
+            {
+                WriteJson(res, new { error = "Registry hive file not found. Ensure output folder contains a valid hive or pass ?path=" });
+                return;
+            }
+
+            using (var hive = RegistryHive.Open(targetHivePath))
+            {
+                if (action == "summary" || action == "info")
+                {
+                    var sum = hive.ExtractSystemSummary();
+                    WriteJson(res, new
+                    {
+                        hiveFile = rel ?? Path.GetFileName(targetHivePath),
+                        embeddedFileName = hive.EmbeddedFileName,
+                        isChecksumValid = hive.IsChecksumValid,
+                        primarySeq = hive.PrimarySequenceNumber,
+                        secondarySeq = hive.SecondarySequenceNumber,
+                        lastWriteUtc = hive.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                        majorVersion = hive.MajorVersion,
+                        minorVersion = hive.MinorVersion,
+                        rootCellOffset = hive.RootCellOffset,
+                        hiveBinsLength = hive.HiveBinsLength,
+                        summary = new
+                        {
+                            productName = sum.ProductName,
+                            currentVersion = sum.CurrentVersion,
+                            currentBuild = sum.CurrentBuild,
+                            installDateUtc = sum.InstallDateUtc,
+                            computerName = sum.ComputerName,
+                            timeZoneStandardName = sum.TimeZoneStandardName,
+                            currentControlSet = sum.CurrentControlSet,
+                            usbDevices = sum.UsbDevices,
+                            userAccounts = sum.UserAccounts,
+                            runKeys = sum.RunKeys
+                        }
+                    });
+                }
+                else if (action == "search")
+                {
+                    string q = req.QueryString["q"] ?? "";
+                    if (string.IsNullOrEmpty(q))
+                    {
+                        WriteJson(res, new { error = "Search query parameter 'q' required" });
+                        return;
+                    }
+
+                    var keyMatches = hive.SearchKeys(q, true);
+                    var valMatches = hive.SearchValues(q);
+
+                    var keysJson = new List<object>();
+                    int maxK = Math.Min(50, keyMatches.Count);
+                    for (int i = 0; i < maxK; i++)
+                    {
+                        var k = keyMatches[i];
+                        keysJson.Add(new { name = k.Name, path = k.Path, subkeyCount = k.SubkeyCount, valueCount = k.ValueCount, isDeleted = k.IsDeleted });
+                    }
+
+                    var valsJson = new List<object>();
+                    int maxV = Math.Min(50, valMatches.Count);
+                    for (int i = 0; i < maxV; i++)
+                    {
+                        var v = valMatches[i];
+                        valsJson.Add(new { name = v.Name, type = v.ValueType.ToString(), value = v.ValueAsString(), isDeleted = v.IsDeleted });
+                    }
+
+                    WriteJson(res, new
+                    {
+                        query = q,
+                        matchingKeysCount = keyMatches.Count,
+                        matchingValuesCount = valMatches.Count,
+                        keys = keysJson,
+                        values = valsJson
+                    });
+                }
+                else if (action == "carve")
+                {
+                    var delKeys = hive.CarveDeletedKeys();
+                    var delVals = hive.CarveDeletedValues();
+
+                    var keysJson = new List<object>();
+                    int maxK = Math.Min(100, delKeys.Count);
+                    for (int i = 0; i < maxK; i++)
+                    {
+                        var k = delKeys[i];
+                        keysJson.Add(new { name = k.Name, path = k.Path, offset = "0x" + k.CellOffset.ToString("X8"), lastWriteUtc = k.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") });
+                    }
+
+                    var valsJson = new List<object>();
+                    int maxV = Math.Min(100, delVals.Count);
+                    for (int i = 0; i < maxV; i++)
+                    {
+                        var v = delVals[i];
+                        valsJson.Add(new { name = v.Name, type = v.ValueType.ToString(), value = v.ValueAsString(), offset = "0x" + v.CellOffset.ToString("X8") });
+                    }
+
+                    WriteJson(res, new
+                    {
+                        carvedKeysCount = delKeys.Count,
+                        carvedValuesCount = delVals.Count,
+                        keys = keysJson,
+                        values = valsJson
+                    });
+                }
+                else if (action == "key")
+                {
+                    string keyPath = req.QueryString["keyPath"] ?? "";
+                    var k = hive.GetKey(keyPath);
+                    if (k == null)
+                    {
+                        WriteJson(res, new { error = "Key not found: " + keyPath });
+                        return;
+                    }
+
+                    var subkeys = new List<string>();
+                    for (int i = 0; i < k.Subkeys.Count; i++) subkeys.Add(k.Subkeys[i].Name);
+
+                    var values = new List<object>();
+                    for (int i = 0; i < k.Values.Count; i++)
+                    {
+                        var v = k.Values[i];
+                        values.Add(new { name = v.Name, type = v.ValueType.ToString(), value = v.ValueAsString(), isDeleted = v.IsDeleted });
+                    }
+
+                    WriteJson(res, new
+                    {
+                        name = k.Name,
+                        path = k.Path,
+                        lastWriteUtc = k.LastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                        subkeys = subkeys,
+                        values = values
+                    });
+                }
+                else
+                {
+                    WriteJson(res, new { error = "Unsupported action: " + action });
+                }
+            }
+        }
+
         void ServeStartScan(HttpListenerResponse res)
         {
             lock (scanLock)
@@ -1095,6 +1300,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('clusters')"">🗺️ Cluster Allocation Map</button>
   <button class=""tab-btn"" onclick=""switchTab('hex')"">🔍 Data & Hex Inspector</button>
   <button class=""tab-btn"" onclick=""switchTab('files')"">📁 Recovered Files</button>
+  <button class=""tab-btn"" onclick=""switchTab('registry')"">🏛️ Registry Forensics</button>
 </nav>
 <main>
   <!-- OVERVIEW TAB -->
@@ -1213,6 +1419,58 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
       </div>
     </div>
   </div>
+
+  <!-- REGISTRY FORENSICS TAB -->
+  <div id=""registry"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🏛️ Windows Registry Forensics (REGF Native Parser)</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        100% pure C# offline analysis of recovered Windows Registry hives (SYSTEM, SOFTWARE, SAM, NTUSER.DAT).
+        Extracts OS build, ComputerName, TimeZone, USB storage history (USBSTOR), persistence Run keys, and carves deleted keys from hive slack space.
+      </p>
+      <div style=""display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;"">
+        <select id=""reg-hive-select"" class=""hex-input"" style=""width: 280px;"" onchange=""loadRegistrySummary()"">
+          <option value="""">Auto-Detect Hives...</option>
+        </select>
+        <button class=""btn"" onclick=""loadRegistrySummary()"">⚡ Load Summary</button>
+        <button class=""btn"" style=""background: #334155; border-color: #475569;"" onclick=""carveRegistry()"">⛏️ Carve Deleted Slack Cells</button>
+      </div>
+
+      <div id=""reg-summary-container"">
+        <div class=""grid-stats"">
+          <div class=""stat-box""><div class=""stat-label"">Product Name</div><div class=""stat-value"" id=""reg-product"" style=""font-size: 16px;"">—</div></div>
+          <div class=""stat-box""><div class=""stat-label"">Build / Version</div><div class=""stat-value"" id=""reg-build"" style=""font-size: 16px;"">—</div></div>
+          <div class=""stat-box""><div class=""stat-label"">Computer Name</div><div class=""stat-value"" id=""reg-comp"" style=""font-size: 16px; color: var(--accent);"">—</div></div>
+          <div class=""stat-box""><div class=""stat-label"">Time Zone</div><div class=""stat-value"" id=""reg-tz"" style=""font-size: 16px;"">—</div></div>
+        </div>
+
+        <div style=""display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-top: 16px;"">
+          <div class=""card"" style=""margin: 0;"">
+            <h3 style=""font-size: 14px; margin-bottom: 10px; color: #fff;"">🔌 USB Storage History (USBSTOR)</h3>
+            <ul id=""reg-usbstor-list"" style=""font-size: 12px; color: var(--text-muted); padding-left: 20px;""><li>No USB devices loaded.</li></ul>
+          </div>
+          <div class=""card"" style=""margin: 0;"">
+            <h3 style=""font-size: 14px; margin-bottom: 10px; color: #fff;"">🚀 Persistence Run Keys</h3>
+            <ul id=""reg-run-list"" style=""font-size: 12px; color: var(--text-muted); padding-left: 20px;""><li>No Run keys loaded.</li></ul>
+          </div>
+        </div>
+      </div>
+
+      <div style=""margin-top: 24px;"">
+        <h3 style=""font-size: 15px; margin-bottom: 12px; color: #fff;"">🔍 Search Keys & Values</h3>
+        <div style=""display: flex; gap: 10px; margin-bottom: 12px;"">
+          <input type=""text"" id=""reg-search-query"" placeholder=""Search key or value name (e.g. CurrentVersion, Run, USB)..."" class=""hex-input"" style=""flex: 1;"" onkeydown=""if(event.key==='Enter') searchRegistry()""/>
+          <button class=""btn"" onclick=""searchRegistry()"">Search</button>
+        </div>
+        <div id=""reg-search-results"" style=""font-size: 13px; color: var(--text-muted);""></div>
+      </div>
+
+      <div id=""reg-carve-container"" style=""margin-top: 24px; display: none;"">
+        <h3 style=""font-size: 15px; margin-bottom: 12px; color: var(--accent-amber);"">⛏️ Carved Deleted Keys & Values (From Unallocated Cells)</h3>
+        <div id=""reg-carve-results"" style=""font-size: 13px; color: var(--text-muted);""></div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -1227,6 +1485,7 @@ function switchTab(tabId) {
   if (tabId === 'clusters') renderClusters();
   if (tabId === 'hex') loadHex();
   if (tabId === 'files') loadFiles();
+  if (tabId === 'registry') loadRegistryHives();
 }
 
 async function refreshStatus() {
@@ -1412,6 +1671,117 @@ async function startScan() {
 async function cancelScan() {
   await fetch('/api/cancel', { method: 'POST' });
   refreshStatus();
+}
+
+async function loadRegistryHives() {
+  try {
+    const res = await fetch('/api/registry?action=list');
+    const data = await res.json();
+    const sel = document.getElementById('reg-hive-select');
+    sel.innerHTML = '';
+    if (data.hives && data.hives.length > 0) {
+      data.hives.forEach(h => {
+        const opt = document.createElement('option');
+        opt.value = h.relativePath;
+        opt.innerText = h.name + ' (' + h.sizeHuman + ')';
+        sel.appendChild(opt);
+      });
+      loadRegistrySummary();
+    } else {
+      sel.innerHTML = '<option value="""">No hives found in output</option>';
+    }
+  } catch (e) { }
+}
+
+async function loadRegistrySummary() {
+  const hivePath = document.getElementById('reg-hive-select').value;
+  try {
+    const url = hivePath ? ('/api/registry?action=summary&path=' + encodeURIComponent(hivePath)) : '/api/registry?action=summary';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.summary) {
+      document.getElementById('reg-product').innerText = data.summary.productName || '—';
+      document.getElementById('reg-build').innerText = (data.summary.currentBuild ? ('Build ' + data.summary.currentBuild) : (data.summary.currentVersion || '—'));
+      document.getElementById('reg-comp').innerText = data.summary.computerName || '—';
+      document.getElementById('reg-tz').innerText = data.summary.timeZoneStandardName || '—';
+
+      const usbList = document.getElementById('reg-usbstor-list');
+      usbList.innerHTML = '';
+      if (data.summary.usbDevices && data.summary.usbDevices.length > 0) {
+        data.summary.usbDevices.forEach(d => {
+          const li = document.createElement('li');
+          li.innerText = d;
+          usbList.appendChild(li);
+        });
+      } else {
+        usbList.innerHTML = '<li>No USB storage history found in this hive.</li>';
+      }
+
+      const runList = document.getElementById('reg-run-list');
+      runList.innerHTML = '';
+      if (data.summary.runKeys && data.summary.runKeys.length > 0) {
+        data.summary.runKeys.forEach(r => {
+          const li = document.createElement('li');
+          li.innerText = r;
+          runList.appendChild(li);
+        });
+      } else {
+        runList.innerHTML = '<li>No autorun persistence keys found in this hive.</li>';
+      }
+    }
+  } catch (e) { }
+}
+
+async function searchRegistry() {
+  const q = document.getElementById('reg-search-query').value.trim();
+  if (!q) return;
+  const hivePath = document.getElementById('reg-hive-select').value;
+  const resContainer = document.getElementById('reg-search-results');
+  resContainer.innerHTML = 'Searching...';
+  try {
+    const url = '/api/registry?action=search&q=' + encodeURIComponent(q) + '&path=' + encodeURIComponent(hivePath);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.keys || data.values) {
+      let html = '<div style=""margin-bottom: 8px;"">Found <strong>' + data.matchingKeysCount + '</strong> keys and <strong>' + data.matchingValuesCount + '</strong> values:</div><ul style=""padding-left: 20px;"">';
+      (data.keys || []).forEach(k => {
+        html += '<li>📁 <strong>' + k.path + '</strong> (' + k.valueCount + ' values)</li>';
+      });
+      (data.values || []).forEach(v => {
+        html += '<li>📄 <code>' + v.name + '</code> [' + v.type + '] = ' + v.value + '</li>';
+      });
+      html += '</ul>';
+      resContainer.innerHTML = html;
+    } else {
+      resContainer.innerHTML = data.error || 'No results found.';
+    }
+  } catch (e) { resContainer.innerHTML = 'Search failed.'; }
+}
+
+async function carveRegistry() {
+  const hivePath = document.getElementById('reg-hive-select').value;
+  const cDiv = document.getElementById('reg-carve-container');
+  const resDiv = document.getElementById('reg-carve-results');
+  cDiv.style.display = 'block';
+  resDiv.innerHTML = 'Carving unallocated cells and slack space...';
+  try {
+    const url = '/api/registry?action=carve&path=' + encodeURIComponent(hivePath);
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.carvedKeysCount !== undefined) {
+      let html = '<div style=""margin-bottom: 8px;"">Carved <strong>' + data.carvedKeysCount + '</strong> deleted keys and <strong>' + data.carvedValuesCount + '</strong> deleted values:</div><ul style=""padding-left: 20px;"">';
+      (data.keys || []).forEach(k => {
+        html += '<li>⚠️ <code>' + k.offset + '</code>: <strong>' + k.path + '</strong></li>';
+      });
+      (data.values || []).forEach(v => {
+        html += '<li>⚠️ <code>' + v.offset + '</code>: <code>' + v.name + '</code> [' + v.type + '] = ' + v.value + '</li>';
+      });
+      html += '</ul>';
+      resDiv.innerHTML = html;
+    } else {
+      resDiv.innerHTML = data.error || 'Carving completed with no items.';
+    }
+  } catch (e) { resDiv.innerHTML = 'Carve request failed.'; }
 }
 
 // Initial boot

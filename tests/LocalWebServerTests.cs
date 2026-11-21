@@ -42,6 +42,32 @@ public static class LocalWebServerTests
             Directory.CreateDirectory(outputDir);
             File.WriteAllText(Path.Combine(outputDir, "recovered_file.txt"), "USB-Recovery offline test payload");
 
+            // Create a synthetic registry hive in output directory for forensic registry testing
+            byte[] hiveBytes = new byte[8192];
+            hiveBytes[0] = 0x72; hiveBytes[1] = 0x65; hiveBytes[2] = 0x67; hiveBytes[3] = 0x66;
+            BitConverter.GetBytes(1U).CopyTo(hiveBytes, 4);
+            BitConverter.GetBytes(1U).CopyTo(hiveBytes, 8);
+            BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()).CopyTo(hiveBytes, 12);
+            BitConverter.GetBytes(1U).CopyTo(hiveBytes, 20);
+            BitConverter.GetBytes(3U).CopyTo(hiveBytes, 24);
+            BitConverter.GetBytes(32U).CopyTo(hiveBytes, 36);
+            BitConverter.GetBytes(4096U).CopyTo(hiveBytes, 40);
+            Encoding.Unicode.GetBytes("SYSTEM").CopyTo(hiveBytes, 48);
+            hiveBytes[4096] = 0x68; hiveBytes[4097] = 0x62; hiveBytes[4098] = 0x69; hiveBytes[4099] = 0x6E;
+            BitConverter.GetBytes(0U).CopyTo(hiveBytes, 4100);
+            BitConverter.GetBytes(4096U).CopyTo(hiveBytes, 4104);
+            int nkSize = 96;
+            BitConverter.GetBytes(-nkSize).CopyTo(hiveBytes, 4128);
+            hiveBytes[4132] = 0x6E; hiveBytes[4133] = 0x6B;
+            BitConverter.GetBytes((ushort)0x0024).CopyTo(hiveBytes, 4134);
+            BitConverter.GetBytes((ushort)4).CopyTo(hiveBytes, 4200);
+            Encoding.ASCII.GetBytes("ROOT").CopyTo(hiveBytes, 4204);
+            BitConverter.GetBytes(4096 - 32 - 96).CopyTo(hiveBytes, 4128 + 96);
+            uint chk = 0;
+            for (int ci = 0; ci < 508; ci += 4) chk ^= BitConverter.ToUInt32(hiveBytes, ci);
+            BitConverter.GetBytes(chk).CopyTo(hiveBytes, 508);
+            File.WriteAllBytes(Path.Combine(outputDir, "SYSTEM.hive"), hiveBytes);
+
             // Test server lifecycle
             int testPort = 18080 + (new Random().Next(100, 900));
             using (var server = new LocalWebServer(testImage, outputDir, testPort))
@@ -60,6 +86,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("USB-Recovery"), "Dashboard HTML contains application title");
                     Check(html.Contains("Cluster Allocation Map"), "Dashboard HTML contains Cluster Allocation Map");
                     Check(html.Contains("Raw Hex & Forensic Data Inspector"), "Dashboard HTML contains Hex Inspector");
+                    Check(html.Contains("Registry Forensics"), "Dashboard HTML contains Registry Forensics tab");
                 }
 
                 // Test 2: GET /api/status
@@ -169,7 +196,39 @@ public static class LocalWebServerTests
                     Check(reportHtml.Contains("recovered_file.txt"), "Report HTML contains artifact row");
                 }
 
-                // Test 10: 404 on unknown endpoint
+                // Test 10: GET /api/registry endpoints
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+
+                    // 10a. List hives
+                    string listJson = client.DownloadString(baseUrl + "/api/registry?action=list");
+                    var serializer = new JavaScriptSerializer();
+                    var listObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(listJson);
+                    Check(listObj != null && listObj.ContainsKey("hives"), "Registry list JSON parsed");
+                    var hives = (System.Collections.ArrayList)listObj["hives"];
+                    Check(hives.Count >= 1, "Registry hives list contains at least 1 hive");
+
+                    // 10b. Summary
+                    string summaryJson = client.DownloadString(baseUrl + "/api/registry?action=summary&path=SYSTEM.hive");
+                    var sumObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(summaryJson);
+                    Check(sumObj != null && sumObj.ContainsKey("isChecksumValid"), "Registry summary JSON parsed");
+                    Check(Convert.ToBoolean(sumObj["isChecksumValid"]), "Registry header checksum verified via web API");
+                    Check(sumObj["embeddedFileName"].ToString() == "SYSTEM", "Registry embedded file name matches SYSTEM");
+
+                    // 10c. Key details
+                    string keyJson = client.DownloadString(baseUrl + "/api/registry?action=key&path=SYSTEM.hive&keyPath=ROOT");
+                    var keyObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(keyJson);
+                    Check(keyObj != null && keyObj.ContainsKey("name"), "Registry key JSON parsed");
+                    Check(keyObj["name"].ToString() == "ROOT", "Registry ROOT key verified via web API");
+
+                    // 10d. Carve deleted
+                    string carveJson = client.DownloadString(baseUrl + "/api/registry?action=carve&path=SYSTEM.hive");
+                    var carveObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(carveJson);
+                    Check(carveObj != null && carveObj.ContainsKey("carvedKeysCount"), "Registry carve JSON parsed");
+                }
+
+                // Test 11: 404 on unknown endpoint
                 bool got404 = false;
                 try
                 {
