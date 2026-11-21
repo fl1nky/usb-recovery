@@ -276,6 +276,45 @@ namespace UsbRecovery
             }
         }
 
+        public void AddLnk(LnkArtifact lnk)
+        {
+            if (lnk == null) return;
+            DateTime ts = lnk.WriteTimeUtc != DateTime.MinValue ? lnk.WriteTimeUtc :
+                         (lnk.AccessTimeUtc != DateTime.MinValue ? lnk.AccessTimeUtc : lnk.CreationTimeUtc);
+            if (ts == DateTime.MinValue) return;
+
+            string target = !String.IsNullOrEmpty(lnk.TargetPath) ? lnk.TargetPath :
+                           (!String.IsNullOrEmpty(lnk.RelativePath) ? lnk.RelativePath : "Unknown Target");
+
+            string desc = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "Size: {0} bytes, Arguments: {1}", lnk.TargetFileSize, !String.IsNullOrEmpty(lnk.CommandLineArguments) ? lnk.CommandLineArguments : "None");
+
+            string extra = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "Drive: {0} ({1}), MAC: {2}, Machine: {3}",
+                !String.IsNullOrEmpty(lnk.VolumeLabel) ? lnk.VolumeLabel : "N/A",
+                !String.IsNullOrEmpty(lnk.DriveSerialNumber) ? lnk.DriveSerialNumber : "N/A",
+                !String.IsNullOrEmpty(lnk.MacAddress) ? lnk.MacAddress : "N/A",
+                !String.IsNullOrEmpty(lnk.MachineId) ? lnk.MachineId : "N/A");
+
+            AddEvent(
+                ts,
+                "LNK_SHORTCUT",
+                "SHORTCUT_ACCESSED",
+                target,
+                desc,
+                extra
+            );
+        }
+
+        public void AddLnkRecords(IEnumerable<LnkArtifact> lnkRecords)
+        {
+            if (lnkRecords == null) return;
+            foreach (var l in lnkRecords)
+            {
+                AddLnk(l);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

@@ -116,7 +116,18 @@ public static class ForensicTimelineTests
         };
         timeline.AddShellbags(new[] { sb });
 
-        Check(timeline.Count >= 9, "Timeline collected at least 9 multi-source events");
+        // 9. LNK Shortcut
+        var lnk = new LnkArtifact
+        {
+            TargetPath = @"E:\Confidential\financial_plans.xlsx",
+            TargetFileSize = 654321,
+            WriteTimeUtc = new DateTime(2026, 11, 21, 14, 6, 0, DateTimeKind.Utc),
+            VolumeLabel = "CORP_USB",
+            MacAddress = "00:1A:2B:3C:4D:5E"
+        };
+        timeline.AddLnk(lnk);
+
+        Check(timeline.Count >= 10, "Timeline collected at least 10 multi-source events");
     }
 
     private static void TestChronologicalSorting()

@@ -119,7 +119,12 @@ public static class LocalWebServerTests
                     Check(html.Contains("Cluster Allocation Map"), "Dashboard HTML contains Cluster Allocation Map");
                     Check(html.Contains("Raw Hex & Forensic Data Inspector"), "Dashboard HTML contains Hex Inspector");
                     Check(html.Contains("Registry Forensics"), "Dashboard HTML contains Registry Forensics tab");
-                    Check(html.Contains("Timeline & Deleted Files"), "Dashboard HTML contains USN Timeline tab");
+                    Check(html.Contains("USN Journal"), "Dashboard HTML contains USN Journal tab");
+                    Check(html.Contains("Super-Timeline"), "Dashboard HTML contains Super-Timeline tab");
+                    Check(html.Contains("Amcache"), "Dashboard HTML contains Amcache tab");
+                    Check(html.Contains("Shellbags"), "Dashboard HTML contains Shellbags tab");
+                    Check(html.Contains("Entropy"), "Dashboard HTML contains Entropy tab");
+                    Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
                 // Test 2: GET /api/status
@@ -307,6 +312,52 @@ public static class LocalWebServerTests
                         got404 = true;
                 }
                 Check(got404, "Unknown endpoint returns 404 Not Found");
+
+                // Test 13: GET /api/amcache
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string amcacheJson = client.DownloadString(baseUrl + "/api/amcache");
+                    var serializer = new JavaScriptSerializer();
+                    var amcacheObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(amcacheJson);
+                    Check(amcacheObj != null, "Amcache JSON parsed");
+                    Check(amcacheObj.ContainsKey("totalEntries"), "Amcache contains totalEntries");
+                    Check(amcacheObj.ContainsKey("alertCount"), "Amcache contains alertCount");
+                    Check(amcacheObj.ContainsKey("results"), "Amcache contains results");
+                }
+
+                // Test 14: GET /api/shellbags
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string sbJson = client.DownloadString(baseUrl + "/api/shellbags");
+                    var serializer = new JavaScriptSerializer();
+                    var sbObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(sbJson);
+                    Check(sbObj != null, "Shellbags JSON parsed");
+                    Check(sbObj.ContainsKey("totalRecords"), "Shellbags contains totalRecords");
+                    Check(sbObj.ContainsKey("results"), "Shellbags contains results");
+                }
+
+                // Test 15: GET /api/entropy
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string entJson = client.DownloadString(baseUrl + "/api/entropy");
+                    var serializer = new JavaScriptSerializer();
+                    var entObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(entJson);
+                    Check(entObj != null, "Entropy JSON parsed");
+                    Check(entObj.ContainsKey("MeanEntropy"), "Entropy contains MeanEntropy");
+                    Check(entObj.ContainsKey("IsSuspiciousRansomware"), "Entropy contains IsSuspiciousRansomware");
+                }
+
+                // Test 16: GET /api/court-report
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string reportHtml = client.DownloadString(baseUrl + "/api/court-report");
+                    Check(reportHtml.Contains("RULE 902(14)"), "Court report HTML contains Rule 902(14)");
+                    Check(reportHtml.Contains("Chain of Custody"), "Court report HTML contains Chain of Custody");
+                }
 
                 server.Stop();
                 Check(!server.IsRunning, "Server stops cleanly");

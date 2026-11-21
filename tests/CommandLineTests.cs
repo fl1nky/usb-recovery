@@ -47,6 +47,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "court-report" }), "court-report is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "benchmark" }), "benchmark is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "lnk" }), "lnk is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -130,6 +132,11 @@ public static class CommandLineTests
             string courtReportOut = Path.Combine(work, "court_report_test.html");
             Check(CommandLineHandler.Run(new[] { "court-report", syntheticImage, "-o", courtReportOut }) == 0, "court-report execution returns 0");
             Check(File.Exists(courtReportOut), "court report HTML file exists");
+
+            // Benchmark execution test
+            Check(CommandLineHandler.Run(new[] { "benchmark", "--mb", "4", "--json" }) == 0, "benchmark execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "lnk" }) == 2, "lnk without args returns 2");
+            Check(CommandLineHandler.Run(new[] { "lnk", Path.Combine(work, "missing.lnk") }) == 2, "lnk missing file returns 2");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");

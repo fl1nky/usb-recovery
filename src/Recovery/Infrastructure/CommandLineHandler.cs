@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -116,6 +116,12 @@ namespace UsbRecovery
                 case "court-report":
                     return ExecuteCourtReport(args);
 
+                case "benchmark":
+                    return ExecuteBenchmark(args);
+
+                case "lnk":
+                    return ExecuteLnk(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -151,6 +157,8 @@ namespace UsbRecovery
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
             Console.WriteLine("  court-report <image_path>      Rule 902(14) Expert Witness court package with Chain of Custody hashes");
+            Console.WriteLine("  benchmark [--mb <size>] [--json] Run high-speed forensic benchmark & zero-leak audit (SWAR, Entropy, MFT)");
+            Console.WriteLine("  lnk <file_or_dir> [--json]     Parse Windows Shell Link (.lnk) shortcuts, target paths, MAC & serials");
             Console.WriteLine("  registry <hive_path>           Inspect Windows REGF registry hive, dump system summary, search, or carve");
             Console.WriteLine("  usn <image_or_drive>           Parse NTFS USN Change Journal ($UsnJrnl:$J) and reconstruct deleted files");
             Console.WriteLine("  carve-mft <image_path> -o <dir> Carve 1024-byte NTFS $MFT FILE records & extract resident payloads");
@@ -2067,6 +2075,106 @@ namespace UsbRecovery
                 Console.Error.WriteLine("Error generating court report: {0}", ex.Message);
                 return 1;
             }
+        }
+
+        // =========================================================================
+        // Benchmark Command
+        // =========================================================================
+        private static int ExecuteBenchmark(string[] args)
+        {
+            int mb = 32;
+            bool json = false;
+            for (int i = 1; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+                else if ((args[i] == "--mb" || args[i] == "-s") && i + 1 < args.Length)
+                {
+                    int val;
+                    if (int.TryParse(args[++i], out val) && val > 0) mb = val;
+                }
+            }
+
+            var report = ForensicBenchmarkSuite.RunAll(mb);
+            if (json)
+            {
+                Console.WriteLine(report.ToJson());
+            }
+            else
+            {
+                ForensicBenchmarkSuite.PrintReport(report);
+            }
+            return 0;
+        }
+
+        // =========================================================================
+        // LNK Command
+        // =========================================================================
+        private static int ExecuteLnk(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'lnk' requires a .lnk file or directory path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe lnk <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            var artifacts = new List<LnkArtifact>();
+            if (File.Exists(path))
+            {
+                try
+                {
+                    artifacts.Add(LnkParser.ParseFile(path));
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine("Error parsing LNK file: {0}", ex.Message);
+                    return 1;
+                }
+            }
+            else
+            {
+                string[] files = Directory.GetFiles(path, "*.lnk", SearchOption.AllDirectories);
+                for (int f = 0; f < files.Length; f++)
+                {
+                    try { artifacts.Add(LnkParser.ParseFile(files[f])); } catch { }
+                }
+            }
+
+            if (json)
+            {
+                var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                Console.WriteLine(js.Serialize(artifacts));
+            }
+            else
+            {
+                Console.WriteLine("================================================================================");
+                Console.WriteLine("  USB-Recovery — Windows Shell Link (.lnk) Forensic Parser");
+                Console.WriteLine("================================================================================");
+                Console.WriteLine("  Total Artifacts: {0:N0}", artifacts.Count);
+                Console.WriteLine("================================================================================");
+                int limit = Math.Min(artifacts.Count, 25);
+                for (int i = 0; i < limit; i++)
+                {
+                    var a = artifacts[i];
+                    Console.WriteLine("  [{0:N0}] Target: {1}", i + 1, a.TargetPath);
+                    Console.WriteLine("       Size:   {0:N0} bytes | Modified: {1:yyyy-MM-dd HH:mm:ss} UTC", a.TargetFileSize, a.WriteTimeUtc);
+                    Console.WriteLine("       Volume: {0} (Serial: {1}) | MAC: {2} | Host: {3}", a.VolumeLabel, a.DriveSerialNumber, a.MacAddress, a.MachineId);
+                }
+            }
+            return 0;
         }
     }
 }

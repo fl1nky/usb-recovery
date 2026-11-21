@@ -27,6 +27,18 @@ namespace UsbRecovery
         readonly object shimLock = new object();
         List<AppCompatCacheEntry> cachedShimRecords;
         string cachedShimPath;
+
+        readonly object amcacheLock = new object();
+        List<AmcacheEntry> cachedAmcacheRecords;
+        string cachedAmcachePath;
+
+        readonly object shellbagsLock = new object();
+        List<ShellbagRecord> cachedShellbagRecords;
+        string cachedShellbagsPath;
+
+        readonly object entropyLock = new object();
+        EntropyReport cachedEntropyReport;
+        string cachedEntropyPath;
         List<UsnRecord> cachedUsnRecords;
         string cachedUsnPath;
 
@@ -327,6 +339,22 @@ namespace UsbRecovery
                 else if (path == "/api/timeline")
                 {
                     ServeTimeline(req, res);
+                }
+                else if (path == "/api/amcache")
+                {
+                    ServeAmcache(req, res);
+                }
+                else if (path == "/api/shellbags")
+                {
+                    ServeShellbags(req, res);
+                }
+                else if (path == "/api/entropy")
+                {
+                    ServeEntropy(req, res);
+                }
+                else if (path == "/api/court-report")
+                {
+                    ServeCourtReport(req, res);
                 }
                 else if (path == "/api/scan" && req.HttpMethod == "POST")
                 {
@@ -1662,6 +1690,193 @@ namespace UsbRecovery
             });
         }
 
+
+        void ServeAmcache(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<AmcacheEntry> entries = null;
+            lock (amcacheLock)
+            {
+                if (cachedAmcachePath == imagePath && cachedAmcacheRecords != null)
+                {
+                    entries = cachedAmcacheRecords;
+                }
+                else
+                {
+                    entries = new List<AmcacheEntry>();
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("Amcache.hve", SearchOption.AllDirectories);
+                        if (files.Length > 0)
+                        {
+                            try { entries = AmcacheParser.Parse(files[0].FullName); } catch { }
+                        }
+                    }
+                    if (entries.Count == 0 && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                entries = AmcacheParser.CarveFromStream(s, CancellationToken.None);
+                            }
+                        }
+                        catch { }
+                    }
+                    cachedAmcacheRecords = entries;
+                    cachedAmcachePath = imagePath;
+                }
+            }
+
+            int alertCount = 0;
+            for (int i = 0; i < entries.Count; i++) if (entries[i].IsSuspicious) alertCount++;
+
+            var list = new List<object>();
+            int limit = Math.Min(300, entries.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                var a = entries[i];
+                list.Add(new
+                {
+                    index = i + 1,
+                    path = a.Path,
+                    sha1 = a.Sha1,
+                    size = a.FileSize,
+                    publisher = a.Publisher,
+                    isSuspicious = a.IsSuspicious,
+                    reason = a.SuspicionReason,
+                    lastModifiedUtc = a.KeyLastWriteTimeUtc != DateTime.MinValue ? a.KeyLastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : (a.LinkerTimestampUtc != DateTime.MinValue ? a.LinkerTimestampUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—")
+                });
+            }
+
+            WriteJson(res, new
+            {
+                totalEntries = entries.Count,
+                alertCount = alertCount,
+                results = list
+            });
+        }
+
+        void ServeShellbags(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<ShellbagRecord> records = null;
+            lock (shellbagsLock)
+            {
+                if (cachedShellbagsPath == imagePath && cachedShellbagRecords != null)
+                {
+                    records = cachedShellbagRecords;
+                }
+                else
+                {
+                    records = new List<ShellbagRecord>();
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("*", SearchOption.AllDirectories);
+                        for (int i = 0; i < files.Length; i++)
+                        {
+                            string fname = files[i].Name.ToLowerInvariant();
+                            if (fname == "usrclass.dat" || fname == "ntuser.dat")
+                            {
+                                try
+                                {
+                                    var parsed = ShellbagsParser.Parse(files[i].FullName);
+                                    records.AddRange(parsed);
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+                    cachedShellbagRecords = records;
+                    cachedShellbagsPath = imagePath;
+                }
+            }
+
+            var list = new List<object>();
+            int limit = Math.Min(300, records.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                var r = records[i];
+                list.Add(new
+                {
+                    index = i + 1,
+                    fullPath = r.FullPath,
+                    itemType = r.ItemType.ToString(),
+                    modifiedUtc = r.ModifiedTimeUtc != DateTime.MinValue ? r.ModifiedTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    registryAccessUtc = r.KeyLastWriteTimeUtc != DateTime.MinValue ? r.KeyLastWriteTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    source = r.RegistrySource
+                });
+            }
+
+            WriteJson(res, new
+            {
+                totalRecords = records.Count,
+                results = list
+            });
+        }
+
+        void ServeEntropy(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            EntropyReport report = null;
+            lock (entropyLock)
+            {
+                if (cachedEntropyPath == imagePath && cachedEntropyReport != null)
+                {
+                    report = cachedEntropyReport;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                report = EntropyClassifier.AnalyzeStream(s, 16 * 1024 * 1024); // 16 MiB analysis
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            WriteJson(res, new { error = "Error computing entropy: " + ex.Message });
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        report = new EntropyReport();
+                    }
+                    cachedEntropyReport = report;
+                    cachedEntropyPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
+        void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            var meta = new ForensicCaseMetadata
+            {
+                CaseNumber = "CR-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmm"),
+                InvestigatorName = "Digital Forensics Lead",
+                SourcePath = imagePath ?? "USB-Recovery Session",
+                TotalBytes = imageSize
+            };
+
+                        ForensicTimeline activeTl = new ForensicTimeline();
+            if (cachedMftRecords != null) activeTl.AddMftRecords(cachedMftRecords);
+            if (cachedShimRecords != null) activeTl.AddShimcache(cachedShimRecords);
+            if (cachedAmcacheRecords != null) activeTl.AddAmcache(cachedAmcacheRecords);
+            if (cachedShellbagRecords != null) activeTl.AddShellbags(cachedShellbagRecords);
+
+            string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
+            byte[] bytes = Encoding.UTF8.GetBytes(html);
+
+            res.StatusCode = 200;
+            res.ContentType = "text/html; charset=utf-8";
+            res.ContentLength64 = bytes.Length;
+            res.OutputStream.Write(bytes, 0, bytes.Length);
+            res.OutputStream.Close();
+        }
+
         const string DashboardHtml = @"<!DOCTYPE html>
 <html lang=""en"">
 <head>
@@ -1758,6 +1973,10 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('mft')"">🧩 MFT Carver & Timestomp</button>
   <button class=""tab-btn"" onclick=""switchTab('shimcache')"">⚡ Shimcache</button>
   <button class=""tab-btn"" onclick=""switchTab('timeline')"">🌐 Super-Timeline</button>
+  <button class=""tab-btn"" onclick=""switchTab('amcache')"">🛡️ Amcache</button>
+  <button class=""tab-btn"" onclick=""switchTab('shellbags')"">📁 Shellbags</button>
+  <button class=""tab-btn"" onclick=""switchTab('entropy')"">⚡ Entropy</button>
+  <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>
   <!-- OVERVIEW TAB -->
