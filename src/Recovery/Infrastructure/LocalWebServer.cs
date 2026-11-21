@@ -100,6 +100,34 @@ namespace UsbRecovery
                         this.imageSize = new FileInfo(imagePath).Length;
                     }
                 }
+                else if (Aff4ImageReader.IsAff4File(imagePath))
+                {
+                    try
+                    {
+                        using (var aff4 = Aff4ImageReader.Open(imagePath))
+                        {
+                            this.imageSize = aff4.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
+                else if (Qcow2ImageReader.IsQcow2File(imagePath))
+                {
+                    try
+                    {
+                        using (var qcow = Qcow2ImageReader.Open(imagePath))
+                        {
+                            this.imageSize = qcow.Length;
+                        }
+                    }
+                    catch
+                    {
+                        this.imageSize = new FileInfo(imagePath).Length;
+                    }
+                }
                 else
                 {
                     this.imageSize = new FileInfo(imagePath).Length;
@@ -153,6 +181,14 @@ namespace UsbRecovery
             if (VmdkImageReader.IsVmdkFile(imagePath))
             {
                 return VmdkImageReader.Open(imagePath);
+            }
+            if (Aff4ImageReader.IsAff4File(imagePath))
+            {
+                return Aff4ImageReader.Open(imagePath);
+            }
+            if (Qcow2ImageReader.IsQcow2File(imagePath))
+            {
+                return Qcow2ImageReader.Open(imagePath);
             }
             return new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         }
@@ -713,6 +749,8 @@ namespace UsbRecovery
                 else if (VhdImageReader.IsVhdFile(imagePath)) detectedFormat = "Microsoft VHD (Virtual Hard Disk)";
                 else if (VhdxImageReader.IsVhdxFile(imagePath)) detectedFormat = "Microsoft VHDX (V2 Virtual Hard Disk)";
                 else if (VmdkImageReader.IsVmdkFile(imagePath)) detectedFormat = "VMware VMDK (Virtual Machine Disk)";
+                else if (Aff4ImageReader.IsAff4File(imagePath)) detectedFormat = "AFF4 Forensic Container (Standard Image / Map)";
+                else if (Qcow2ImageReader.IsQcow2File(imagePath)) detectedFormat = "QEMU Copy-On-Write (QCOW2 v2/v3)";
             }
 
             var fileRecords = new List<Dictionary<string, object>>();
