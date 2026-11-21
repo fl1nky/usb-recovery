@@ -67,10 +67,60 @@ namespace UsbRecovery
         {
             if (stream == null) throw new ArgumentNullException("stream");
 
-            byte[] buffer;
             if (stream is MemoryStream)
             {
-                buffer = ((MemoryStream)stream).ToArray();
+                return Parse(((MemoryStream)stream).ToArray());
+            }
+
+            if (stream.CanSeek)
+            {
+                List<EvtxRecord> records = new List<EvtxRecord>();
+                long streamLen = stream.Length;
+                if (streamLen < 512) return records;
+
+                stream.Position = 0;
+                byte[] header = new byte[FileHeaderSize];
+                int hRead = stream.Read(header, 0, FileHeaderSize);
+
+                bool hasFileHeader = (hRead >= FileHeaderSize &&
+                    header[0] == 0x45 && header[1] == 0x6C && header[2] == 0x66 && header[3] == 0x46 &&
+                    header[4] == 0x69 && header[5] == 0x6C && header[6] == 0x65 && header[7] == 0x00);
+
+                if (hasFileHeader)
+                {
+                    stream.Position = FileHeaderSize;
+                }
+                else
+                {
+                    stream.Position = 0;
+                }
+
+                byte[] chunkBuffer = new byte[ChunkSize];
+                while (stream.Position + 512 <= streamLen)
+                {
+                    long chunkStartPos = stream.Position;
+                    int toRead = (int)Math.Min((long)ChunkSize, streamLen - chunkStartPos);
+                    int bytesRead = ReadFully(stream, chunkBuffer, 0, toRead);
+                    if (bytesRead < 512) break;
+
+                    bool isChunk = chunkBuffer[0] == 0x45 && chunkBuffer[1] == 0x6C &&
+                                   chunkBuffer[2] == 0x66 && chunkBuffer[3] == 0x43 &&
+                                   chunkBuffer[4] == 0x68 && chunkBuffer[5] == 0x6E &&
+                                   chunkBuffer[6] == 0x6B && chunkBuffer[7] == 0x00;
+
+                    if (isChunk)
+                    {
+                        ParseChunk(chunkBuffer, 0, bytesRead, records);
+                        if (bytesRead < ChunkSize) break;
+                    }
+                    else
+                    {
+                        long nextPos = chunkStartPos + 512;
+                        if (nextPos >= streamLen) break;
+                        stream.Position = nextPos;
+                    }
+                }
+                return records;
             }
             else
             {
@@ -81,12 +131,23 @@ namespace UsbRecovery
                     while ((bytesRead = stream.Read(temp, 0, temp.Length)) > 0)
                     {
                         ms.Write(temp, 0, bytesRead);
+                        if (ms.Length > 64 * 1024 * 1024) break;
                     }
-                    buffer = ms.ToArray();
+                    return Parse(ms.ToArray());
                 }
             }
+        }
 
-            return Parse(buffer);
+        private static int ReadFully(Stream stream, byte[] buffer, int offset, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int r = stream.Read(buffer, offset + total, count - total);
+                if (r <= 0) break;
+                total += r;
+            }
+            return total;
         }
 
         public static List<EvtxRecord> Parse(byte[] buffer)

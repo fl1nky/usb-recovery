@@ -34,6 +34,7 @@ namespace UsbRecovery
             try
             {
                 AttachConsole(ATTACH_PARENT_PROCESS);
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
             }
             catch { }
 

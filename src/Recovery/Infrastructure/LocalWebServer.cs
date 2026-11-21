@@ -162,6 +162,8 @@ namespace UsbRecovery
                 if (scanCts != null)
                 {
                     scanCts.Cancel();
+                    scanCts.Dispose();
+                    scanCts = null;
                 }
             }
             catch { }
@@ -180,6 +182,7 @@ namespace UsbRecovery
         public void Dispose()
         {
             Stop();
+            try { listener.Close(); } catch { }
         }
 
         static int FindFreePort()
@@ -620,9 +623,17 @@ namespace UsbRecovery
 
             res.ContentType = mime;
             res.Headers.Add("Content-Disposition", "inline; filename=\"" + Path.GetFileName(full) + "\"");
-            byte[] fileBytes = File.ReadAllBytes(full);
-            res.ContentLength64 = fileBytes.Length;
-            res.OutputStream.Write(fileBytes, 0, fileBytes.Length);
+            var fileInfo = new FileInfo(full);
+            res.ContentLength64 = fileInfo.Length;
+            using (var fs = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+            {
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = fs.Read(buf, 0, buf.Length)) > 0)
+                {
+                    res.OutputStream.Write(buf, 0, n);
+                }
+            }
         }
 
         void ServeExportZip(HttpListenerRequest req, HttpListenerResponse res)
@@ -706,8 +717,11 @@ namespace UsbRecovery
                     {
                         var f = files[fi];
                         string rel = f.FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
-                        byte[] fileBytes = File.ReadAllBytes(f.FullName);
-                        byte[] hBytes = sha.ComputeHash(fileBytes);
+                        byte[] hBytes;
+                        using (var fileStream = new FileStream(f.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                        {
+                            hBytes = sha.ComputeHash(fileStream);
+                        }
                         var hSb = new StringBuilder(64);
                         for (int i = 0; i < hBytes.Length; i++) hSb.Append(hBytes[i].ToString("x2"));
                         string hashStr = hSb.ToString();
@@ -922,6 +936,17 @@ namespace UsbRecovery
                             isScanning = false;
                             scanStatus = "error";
                             scanError = ex.Message;
+                        }
+                    }
+                    finally
+                    {
+                        lock (scanLock)
+                        {
+                            if (scanCts != null)
+                            {
+                                try { scanCts.Dispose(); } catch { }
+                                scanCts = null;
+                            }
                         }
                     }
                 });
@@ -1424,6 +1449,31 @@ setInterval(refreshStatus, 1500);
             return ~crc;
         }
 
+        public static uint UpdateCrc32(uint runningCrc, byte[] data, int offset, int length)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                byte b = data[offset + i];
+                runningCrc = (runningCrc >> 8) ^ CrcTable[(runningCrc & 0xFF) ^ b];
+            }
+            return runningCrc;
+        }
+
+        public static uint ComputeFileCrc32(string filePath)
+        {
+            uint runningCrc = 0xFFFFFFFFu;
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+            {
+                byte[] buf = new byte[65536];
+                int n;
+                while ((n = fs.Read(buf, 0, buf.Length)) > 0)
+                {
+                    runningCrc = UpdateCrc32(runningCrc, buf, 0, n);
+                }
+            }
+            return ~runningCrc;
+        }
+
         private struct ZipEntryRecord
         {
             public string RelativePath;
@@ -1446,9 +1496,8 @@ setInterval(refreshStatus, 1500);
                 string rel = fi.FullName.Substring(baseDirectory.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
                 byte[] nameBytes = Encoding.UTF8.GetBytes(rel);
 
-                byte[] fileData = File.ReadAllBytes(fi.FullName);
-                uint crc = ComputeCrc32(fileData, 0, fileData.Length);
-                uint size = (uint)fileData.Length;
+                uint crc = ComputeFileCrc32(fi.FullName);
+                uint size = (uint)Math.Min((long)uint.MaxValue, fi.Length);
 
                 DateTime mod = fi.LastWriteTime;
                 ushort dosTime = (ushort)(((mod.Hour & 0x1F) << 11) | ((mod.Minute & 0x3F) << 5) | ((mod.Second / 2) & 0x1F));
@@ -1493,9 +1542,17 @@ setInterval(refreshStatus, 1500);
                 Array.Copy(nameBytes, 0, localHeader, 30, nameBytes.Length);
 
                 output.Write(localHeader, 0, localHeader.Length);
-                output.Write(fileData, 0, fileData.Length);
+                using (var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                {
+                    byte[] chunk = new byte[65536];
+                    int n;
+                    while ((n = fs.Read(chunk, 0, chunk.Length)) > 0)
+                    {
+                        output.Write(chunk, 0, n);
+                    }
+                }
 
-                currentOffset += (uint)(localHeader.Length + fileData.Length);
+                currentOffset += (uint)(localHeader.Length + size);
             }
 
             uint centralDirOffset = currentOffset;

@@ -176,10 +176,33 @@ namespace UsbRecovery
 
             if (!validHeader)
             {
-                // Fallback to stream-wide heuristic sliding-window carving
+                // Fallback to stream-wide heuristic sliding-window carving with bounded memory
                 stream.Position = 0;
-                byte[] allData = ReadStreamFully(stream);
-                CarveBufferInternal(allData, 0, allData.Length, 0, 0, CarvedRecordOrigin.HeuristicScan, results);
+                int blockSize = 65536;
+                int overlap = 2048;
+                byte[] block = new byte[blockSize];
+                long currentOffset = 0;
+                int buffered = 0;
+
+                while (true)
+                {
+                    int needed = blockSize - buffered;
+                    int read = stream.Read(block, buffered, needed);
+                    int totalInBlock = buffered + read;
+                    if (totalInBlock <= 4) break;
+
+                    CarveBufferInternal(block, 0, totalInBlock, 0, currentOffset, CarvedRecordOrigin.HeuristicScan, results);
+
+                    if (read <= 0 || read < needed)
+                    {
+                        break;
+                    }
+
+                    int retain = Math.Min(overlap, totalInBlock);
+                    Buffer.BlockCopy(block, totalInBlock - retain, block, 0, retain);
+                    buffered = retain;
+                    currentOffset += (totalInBlock - retain);
+                }
                 return results;
             }
 
@@ -895,23 +918,6 @@ namespace UsbRecovery
             }
         }
 
-        private static byte[] ReadStreamFully(Stream stream)
-        {
-            if (stream is MemoryStream)
-            {
-                return ((MemoryStream)stream).ToArray();
-            }
-            using (MemoryStream ms = new MemoryStream())
-            {
-                byte[] temp = new byte[65536];
-                int r;
-                while ((r = stream.Read(temp, 0, temp.Length)) > 0)
-                {
-                    ms.Write(temp, 0, r);
-                }
-                return ms.ToArray();
-            }
-        }
 
         private static uint ReadUInt32BE(byte[] buffer, int offset)
         {

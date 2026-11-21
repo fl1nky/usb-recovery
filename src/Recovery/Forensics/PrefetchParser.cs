@@ -57,6 +57,7 @@ namespace UsbRecovery
                     while ((bytesRead = stream.Read(temp, 0, temp.Length)) > 0)
                     {
                         ms.Write(temp, 0, bytesRead);
+                        if (ms.Length > 32 * 1024 * 1024) break; // Guard against unbounded stream memory clogging
                     }
                     buffer = ms.ToArray();
                 }
