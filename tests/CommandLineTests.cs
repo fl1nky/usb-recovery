@@ -43,6 +43,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "carve-mft" }), "carve-mft is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "timeline" }), "timeline is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "f2fs-scout" }), "f2fs-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "exfat-scout" }), "exfat-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
@@ -91,6 +92,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "timeline", Path.Combine(work, "missing.raw") }) == 2, "timeline missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "f2fs-scout" }) == 2, "f2fs-scout without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "f2fs-scout", Path.Combine(work, "missing.raw") }) == 2, "f2fs-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "exfat-scout" }) == 2, "exfat-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "exfat-scout", Path.Combine(work, "missing.raw") }) == 2, "exfat-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");

@@ -15,7 +15,7 @@
 ## ⚡ Highlights
 
 - **Forensic Containers & Virtual Disks**: Native, pure C# random-access stream readers for **E01 / Ex01 (Expert Witness)**, **AFF4 (Advanced Forensic Format 4)**, **QCOW2 (QEMU / KVM v2/v3)**, **VHD**, **VHDX**, and **VMDK**.
-- **Modern Filesystem Scouts**: Metadata-level traversal and carving for **F2FS** (flash-friendly NAT table, inline inode payloads, extent mapping), **Btrfs** (chunk tree & generation traversal), **XFS** (allocation group & BMBT trees), **ZFS** (uberblock & dnode traversal), **APFS**, **Ext4**, **ReFS**, **NTFS**, and **FAT12/16/32/exFAT**.
+- **Modern Filesystem Scouts**: Metadata-level traversal and carving for **exFAT** (deep deleted directory set carving 0x05+0x40+0x41, contiguous NoFatChain stream extraction, primary/backup VBR checksum), **F2FS** (flash-friendly NAT table, inline inode payloads, extent mapping), **Btrfs** (chunk tree & generation traversal), **XFS** (allocation group & BMBT trees), **ZFS** (uberblock & dnode traversal), **APFS**, **Ext4**, **ReFS**, **NTFS**, and **FAT12/16/32**.
 - **Deep Windows Forensic Artifacts**:
   - **NTFS USN Change Journal ($UsnJrnl:$J)**: V2/V3 streaming parser, 48-bit MFT indexing, and complete deleted file lifecycle reconstruction.
   - **NTFS $MFT Record Carver**: 1024-byte `FILE` record carver with Fixup array correction, resident payload extraction, data runs unpacking, and timestomping divergence detection.
@@ -91,6 +91,9 @@ USB-Recovery.exe court-report C:\images\evidence.e01 -o C:\reports\court_package
 
 # Scout F2FS flash filesystem superblocks, NAT mappings, and file extents
 USB-Recovery.exe f2fs-scout C:\images\nvme_flash.raw
+
+# Scout exFAT flash storage, carve deleted directory entry sets & recover files
+USB-Recovery.exe exfat-scout C:\images\sdcard_exfat.raw --json
 
 # Run high-throughput forensic benchmark and zero-leak memory audit
 USB-Recovery.exe benchmark

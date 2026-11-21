@@ -127,7 +127,19 @@ public static class ForensicTimelineTests
         };
         timeline.AddLnk(lnk);
 
-        Check(timeline.Count >= 10, "Timeline collected at least 10 multi-source events");
+        // 10. exFAT Carved Records
+        var exFatRec = new ExFatScout.ExFatFileRecord
+        {
+            Name = "exfiltrated_plan.docx",
+            FullPath = @"$CARVED_DELETED\exfiltrated_plan.docx",
+            Size = 40960,
+            IsDeleted = true,
+            NoFatChain = true,
+            ModifiedTimeUtc = new DateTime(2026, 11, 21, 14, 7, 0, DateTimeKind.Utc)
+        };
+        timeline.AddExFatFiles(new[] { exFatRec });
+
+        Check(timeline.Count >= 11, "Timeline collected at least 11 multi-source events");
     }
 
     private static void TestChronologicalSorting()

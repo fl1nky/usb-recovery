@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -104,6 +104,9 @@ namespace UsbRecovery
                 case "f2fs-scout":
                     return ExecuteF2fsScout(args);
 
+                case "exfat-scout":
+                    return ExecuteExFatScout(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -153,6 +156,7 @@ namespace UsbRecovery
             Console.WriteLine("  xfs-scout <image_path>         Forensic XFS metadata scout, AG superblocks & BMBT extent recovery");
             Console.WriteLine("  zfs-scout <image_path>         Forensic ZFS pool scout, uberblocks & dnode object traversal");
             Console.WriteLine("  f2fs-scout <image_path>        Flash-Friendly File System (F2FS) scout for mobile/NVMe flash storage");
+            Console.WriteLine("  exfat-scout <image_path>       Forensic exFAT scout, deleted entry sets carving & recovery");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -1814,6 +1818,86 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during F2FS scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // =========================================================================
+        // exFAT Command
+        // =========================================================================
+        private static int ExecuteExFatScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'exfat-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe exfat-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string image = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(image))
+            {
+                Console.Error.WriteLine("Error: Image not found: {0}", image);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    var result = ExFatScout.Scout(fs, CancellationToken.None);
+                    if (json)
+                    {
+                        Console.WriteLine(result.ToJson());
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — Forensic exFAT Filesystem Scout & Carver");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:          {0}", result.Status);
+                        if (result.PrimaryBoot != null)
+                        {
+                            Console.WriteLine("  Volume Label:    {0}", string.IsNullOrEmpty(result.PrimaryBoot.VolumeLabel) ? "(none)" : result.PrimaryBoot.VolumeLabel);
+                            Console.WriteLine("  Sector Size:     {0} bytes", result.PrimaryBoot.BytesPerSector);
+                            Console.WriteLine("  Cluster Size:    {0} bytes", result.PrimaryBoot.ClusterSizeBytes);
+                            Console.WriteLine("  VBR Checksum:    {0}", result.PrimaryBoot.IsChecksumValid ? "VALID" : "INVALID / UNVERIFIED");
+                            Console.WriteLine("  Backup VBR:      {0}", result.BackupBoot != null ? "PRESENT" : "MISSING");
+                        }
+                        Console.WriteLine("  Active Files:    {0:N0}", result.TotalActiveCount);
+                        Console.WriteLine("  Deleted Files:   {0:N0}", result.TotalDeletedCount);
+                        Console.WriteLine("  Recoverable:     {0:N0} bytes", result.TotalRecoverableBytes);
+                        Console.WriteLine("================================================================================");
+
+                        if (result.DeletedFiles.Count > 0)
+                        {
+                            Console.WriteLine("Carved Deleted Files:");
+                            int show = Math.Min(25, result.DeletedFiles.Count);
+                            for (int i = 0; i < show; i++)
+                            {
+                                var df = result.DeletedFiles[i];
+                                Console.WriteLine("  [{0}] {1,-32} {2,10:N0} bytes  Cluster: {3}  Contiguous: {4}",
+                                    i + 1, df.Name, df.Size, df.FirstCluster, df.NoFatChain ? "YES" : "NO");
+                            }
+                            if (result.DeletedFiles.Count > show)
+                            {
+                                Console.WriteLine("  ... and {0} more deleted files.", result.DeletedFiles.Count - show);
+                            }
+                        }
+                    }
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during exFAT scout: {0}", ex.Message);
                 return 1;
             }
         }

@@ -315,6 +315,30 @@ namespace UsbRecovery
             }
         }
 
+        public void AddExFatFiles(IEnumerable<ExFatScout.ExFatFileRecord> exFatRecords)
+        {
+            if (exFatRecords == null) return;
+            foreach (var f in exFatRecords)
+            {
+                if (f == null) continue;
+                string action = f.IsDeleted ? "FILE_DELETED (exFAT Carved)" : "FILE_ACTIVE (exFAT)";
+                string desc = string.Format("Size: {0} bytes, Cluster: {1}, Contiguous: {2}", f.Size, f.FirstCluster, f.NoFatChain);
+
+                if (f.ModifiedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.ModifiedTimeUtc, "exFAT", action + " - Modified", f.FullPath ?? f.Name, desc);
+                }
+                if (f.CreatedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.CreatedTimeUtc, "exFAT", action + " - Created", f.FullPath ?? f.Name, desc);
+                }
+                if (f.AccessedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.AccessedTimeUtc, "exFAT", action + " - Accessed", f.FullPath ?? f.Name, desc);
+                }
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>
