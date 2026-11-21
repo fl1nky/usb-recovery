@@ -1,3 +1,4 @@
+using System.Globalization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -26,7 +27,8 @@ namespace UsbRecovery
 
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
-                || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout";
+                || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline";
         }
 
         public static int Run(string[] args)
@@ -87,6 +89,18 @@ namespace UsbRecovery
                 case "zfs-scout":
                     return ExecuteZfsScout(args);
 
+                case "registry":
+                    return ExecuteRegistry(args);
+
+                case "usn":
+                    return ExecuteUsn(args);
+
+                case "carve-mft":
+                    return ExecuteCarveMft(args);
+
+                case "timeline":
+                    return ExecuteTimeline(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -117,6 +131,10 @@ namespace UsbRecovery
             Console.WriteLine("  btrfs-scout <image_path>       Forensic Btrfs metadata scout, chunk mapping & file extent recovery");
             Console.WriteLine("  xfs-scout <image_path>         Forensic XFS metadata scout, AG superblocks & BMBT extent recovery");
             Console.WriteLine("  zfs-scout <image_path>         Forensic ZFS pool scout, uberblocks & dnode object traversal");
+            Console.WriteLine("  registry <hive_path>           Inspect Windows REGF registry hive, dump system summary, search, or carve");
+            Console.WriteLine("  usn <image_or_drive>           Parse NTFS USN Change Journal ($UsnJrnl:$J) and reconstruct deleted files");
+            Console.WriteLine("  carve-mft <image_path> -o <dir> Carve 1024-byte NTFS $MFT FILE records & extract resident payloads");
+            Console.WriteLine("  timeline <source_or_dir>       Aggregate multi-source forensic super-timeline (USN, MFT, EVTX, Browser)");
             Console.WriteLine("  gallery <directory>            Generate HTML photo gallery catalog from recovered files");
             Console.WriteLine("  --version, -v                  Display version, license, and build information");
             Console.WriteLine("  --help, -h                     Display this help message");
@@ -1227,6 +1245,491 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during ZFS scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteRegistry(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'registry' requires a hive file path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe registry <hive_path> [--summary] [--search <term>] [--carve] [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            bool summary = false;
+            string searchTerm = null;
+            bool carve = false;
+            bool json = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string arg = args[i];
+                if (arg == "--summary") summary = true;
+                else if (arg == "--carve") carve = true;
+                else if (arg == "--json") json = true;
+                else if (arg == "--search" && i + 1 < args.Length) searchTerm = args[++i];
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target hive file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                using (RegistryHive hive = RegistryHive.Open(target))
+                {
+                    if (carve)
+                    {
+                        List<RegistryKey> carvedKeys = hive.CarveDeletedKeys();
+                        List<RegistryValue> carvedVals = hive.CarveDeletedValues();
+                        if (json)
+                        {
+                            var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                            var dto = new Dictionary<string, object>
+                            {
+                                { "carved_keys_count", carvedKeys.Count },
+                                { "carved_values_count", carvedVals.Count },
+                                { "carved_keys", carvedKeys.Select(k => k.Path).ToList() }
+                            };
+                            Console.WriteLine(js.Serialize(dto));
+                        }
+                        else
+                        {
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  USB-Recovery — REGF Registry Hive Deleted Cell Carver");
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  Source Hive:    {0}", target);
+                            Console.WriteLine("  Carved Keys:    {0}", carvedKeys.Count);
+                            Console.WriteLine("  Carved Values:  {0}", carvedVals.Count);
+                            Console.WriteLine("--------------------------------------------------------------------------------");
+                            int limit = Math.Min(carvedKeys.Count, 50);
+                            for (int ci = 0; ci < limit; ci++)
+                            {
+                                Console.WriteLine("  Key: {0}", carvedKeys[ci].Path);
+                            }
+                            if (carvedKeys.Count > 50)
+                            {
+                                Console.WriteLine("  ... and {0} more carved keys", carvedKeys.Count - 50);
+                            }
+                            Console.WriteLine("================================================================================");
+                        }
+                        return 0;
+                    }
+
+                    if (summary)
+                    {
+                        RegistrySystemSummary sysSummary = hive.ExtractSystemSummary();
+                        if (json)
+                        {
+                            var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                            Console.WriteLine(js.Serialize(sysSummary));
+                        }
+                        else
+                        {
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  USB-Recovery — Windows Registry System Summary");
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  Computer Name:   {0}", sysSummary.ComputerName ?? "Unknown");
+                            Console.WriteLine("  Product Name:    {0}", sysSummary.ProductName ?? "Unknown");
+                            Console.WriteLine("  Current Version: {0}", sysSummary.CurrentVersion ?? "Unknown");
+                            Console.WriteLine("  Current Build:   {0}", sysSummary.CurrentBuild ?? "Unknown");
+                            Console.WriteLine("  Current Control: {0}", sysSummary.CurrentControlSet ?? "Unknown");
+                            Console.WriteLine("  Timezone:        {0}", sysSummary.TimeZoneStandardName ?? "Unknown");
+                            Console.WriteLine("  USB Devices:     {0} connected storage devices", sysSummary.UsbDevices.Count);
+                            Console.WriteLine("  User Accounts:   {0} accounts", sysSummary.UserAccounts.Count);
+                            Console.WriteLine("  Run Keys:        {0} auto-start items", sysSummary.RunKeys.Count);
+                            Console.WriteLine("================================================================================");
+                        }
+                        return 0;
+                    }
+
+                    if (!string.IsNullOrEmpty(searchTerm))
+                    {
+                        List<RegistryKey> matchingKeys = hive.SearchKeys(searchTerm, true);
+                        List<RegistryValue> matchingVals = hive.SearchValues(searchTerm);
+                        if (json)
+                        {
+                            var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                            var dto = new Dictionary<string, object>
+                            {
+                                { "query", searchTerm },
+                                { "matching_keys", matchingKeys.Select(k => k.Path).ToList() },
+                                { "matching_values_count", matchingVals.Count }
+                            };
+                            Console.WriteLine(js.Serialize(dto));
+                        }
+                        else
+                        {
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  USB-Recovery — Registry Search for '{0}'", searchTerm);
+                            Console.WriteLine("================================================================================");
+                            Console.WriteLine("  Matching Keys:   {0}", matchingKeys.Count);
+                            Console.WriteLine("  Matching Values: {0}", matchingVals.Count);
+                            Console.WriteLine("--------------------------------------------------------------------------------");
+                            int limit = Math.Min(matchingKeys.Count, 50);
+                            for (int ri = 0; ri < limit; ri++)
+                            {
+                                Console.WriteLine("  Key: {0}", matchingKeys[ri].Path);
+                            }
+                            if (matchingKeys.Count > 50)
+                            {
+                                Console.WriteLine("  ... and {0} more matches", matchingKeys.Count - 50);
+                            }
+                            Console.WriteLine("================================================================================");
+                        }
+                        return 0;
+                    }
+
+                    // Default info
+                    if (json)
+                    {
+                        var js = new JavaScriptSerializer();
+                        var dto = new Dictionary<string, object>
+                        {
+                            { "file", target },
+                            { "root_key", hive.RootKey != null ? hive.RootKey.Name : "null" },
+                            { "subkeys_count", hive.RootKey != null ? hive.RootKey.Subkeys.Count : 0 },
+                            { "values_count", hive.RootKey != null ? hive.RootKey.Values.Count : 0 }
+                        };
+                        Console.WriteLine(js.Serialize(dto));
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — REGF Registry Hive Inspector");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Hive Path:     {0}", target);
+                        Console.WriteLine("  Root Key:      {0}", hive.RootKey != null ? hive.RootKey.Name : "None");
+                        Console.WriteLine("  Subkeys:       {0}", hive.RootKey != null ? hive.RootKey.Subkeys.Count : 0);
+                        Console.WriteLine("  Values:        {0}", hive.RootKey != null ? hive.RootKey.Values.Count : 0);
+                        Console.WriteLine("================================================================================");
+                    }
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error inspecting registry hive: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteUsn(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'usn' requires a path to $UsnJrnl:$J or disk image.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe usn <target> [--deleted] [--timeline] [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            bool deletedOnly = false;
+            bool timeline = false;
+            bool json = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string arg = args[i];
+                if (arg == "--deleted") deletedOnly = true;
+                else if (arg == "--timeline") timeline = true;
+                else if (arg == "--json") json = true;
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target USN journal file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                List<UsnRecord> records;
+                using (FileStream fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    records = UsnJournalParser.ParseStream(fs, CancellationToken.None);
+                }
+
+                if (deletedOnly)
+                {
+                    List<UsnDeletedFileArtifact> deleted = UsnJournalParser.ExtractDeletedFiles(records);
+                    if (json)
+                    {
+                        var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                        Console.WriteLine(js.Serialize(deleted));
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — NTFS USN Change Journal Deleted File Reconstructor");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Source:         {0}", target);
+                        Console.WriteLine("  Deleted Files:  {0}", deleted.Count);
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        int limit = Math.Min(deleted.Count, 50);
+                        for (int di = 0; di < limit; di++)
+                        {
+                            UsnDeletedFileArtifact df = deleted[di];
+                            Console.WriteLine("  {0:yyyy-MM-dd HH:mm:ss} | MFT #{1,-8} | {2}",
+                                df.DeletionTimeUtc, df.FileReferenceNumber, df.FileName);
+                        }
+                        if (deleted.Count > 50)
+                        {
+                            Console.WriteLine("  ... and {0} more deleted files", deleted.Count - 50);
+                        }
+                        Console.WriteLine("================================================================================");
+                    }
+                    return 0;
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(records));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — NTFS USN Change Journal Parser");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Source:         {0}", target);
+                    Console.WriteLine("  Total Records:  {0:N0}", records.Count);
+                    if (records.Count > 0)
+                    {
+                        Console.WriteLine("  Time Span:      {0:yyyy-MM-dd HH:mm:ss} .. {1:yyyy-MM-dd HH:mm:ss}",
+                            records[0].TimeStampUtc, records[records.Count - 1].TimeStampUtc);
+                    }
+                    if (timeline)
+                    {
+                        Console.WriteLine("--------------------------------------------------------------------------------");
+                        int limit = Math.Min(records.Count, 50);
+                        for (int ri = 0; ri < limit; ri++)
+                        {
+                            UsnRecord rec = records[ri];
+                            Console.WriteLine("  {0:yyyy-MM-dd HH:mm:ss} | MFT #{1,-8} | {2,-20} | {3}",
+                                rec.TimeStampUtc, rec.FileReferenceNumber, rec.Reason, rec.FileName);
+                        }
+                        if (records.Count > 50)
+                        {
+                            Console.WriteLine("  ... and {0} more journal entries", records.Count - 50);
+                        }
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error parsing USN change journal: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteCarveMft(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'carve-mft' requires an image or device path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe carve-mft <image_path> [-o <out_dir>] [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            string outDir = "carved_mft_" + DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            bool json = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string arg = args[i];
+                if ((arg == "-o" || arg == "--output") && i + 1 < args.Length) outDir = args[++i];
+                else if (arg == "--json") json = true;
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target image file not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(outDir);
+                List<MftFileRecord> records;
+                using (FileStream fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    records = MftCarver.CarveFromStream(fs, CancellationToken.None);
+                }
+
+                int residentRecovered = 0;
+                int timestompCount = 0;
+
+                for (int ri = 0; ri < records.Count; ri++)
+                {
+                    MftFileRecord rec = records[ri];
+                    if (rec.IsTimestomped) timestompCount++;
+
+                    if (rec.ResidentData != null && rec.ResidentData.Length > 0)
+                    {
+                        string safeName = string.IsNullOrEmpty(rec.FileName) ? ("record_" + rec.RecordNumber + ".bin") : rec.FileName;
+                        foreach (char inv in Path.GetInvalidFileNameChars())
+                        {
+                            safeName = safeName.Replace(inv, '_');
+                        }
+                        string destFile = Path.Combine(outDir, string.Format("MFT_{0}_{1}", rec.RecordNumber, safeName));
+                        try
+                        {
+                            File.WriteAllBytes(destFile, rec.ResidentData);
+                            residentRecovered++;
+                        }
+                        catch { }
+                    }
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    var dto = new Dictionary<string, object>
+                    {
+                        { "status", "carved" },
+                        { "records_carved", records.Count },
+                        { "resident_files_extracted", residentRecovered },
+                        { "timestomping_detected", timestompCount },
+                        { "output_directory", outDir }
+                    };
+                    Console.WriteLine(js.Serialize(dto));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — NTFS $MFT Record Carver & Resident Payload Extractor");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Source Image:           {0}", target);
+                    Console.WriteLine("  FILE Records Carved:    {0:N0}", records.Count);
+                    Console.WriteLine("  Resident Files Dumped:  {0:N0} (saved to '{1}')", residentRecovered, outDir);
+                    Console.WriteLine("  Timestomping Anomalies: {0:N0}", timestompCount);
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error carving MFT records: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteTimeline(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'timeline' requires a source directory or file path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe timeline <source> [-o <timeline.csv>] [--from <yyyy-MM-dd>] [--to <yyyy-MM-dd>] [--filter <term>] [--json]");
+                return 2;
+            }
+
+            string target = args[1];
+            string outCsv = "forensic_timeline.csv";
+            string filterTerm = null;
+            DateTime? fromUtc = null;
+            DateTime? toUtc = null;
+            bool json = false;
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                string arg = args[i];
+                if ((arg == "-o" || arg == "--output") && i + 1 < args.Length) outCsv = args[++i];
+                else if (arg == "--filter" && i + 1 < args.Length) filterTerm = args[++i];
+                else if (arg == "--json") json = true;
+                else if (arg == "--from" && i + 1 < args.Length)
+                {
+                    DateTime dt;
+                    if (DateTime.TryParse(args[++i], CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out dt))
+                        fromUtc = dt;
+                }
+                else if (arg == "--to" && i + 1 < args.Length)
+                {
+                    DateTime dt;
+                    if (DateTime.TryParse(args[++i], CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out dt))
+                        toUtc = dt;
+                }
+            }
+
+            if (!File.Exists(target) && !Directory.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", target);
+                return 2;
+            }
+
+            try
+            {
+                ForensicTimeline timeline = new ForensicTimeline();
+
+                if (File.Exists(target))
+                {
+                    if (target.EndsWith(".evtx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        timeline.AddEvtxRecords(EvtxParser.ParseFile(target));
+                    }
+                    else if (target.EndsWith(".pf", StringComparison.OrdinalIgnoreCase))
+                    {
+                        PrefetchArtifact pf = PrefetchParser.ParseFile(target);
+                        if (pf != null) timeline.AddPrefetch(pf);
+                    }
+                    else
+                    {
+                        using (FileStream fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            timeline.AddUsnRecords(UsnJournalParser.ParseStream(fs, CancellationToken.None));
+                        }
+                    }
+                }
+
+                timeline.SortChronological(true);
+                List<ForensicTimelineEvent> events = timeline.Events.ToList();
+                if (fromUtc.HasValue && toUtc.HasValue)
+                {
+                    events = timeline.FilterByTimeRange(fromUtc.Value, toUtc.Value);
+                }
+                if (!string.IsNullOrEmpty(filterTerm))
+                {
+                    timeline = new ForensicTimeline();
+                    foreach (ForensicTimelineEvent ev in events)
+                    {
+                        timeline.AddEvent(ev.TimeStampUtc, ev.Source, ev.Action, ev.TargetPath, ev.Description, ev.ExtraDetails);
+                    }
+                    events = timeline.FilterByKeyword(filterTerm);
+                }
+
+                using (FileStream outFs = new FileStream(outCsv, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    timeline.ExportToCsv(outFs);
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(events));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Unified Forensic Super-Timeline Engine");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Source:        {0}", target);
+                    Console.WriteLine("  Total Events:  {0:N0}", events.Count);
+                    Console.WriteLine("  Exported File: {0}", outCsv);
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error generating forensic timeline: {0}", ex.Message);
                 return 1;
             }
         }

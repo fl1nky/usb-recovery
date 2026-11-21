@@ -38,6 +38,10 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "btrfs-scout" }), "btrfs-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "xfs-scout" }), "xfs-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "zfs-scout" }), "zfs-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "registry" }), "registry is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "usn" }), "usn is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "carve-mft" }), "carve-mft is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "timeline" }), "timeline is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -70,6 +74,14 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "xfs-scout", Path.Combine(work, "missing.raw") }) == 2, "xfs-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "zfs-scout" }) == 2, "zfs-scout without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "zfs-scout", Path.Combine(work, "missing.raw") }) == 2, "zfs-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "registry" }) == 2, "registry without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "registry", Path.Combine(work, "missing.raw") }) == 2, "registry missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "usn" }) == 2, "usn without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "usn", Path.Combine(work, "missing.raw") }) == 2, "usn missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "carve-mft" }) == 2, "carve-mft without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "carve-mft", Path.Combine(work, "missing.raw") }) == 2, "carve-mft missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "timeline" }) == 2, "timeline without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "timeline", Path.Combine(work, "missing.raw") }) == 2, "timeline missing file returns 2");
 
             // 4. Synthetic probe test
             string syntheticImage = Path.Combine(work, "synthetic_probe.raw");
