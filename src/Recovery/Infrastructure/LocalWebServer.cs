@@ -20,6 +20,13 @@ namespace UsbRecovery
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 16 * 1024 * 1024 };
         readonly object scanLock = new object();
         readonly object usnLock = new object();
+        readonly object mftLock = new object();
+        List<MftFileRecord> cachedMftRecords;
+        string cachedMftPath;
+
+        readonly object shimLock = new object();
+        List<AppCompatCacheEntry> cachedShimRecords;
+        string cachedShimPath;
         List<UsnRecord> cachedUsnRecords;
         string cachedUsnPath;
 
@@ -308,6 +315,18 @@ namespace UsbRecovery
                 else if (path == "/api/usn")
                 {
                     ServeUsn(req, res);
+                }
+                else if (path == "/api/mft")
+                {
+                    ServeMft(req, res);
+                }
+                else if (path == "/api/shimcache")
+                {
+                    ServeShimcache(req, res);
+                }
+                else if (path == "/api/timeline")
+                {
+                    ServeTimeline(req, res);
                 }
                 else if (path == "/api/scan" && req.HttpMethod == "POST")
                 {
@@ -1432,6 +1451,217 @@ namespace UsbRecovery
             return bytes + " B";
         }
 
+
+        void ServeMft(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            string action = (req.QueryString["action"] ?? "carved").ToLowerInvariant();
+            string targetPath = imagePath;
+
+            if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
+            {
+                WriteJson(res, new { error = "No disk image available to carve MFT records from." });
+                return;
+            }
+
+            List<MftFileRecord> records = null;
+            lock (mftLock)
+            {
+                if (cachedMftPath == targetPath && cachedMftRecords != null)
+                {
+                    records = cachedMftRecords;
+                }
+                else
+                {
+                    try
+                    {
+                        using (var s = OpenImageStream())
+                        {
+                            records = MftCarver.CarveFromStream(s, CancellationToken.None);
+                            if (records != null && records.Count > 2000) records = records.GetRange(0, 2000);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        WriteJson(res, new { error = "Error carving MFT records: " + ex.Message });
+                        return;
+                    }
+
+                    cachedMftRecords = records;
+                    cachedMftPath = targetPath;
+                }
+            }
+
+            int timestompedCount = 0;
+            for (int i = 0; i < records.Count; i++)
+            {
+                if (records[i].IsTimestomped) timestompedCount++;
+            }
+
+            var list = new List<object>();
+            int limit = Math.Min(200, records.Count);
+            for (int i = 0; i < records.Count; i++)
+            {
+                var r = records[i];
+                if (action == "timestomped" && !r.IsTimestomped) continue;
+
+                list.Add(new
+                {
+                    recordNumber = r.RecordNumber,
+                    sequenceNumber = r.SequenceNumber,
+                    isAllocated = r.IsAllocated,
+                    fileName = r.FileName,
+                    fileSize = r.FileSize,
+                    creationTimeUtc = r.CreationTimeUtc != DateTime.MinValue ? r.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    modificationTimeUtc = r.ModificationTimeUtc != DateTime.MinValue ? r.ModificationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    fnCreationTimeUtc = r.FnCreationTimeUtc != DateTime.MinValue ? r.FnCreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    isResident = r.IsResident,
+                    residentLength = r.ResidentData != null ? r.ResidentData.Length : 0,
+                    isTimestomped = r.IsTimestomped
+                });
+
+                if (list.Count >= limit) break;
+            }
+
+            WriteJson(res, new
+            {
+                totalCarved = records.Count,
+                timestompedCount = timestompedCount,
+                results = list
+            });
+        }
+
+        void ServeShimcache(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<AppCompatCacheEntry> entries = null;
+            lock (shimLock)
+            {
+                if (cachedShimPath == imagePath && cachedShimRecords != null)
+                {
+                    entries = cachedShimRecords;
+                }
+                else
+                {
+                    entries = new List<AppCompatCacheEntry>();
+                    // Try to locate SYSTEM hive in output folder
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("*", SearchOption.AllDirectories);
+                        for (int i = 0; i < files.Length; i++)
+                        {
+                            if (files[i].Name.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase))
+                            {
+                                try
+                                {
+                                    using (var hive = RegistryHive.Open(files[i].FullName))
+                                    {
+                                        entries = AppCompatCacheParser.ExtractFromSystemHive(hive);
+                                    }
+                                    if (entries.Count > 0) break;
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+
+                    cachedShimRecords = entries;
+                    cachedShimPath = imagePath;
+                }
+            }
+
+            var list = new List<object>();
+            int limit = Math.Min(300, entries.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                var e = entries[i];
+                list.Add(new
+                {
+                    index = i + 1,
+                    path = e.Path,
+                    lastModifiedUtc = e.LastModifiedTimeUtc != DateTime.MinValue ? e.LastModifiedTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                    dataSize = e.DataSize,
+                    executed = e.Executed
+                });
+            }
+
+            WriteJson(res, new
+            {
+                totalEntries = entries.Count,
+                results = list
+            });
+        }
+
+        void ServeTimeline(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            string action = (req.QueryString["action"] ?? "events").ToLowerInvariant();
+            string keyword = req.QueryString["q"];
+
+            if (action == "export-csv")
+            {
+                res.ContentType = "text/csv; charset=utf-8";
+                res.AddHeader("Content-Disposition", "attachment; filename=\"forensic-super-timeline.csv\"");
+
+                ForensicTimeline timeline = new ForensicTimeline();
+                lock (usnLock)
+                {
+                    if (cachedUsnRecords != null) timeline.AddUsnRecords(cachedUsnRecords);
+                }
+                lock (mftLock)
+                {
+                    if (cachedMftRecords != null) timeline.AddMftRecords(cachedMftRecords);
+                }
+                lock (shimLock)
+                {
+                    if (cachedShimRecords != null) timeline.AddShimcache(cachedShimRecords);
+                }
+
+                timeline.SortChronological(true);
+                timeline.ExportToCsv(res.OutputStream);
+                return;
+            }
+
+            ForensicTimeline activeTimeline = new ForensicTimeline();
+            lock (usnLock)
+            {
+                if (cachedUsnRecords != null) activeTimeline.AddUsnRecords(cachedUsnRecords);
+            }
+            lock (mftLock)
+            {
+                if (cachedMftRecords != null) activeTimeline.AddMftRecords(cachedMftRecords);
+            }
+            lock (shimLock)
+            {
+                if (cachedShimRecords != null) activeTimeline.AddShimcache(cachedShimRecords);
+            }
+
+            activeTimeline.SortChronological(true);
+            var eventList = activeTimeline.Events;
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                eventList = activeTimeline.FilterByKeyword(keyword);
+            }
+
+            var list = new List<object>();
+            int limit = Math.Min(300, eventList.Count);
+            for (int i = 0; i < limit; i++)
+            {
+                var ev = eventList[i];
+                list.Add(new
+                {
+                    timeStampUtc = ev.TimeStampUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                    source = ev.Source,
+                    action = ev.Action,
+                    targetPath = ev.TargetPath,
+                    description = ev.Description
+                });
+            }
+
+            WriteJson(res, new
+            {
+                totalEvents = eventList.Count,
+                results = list
+            });
+        }
+
         const string DashboardHtml = @"<!DOCTYPE html>
 <html lang=""en"">
 <head>
@@ -1524,7 +1754,10 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('hex')"">🔍 Data & Hex Inspector</button>
   <button class=""tab-btn"" onclick=""switchTab('files')"">📁 Recovered Files</button>
   <button class=""tab-btn"" onclick=""switchTab('registry')"">🏛️ Registry Forensics</button>
-  <button class=""tab-btn"" onclick=""switchTab('usn')"">⏱️ Timeline & Deleted Files</button>
+  <button class=""tab-btn"" onclick=""switchTab('usn')"">⏱️ USN Journal</button>
+  <button class=""tab-btn"" onclick=""switchTab('mft')"">🧩 MFT Carver & Timestomp</button>
+  <button class=""tab-btn"" onclick=""switchTab('shimcache')"">⚡ Shimcache</button>
+  <button class=""tab-btn"" onclick=""switchTab('timeline')"">🌐 Super-Timeline</button>
 </nav>
 <main>
   <!-- OVERVIEW TAB -->
@@ -2163,6 +2396,112 @@ async function searchUsn() {
       tbody.innerHTML = html;
     }
   } catch (e) { }
+}
+
+
+async function loadMft(action) {
+  var tbody = document.getElementById('mft-tbody');
+  var stats = document.getElementById('mft-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Carving MFT sectors from disk...</td></tr>';
+  try {
+    var res = await fetch('/api/mft?action=' + action);
+    var data = await res.json();
+    if (data.error) {
+      tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>';
+      return;
+    }
+    stats.innerHTML = 'Total Carved: <strong>' + data.totalCarved + '</strong> | Timestomped Anomalies: <strong style=""color: #ef4444;"">' + data.timestompedCount + '</strong>';
+    if (!data.results || data.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No records found.</td></tr>';
+      return;
+    }
+    var html = '';
+    data.results.forEach(function(r) {
+      var badge = r.isTimestomped ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444; border-color: rgba(239, 68, 68, 0.4);"">🚨 TIMESTOMPED</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr>' +
+        '<td><code>#' + r.recordNumber + '</code></td>' +
+        '<td><strong style=""color: #fff;"">' + (r.fileName || 'orphan_record_' + r.recordNumber) + '</strong></td>' +
+        '<td>' + r.creationTimeUtc + '</td>' +
+        '<td>' + r.fnCreationTimeUtc + '</td>' +
+        '<td>' + badge + '</td>' +
+        '<td>' + (r.isResident ? (r.residentLength + ' B') : 'Non-resident') + '</td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading MFT data.</td></tr>';
+  }
+}
+
+async function loadShimcache() {
+  var tbody = document.getElementById('shim-tbody');
+  var stats = document.getElementById('shim-stats');
+  tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Parsing AppCompatCache...</td></tr>';
+  try {
+    var res = await fetch('/api/shimcache');
+    var data = await res.json();
+    if (data.error) {
+      tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>';
+      return;
+    }
+    stats.innerHTML = 'Total Execution Entries: <strong>' + data.totalEntries + '</strong>';
+    if (!data.results || data.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">No Shimcache entries found in active hives.</td></tr>';
+      return;
+    }
+    var html = '';
+    data.results.forEach(function(r) {
+      html += '<tr>' +
+        '<td>' + r.index + '</td>' +
+        '<td><code style=""color: #38bdf8;"">' + r.path + '</code></td>' +
+        '<td>' + r.lastModifiedUtc + '</td>' +
+        '<td>' + (r.dataSize ? (r.dataSize + ' B') : '—') + '</td>' +
+        '<td>' + (r.executed ? '<span style=""color: #10b981;"">✓ Executed</span>' : '<span style=""color: var(--text-muted);"">Cached</span>') + '</td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">Error loading Shimcache.</td></tr>';
+  }
+}
+
+async function loadSuperTimeline() {
+  var tbody = document.getElementById('timeline-tbody');
+  var stats = document.getElementById('timeline-stats');
+  var filter = document.getElementById('timeline-filter') ? document.getElementById('timeline-filter').value : '';
+  tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Correlating timeline events...</td></tr>';
+  try {
+    var res = await fetch('/api/timeline?q=' + encodeURIComponent(filter));
+    var data = await res.json();
+    if (data.error) {
+      tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>';
+      return;
+    }
+    stats.innerHTML = 'Correlated Events: <strong>' + data.totalEvents + '</strong>';
+    if (!data.results || data.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">No timeline events match filter.</td></tr>';
+      return;
+    }
+    var html = '';
+    data.results.forEach(function(r) {
+      var badgeStyle = 'background: #334155; color: #94a3b8;';
+      if (r.source === 'USN_JOURNAL') badgeStyle = 'background: rgba(14, 165, 233, 0.2); color: #38bdf8; border-color: rgba(14, 165, 233, 0.4);';
+      else if (r.source === 'MFT_RECORD') badgeStyle = 'background: rgba(168, 85, 247, 0.2); color: #c084fc; border-color: rgba(168, 85, 247, 0.4);';
+      else if (r.source === 'SHIMCACHE') badgeStyle = 'background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);';
+      else if (r.source === 'BROWSER') badgeStyle = 'background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4);';
+
+      html += '<tr>' +
+        '<td>' + r.timeStampUtc + '</td>' +
+        '<td><span class=""logo-badge"" style=""' + badgeStyle + '"">' + r.source + '</span></td>' +
+        '<td><strong>' + r.action + '</strong></td>' +
+        '<td><code style=""color: #fff;"">' + r.targetPath + '</code></td>' +
+        '<td>' + (r.description || '—') + '</td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">Error loading timeline events.</td></tr>';
+  }
 }
 
 // Initial boot
