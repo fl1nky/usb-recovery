@@ -183,6 +183,8 @@ namespace UsbRecovery
                 byte[] block = new byte[blockSize];
                 long currentOffset = 0;
                 int buffered = 0;
+                HashSet<long> seenOffsets = new HashSet<long>();
+                List<CarvedSqliteRecord> chunkResults = new List<CarvedSqliteRecord>();
 
                 while (true)
                 {
@@ -191,7 +193,15 @@ namespace UsbRecovery
                     int totalInBlock = buffered + read;
                     if (totalInBlock <= 4) break;
 
-                    CarveBufferInternal(block, 0, totalInBlock, 0, currentOffset, CarvedRecordOrigin.HeuristicScan, results);
+                    chunkResults.Clear();
+                    CarveBufferInternal(block, 0, totalInBlock, 0, currentOffset, CarvedRecordOrigin.HeuristicScan, chunkResults);
+                    for (int i = 0; i < chunkResults.Count; i++)
+                    {
+                        if (seenOffsets.Add(chunkResults[i].AbsoluteOffset))
+                        {
+                            results.Add(chunkResults[i]);
+                        }
+                    }
 
                     if (read <= 0 || read < needed)
                     {

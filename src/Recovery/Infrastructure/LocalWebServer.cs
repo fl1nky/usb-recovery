@@ -394,9 +394,9 @@ namespace UsbRecovery
 
         void ServeClusters(HttpListenerRequest req, HttpListenerResponse res)
         {
-            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || imageSize <= 0)
             {
-                WriteJson(res, new { blocks = new object[0] });
+                WriteJson(res, new { total = 0, blockCount = 0, blockSize = 512, blocks = new object[0] });
                 return;
             }
 
@@ -483,9 +483,9 @@ namespace UsbRecovery
 
         void ServeHex(HttpListenerRequest req, HttpListenerResponse res)
         {
-            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath))
+            if (string.IsNullOrEmpty(imagePath) || !File.Exists(imagePath) || imageSize <= 0)
             {
-                WriteJson(res, new { error = "Image not found" });
+                WriteJson(res, new { error = "Image not found or empty" });
                 return;
             }
 
@@ -717,10 +717,17 @@ namespace UsbRecovery
                     {
                         var f = files[fi];
                         string rel = f.FullName.Substring(dir.FullName.Length).TrimStart(Path.DirectorySeparatorChar, '/').Replace('\\', '/');
-                        byte[] hBytes;
-                        using (var fileStream = new FileStream(f.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                        byte[] hBytes = null;
+                        try
                         {
-                            hBytes = sha.ComputeHash(fileStream);
+                            using (var fileStream = new FileStream(f.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 65536))
+                            {
+                                hBytes = sha.ComputeHash(fileStream);
+                            }
+                        }
+                        catch
+                        {
+                            hBytes = new byte[32];
                         }
                         var hSb = new StringBuilder(64);
                         for (int i = 0; i < hBytes.Length; i++) hSb.Append(hBytes[i].ToString("x2"));
@@ -1462,7 +1469,7 @@ setInterval(refreshStatus, 1500);
         public static uint ComputeFileCrc32(string filePath)
         {
             uint runningCrc = 0xFFFFFFFFu;
-            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+            using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 65536))
             {
                 byte[] buf = new byte[65536];
                 int n;
@@ -1542,7 +1549,7 @@ setInterval(refreshStatus, 1500);
                 Array.Copy(nameBytes, 0, localHeader, 30, nameBytes.Length);
 
                 output.Write(localHeader, 0, localHeader.Length);
-                using (var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+                using (var fs = new FileStream(fi.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 65536))
                 {
                     byte[] chunk = new byte[65536];
                     int n;
