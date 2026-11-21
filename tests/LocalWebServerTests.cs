@@ -68,6 +68,38 @@ public static class LocalWebServerTests
             BitConverter.GetBytes(chk).CopyTo(hiveBytes, 508);
             File.WriteAllBytes(Path.Combine(outputDir, "SYSTEM.hive"), hiveBytes);
 
+            // Create a synthetic USN journal in output directory
+            byte[] usnBytes = new byte[512];
+            byte[] nameBytes1 = Encoding.Unicode.GetBytes("WipedEvidence.docx");
+            int r1Len = 60 + nameBytes1.Length;
+            if (r1Len % 8 != 0) r1Len += (8 - (r1Len % 8));
+            BitConverter.GetBytes((uint)r1Len).CopyTo(usnBytes, 0);
+            BitConverter.GetBytes((ushort)2).CopyTo(usnBytes, 4);
+            BitConverter.GetBytes(77777UL).CopyTo(usnBytes, 8);
+            BitConverter.GetBytes(5UL).CopyTo(usnBytes, 16);
+            BitConverter.GetBytes(1001L).CopyTo(usnBytes, 24);
+            BitConverter.GetBytes(DateTime.UtcNow.AddHours(-2).ToFileTimeUtc()).CopyTo(usnBytes, 32);
+            BitConverter.GetBytes(0x00000100U).CopyTo(usnBytes, 40); // FileCreate
+            BitConverter.GetBytes((ushort)nameBytes1.Length).CopyTo(usnBytes, 56);
+            BitConverter.GetBytes((ushort)60).CopyTo(usnBytes, 58);
+            Array.Copy(nameBytes1, 0, usnBytes, 60, nameBytes1.Length);
+
+            int r2Off = r1Len;
+            byte[] nameBytes2 = Encoding.Unicode.GetBytes("WipedEvidence.docx");
+            int r2Len = 60 + nameBytes2.Length;
+            if (r2Len % 8 != 0) r2Len += (8 - (r2Len % 8));
+            BitConverter.GetBytes((uint)r2Len).CopyTo(usnBytes, r2Off);
+            BitConverter.GetBytes((ushort)2).CopyTo(usnBytes, r2Off + 4);
+            BitConverter.GetBytes(77777UL).CopyTo(usnBytes, r2Off + 8);
+            BitConverter.GetBytes(5UL).CopyTo(usnBytes, r2Off + 16);
+            BitConverter.GetBytes(1002L).CopyTo(usnBytes, r2Off + 24);
+            BitConverter.GetBytes(DateTime.UtcNow.AddHours(-1).ToFileTimeUtc()).CopyTo(usnBytes, r2Off + 32);
+            BitConverter.GetBytes(0x80000200U).CopyTo(usnBytes, r2Off + 40); // FileDelete | Close
+            BitConverter.GetBytes((ushort)nameBytes2.Length).CopyTo(usnBytes, r2Off + 56);
+            BitConverter.GetBytes((ushort)60).CopyTo(usnBytes, r2Off + 58);
+            Array.Copy(nameBytes2, 0, usnBytes, r2Off + 60, nameBytes2.Length);
+            File.WriteAllBytes(Path.Combine(outputDir, "usn_journal.bin"), usnBytes);
+
             // Test server lifecycle
             int testPort = 18080 + (new Random().Next(100, 900));
             using (var server = new LocalWebServer(testImage, outputDir, testPort))
@@ -87,6 +119,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Cluster Allocation Map"), "Dashboard HTML contains Cluster Allocation Map");
                     Check(html.Contains("Raw Hex & Forensic Data Inspector"), "Dashboard HTML contains Hex Inspector");
                     Check(html.Contains("Registry Forensics"), "Dashboard HTML contains Registry Forensics tab");
+                    Check(html.Contains("Timeline & Deleted Files"), "Dashboard HTML contains USN Timeline tab");
                 }
 
                 // Test 2: GET /api/status
@@ -228,7 +261,37 @@ public static class LocalWebServerTests
                     Check(carveObj != null && carveObj.ContainsKey("carvedKeysCount"), "Registry carve JSON parsed");
                 }
 
-                // Test 11: 404 on unknown endpoint
+                // Test 11: GET /api/usn endpoints
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    var serializer = new JavaScriptSerializer();
+
+                    // 11a. Deleted files
+                    string delJson = client.DownloadString(baseUrl + "/api/usn?action=deleted");
+                    var delObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(delJson);
+                    Check(delObj != null && delObj.ContainsKey("deletedFiles"), "USN deleted files JSON parsed");
+                    var delFiles = (System.Collections.ArrayList)delObj["deletedFiles"];
+                    Check(delFiles.Count == 1, "USN journal identified 1 deleted file");
+                    var firstDel = (System.Collections.Generic.Dictionary<string, object>)delFiles[0];
+                    Check(firstDel["fileName"].ToString() == "WipedEvidence.docx", "Deleted filename matches WipedEvidence.docx");
+
+                    // 11b. Timeline
+                    string timeJson = client.DownloadString(baseUrl + "/api/usn?action=timeline");
+                    var timeObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(timeJson);
+                    Check(timeObj != null && timeObj.ContainsKey("events"), "USN timeline JSON parsed");
+                    var evs = (System.Collections.ArrayList)timeObj["events"];
+                    Check(evs.Count == 2, "USN timeline contains 2 events");
+
+                    // 11c. Search
+                    string searchJson = client.DownloadString(baseUrl + "/api/usn?action=search&q=Wiped");
+                    var searchObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(searchJson);
+                    Check(searchObj != null && searchObj.ContainsKey("results"), "USN search JSON parsed");
+                    var resList = (System.Collections.ArrayList)searchObj["results"];
+                    Check(resList.Count == 2, "USN search returned 2 matching records");
+                }
+
+                // Test 12: 404 on unknown endpoint
                 bool got404 = false;
                 try
                 {

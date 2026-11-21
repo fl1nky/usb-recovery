@@ -19,6 +19,9 @@ namespace UsbRecovery
         readonly long imageSize;
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 16 * 1024 * 1024 };
         readonly object scanLock = new object();
+        readonly object usnLock = new object();
+        List<UsnRecord> cachedUsnRecords;
+        string cachedUsnPath;
 
         Thread workerThread;
         bool running;
@@ -265,6 +268,10 @@ namespace UsbRecovery
                 else if (path == "/api/registry")
                 {
                     ServeRegistry(req, res);
+                }
+                else if (path == "/api/usn")
+                {
+                    ServeUsn(req, res);
                 }
                 else if (path == "/api/scan" && req.HttpMethod == "POST")
                 {
@@ -1067,6 +1074,184 @@ namespace UsbRecovery
             }
         }
 
+        void ServeUsn(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            string rel = req.QueryString["path"];
+            string action = (req.QueryString["action"] ?? "deleted").ToLowerInvariant();
+            string outFull = !string.IsNullOrEmpty(outputPath) ? Path.GetFullPath(outputPath) : null;
+
+            string targetPath = null;
+            if (!string.IsNullOrEmpty(rel) && outFull != null)
+            {
+                string candidate = Path.GetFullPath(Path.Combine(outputPath, rel.TrimStart('/', '\\')));
+                if (candidate.StartsWith(outFull, StringComparison.OrdinalIgnoreCase) && File.Exists(candidate))
+                {
+                    targetPath = candidate;
+                }
+            }
+
+            // Auto-detect USN journal or J file in output directory
+            if (string.IsNullOrEmpty(targetPath) && outFull != null && Directory.Exists(outFull))
+            {
+                var dir = new DirectoryInfo(outputPath);
+                var files = dir.GetFiles("*", SearchOption.AllDirectories);
+                for (int i = 0; i < files.Length; i++)
+                {
+                    string fName = files[i].Name.ToLowerInvariant();
+                    if (fName.Contains("usn") || fName.Contains("$j") || fName.EndsWith(".usn") || fName.EndsWith(".j"))
+                    {
+                        targetPath = files[i].FullName;
+                        break;
+                    }
+                }
+            }
+
+            // Fallback to disk image if available
+            bool isFromDiskImage = false;
+            if (string.IsNullOrEmpty(targetPath) && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            {
+                targetPath = imagePath;
+                isFromDiskImage = true;
+            }
+
+            if (string.IsNullOrEmpty(targetPath) || !File.Exists(targetPath))
+            {
+                WriteJson(res, new { error = "No USN journal or disk image available to inspect." });
+                return;
+            }
+
+            List<UsnRecord> records = null;
+            lock (usnLock)
+            {
+                if (cachedUsnPath == targetPath && cachedUsnRecords != null)
+                {
+                    records = cachedUsnRecords;
+                }
+                else
+                {
+                    try
+                    {
+                        if (isFromDiskImage)
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                records = UsnJournalParser.CarveFromStream(s);
+                            }
+                        }
+                        else
+                        {
+                            using (var s = new FileStream(targetPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 65536))
+                            {
+                                records = UsnJournalParser.ParseStream(s);
+                                if (records.Count == 0)
+                                {
+                                    s.Position = 0;
+                                    records = UsnJournalParser.CarveFromStream(s);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        WriteJson(res, new { error = "Error reading USN journal: " + ex.Message });
+                        return;
+                    }
+
+                    // Limit memory cache to at most 10000 records
+                    if (records.Count > 10000)
+                    {
+                        records = records.GetRange(0, 10000);
+                    }
+                    cachedUsnRecords = records;
+                    cachedUsnPath = targetPath;
+                }
+            }
+
+            if (action == "deleted")
+            {
+                var deleted = UsnJournalParser.ExtractDeletedFiles(records);
+                var delJson = new List<object>();
+                int maxD = Math.Min(200, deleted.Count);
+                for (int i = 0; i < maxD; i++)
+                {
+                    var d = deleted[i];
+                    delJson.Add(new
+                    {
+                        fileName = d.FileName,
+                        deletionTimeUtc = d.DeletionTimeUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                        creationTimeUtc = d.CreationTimeUtc.HasValue ? d.CreationTimeUtc.Value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—",
+                        mftIndex = d.FileReferenceNumber & 0x0000FFFFFFFFFFFFUL,
+                        parentMftIndex = d.ParentFileReferenceNumber & 0x0000FFFFFFFFFFFFUL,
+                        lastUsn = d.LastUsn,
+                        historyCount = d.HistoryRecords.Count
+                    });
+                }
+
+                WriteJson(res, new
+                {
+                    totalEvents = records.Count,
+                    deletedCount = deleted.Count,
+                    source = Path.GetFileName(targetPath),
+                    deletedFiles = delJson
+                });
+            }
+            else if (action == "timeline")
+            {
+                var timeJson = new List<object>();
+                int maxT = Math.Min(200, records.Count);
+                for (int i = 0; i < maxT; i++)
+                {
+                    var r = records[i];
+                    timeJson.Add(new
+                    {
+                        usn = r.Usn,
+                        fileName = r.FileName,
+                        timeStampUtc = r.TimeStampUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                        reason = r.ReasonText,
+                        mftIndex = r.MftEntryIndex,
+                        parentMftIndex = r.ParentMftEntryIndex,
+                        isCarved = r.IsCarved
+                    });
+                }
+
+                WriteJson(res, new
+                {
+                    totalEvents = records.Count,
+                    source = Path.GetFileName(targetPath),
+                    events = timeJson
+                });
+            }
+            else if (action == "search")
+            {
+                string q = (req.QueryString["q"] ?? "").ToLowerInvariant();
+                var matches = new List<object>();
+                if (!string.IsNullOrEmpty(q))
+                {
+                    for (int i = 0; i < records.Count; i++)
+                    {
+                        var r = records[i];
+                        if (r.FileName.ToLowerInvariant().Contains(q))
+                        {
+                            matches.Add(new
+                            {
+                                usn = r.Usn,
+                                fileName = r.FileName,
+                                timeStampUtc = r.TimeStampUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"),
+                                reason = r.ReasonText,
+                                mftIndex = r.MftEntryIndex
+                            });
+                            if (matches.Count >= 200) break;
+                        }
+                    }
+                }
+                WriteJson(res, new { query = q, matchingCount = matches.Count, results = matches });
+            }
+            else
+            {
+                WriteJson(res, new { error = "Unsupported USN action: " + action });
+            }
+        }
+
         void ServeStartScan(HttpListenerResponse res)
         {
             lock (scanLock)
@@ -1301,6 +1486,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('hex')"">🔍 Data & Hex Inspector</button>
   <button class=""tab-btn"" onclick=""switchTab('files')"">📁 Recovered Files</button>
   <button class=""tab-btn"" onclick=""switchTab('registry')"">🏛️ Registry Forensics</button>
+  <button class=""tab-btn"" onclick=""switchTab('usn')"">⏱️ Timeline & Deleted Files</button>
 </nav>
 <main>
   <!-- OVERVIEW TAB -->
@@ -1471,6 +1657,46 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
       </div>
     </div>
   </div>
+
+  <!-- USN JOURNAL & DELETED FILES TAB -->
+  <div id=""usn"" class=""tab-content"">
+    <div class=""card"">
+      <h2>⏱️ NTFS USN Change Journal ($UsnJrnl:$J) & Deleted Files Forensics</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Chronological file creation, rename, data modification, and deletion timeline.
+        Reconstructs files that were wiped or deleted even if their MFT records were overwritten.
+      </p>
+      <div style=""display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;"">
+        <button id=""btn-usn-deleted"" class=""btn"" onclick=""loadUsnDeleted()"">🗑️ Reconstructed Deleted Files</button>
+        <button id=""btn-usn-timeline"" class=""btn"" style=""background: #334155; border-color: #475569;"" onclick=""loadUsnTimeline()"">📜 Full Event Timeline</button>
+        <input type=""text"" id=""usn-search-input"" placeholder=""Filter by filename (e.g. document, secret, exe)..."" class=""hex-input"" style=""flex: 1; min-width: 200px;"" oninput=""searchUsn()""/>
+      </div>
+
+      <div class=""grid-stats"">
+        <div class=""stat-box""><div class=""stat-label"">Reconstructed Deleted Files</div><div class=""stat-value"" id=""stat-usn-deleted"" style=""color: var(--accent-red);"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Total USN Journal Events</div><div class=""stat-value"" id=""stat-usn-events"" style=""color: var(--accent);"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Journal Source</div><div class=""stat-value"" id=""stat-usn-source"" style=""font-size: 16px;"">—</div></div>
+      </div>
+
+      <div style=""overflow-x: auto; margin-top: 16px;"">
+        <table class=""file-table"">
+          <thead id=""usn-thead"">
+            <tr>
+              <th>File Name</th>
+              <th>Deletion Time (UTC)</th>
+              <th>Creation Time (UTC)</th>
+              <th>MFT Index</th>
+              <th>Parent MFT</th>
+              <th>Events Count</th>
+            </tr>
+          </thead>
+          <tbody id=""usn-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Click 'Reconstructed Deleted Files' or 'Full Event Timeline' to load journal events.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -1486,6 +1712,7 @@ function switchTab(tabId) {
   if (tabId === 'hex') loadHex();
   if (tabId === 'files') loadFiles();
   if (tabId === 'registry') loadRegistryHives();
+  if (tabId === 'usn') loadUsnDeleted();
 }
 
 async function refreshStatus() {
@@ -1782,6 +2009,122 @@ async function carveRegistry() {
       resDiv.innerHTML = data.error || 'Carving completed with no items.';
     }
   } catch (e) { resDiv.innerHTML = 'Carve request failed.'; }
+}
+
+async function loadUsnDeleted() {
+  document.getElementById('btn-usn-deleted').style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+  document.getElementById('btn-usn-deleted').style.borderColor = '#38bdf8';
+  document.getElementById('btn-usn-timeline').style.background = '#334155';
+  document.getElementById('btn-usn-timeline').style.borderColor = '#475569';
+
+  document.getElementById('usn-thead').innerHTML = '<tr><th>File Name</th><th>Deletion Time (UTC)</th><th>Creation Time (UTC)</th><th>MFT Index</th><th>Parent MFT</th><th>Events Count</th></tr>';
+  const tbody = document.getElementById('usn-tbody');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading deleted files from USN journal...</td></tr>';
+
+  try {
+    const res = await fetch('/api/usn?action=deleted');
+    const data = await res.json();
+    if (data.deletedFiles) {
+      document.getElementById('stat-usn-deleted').innerText = data.deletedCount;
+      document.getElementById('stat-usn-events').innerText = data.totalEvents;
+      document.getElementById('stat-usn-source').innerText = data.source || 'None';
+
+      if (data.deletedFiles.length === 0) {
+        tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No deleted files detected in current journal data.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      data.deletedFiles.forEach(f => {
+        html += '<tr>' +
+          '<td><strong style=""color: #fff;"">' + f.fileName + '</strong></td>' +
+          '<td style=""color: var(--accent-red); font-weight: 600;"">' + f.deletionTimeUtc + '</td>' +
+          '<td>' + f.creationTimeUtc + '</td>' +
+          '<td><code>' + f.mftIndex + '</code></td>' +
+          '<td><code>' + f.parentMftIndex + '</code></td>' +
+          '<td><span class=""logo-badge"">' + f.historyCount + ' events</span></td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
+    } else {
+      tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">' + (data.error || 'Failed to load deleted files.') + '</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Error requesting USN deleted files.</td></tr>';
+  }
+}
+
+async function loadUsnTimeline() {
+  document.getElementById('btn-usn-timeline').style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+  document.getElementById('btn-usn-timeline').style.borderColor = '#38bdf8';
+  document.getElementById('btn-usn-deleted').style.background = '#334155';
+  document.getElementById('btn-usn-deleted').style.borderColor = '#475569';
+
+  document.getElementById('usn-thead').innerHTML = '<tr><th>Timestamp (UTC)</th><th>USN</th><th>File Name</th><th>Reason Flags</th><th>MFT Index</th><th>Parent MFT</th></tr>';
+  const tbody = document.getElementById('usn-tbody');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading chronological event timeline...</td></tr>';
+
+  try {
+    const res = await fetch('/api/usn?action=timeline');
+    const data = await res.json();
+    if (data.events) {
+      document.getElementById('stat-usn-events').innerText = data.totalEvents;
+      document.getElementById('stat-usn-source').innerText = data.source || 'None';
+
+      if (data.events.length === 0) {
+        tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No timeline events found in current journal.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      data.events.forEach(e => {
+        html += '<tr>' +
+          '<td>' + e.timeStampUtc + '</td>' +
+          '<td><code>' + e.usn + '</code></td>' +
+          '<td><strong style=""color: #fff;"">' + e.fileName + '</strong></td>' +
+          '<td><span class=""logo-badge"" style=""color: var(--accent); background: rgba(56, 189, 248, 0.1);"">' + e.reason + '</span></td>' +
+          '<td><code>' + e.mftIndex + '</code></td>' +
+          '<td><code>' + e.parentMftIndex + '</code></td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
+    } else {
+      tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">' + (data.error || 'Failed to load timeline.') + '</td></tr>';
+    }
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Error requesting timeline events.</td></tr>';
+  }
+}
+
+async function searchUsn() {
+  const q = document.getElementById('usn-search-input').value.trim();
+  if (!q) {
+    loadUsnDeleted();
+    return;
+  }
+  const tbody = document.getElementById('usn-tbody');
+  try {
+    const res = await fetch('/api/usn?action=search&q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (data.results) {
+      document.getElementById('usn-thead').innerHTML = '<tr><th>Timestamp (UTC)</th><th>USN</th><th>File Name</th><th>Reason Flags</th><th>MFT Index</th></tr>';
+      if (data.results.length === 0) {
+        tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">No matching USN records found.</td></tr>';
+        return;
+      }
+      let html = '';
+      data.results.forEach(r => {
+        html += '<tr>' +
+          '<td>' + r.timeStampUtc + '</td>' +
+          '<td><code>' + r.usn + '</code></td>' +
+          '<td><strong style=""color: #fff;"">' + r.fileName + '</strong></td>' +
+          '<td><span class=""logo-badge"">' + r.reason + '</span></td>' +
+          '<td><code>' + r.mftIndex + '</code></td>' +
+          '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+  } catch (e) { }
 }
 
 // Initial boot

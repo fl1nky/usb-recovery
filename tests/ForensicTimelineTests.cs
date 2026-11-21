@@ -1,0 +1,163 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using UsbRecovery;
+
+public static class ForensicTimelineTests
+{
+    private static int checks = 0;
+
+    private static void Check(bool condition, string message)
+    {
+        checks++;
+        if (!condition)
+        {
+            throw new Exception("Check failed: " + message);
+        }
+    }
+
+    public static void Main(string[] args)
+    {
+        TestMultiSourceEventAggregation();
+        TestChronologicalSorting();
+        TestFilteringAndTimeWindow();
+        TestCsvExport();
+
+        Console.WriteLine("PASS ForensicTimelineTests: {0} checks passed; multi-source event aggregation (USN, MFT, EVTX, Prefetch, Browser, Shimcache), sorting, keyword/range filtering, and RFC 4180 CSV export verified.", checks);
+    }
+
+    private static void TestMultiSourceEventAggregation()
+    {
+        var timeline = new ForensicTimeline();
+
+        // 1. USN Record
+        var usn = new UsnRecord
+        {
+            FileName = "invoice.pdf.exe",
+            TimeStampUtc = new DateTime(2026, 11, 21, 14, 0, 5, DateTimeKind.Utc),
+            Reason = UsnReason.FileCreate | UsnReason.Close,
+            Usn = 100,
+            FileReferenceNumber = 555UL
+        };
+        timeline.AddUsnRecords(new[] { usn });
+
+        // 2. MFT Record
+        var mft = new MftFileRecord
+        {
+            FileName = "invoice.pdf.exe",
+            CreationTimeUtc = new DateTime(2026, 11, 21, 14, 0, 4, DateTimeKind.Utc),
+            ModificationTimeUtc = new DateTime(2026, 11, 21, 14, 0, 5, DateTimeKind.Utc),
+            IsAllocated = false,
+            FileSize = 204800
+        };
+        timeline.AddMftRecords(new[] { mft });
+
+        // 3. Prefetch
+        var pf = new PrefetchArtifact
+        {
+            ExecutableName = "INVOICE.PDF.EXE",
+            Hash = "0x89ABCDEF",
+            RunCount = 1,
+            LastRunTimes = new List<DateTime> { new DateTime(2026, 11, 21, 14, 0, 8, DateTimeKind.Utc) }
+        };
+        timeline.AddPrefetch(pf);
+
+        // 4. Browser History
+        var bh = new BrowserHistoryRecord
+        {
+            Browser = BrowserType.Chromium,
+            Url = "http://malicious-delivery.com/invoice.pdf.exe",
+            Title = "Invoice Download Portal",
+            LastVisitUtc = new DateTime(2026, 11, 21, 14, 0, 0, DateTimeKind.Utc),
+            VisitCount = 1
+        };
+        timeline.AddBrowserHistory(new[] { bh });
+
+        // 5. EVTX
+        var ev = new EvtxRecord
+        {
+            EventId = 4688,
+            Channel = "Security",
+            ProviderName = "Microsoft-Windows-Security-Auditing",
+            TimestampUtc = new DateTime(2026, 11, 21, 14, 0, 9, DateTimeKind.Utc),
+            RecordId = 123456
+        };
+        timeline.AddEvtxRecords(new[] { ev });
+
+        // 6. Shimcache
+        var sc = new AppCompatCacheEntry
+        {
+            Path = "C:\\Users\\Admin\\Downloads\\invoice.pdf.exe",
+            LastModifiedTimeUtc = new DateTime(2026, 11, 21, 14, 0, 6, DateTimeKind.Utc),
+            Executed = true,
+            EntryIndex = 1
+        };
+        timeline.AddShimcache(new[] { sc });
+
+        Check(timeline.Count >= 7, "Timeline collected at least 7 multi-source events");
+    }
+
+    private static void TestChronologicalSorting()
+    {
+        var timeline = new ForensicTimeline();
+
+        // Add 3 events out of order
+        timeline.AddEvent(new DateTime(2026, 11, 21, 15, 0, 0, DateTimeKind.Utc), "SOURCE_C", "ACTION_3", "file3.txt", "Third");
+        timeline.AddEvent(new DateTime(2026, 11, 21, 13, 0, 0, DateTimeKind.Utc), "SOURCE_A", "ACTION_1", "file1.txt", "First");
+        timeline.AddEvent(new DateTime(2026, 11, 21, 14, 0, 0, DateTimeKind.Utc), "SOURCE_B", "ACTION_2", "file2.txt", "Second");
+
+        timeline.SortChronological(true); // ascending
+
+        Check(timeline.Events[0].Action == "ACTION_1", "First event chronologically is ACTION_1 (13:00)");
+        Check(timeline.Events[1].Action == "ACTION_2", "Second event chronologically is ACTION_2 (14:00)");
+        Check(timeline.Events[2].Action == "ACTION_3", "Third event chronologically is ACTION_3 (15:00)");
+
+        timeline.SortChronological(false); // descending
+        Check(timeline.Events[0].Action == "ACTION_3", "Descending sort puts latest event first (15:00)");
+    }
+
+    private static void TestFilteringAndTimeWindow()
+    {
+        var timeline = new ForensicTimeline();
+        timeline.AddEvent(new DateTime(2026, 11, 21, 10, 0, 0, DateTimeKind.Utc), "TEST", "CREATE", "safe.txt", "Normal file");
+        timeline.AddEvent(new DateTime(2026, 11, 21, 12, 0, 0, DateTimeKind.Utc), "TEST", "DELETE", "malware_payload.bin", "Dropped Trojan");
+        timeline.AddEvent(new DateTime(2026, 11, 21, 14, 0, 0, DateTimeKind.Utc), "TEST", "CREATE", "report.docx", "Work report");
+
+        // Time window filter: 11:00 to 13:00
+        var window = timeline.FilterByTimeRange(
+            new DateTime(2026, 11, 21, 11, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 11, 21, 13, 0, 0, DateTimeKind.Utc)
+        );
+        Check(window.Count == 1, "Time range filter returned exactly 1 event");
+        Check(window[0].TargetPath == "malware_payload.bin", "Window event matches target in timeframe");
+
+        // Keyword filter: "trojan"
+        var keywordMatches = timeline.FilterByKeyword("trojan");
+        Check(keywordMatches.Count == 1, "Keyword filter found matching event");
+        Check(keywordMatches[0].Description == "Dropped Trojan", "Keyword matched Trojan description");
+    }
+
+    private static void TestCsvExport()
+    {
+        var timeline = new ForensicTimeline();
+        timeline.AddEvent(
+            new DateTime(2026, 11, 21, 16, 45, 0, DateTimeKind.Utc),
+            "TEST_SOURCE",
+            "TEST_ACTION",
+            "C:\\Folder with \"Quotes\"\\file,name.dat",
+            "Description with, commas and \"quotes\""
+        );
+
+        using (var ms = new MemoryStream())
+        {
+            timeline.ExportToCsv(ms);
+            string csv = Encoding.UTF8.GetString(ms.ToArray());
+
+            Check(csv.Contains("Timestamp (UTC),Source,Action,Target Path,Description,Extra Details"), "CSV header present");
+            Check(csv.Contains("\"2026-11-21 16:45:00\""), "Timestamp formatted accurately in CSV");
+            Check(csv.Contains("\"TEST_SOURCE\""), "Source present in CSV");
+            Check(csv.Contains("\"\"Quotes\"\""), "Quotes escaped with double quotes per RFC 4180");
+        }
+    }
+}
