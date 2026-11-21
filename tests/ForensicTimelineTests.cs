@@ -95,7 +95,28 @@ public static class ForensicTimelineTests
         };
         timeline.AddShimcache(new[] { sc });
 
-        Check(timeline.Count >= 7, "Timeline collected at least 7 multi-source events");
+        // 7. Amcache
+        var ac = new AmcacheEntry
+        {
+            Path = @"C:\Users\Admin\Downloads\invoice.pdf.exe",
+            Sha1 = "3b71c26b911e2f790c37554be50e7b752945d8f2",
+            KeyLastWriteTimeUtc = new DateTime(2026, 11, 21, 14, 0, 7, DateTimeKind.Utc),
+            IsSuspicious = true,
+            SuspicionReason = "Double extension"
+        };
+        timeline.AddAmcache(new[] { ac });
+
+        // 8. Shellbags
+        var sb = new ShellbagRecord
+        {
+            FullPath = @"E:\Exfiltrated_Docs",
+            ItemType = ShellbagItemType.Directory,
+            KeyLastWriteTimeUtc = new DateTime(2026, 11, 21, 14, 5, 0, DateTimeKind.Utc),
+            RegistrySource = "UsrClass.dat"
+        };
+        timeline.AddShellbags(new[] { sb });
+
+        Check(timeline.Count >= 9, "Timeline collected at least 9 multi-source events");
     }
 
     private static void TestChronologicalSorting()

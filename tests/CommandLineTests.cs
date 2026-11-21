@@ -42,6 +42,11 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "usn" }), "usn is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "carve-mft" }), "carve-mft is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "timeline" }), "timeline is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "f2fs-scout" }), "f2fs-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "court-report" }), "court-report is CLI command");
 
             // Worker commands must not be treated as regular CLI commands
             Check(!CommandLineHandler.IsCliCommand(new[] { "--document-preview-worker" }), "document preview worker bypass");
@@ -82,6 +87,16 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "carve-mft", Path.Combine(work, "missing.raw") }) == 2, "carve-mft missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "timeline" }) == 2, "timeline without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "timeline", Path.Combine(work, "missing.raw") }) == 2, "timeline missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "f2fs-scout" }) == 2, "f2fs-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "f2fs-scout", Path.Combine(work, "missing.raw") }) == 2, "f2fs-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "shellbags", Path.Combine(work, "missing.raw") }) == 2, "shellbags missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "entropy" }) == 2, "entropy without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "entropy", Path.Combine(work, "missing.raw") }) == 2, "entropy missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "court-report" }) == 2, "court-report without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "court-report", Path.Combine(work, "missing.raw") }) == 2, "court-report missing file returns 2");
 
             // 4. Synthetic probe test
             string syntheticImage = Path.Combine(work, "synthetic_probe.raw");
@@ -107,6 +122,14 @@ public static class CommandLineTests
 
             int probeJsonResult = CommandLineHandler.Run(new[] { "probe", syntheticImage, "--json" });
             Check(probeJsonResult == 0, "probe with --json returns 0");
+
+            // Entropy execution test
+            Check(CommandLineHandler.Run(new[] { "entropy", syntheticImage, "--json" }) == 0, "entropy execution on synthetic image returns 0");
+
+            // Court report execution test
+            string courtReportOut = Path.Combine(work, "court_report_test.html");
+            Check(CommandLineHandler.Run(new[] { "court-report", syntheticImage, "-o", courtReportOut }) == 0, "court-report execution returns 0");
+            Check(File.Exists(courtReportOut), "court report HTML file exists");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");

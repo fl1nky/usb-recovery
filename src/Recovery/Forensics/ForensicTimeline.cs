@@ -228,6 +228,54 @@ namespace UsbRecovery
             }
         }
 
+        public void AddAmcache(IEnumerable<AmcacheEntry> amcacheEntries)
+        {
+            if (amcacheEntries == null) return;
+            foreach (var a in amcacheEntries)
+            {
+                if (a == null) continue;
+                DateTime ts = a.KeyLastWriteTimeUtc != DateTime.MinValue ? a.KeyLastWriteTimeUtc : a.LinkerTimestampUtc;
+                if (ts == DateTime.MinValue) continue;
+
+                string action = a.IsSuspicious ? "SUSPICIOUS_EXECUTION" : "BINARY_INVENTORY";
+                string desc = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "SHA1: {0}, Size: {1} bytes, Publisher: {2}", a.Sha1, a.FileSize, a.Publisher ?? "N/A");
+
+                AddEvent(
+                    ts,
+                    "AMCACHE",
+                    action,
+                    a.Path,
+                    desc,
+                    a.IsSuspicious ? ("ALERT: " + a.SuspicionReason) : (a.BinaryType ?? "")
+                );
+            }
+        }
+
+        public void AddShellbags(IEnumerable<ShellbagRecord> shellbagRecords)
+        {
+            if (shellbagRecords == null) return;
+            foreach (var s in shellbagRecords)
+            {
+                if (s == null) continue;
+                DateTime ts = s.KeyLastWriteTimeUtc != DateTime.MinValue ? s.KeyLastWriteTimeUtc : s.ModifiedTimeUtc;
+                if (ts == DateTime.MinValue) continue;
+
+                string action = (s.ItemType == ShellbagItemType.Drive) ? "DRIVE_ACCESSED" : "FOLDER_VIEWED";
+                string desc = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "Type: {0}, Source: {1}, MRU: {2}", s.ItemType, s.RegistrySource, s.MruPath);
+
+                AddEvent(
+                    ts,
+                    "SHELLBAGS",
+                    action,
+                    s.FullPath,
+                    desc,
+                    s.ModifiedTimeUtc != DateTime.MinValue ? string.Format(System.Globalization.CultureInfo.InvariantCulture, "Folder Modified: {0:yyyy-MM-dd HH:mm:ss} UTC", s.ModifiedTimeUtc) : ""
+                );
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

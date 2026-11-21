@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report";
         }
 
         public static int Run(string[] args)
@@ -101,6 +101,21 @@ namespace UsbRecovery
                 case "timeline":
                     return ExecuteTimeline(args);
 
+                case "f2fs-scout":
+                    return ExecuteF2fsScout(args);
+
+                case "amcache":
+                    return ExecuteAmcache(args);
+
+                case "shellbags":
+                    return ExecuteShellbags(args);
+
+                case "entropy":
+                    return ExecuteEntropy(args);
+
+                case "court-report":
+                    return ExecuteCourtReport(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -131,6 +146,11 @@ namespace UsbRecovery
             Console.WriteLine("  btrfs-scout <image_path>       Forensic Btrfs metadata scout, chunk mapping & file extent recovery");
             Console.WriteLine("  xfs-scout <image_path>         Forensic XFS metadata scout, AG superblocks & BMBT extent recovery");
             Console.WriteLine("  zfs-scout <image_path>         Forensic ZFS pool scout, uberblocks & dnode object traversal");
+            Console.WriteLine("  f2fs-scout <image_path>        Flash-Friendly File System (F2FS) scout for mobile/NVMe flash storage");
+            Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
+            Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
+            Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
+            Console.WriteLine("  court-report <image_path>      Rule 902(14) Expert Witness court package with Chain of Custody hashes");
             Console.WriteLine("  registry <hive_path>           Inspect Windows REGF registry hive, dump system summary, search, or carve");
             Console.WriteLine("  usn <image_or_drive>           Parse NTFS USN Change Journal ($UsnJrnl:$J) and reconstruct deleted files");
             Console.WriteLine("  carve-mft <image_path> -o <dir> Carve 1024-byte NTFS $MFT FILE records & extract resident payloads");
@@ -1730,6 +1750,321 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error generating forensic timeline: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // F2FS Scout Command
+        // =========================================================================
+        private static int ExecuteF2fsScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'f2fs-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe f2fs-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string image = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(image))
+            {
+                Console.Error.WriteLine("Error: Image not found: {0}", image);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    var result = F2fsScout.Scout(fs, CancellationToken.None, null);
+                    if (json)
+                    {
+                        Console.WriteLine(result.ToJson());
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — Flash-Friendly File System (F2FS) Metadata Scout");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:        {0}", result.Status);
+                        Console.WriteLine("  Superblocks:   {0}", result.Superblocks.Count);
+                        Console.WriteLine("  Directories:   {0:N0}", result.DirectoriesCount);
+                        Console.WriteLine("  Files:         {0:N0}", result.FilesCount);
+                        Console.WriteLine("  Recoverable:   {0:N0} bytes", result.TotalRecoverableBytes);
+                        Console.WriteLine("================================================================================");
+                    }
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during F2FS scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // Amcache Command
+        // =========================================================================
+        private static int ExecuteAmcache(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'amcache' requires a hive or image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe amcache <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                List<AmcacheEntry> entries = AmcacheParser.Parse(path);
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(entries));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows Amcache.hve Execution & Threat Parser");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Total Entries: {0:N0}", entries.Count);
+                    int alertCount = 0;
+                    for (int i = 0; i < entries.Count; i++) if (entries[i].IsSuspicious) alertCount++;
+                    Console.WriteLine("  Suspicious:    {0:N0}", alertCount);
+                    Console.WriteLine("================================================================================");
+                    int limit = Math.Min(entries.Count, 20);
+                    for (int i = 0; i < limit; i++)
+                    {
+                        var e = entries[i];
+                        string alert = e.IsSuspicious ? " [ALERT]" : "";
+                        Console.WriteLine("  [{0:N0}] {1} (SHA1: {2}){3}", i + 1, e.Path, e.Sha1, alert);
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error parsing Amcache: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // Shellbags Command
+        // =========================================================================
+        private static int ExecuteShellbags(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'shellbags' requires a hive or image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe shellbags <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                List<ShellbagRecord> records = ShellbagsParser.Parse(path);
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(records));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows Explorer Shellbags Folder Access Parser");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Total Records: {0:N0}", records.Count);
+                    Console.WriteLine("================================================================================");
+                    int limit = Math.Min(records.Count, 20);
+                    for (int i = 0; i < limit; i++)
+                    {
+                        var r = records[i];
+                        Console.WriteLine("  [{0:N0}] {1} (Type: {2}, Modified: {3})", i + 1, r.FullPath, r.ItemType, r.ModifiedTimeUtc != DateTime.MinValue ? r.ModifiedTimeUtc.ToString("s") : "N/A");
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error parsing Shellbags: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // Entropy Command
+        // =========================================================================
+        private static int ExecuteEntropy(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'entropy' requires an image or file path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe entropy <image_path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    var report = EntropyClassifier.AnalyzeStream(fs);
+                    if (json)
+                    {
+                        Console.WriteLine(report.ToJson());
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — Shannon Entropy & Ransomware Threat Classifier");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Mean Entropy:      {0:F4} bits/byte", report.MeanEntropy);
+                        Console.WriteLine("  Standard Dev:      {0:F4}", report.StandardDeviation);
+                        Console.WriteLine("  Classification:    {0}", report.DominantCategory);
+                        Console.WriteLine("  Total Blocks:      {0:N0} (64 KiB each)", report.TotalBlocks);
+                        Console.WriteLine("  Encrypted Blocks:  {0:N0}", report.EncryptedOrRansomwareBlocks);
+                        Console.WriteLine("  Ransomware Threat: {0}", report.IsSuspiciousRansomware ? "🚨 ALERT: SUSPICIOUS ENCRYPTION" : "✓ Normal");
+                        Console.WriteLine("  Summary:           {0}", report.SuspicionReason);
+                        Console.WriteLine("================================================================================");
+                    }
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error computing entropy: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // Court Report Command
+        // =========================================================================
+        private static int ExecuteCourtReport(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'court-report' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe court-report <image_path> [-o <out.html>] [--case <id>] [--examiner <name>]");
+                return 2;
+            }
+
+            string path = args[1];
+            string outHtml = "court_report.html";
+            string caseNo = "CR-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmm");
+            string examiner = "Digital Forensics Lead";
+
+            for (int i = 2; i < args.Length; i++)
+            {
+                if ((args[i] == "-o" || args[i] == "--output") && i + 1 < args.Length)
+                {
+                    outHtml = args[++i];
+                }
+                else if (args[i] == "--case" && i + 1 < args.Length)
+                {
+                    caseNo = args[++i];
+                }
+                else if (args[i] == "--examiner" && i + 1 < args.Length)
+                {
+                    examiner = args[++i];
+                }
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var meta = new ForensicCaseMetadata
+                {
+                    CaseNumber = caseNo,
+                    InvestigatorName = examiner,
+                    SourcePath = path,
+                    TotalBytes = new FileInfo(path).Length
+                };
+
+                // Compute SHA-256 Chain of Custody hash with bounded buffer
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                {
+                    byte[] hash = sha.ComputeHash(fs);
+                    var sbHash = new StringBuilder(64);
+                    for (int b = 0; b < hash.Length; b++) sbHash.Append(hash[b].ToString("x2"));
+                    meta.EvidenceSha256 = sbHash.ToString();
+                }
+
+                EntropyReport entropy = null;
+                using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    entropy = EntropyClassifier.AnalyzeStream(fs, 10 * 1024 * 1024); // Analyze first 10 MiB
+                }
+
+                string html = CourtReportGenerator.GenerateHtmlReport(meta, null, null, null, null, entropy);
+                File.WriteAllText(outHtml, html, Encoding.UTF8);
+
+                Console.WriteLine("================================================================================");
+                Console.WriteLine("  USB-Recovery — Rule 902(14) Certified Expert Witness Court Report");
+                Console.WriteLine("================================================================================");
+                Console.WriteLine("  Case Number:       {0}", caseNo);
+                Console.WriteLine("  Examiner:          {0}", examiner);
+                Console.WriteLine("  Evidence SHA-256:  {0}", meta.EvidenceSha256);
+                Console.WriteLine("  Report Generated:  {0}", outHtml);
+                Console.WriteLine("================================================================================");
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error generating court report: {0}", ex.Message);
                 return 1;
             }
         }
