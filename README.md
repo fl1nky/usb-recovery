@@ -3,7 +3,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Zero Telemetry](https://img.shields.io/badge/Telemetry-0%25%20Air--Gapped-success.svg)](README.md)
 [![Forensic Grade](https://img.shields.io/badge/Forensic-Chain%20of%20Custody-orange.svg)](README.md)
-[![Tests Passing](https://img.shields.io/badge/Tests-4950%2B%20PASS-brightgreen.svg)](README.md)
+[![Tests Passing](https://img.shields.io/badge/Tests-46000%2B%20PASS-brightgreen.svg)](README.md)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](README.md)
 
 [English](README.md) · [Русский](README.ru.md)
@@ -15,15 +15,20 @@
 ## ⚡ Highlights
 
 - **Forensic Containers & Virtual Disks**: Native, pure C# random-access stream readers for **E01 / Ex01 (Expert Witness)**, **AFF4 (Advanced Forensic Format 4)**, **QCOW2 (QEMU / KVM v2/v3)**, **VHD**, **VHDX**, and **VMDK**.
-- **Modern Filesystem Scouts**: Metadata-level traversal and carving for **Btrfs** (chunk tree & generation traversal), **XFS** (allocation group & BMBT trees), **ZFS** (uberblock & dnode traversal), **APFS**, **Ext4**, **ReFS**, **NTFS**, and **FAT12/16/32/exFAT**.
+- **Modern Filesystem Scouts**: Metadata-level traversal and carving for **F2FS** (flash-friendly NAT table, inline inode payloads, extent mapping), **Btrfs** (chunk tree & generation traversal), **XFS** (allocation group & BMBT trees), **ZFS** (uberblock & dnode traversal), **APFS**, **Ext4**, **ReFS**, **NTFS**, and **FAT12/16/32/exFAT**.
 - **Deep Windows Forensic Artifacts**:
   - **NTFS USN Change Journal ($UsnJrnl:$J)**: V2/V3 streaming parser, 48-bit MFT indexing, and complete deleted file lifecycle reconstruction.
   - **NTFS $MFT Record Carver**: 1024-byte `FILE` record carver with Fixup array correction, resident payload extraction, data runs unpacking, and timestomping divergence detection.
   - **REGF Windows Registry Hive Engine**: Hierarchical traversal, cell decoding, slack cell carving for wiped keys/values, and automatic system summary extraction (`SYSTEM`, `SOFTWARE`, `SAM`).
+  - **Amcache.hve Parser**: Windows 10/11 `InventoryApplicationFile` & Windows 7/8 `File` hive parser with program execution forensics, SHA-1 binary hash extraction, and threat heuristics (TEMP directory execution, double extensions).
+  - **Shellbags Parser**: `UsrClass.dat`/`NTUSER.DAT` `BagMRU` hierarchical folder access history on removable USB storage, drive letters, and network shares.
   - **Shimcache / AppCompatCache**: Windows 7/8 (`0xBADC0FFE`) and Windows 10/11 (`10ts`) execution cache parser.
-  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, Browser History, Shimcache) with RFC 4180 CSV export.
+  - **Shannon Entropy Classifier**: Streaming, zero-telemetry entropy classifier calculating byte Shannon entropy ($H = -\sum p \log_2 p$) with automated ransomware anomaly detection.
+  - **Rule 902(14) Expert Witness Court Package**: Automated forensic court report generator compliant with Federal Rule of Evidence 902(14) and ISO/IEC 27037 with SHA-256 Chain of Custody hashes.
+  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, LNK, Browser History, Shimcache, Amcache, Shellbags) with RFC 4180 CSV export.
   - **SQLite B-Tree Carver**: Deep database carver analyzing freeblocks, freelist pages, and orphan record cells.
-- **Local Web-UI (`http://127.0.0.1:8080`)**: Zero-dependency local web dashboard featuring an interactive real-time Cluster Allocation Map, Hex Inspector, on-the-fly streaming ZIP downloader, and cryptographic Chain-of-Custody report generator.
+- **Forensic Benchmark Suite**: High-throughput benchmarking measuring SWAR signature scanning rate, Shannon entropy throughput, MFT parsing speed, and strictly validating zero-leak memory stability.
+- **Local Web-UI (`http://127.0.0.1:8080`)**: Zero-dependency local web dashboard featuring interactive tabs for Cluster Allocation Map, Hex Inspector, MFT Carver, Shimcache, Super-Timeline, Amcache, Shellbags, Entropy, Court Report, on-the-fly streaming ZIP downloader, and cryptographic Chain-of-Custody report generator.
 - **Zero-Bloat & Air-Gapped**: Strict 64 KiB O(1) buffer bounds, no Large Object Heap (LOH) fragmentation, 100% loopback-only networking (`127.0.0.1`), zero outbound telemetry.
 
 ---
@@ -39,6 +44,11 @@
 | **MFT Slack & Timestomping** | **Built-in Carver & Divergence Alert** | ❌ None | Plugin required | Basic |
 | **Windows REGF Hive Carver** | **Slack Cell & Key Carving** | ❌ None | RegRipper needed | Viewer only |
 | **Shimcache / AppCompatCache** | **Native Win7/10/11 Parser** | ❌ None | Plugin required | ❌ None |
+| **Amcache & Execution Forensics** | **Built-in Win7/10/11 & SHA-1 Carve** | ❌ None | Plugin required | ❌ None |
+| **Shellbags (USB & Folder History)** | **Native BagMRU Hierarchical Parser** | ❌ None | Plugin required | ❌ None |
+| **Shannon Entropy & Ransomware** | **O(1) Streaming Anomaly Engine** | ❌ None | ❌ None | Basic entropy view |
+| **Rule 902(14) Expert Witness Report** | **Automated ISO/IEC 27037 & SHA-256** | ❌ None | Manual export | Basic report |
+| **Flash / F2FS Filesystem Scout** | **Native Superblock & NAT Carver** | ❌ None | ❌ None | Basic |
 | **Super-Timeline Aggregator** | **Built-in RFC 4180 CSV Export** | ❌ None | Plaso integration | ❌ None |
 | **Built-in Cluster Map & Hex Viewer** | **Zero-Dependency Web-UI (127.0.0.1)** | ❌ CLI only | Heavy Java GUI | Desktop GUI only |
 | **Memory & Resource Footprint** | **Strict O(1) 64 KiB Buffers** | Light (C) | Heavy (Java VM / Solr) | Moderate (C++) |
@@ -66,6 +76,27 @@ USB-Recovery.exe registry C:\cases\SYSTEM --summary
 
 # Carve deleted keys and slack cells from registry hive
 USB-Recovery.exe registry C:\cases\NTUSER.DAT --carve
+
+# Parse Amcache.hve for binary executions and SHA-1 threat indicators
+USB-Recovery.exe amcache C:\cases\Amcache.hve --json
+
+# Parse Shellbags for USB drive history and folder access tracking
+USB-Recovery.exe shellbags C:\cases\UsrClass.dat --json
+
+# Analyze stream Shannon entropy and detect ransomware encryption
+USB-Recovery.exe entropy C:\images\evidence.raw --json
+
+# Generate Federal Rule of Evidence 902(14) Expert Witness Court Package
+USB-Recovery.exe court-report C:\images\evidence.e01 -o C:\reports\court_package.html
+
+# Scout F2FS flash filesystem superblocks, NAT mappings, and file extents
+USB-Recovery.exe f2fs-scout C:\images\nvme_flash.raw
+
+# Run high-throughput forensic benchmark and zero-leak memory audit
+USB-Recovery.exe benchmark
+
+# Parse Windows Shell Link (.lnk) shortcut files and TrackerDataBlocks
+USB-Recovery.exe lnk C:\cases\recent\document.lnk
 ```
 
 ### Disk Images & Interactive Web-UI
