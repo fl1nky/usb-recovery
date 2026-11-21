@@ -1,5 +1,7 @@
 using System.Threading;
+#if NETFRAMEWORK
 using System.Windows.Forms;
+#endif
 
 namespace UsbRecovery
 {
@@ -24,9 +26,13 @@ namespace UsbRecovery
                 System.Environment.ExitCode=CommandLineHandler.Run(args);
                 return;
             }
+#if NETFRAMEWORK
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new RecoveryHub());
+#else
+            CommandLineHandler.PrintHelp();
+#endif
         }
 
         public static string WriteGallery(string directory)

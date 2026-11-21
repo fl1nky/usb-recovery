@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>USB-Recovery</AssemblyName>
+    <RootNamespace>UsbRecovery</RootNamespace>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <OutputPath>..\..\.build\app-net8\</OutputPath>
+  </PropertyGroup>
+
+  <!-- Exclude Windows-specific Forms / UI files when compiling headless net8.0 -->
+  <ItemGroup>
+    <Compile Remove="UI\**\*.cs" />
+    <Compile Remove="FrameworkTarget.cs" />
+  </ItemGroup>
+</Project>
