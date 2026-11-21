@@ -339,6 +339,30 @@ namespace UsbRecovery
             }
         }
 
+        public void AddHfsPlusFiles(IEnumerable<HfsPlusScout.HfsPlusFileRecord> hfsRecords)
+        {
+            if (hfsRecords == null) return;
+            foreach (var f in hfsRecords)
+            {
+                if (f == null) continue;
+                string action = f.IsDeleted ? "FILE_DELETED (HFS+ Carved)" : "FILE_ACTIVE (HFS+)";
+                string desc = string.Format("Size: {0} bytes, CNID: {1}, ParentCNID: {2}", f.Size, f.Cnid, f.ParentCnid);
+
+                if (f.ModifyTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.ModifyTimeUtc, "HFS+", action + " - Modified", f.FullPath ?? f.Name, desc);
+                }
+                if (f.CreateTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.CreateTimeUtc, "HFS+", action + " - Created", f.FullPath ?? f.Name, desc);
+                }
+                if (f.AccessTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.AccessTimeUtc, "HFS+", action + " - Accessed", f.FullPath ?? f.Name, desc);
+                }
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

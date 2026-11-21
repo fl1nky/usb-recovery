@@ -139,7 +139,20 @@ public static class ForensicTimelineTests
         };
         timeline.AddExFatFiles(new[] { exFatRec });
 
-        Check(timeline.Count >= 11, "Timeline collected at least 11 multi-source events");
+        // 11. HFS+ Carved Records
+        var hfsRec = new HfsPlusScout.HfsPlusFileRecord
+        {
+            Cnid = 88,
+            ParentCnid = 2,
+            Name = "financial_records_hfs.numbers",
+            FullPath = @"$CARVED_HFS\financial_records_hfs.numbers",
+            Size = 51200,
+            IsDeleted = true,
+            ModifyTimeUtc = new DateTime(2026, 11, 21, 14, 8, 0, DateTimeKind.Utc)
+        };
+        timeline.AddHfsPlusFiles(new[] { hfsRec });
+
+        Check(timeline.Count >= 12, "Timeline collected at least 12 multi-source events");
     }
 
     private static void TestChronologicalSorting()

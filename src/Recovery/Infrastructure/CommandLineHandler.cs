@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -107,6 +107,9 @@ namespace UsbRecovery
                 case "exfat-scout":
                     return ExecuteExFatScout(args);
 
+                case "hfs-scout":
+                    return ExecuteHfsPlusScout(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -157,6 +160,7 @@ namespace UsbRecovery
             Console.WriteLine("  zfs-scout <image_path>         Forensic ZFS pool scout, uberblocks & dnode object traversal");
             Console.WriteLine("  f2fs-scout <image_path>        Flash-Friendly File System (F2FS) scout for mobile/NVMe flash storage");
             Console.WriteLine("  exfat-scout <image_path>       Forensic exFAT scout, deleted entry sets carving & recovery");
+            Console.WriteLine("  hfs-scout <image_path>         Apple HFS+ / HFSX scout, catalog B-Tree traversal & carving");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -1898,6 +1902,88 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during exFAT scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // HFS+ Command
+        // =========================================================================
+        private static int ExecuteHfsPlusScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'hfs-scout' requires an image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe hfs-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string image = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(image))
+            {
+                Console.Error.WriteLine("Error: Image not found: {0}", image);
+                return 2;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    var result = HfsPlusScout.Scout(fs, CancellationToken.None);
+                    if (json)
+                    {
+                        Console.WriteLine(result.ToJson());
+                    }
+                    else
+                    {
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  USB-Recovery — Forensic Apple HFS+ / HFSX Metadata Scout");
+                        Console.WriteLine("================================================================================");
+                        Console.WriteLine("  Status:          {0}", result.Status);
+                        if (result.VolumeHeader != null)
+                        {
+                            Console.WriteLine("  Signature:       0x{0:X4} ({1})", result.VolumeHeader.Signature, result.VolumeHeader.Signature == 0x482B ? "HFS+" : "HFSX");
+                            Console.WriteLine("  Block Size:      {0} bytes", result.VolumeHeader.BlockSize);
+                            Console.WriteLine("  Total Blocks:    {0:N0} ({1:N0} bytes)", result.VolumeHeader.TotalBlocks, result.VolumeHeader.TotalVolumeBytes);
+                            Console.WriteLine("  Free Blocks:     {0:N0}", result.VolumeHeader.FreeBlocks);
+                            Console.WriteLine("  Created (UTC):   {0}", result.VolumeHeader.CreateTimeUtc != DateTime.MinValue ? result.VolumeHeader.CreateTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—");
+                            Console.WriteLine("  Modified (UTC):  {0}", result.VolumeHeader.ModifyTimeUtc != DateTime.MinValue ? result.VolumeHeader.ModifyTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—");
+                            Console.WriteLine("  Backup VBR:      {0}", result.BackupVolumeHeader != null ? "PRESENT" : "MISSING");
+                        }
+                        Console.WriteLine("  Directories:     {0:N0}", result.DirectoriesCount);
+                        Console.WriteLine("  Files:           {0:N0}", result.FilesCount);
+                        Console.WriteLine("  Deleted Orphans: {0:N0}", result.DeletedCount);
+                        Console.WriteLine("  Recoverable:     {0:N0} bytes", result.TotalRecoverableBytes);
+                        Console.WriteLine("================================================================================");
+
+                        if (result.Files.Count > 0)
+                        {
+                            Console.WriteLine("Recovered & Carved Records:");
+                            int show = Math.Min(25, result.Files.Count);
+                            for (int i = 0; i < show; i++)
+                            {
+                                var f = result.Files[i];
+                                Console.WriteLine("  [{0}] {1} {2,-30} {3,10:N0} bytes  CNID: {4}  Parent: {5}",
+                                    i + 1, f.IsDeleted ? "[DEL]" : (f.IsDirectory ? "[DIR]" : "[ACT]"), f.Name, f.Size, f.Cnid, f.ParentCnid);
+                            }
+                            if (result.Files.Count > show)
+                            {
+                                Console.WriteLine("  ... and {0} more records.", result.Files.Count - show);
+                            }
+                        }
+                    }
+                    return 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during HFS+ scout: {0}", ex.Message);
                 return 1;
             }
         }
