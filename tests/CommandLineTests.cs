@@ -50,6 +50,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "recycle-bin" }), "recycle-bin is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "vss-scout" }), "vss-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "iso-scout" }), "iso-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "browser-extensions" }), "browser-extensions is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
@@ -112,6 +113,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "vss-scout", Path.Combine(work, "missing.raw") }) == 2, "vss-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "iso-scout" }) == 2, "iso-scout without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "iso-scout", Path.Combine(work, "missing.iso") }) == 2, "iso-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "browser-extensions" }) == 2, "browser-extensions without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "browser-extensions", Path.Combine(work, "missing_ext") }) == 2, "browser-extensions missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");
@@ -178,6 +181,11 @@ public static class CommandLineTests
             File.WriteAllBytes(dummyIso, new byte[2048 * 20]);
             Check(CommandLineHandler.Run(new[] { "iso-scout", dummyIso }) == 0, "iso-scout execution returns 0");
             Check(CommandLineHandler.Run(new[] { "iso-scout", dummyIso, "--json" }) == 0, "iso-scout --json returns 0");
+
+            string dummyExtDir = Path.Combine(work, "dummy_extensions");
+            Directory.CreateDirectory(dummyExtDir);
+            Check(CommandLineHandler.Run(new[] { "browser-extensions", dummyExtDir }) == 0, "browser-extensions execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "browser-extensions", dummyExtDir, "--json" }) == 0, "browser-extensions --json returns 0");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");

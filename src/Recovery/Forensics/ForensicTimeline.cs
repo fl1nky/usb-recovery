@@ -486,6 +486,33 @@ namespace UsbRecovery
             }
         }
 
+        public void AddBrowserExtensions(IEnumerable<BrowserExtensionArtifact> extensions)
+        {
+            if (extensions == null) return;
+            foreach (var ext in extensions)
+            {
+                if (ext == null) continue;
+
+                string action = ext.IsSuspicious ? "EXTENSION_SUSPICIOUS (MITRE T1176)" :
+                                (ext.Category == "Crypto Wallet" ? "CRYPTO_WALLET_INSTALLED" : "EXTENSION_INVENTORY");
+
+                string desc = string.Format("Name: {0} ({1}), Category: {2}, MV{3}, LevelDB: {4} keys{5}",
+                    ext.Name,
+                    ext.ExtensionId,
+                    ext.Category,
+                    ext.ManifestVersion,
+                    ext.LevelDbKeyCount,
+                    ext.IsSuspicious ? " [ALERT: " + ext.SuspicionReason + "]" : "");
+
+                string details = string.Format("Permissions: {0}, Tokens: {1}, Path: {2}",
+                    string.Join(", ", ext.Permissions.ToArray()),
+                    string.Join(", ", ext.DiscoveredTokens.ToArray()),
+                    ext.SourcePath);
+
+                AddEvent(DateTime.UtcNow, "BrowserExtension", action, ext.Name + " (" + ext.ExtensionId + ")", desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

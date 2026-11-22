@@ -104,6 +104,9 @@ USB-Recovery.exe vss-scout C:\images\evidence.raw --json
 # Scout ISO 9660 / Joliet / UDF optical & hybrid USB flash volumes, carve and restore files
 USB-Recovery.exe iso-scout C:\images\hybrid_installer.iso -o C:\recovered_iso --json
 
+# Analyze Chromium & Firefox extensions, crypto wallets (MetaMask, Phantom) & LevelDB credentials
+USB-Recovery.exe browser-extensions C:\Users\Admin\AppData\Local\Google\Chrome\User Data\Default --json
+
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 

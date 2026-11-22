@@ -226,7 +226,20 @@ public static class ForensicTimelineTests
         };
         timeline.AddIsoUdfFiles(new[] { isoFile });
 
-        Check(timeline.Count >= 17, "Timeline collected at least 17 multi-source events");
+        // 17. Browser Extension Artifact
+        var extArtifact = new BrowserExtensionArtifact
+        {
+            ExtensionId = "nkbihfbeogaeaoehlefnkodbefgpgknn",
+            Name = "MetaMask",
+            Version = "10.34.0",
+            Category = "Crypto Wallet",
+            ManifestVersion = "3",
+            LevelDbKeyCount = 50,
+            IsSuspicious = false
+        };
+        timeline.AddBrowserExtensions(new[] { extArtifact });
+
+        Check(timeline.Count >= 18, "Timeline collected at least 18 multi-source events");
     }
 
     private static void TestChronologicalSorting()

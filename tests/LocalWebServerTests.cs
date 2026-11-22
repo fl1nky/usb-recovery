@@ -129,6 +129,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Recycle Bin"), "Dashboard HTML contains Recycle Bin tab");
                     Check(html.Contains("Volume Shadows (VSS)"), "Dashboard HTML contains Volume Shadows (VSS) tab");
                     Check(html.Contains("ISO / UDF Optical"), "Dashboard HTML contains ISO / UDF Optical tab");
+                    Check(html.Contains("Browser Extensions"), "Dashboard HTML contains Browser Extensions tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -428,6 +429,19 @@ public static class LocalWebServerTests
                     Check(isoObj.ContainsKey("TotalFiles"), "ISO contains TotalFiles");
                     Check(isoObj.ContainsKey("TotalDirectories"), "ISO contains TotalDirectories");
                     Check(isoObj.ContainsKey("Files"), "ISO contains Files");
+                }
+
+                // Test 22: GET /api/extensions
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string extJson = client.DownloadString(baseUrl + "/api/extensions");
+                    var serializer = new JavaScriptSerializer();
+                    var extObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(extJson);
+                    Check(extObj != null, "Extensions JSON parsed");
+                    Check(extObj.ContainsKey("TotalExtensions"), "Extensions contains TotalExtensions");
+                    Check(extObj.ContainsKey("CryptoWalletsCount"), "Extensions contains CryptoWalletsCount");
+                    Check(extObj.ContainsKey("Extensions"), "Extensions contains Extensions");
                 }
 
                 server.Stop();

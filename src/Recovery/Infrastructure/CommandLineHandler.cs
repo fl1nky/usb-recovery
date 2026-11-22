@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -125,6 +125,9 @@ namespace UsbRecovery
                 case "iso-scout":
                     return ExecuteIsoScout(args);
 
+                case "browser-extensions":
+                    return ExecuteBrowserExtensions(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -181,6 +184,7 @@ namespace UsbRecovery
             Console.WriteLine("  recycle-bin <path> [-o <dir>]  Windows Recycle Bin parser ($I/$R), SID tracking & file restore");
             Console.WriteLine("  vss-scout <image_path>         Windows Volume Shadow Copies (VSS), snapshot catalog & CoW mapping");
             Console.WriteLine("  iso-scout <image_path> [-o <dir>] Optical & USB ISO 9660, Joliet, UDF scout & file carving");
+            Console.WriteLine("  browser-extensions <dir_or_image> Chromium & Firefox extensions, crypto wallets & LevelDB credentials");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -2453,6 +2457,96 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during ISO/UDF scouting: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // Browser Extensions Command
+        // =========================================================================
+        private static int ExecuteBrowserExtensions(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'browser-extensions' requires a profile directory, manifest.json, or raw image.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe browser-extensions <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = BrowserExtensionsParser.Parse(path);
+
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Web Browser Extensions & Credential Store Analyst");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Total Extensions:  {0:N0}", report.TotalExtensions);
+                    Console.WriteLine("  Crypto Wallets:    {0:N0}", report.CryptoWalletsCount);
+                    Console.WriteLine("  Password Managers: {0:N0}", report.PasswordManagersCount);
+                    Console.WriteLine("  Threat Alerts:     {0}", report.SuspiciousCount > 0 ? "🚨 ALERT (" + report.SuspiciousCount + " suspicious extensions)" : "✓ Normal");
+                    Console.WriteLine("================================================================================");
+
+                    if (report.Extensions != null && report.Extensions.Count > 0)
+                    {
+                        Console.WriteLine("Discovered Extensions & Credentials:");
+                        int show = Math.Min(30, report.Extensions.Count);
+                        for (int i = 0; i < show; i++)
+                        {
+                            var ext = report.Extensions[i];
+                            Console.WriteLine("  [{0,2}] [{1}] {2} (v{3}) [{4}]",
+                                i + 1, ext.Category, ext.Name, string.IsNullOrEmpty(ext.Version) ? "?" : ext.Version, ext.Browser);
+                            Console.WriteLine("       ID: {0} | Manifest: MV{1} | Carved: {2}",
+                                ext.ExtensionId, ext.ManifestVersion, ext.IsCarved);
+                            if (ext.HasLevelDbStorage)
+                            {
+                                Console.WriteLine("       Storage: LevelDB present ({0} keys estimate)", ext.LevelDbKeyCount);
+                            }
+                            if (ext.DiscoveredTokens != null && ext.DiscoveredTokens.Count > 0)
+                            {
+                                Console.WriteLine("       Tokens:  {0}", string.Join(", ", ext.DiscoveredTokens.ToArray()));
+                            }
+                            if (ext.Permissions != null && ext.Permissions.Count > 0)
+                            {
+                                string perms = string.Join(", ", ext.Permissions.ToArray());
+                                if (perms.Length > 80) perms = perms.Substring(0, 80) + "...";
+                                Console.WriteLine("       Perms:   {0}", perms);
+                            }
+                            if (ext.IsSuspicious)
+                            {
+                                Console.WriteLine("       └── [ALERT]: {0}", ext.SuspicionReason);
+                            }
+                        }
+                        if (report.Extensions.Count > show)
+                        {
+                            Console.WriteLine("  ... and {0} more extensions.", report.Extensions.Count - show);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during browser extension parsing: {0}", ex.Message);
                 return 1;
             }
         }

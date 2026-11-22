@@ -56,6 +56,10 @@ namespace UsbRecovery
         IsoUdfReport cachedIsoReport;
         string cachedIsoPath;
 
+        readonly object extensionsLock = new object();
+        BrowserExtensionsReport cachedExtensionsReport;
+        string cachedExtensionsPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -391,6 +395,10 @@ namespace UsbRecovery
                 else if (path == "/api/iso")
                 {
                     ServeIso(req, res);
+                }
+                else if (path == "/api/extensions")
+                {
+                    ServeBrowserExtensions(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -2093,6 +2101,45 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeBrowserExtensions(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            BrowserExtensionsReport report = null;
+            lock (extensionsLock)
+            {
+                if (cachedExtensionsPath == imagePath && cachedExtensionsReport != null)
+                {
+                    report = cachedExtensionsReport;
+                }
+                else
+                {
+                    if (Directory.Exists(outputPath))
+                    {
+                        try
+                        {
+                            report = BrowserExtensionsParser.Parse(outputPath);
+                        }
+                        catch { }
+                    }
+                    if ((report == null || report.TotalExtensions == 0) && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            report = BrowserExtensionsParser.Parse(imagePath);
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new BrowserExtensionsReport();
+                    }
+                    cachedExtensionsReport = report;
+                    cachedExtensionsPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2128,6 +2175,10 @@ namespace UsbRecovery
             if (cachedIsoReport != null && cachedIsoReport.Files != null)
             {
                 activeTl.AddIsoUdfFiles(cachedIsoReport.Files);
+            }
+            if (cachedExtensionsReport != null && cachedExtensionsReport.Extensions != null)
+            {
+                activeTl.AddBrowserExtensions(cachedExtensionsReport.Extensions);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2244,6 +2295,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('recyclebin')"">🗑️ Recycle Bin</button>
   <button class=""tab-btn"" onclick=""switchTab('vss')"">📷 Volume Shadows (VSS)</button>
   <button class=""tab-btn"" onclick=""switchTab('iso')"">💿 ISO / UDF Optical</button>
+  <button class=""tab-btn"" onclick=""switchTab('extensions')"">🧩 Browser Extensions</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>
