@@ -465,6 +465,27 @@ namespace UsbRecovery
             }
         }
 
+        public void AddIsoUdfFiles(IEnumerable<IsoUdfFileRecord> files)
+        {
+            if (files == null) return;
+            foreach (var f in files)
+            {
+                if (f == null || f.RecordingTimeUtc == DateTime.MinValue) continue;
+
+                string action = f.IsDirectory ? "DIRECTORY_RECORD" : (f.IsCarved ? "FILE_CARVED (ISO/UDF)" : "FILE_ACTIVE (ISO/UDF)");
+                string desc = string.Format("Size: {0:N0} bytes, Extent: 0x{1:X10}, Joliet: {2}, UDF: {3}{4}",
+                    f.Size,
+                    f.ExtentOffset,
+                    f.IsJoliet,
+                    f.IsUdf,
+                    f.IsCarved ? " [Carved from unallocated/damaged sectors]" : "");
+
+                string details = string.Format("FullPath: {0}, IsHidden: {1}", f.FullPath, f.IsHidden);
+
+                AddEvent(f.RecordingTimeUtc, "ISO9660", action, f.FullPath ?? f.Name, desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

@@ -52,6 +52,10 @@ namespace UsbRecovery
         VssReport cachedVssReport;
         string cachedVssPath;
 
+        readonly object isoLock = new object();
+        IsoUdfReport cachedIsoReport;
+        string cachedIsoPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -383,6 +387,10 @@ namespace UsbRecovery
                 else if (path == "/api/vss")
                 {
                     ServeVss(req, res);
+                }
+                else if (path == "/api/iso")
+                {
+                    ServeIso(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -2054,6 +2062,37 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeIso(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            IsoUdfReport report = null;
+            lock (isoLock)
+            {
+                if (cachedIsoPath == imagePath && cachedIsoReport != null)
+                {
+                    report = cachedIsoReport;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            report = IsoUdfScout.Scout(imagePath);
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new IsoUdfReport();
+                    }
+                    cachedIsoReport = report;
+                    cachedIsoPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2085,6 +2124,10 @@ namespace UsbRecovery
             if (cachedVssReport != null && cachedVssReport.Snapshots != null)
             {
                 activeTl.AddVssSnapshots(cachedVssReport.Snapshots);
+            }
+            if (cachedIsoReport != null && cachedIsoReport.Files != null)
+            {
+                activeTl.AddIsoUdfFiles(cachedIsoReport.Files);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2200,6 +2243,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('jumplist')"">📋 Jump Lists</button>
   <button class=""tab-btn"" onclick=""switchTab('recyclebin')"">🗑️ Recycle Bin</button>
   <button class=""tab-btn"" onclick=""switchTab('vss')"">📷 Volume Shadows (VSS)</button>
+  <button class=""tab-btn"" onclick=""switchTab('iso')"">💿 ISO / UDF Optical</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

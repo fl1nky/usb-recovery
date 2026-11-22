@@ -212,7 +212,21 @@ public static class ForensicTimelineTests
         };
         timeline.AddVssSnapshots(new[] { vssRecord });
 
-        Check(timeline.Count >= 16, "Timeline collected at least 16 multi-source events");
+        // 16. ISO / UDF File Record
+        var isoFile = new IsoUdfFileRecord
+        {
+            Name = "ExfilArchive.iso",
+            FullPath = "Backups/ExfilArchive.iso",
+            Size = 700000000,
+            ExtentOffset = 204800,
+            RecordingTimeUtc = new DateTime(2026, 11, 21, 14, 13, 0, DateTimeKind.Utc),
+            IsDirectory = false,
+            IsJoliet = true,
+            IsCarved = false
+        };
+        timeline.AddIsoUdfFiles(new[] { isoFile });
+
+        Check(timeline.Count >= 17, "Timeline collected at least 17 multi-source events");
     }
 
     private static void TestChronologicalSorting()

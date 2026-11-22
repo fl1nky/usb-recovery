@@ -128,6 +128,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Jump Lists"), "Dashboard HTML contains Jump Lists tab");
                     Check(html.Contains("Recycle Bin"), "Dashboard HTML contains Recycle Bin tab");
                     Check(html.Contains("Volume Shadows (VSS)"), "Dashboard HTML contains Volume Shadows (VSS) tab");
+                    Check(html.Contains("ISO / UDF Optical"), "Dashboard HTML contains ISO / UDF Optical tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -414,6 +415,19 @@ public static class LocalWebServerTests
                     Check(vssObj.ContainsKey("TotalSnapshots"), "VSS contains TotalSnapshots");
                     Check(vssObj.ContainsKey("TotalStoreBlocks"), "VSS contains TotalStoreBlocks");
                     Check(vssObj.ContainsKey("Snapshots"), "VSS contains Snapshots");
+                }
+
+                // Test 21: GET /api/iso
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string isoJson = client.DownloadString(baseUrl + "/api/iso");
+                    var serializer = new JavaScriptSerializer();
+                    var isoObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(isoJson);
+                    Check(isoObj != null, "ISO JSON parsed");
+                    Check(isoObj.ContainsKey("TotalFiles"), "ISO contains TotalFiles");
+                    Check(isoObj.ContainsKey("TotalDirectories"), "ISO contains TotalDirectories");
+                    Check(isoObj.ContainsKey("Files"), "ISO contains Files");
                 }
 
                 server.Stop();

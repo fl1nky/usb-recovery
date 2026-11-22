@@ -101,6 +101,9 @@ USB-Recovery.exe recycle-bin C:\$Recycle.Bin -o C:\recovered_recycle --json
 # Scout Volume Shadow Copies (VSS), snapshot catalog & CoW block descriptors
 USB-Recovery.exe vss-scout C:\images\evidence.raw --json
 
+# Scout ISO 9660 / Joliet / UDF optical & hybrid USB flash volumes, carve and restore files
+USB-Recovery.exe iso-scout C:\images\hybrid_installer.iso -o C:\recovered_iso --json
+
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 

@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -122,6 +122,9 @@ namespace UsbRecovery
                 case "vss-scout":
                     return ExecuteVssScout(args);
 
+                case "iso-scout":
+                    return ExecuteIsoScout(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -177,6 +180,7 @@ namespace UsbRecovery
             Console.WriteLine("  jumplist <file_or_dir>         Windows Jump Lists parser (.automaticDestinations, .customDestinations)");
             Console.WriteLine("  recycle-bin <path> [-o <dir>]  Windows Recycle Bin parser ($I/$R), SID tracking & file restore");
             Console.WriteLine("  vss-scout <image_path>         Windows Volume Shadow Copies (VSS), snapshot catalog & CoW mapping");
+            Console.WriteLine("  iso-scout <image_path> [-o <dir>] Optical & USB ISO 9660, Joliet, UDF scout & file carving");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -2343,6 +2347,112 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during VSS scouting: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // ISO 9660 / UDF Scout Command
+        // =========================================================================
+        private static int ExecuteIsoScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'iso-scout' requires a path to an ISO image, raw optical volume, or USB flash drive.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe iso-scout <image_path> [-o <restore_dir>] [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            string restoreDir = null;
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+                else if ((args[i] == "-o" || args[i] == "--output") && i + 1 < args.Length)
+                {
+                    restoreDir = args[++i];
+                }
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = IsoUdfScout.Scout(path);
+
+                if (!string.IsNullOrEmpty(restoreDir) && report.Files != null && report.Files.Count > 0)
+                {
+                    if (!Directory.Exists(restoreDir)) Directory.CreateDirectory(restoreDir);
+                    int restored = 0;
+                    using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        foreach (var f in report.Files)
+                        {
+                            if (!f.IsDirectory && f.Size > 0)
+                            {
+                                string destFile = Path.Combine(restoreDir, f.FullPath.Replace('/', '\\'));
+                                if (IsoUdfScout.ExtractFile(fs, f, destFile))
+                                {
+                                    restored++;
+                                }
+                            }
+                        }
+                    }
+                    if (!json)
+                    {
+                        Console.WriteLine("Extracted {0} file(s) to '{1}'", restored, restoreDir);
+                    }
+                }
+
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — ISO 9660 / Joliet / UDF Forensic Scout & Carver");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Filesystem:        {0}", report.FilesystemType);
+                    Console.WriteLine("  Volume Identifier: {0}", string.IsNullOrEmpty(report.VolumeIdentifier) ? "(Unnamed)" : report.VolumeIdentifier);
+                    Console.WriteLine("  System Identifier: {0}", string.IsNullOrEmpty(report.SystemIdentifier) ? "(None)" : report.SystemIdentifier);
+                    Console.WriteLine("  Volume Space Size: {0:N0} bytes ({1:F2} MB)", report.VolumeSpaceSize, report.VolumeSpaceSize / 1048576.0);
+                    Console.WriteLine("  Logical Block Size:{0} bytes", report.LogicalBlockSize);
+                    Console.WriteLine("  Total Files:       {0:N0}", report.TotalFiles);
+                    Console.WriteLine("  Total Directories: {0:N0}", report.TotalDirectories);
+                    Console.WriteLine("  Total File Bytes:  {0:N0} bytes ({1:F2} MB)", report.TotalFileBytes, report.TotalFileBytes / 1048576.0);
+                    Console.WriteLine("  Status:            {0}", report.IsCarved ? "🚨 CARVED (Unallocated/Damaged Sectors)" : "✓ Valid Descriptors");
+                    Console.WriteLine("================================================================================");
+
+                    if (report.Files != null && report.Files.Count > 0)
+                    {
+                        Console.WriteLine("Discovered File & Directory Records:");
+                        int show = Math.Min(30, report.Files.Count);
+                        for (int i = 0; i < show; i++)
+                        {
+                            var f = report.Files[i];
+                            string ts = f.RecordingTimeUtc != DateTime.MinValue ? f.RecordingTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "N/A";
+                            string kind = f.IsDirectory ? "<DIR>" : string.Format("{0,10:N0} B", f.Size);
+                            Console.WriteLine("  [{0,2}] {1,-19} {2,12} [{3}] {4}",
+                                i + 1, ts, kind, f.IsJoliet ? "JOLIET" : (f.IsUdf ? "UDF" : "ISO"), f.FullPath);
+                        }
+                        if (report.Files.Count > show)
+                        {
+                            Console.WriteLine("  ... and {0} more items.", report.Files.Count - show);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during ISO/UDF scouting: {0}", ex.Message);
                 return 1;
             }
         }

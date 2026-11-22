@@ -49,6 +49,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "jumplist" }), "jumplist is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "recycle-bin" }), "recycle-bin is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "vss-scout" }), "vss-scout is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "iso-scout" }), "iso-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
@@ -109,6 +110,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "recycle-bin", Path.Combine(work, "missing.raw") }) == 2, "recycle-bin missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "vss-scout" }) == 2, "vss-scout without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "vss-scout", Path.Combine(work, "missing.raw") }) == 2, "vss-scout missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "iso-scout" }) == 2, "iso-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "iso-scout", Path.Combine(work, "missing.iso") }) == 2, "iso-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");
@@ -170,6 +173,11 @@ public static class CommandLineTests
             File.WriteAllBytes(dummyVss, new byte[1024]);
             Check(CommandLineHandler.Run(new[] { "vss-scout", dummyVss }) == 0, "vss-scout execution returns 0");
             Check(CommandLineHandler.Run(new[] { "vss-scout", dummyVss, "--json" }) == 0, "vss-scout --json returns 0");
+
+            string dummyIso = Path.Combine(work, "test_iso.iso");
+            File.WriteAllBytes(dummyIso, new byte[2048 * 20]);
+            Check(CommandLineHandler.Run(new[] { "iso-scout", dummyIso }) == 0, "iso-scout execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "iso-scout", dummyIso, "--json" }) == 0, "iso-scout --json returns 0");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");
