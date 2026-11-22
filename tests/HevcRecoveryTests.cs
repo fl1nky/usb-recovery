@@ -42,5 +42,10 @@ public static class HevcRecoveryTests
     public static int Main(string[] args)
     {
         try{string project=Path.GetFullPath(args[0]);fixtures=args.Length>1?Path.GetFullPath(args[1]):Path.Combine(project,".build","hevc-recovery-fixtures-current");decoder=args.Length>2?Path.GetFullPath(args[2]):null;work=Path.Combine(project,".build","hevc-engine-runs-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);var manifest=new JavaScriptSerializer().Deserialize<Manifest>(File.ReadAllText(Path.Combine(fixtures,"manifest.json")));Check(manifest.Schema==1&&manifest.Cases.Count==10&&manifest.FfmpegSha256=="3256173f3f8bffd7df12227c68adf68025edb1832273a9530688a7bb1ed8edec"&&(decoder==null||HashFile(decoder)==manifest.FfmpegSha256),"Ten independently encoded/scattered owned HEVC cases and pinned encoder/optional decoder");Cases(manifest);Console.WriteLine("PASS HevcRecovery: "+checks+" checks; complete actual hvc1/hev1/Main10/multislice and two-track HEVC originals reassembled; ambiguity/foreign config/NAL overwrite rejected, identical alternatives preserved, opaque CABAC overwrite remains unauthenticated. "+(decoder!=null?"External FFmpeg verifies every frame on all positive tracks. ":"No decoder invoked; byte/hash/map verification only. ")+"No devices.");return 0;}catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        finally{
+            try{
+                if(work!=null&&Directory.Exists(work))Directory.Delete(work,true);
+            }catch{}
+        }
     }
 }

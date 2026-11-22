@@ -70,8 +70,31 @@ public static class ForensicImagePipelineTests
     }
     public static int Main(string[] args)
     {
-        try{string root=Path.GetFullPath(args[0]);native=Path.Combine(root,".build","forensic-image-fixtures");work=Path.Combine(root,".build","forensic-pipeline-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);
-            Native();ReadMap();Cancel();Console.WriteLine("PASS ForensicImagePipeline: "+checks+" checks; actual helper/C# E01, Ex01, split segments, logical evidence, map masking/tamper, cancellation/resume and immutable controlled sources. No devices.");return 0;
-        }catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        try
+        {
+            string root = Path.GetFullPath(args != null && args.Length > 0 ? args[0] : ".");
+            native = Path.Combine(root, ".build", "forensic-image-fixtures");
+            work = Path.Combine(root, ".build", "forensic-pipeline-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(work);
+            Native();
+            ReadMap();
+            Cancel();
+            Console.WriteLine("PASS ForensicImagePipeline: " + checks + " checks; actual helper/C# E01, Ex01, split segments, logical evidence, map masking/tamper, cancellation/resume and immutable controlled sources. No devices.");
+            return 0;
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            return 1;
+        }
+        finally
+        {
+            try
+            {
+                if (work != null && Directory.Exists(work))
+                    Directory.Delete(work, true);
+            }
+            catch { }
+        }
     }
 }

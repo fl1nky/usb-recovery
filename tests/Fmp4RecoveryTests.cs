@@ -212,5 +212,10 @@ public static class Fmp4RecoveryTests
             File.WriteAllText(Path.Combine(work,"verification.json"),Json().Serialize(new{schema=1,status="source-tests-passed",scope="One native FFmpeg witness plus explicitly synthetic mutations; no universal fMP4/ownership/deletion/device/paid claim",checks=checks,recovery_calls=calls,runtime_sha256=runtimeHash,sources=sources,cases=records}),new UTF8Encoding(false));
             Console.WriteLine("PASS Fmp4Recovery: "+checks+" checks; exact native19774bytes/six source extents, full-map aliases/catalog/export/session, foreign vs ambiguous/opaque mutations, indexed timing/bounds, limits/cancel and immutable inputs. "+work);return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        finally{
+            try{
+                if(work!=null&&Directory.Exists(work))Directory.Delete(work,true);
+            }catch{}
+        }
     }
 }

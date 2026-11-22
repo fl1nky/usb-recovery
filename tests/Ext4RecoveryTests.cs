@@ -122,5 +122,11 @@ public static class Ext4RecoveryTests
             Console.WriteLine("PASS Ext4Recovery: " + assertions + " assertions; real e2fsprogs fixtures, checksums, extents/indirect, Unicode, allocation conflicts, no guessed sparse/unwritten bytes, bounds and cancellation. " + results);
             return 0;
         } catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+        finally {
+            try {
+                if (results != null && Directory.Exists(results))
+                    Directory.Delete(results, true);
+            } catch { }
+        }
     }
 }

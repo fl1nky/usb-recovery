@@ -274,8 +274,20 @@ public static class DocumentMediaPreviewTests
     }
     [STAThread]public static int Main(string[] args)
     {
+        if (args != null && args.Length > 0 && args[0] == "--document-preview-worker")
+            return DocumentPreviewWorker.RunConsole(args);
+        if (args != null && args.Length > 0 && args[0] == "--local-media-preview-worker")
+            return LocalMediaPreviewWorker.RunConsole(args);
+        if (args != null && args.Length > 0 && args[0] == "--media-decode-worker")
+            return MediaDecodeWorker.RunConsole(args);
+
         try{
             Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);string project=Path.GetFullPath(args[0]);work=Path.Combine(project,".build","document-media-preview-tests-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);string pdf=Pdf(Path.Combine(work,"multipage.pdf")),catalog=Catalog(pdf,Path.GetFullPath(args[1]));if(args.Length>2&&args[2]=="--show"){using(var form=new RecoveryFilesForm(catalog)){form.Text="Preview verification — controlled local fixtures";Application.Run(form);}return 0;}PdfCases(pdf);UiCases(pdf);VideoCases(Path.GetFullPath(args[1]));Integration(catalog);File.WriteAllText(Path.Combine(work,"evidence.json"),new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Serialize(new{checks=checks,evidence=evidence}),new UTF8Encoding(false));Console.WriteLine(work);Console.WriteLine("PASS DocumentMediaPreview: "+checks+" checks; actual OS PDF pixels, multipage UI/rotation/zoom, isolated native playback/pause/seek/end/volume/audio/cleanup and catalog integration. Windows OS-codec evidence.");return 0;
         }catch(Exception error){Console.WriteLine("FAIL "+error);if(work!=null)File.WriteAllText(Path.Combine(work,"failure.txt"),error.ToString());return 1;}
+        finally{
+            try{
+                if(work!=null&&Directory.Exists(work))Directory.Delete(work,true);
+            }catch{}
+        }
     }
 }

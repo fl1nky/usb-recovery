@@ -231,5 +231,14 @@ public static class ApfsRecoveryTests
             Console.Error.WriteLine(error);
             return 1;
         }
+        finally
+        {
+            try
+            {
+                if (results != null && Directory.Exists(results))
+                    Directory.Delete(results, true);
+            }
+            catch { }
+        }
     }
 }

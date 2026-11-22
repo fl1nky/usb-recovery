@@ -68,5 +68,10 @@ public static class MediaFoundationValidationTests
         try{project=Path.GetFullPath(args[0]);fixtures=Path.Combine(project,".build","fragmented-media-audio-tests");work=Path.Combine(project,".build","mf-tests-"+Guid.NewGuid().ToString("N").Substring(0,8));Directory.CreateDirectory(work);var manifest=new JavaScriptSerializer().Deserialize<Manifest>(File.ReadAllText(Path.Combine(fixtures,"manifest.json")));PositiveAndCorruption(manifest);LimitsAndIsolation();
             File.WriteAllText(Path.Combine(work,"decode-evidence.json"),new JavaScriptSerializer{MaxJsonLength=32*1024*1024}.Serialize(new{checks=checks,scope="Actual Windows Media Foundation OS decoding on owned synthetic reference movies; soft decoding only, no ownership/integrity authentication",cases=evidence}));Console.WriteLine("PASS MediaFoundationValidation: "+checks+" checks; native software RGB32/PCM, full per-stream compressed/decode EOS, real corruption concealment negatives, hashes, local-only source preflight and cooperative worker limits. No hard-isolation or integrity guarantee claimed.");return 0;
         }catch(Exception error){Console.Error.WriteLine(error);return 1;}
+        finally{
+            try{
+                if(work!=null&&Directory.Exists(work))Directory.Delete(work,true);
+            }catch{}
+        }
     }
 }
