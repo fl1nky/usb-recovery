@@ -40,6 +40,10 @@ namespace UsbRecovery
         SrumReport cachedSrumReport;
         string cachedSrumPath;
 
+        readonly object jumpListLock = new object();
+        JumpListReport cachedJumpListReport;
+        string cachedJumpListPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -359,6 +363,10 @@ namespace UsbRecovery
                 else if (path == "/api/srum")
                 {
                     ServeSrum(req, res);
+                }
+                else if (path == "/api/jumplists")
+                {
+                    ServeJumpLists(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -1901,6 +1909,51 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeJumpLists(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            JumpListReport report = null;
+            lock (jumpListLock)
+            {
+                if (cachedJumpListPath == imagePath && cachedJumpListReport != null)
+                {
+                    report = cachedJumpListReport;
+                }
+                else
+                {
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("*Destinations-ms", SearchOption.AllDirectories);
+                        if (files.Length > 0)
+                        {
+                            try { report = JumpListParser.Parse(files[0].FullName); } catch { }
+                        }
+                    }
+                    if (report == null && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                int readLen = (int)Math.Min(s.Length, 16L * 1024 * 1024);
+                                byte[] buf = new byte[readLen];
+                                s.Read(buf, 0, readLen);
+                                report = JumpListParser.Parse(buf, imagePath);
+                            }
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new JumpListReport { FileType = "No Jump Lists Found" };
+                    }
+                    cachedJumpListReport = report;
+                    cachedJumpListPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -1911,7 +1964,7 @@ namespace UsbRecovery
                 TotalBytes = imageSize
             };
 
-                        ForensicTimeline activeTl = new ForensicTimeline();
+            ForensicTimeline activeTl = new ForensicTimeline();
             if (cachedMftRecords != null) activeTl.AddMftRecords(cachedMftRecords);
             if (cachedShimRecords != null) activeTl.AddShimcache(cachedShimRecords);
             if (cachedAmcacheRecords != null) activeTl.AddAmcache(cachedAmcacheRecords);
@@ -1920,6 +1973,10 @@ namespace UsbRecovery
             {
                 activeTl.AddSrumNetworkEntries(cachedSrumReport.NetworkEntries);
                 activeTl.AddSrumAppUsageEntries(cachedSrumReport.AppUsageEntries);
+            }
+            if (cachedJumpListReport != null && cachedJumpListReport.Entries != null)
+            {
+                activeTl.AddJumpListEntries(cachedJumpListReport.Entries);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2032,6 +2089,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('shellbags')"">📁 Shellbags</button>
   <button class=""tab-btn"" onclick=""switchTab('entropy')"">⚡ Entropy</button>
   <button class=""tab-btn"" onclick=""switchTab('srum')"">📡 SRUM Exfiltration</button>
+  <button class=""tab-btn"" onclick=""switchTab('jumplist')"">📋 Jump Lists</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

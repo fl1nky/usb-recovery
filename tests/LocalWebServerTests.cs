@@ -125,6 +125,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Shellbags"), "Dashboard HTML contains Shellbags tab");
                     Check(html.Contains("Entropy"), "Dashboard HTML contains Entropy tab");
                     Check(html.Contains("SRUM Exfiltration"), "Dashboard HTML contains SRUM tab");
+                    Check(html.Contains("Jump Lists"), "Dashboard HTML contains Jump Lists tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -372,6 +373,19 @@ public static class LocalWebServerTests
                     Check(srumObj.ContainsKey("NetworkEntries"), "SRUM contains NetworkEntries");
                     Check(srumObj.ContainsKey("AppUsageEntries"), "SRUM contains AppUsageEntries");
                     Check(srumObj.ContainsKey("TotalBytesExfiltrated"), "SRUM contains TotalBytesExfiltrated");
+                }
+
+                // Test 18: GET /api/jumplists
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string jlJson = client.DownloadString(baseUrl + "/api/jumplists");
+                    var serializer = new JavaScriptSerializer();
+                    var jlObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(jlJson);
+                    Check(jlObj != null, "JumpLists JSON parsed");
+                    Check(jlObj.ContainsKey("FileType"), "JumpLists contains FileType");
+                    Check(jlObj.ContainsKey("TotalEntries"), "JumpLists contains TotalEntries");
+                    Check(jlObj.ContainsKey("Entries"), "JumpLists contains Entries");
                 }
 
                 server.Stop();

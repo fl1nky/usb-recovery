@@ -395,6 +395,34 @@ namespace UsbRecovery
             }
         }
 
+        public void AddJumpListEntries(IEnumerable<JumpListEntry> jumpListEntries)
+        {
+            if (jumpListEntries == null) return;
+            foreach (var j in jumpListEntries)
+            {
+                if (j == null) continue;
+                DateTime ts = j.LastAccessUtc != DateTime.MinValue ? j.LastAccessUtc :
+                              (j.TargetWriteUtc != DateTime.MinValue ? j.TargetWriteUtc : j.TargetCreationUtc);
+                if (ts == DateTime.MinValue) continue;
+
+                string action = j.IsSuspicious ? "MRU_EXECUTION (JumpList Suspicious)" :
+                               (j.PinStatus == "Pinned" ? "PINNED_ITEM (JumpList)" : "MRU_ACCESS (JumpList)");
+
+                string desc = string.Format("App: {0} ({1}), AccessCount: {2}, Pin: {3}, Size: {4:N0} bytes{5}",
+                    string.IsNullOrEmpty(j.AppName) ? "Unknown" : j.AppName,
+                    j.AppId,
+                    j.AccessCount,
+                    j.PinStatus,
+                    j.TargetFileSize,
+                    j.IsSuspicious ? " [ALERT: " + j.ThreatDescription + "]" : "");
+
+                string details = string.Format("NetBIOS: {0}, VolSerial: {1}, VolLabel: {2}, MAC: {3}, Category: {4}",
+                    j.NetBiosName, j.VolumeSerialNumber, j.VolumeLabel, j.MacAddress, j.Category);
+
+                AddEvent(ts, "JumpList", action, j.TargetPath, desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

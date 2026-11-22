@@ -167,7 +167,23 @@ public static class ForensicTimelineTests
         };
         timeline.AddSrumNetworkEntries(new[] { srumNet });
 
-        Check(timeline.Count >= 13, "Timeline collected at least 13 multi-source events");
+        // 13. Jump List MRU & Pinned Entries
+        var jlEntry = new JumpListEntry
+        {
+            AppId = "1b4dd67f29cb1962",
+            AppName = "Windows Explorer",
+            EntryId = 1,
+            TargetPath = @"C:\Users\Admin\Documents\Confidential_Contract.docx",
+            AccessCount = 12,
+            LastAccessUtc = new DateTime(2026, 11, 21, 14, 10, 0, DateTimeKind.Utc),
+            PinStatus = "Pinned",
+            NetBiosName = "EXECUTIVE-PC",
+            TargetFileSize = 75000,
+            Category = "AutomaticDestinations"
+        };
+        timeline.AddJumpListEntries(new[] { jlEntry });
+
+        Check(timeline.Count >= 14, "Timeline collected at least 14 multi-source events");
     }
 
     private static void TestChronologicalSorting()

@@ -46,6 +46,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "exfat-scout" }), "exfat-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "hfs-scout" }), "hfs-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "srum" }), "srum is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "jumplist" }), "jumplist is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
@@ -100,6 +101,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "hfs-scout", Path.Combine(work, "missing.raw") }) == 2, "hfs-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "srum" }) == 2, "srum without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "srum", Path.Combine(work, "missing.raw") }) == 2, "srum missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "jumplist" }) == 2, "jumplist without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "jumplist", Path.Combine(work, "missing.raw") }) == 2, "jumplist missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");
@@ -146,6 +149,11 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "benchmark", "--mb", "4", "--json" }) == 0, "benchmark execution returns 0");
             Check(CommandLineHandler.Run(new[] { "lnk" }) == 2, "lnk without args returns 2");
             Check(CommandLineHandler.Run(new[] { "lnk", Path.Combine(work, "missing.lnk") }) == 2, "lnk missing file returns 2");
+
+            string dummyJumpList = Path.Combine(work, "test.automaticDestinations-ms");
+            File.WriteAllBytes(dummyJumpList, new byte[512]);
+            Check(CommandLineHandler.Run(new[] { "jumplist", dummyJumpList }) == 0, "jumplist execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "jumplist", dummyJumpList, "--json" }) == 0, "jumplist --json returns 0");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");

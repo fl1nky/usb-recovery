@@ -26,7 +26,8 @@
   - **Классификатор энтропии Шеннона (Shannon Entropy)**: Потоковый анализ байтовой энтропии ($H = -\sum p \log_2 p$) без телеметрии и детектирование вымогателей (Ransomware).
   - **Пакет судебной экспертизы (Rule 902(14))**: Автоматическая генерация отчетов по стандарту Federal Rule of Evidence 902(14) и ISO/IEC 27037 с криптографическими хешами Chain of Custody (SHA-256).
   - **Монитор ресурсов и утечек SRUM**: Парсер базы данных ESE (`SRUDB.dat`), сопоставление сетевых передач приложений, SID пользователей, сетевых интерфейсов, точного объема выгруженных данных (Data Exfiltration) и активности CPU.
-  - **Единый супер-таймлайн (Super-Timeline)**: Сводный хронологический таймлайн событий (USN, MFT, EVTX, Prefetch, LNK, история браузеров, Shimcache, Amcache, Shellbags, SRUM, exFAT, HFS+) с экспортом в RFC 4180 CSV.
+  - **Парсер Windows Jump Lists**: Анализ AutomaticDestinations (формат составных файлов CFBF/OLE) и CustomDestinations с извлечением порядка доступа MRU, статуса закрепления (Pinned), временных меток выполнения, NetBIOS-имен хостов, Volume/File DROID, встроенных LNK-потоков и детекцией подозрительных запусков.
+  - **Единый супер-таймлайн (Super-Timeline)**: Сводный хронологический таймлайн событий (USN, MFT, EVTX, Prefetch, LNK, история браузеров, Shimcache, Amcache, Shellbags, SRUM, Jump Lists, exFAT, HFS+) с экспортом в RFC 4180 CSV.
   - **SQLite B-Tree карвер**: Глубокий анализ баз данных, страниц свободного пространства (freelist) и свободных блоков (freeblocks).
 - **Пакет бенчмарков (Forensic Benchmark Suite)**: Высокоскоростное тестирование скорости SWAR-поиска сигнатур, пропускной способности энтропии, парсинга MFT и аудит стабильности памяти (Zero-Leak).
 - **Локальный Web-UI (`http://127.0.0.1:8080`)**: Автономный интерфейс без внешних зависимостей с интерактивной картой распределения кластеров, Hex-инспектором, вкладками MFT, Shimcache, Super-Timeline, Amcache, Shellbags, Entropy, Court Report, потоковым ZIP-экспортом и фиксацией цепочки сохранности доказательств (Chain of Custody / SHA-256).
@@ -48,6 +49,7 @@
 | **Amcache и форензика запуска** | **Встроенный для Win7/10/11 и SHA-1** | ❌ Нет | Нужен плагин | ❌ Нет |
 | **Shellbags (История папок и USB)** | **Нативный иерархический BagMRU** | ❌ Нет | Нужен плагин | ❌ Нет |
 | **Сетевая эксфильтрация SRUM** | **Встроенный ESE-карвинг и корреляция IdMap** | ❌ Нет | Нужен SrumECmd | ❌ Нет |
+| **Windows Jump Lists (Автоматические/Кастомные)** | **Нативный парсер CFBF и категорий LNK** | ❌ Нет | Нужен JLECmd | ❌ Нет |
 | **Энтропия Шеннона и Ransomware** | **Потоковый O(1) анализ аномалий** | ❌ Нет | ❌ Нет | Базовый просмотр |
 | **Судебный отчет (Rule 902(14))** | **Автоматический ISO/IEC 27037 & SHA-256** | ❌ Нет | Ручной экспорт | Базовый отчет |
 | **Flash / F2FS скаут метаданных** | **Нативный парсер Superblock и NAT** | ❌ Нет | ❌ Нет | Базовый |
@@ -87,6 +89,9 @@ USB-Recovery.exe shellbags C:\cases\UsrClass.dat --json
 
 # Парсинг базы данных Windows SRUM и выявление утечек данных
 USB-Recovery.exe srum C:\cases\SRUDB.dat --json
+
+# Парсинг Windows Jump Lists (.automaticDestinations-ms / .customDestinations-ms)
+USB-Recovery.exe jumplist C:\Users\Admin\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations --json
 
 # Анализ энтропии Шеннона потока и выявление шифрования вымогателями (Ransomware)
 USB-Recovery.exe entropy C:\images\evidence.raw --json
