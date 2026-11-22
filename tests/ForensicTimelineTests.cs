@@ -239,7 +239,51 @@ public static class ForensicTimelineTests
         };
         timeline.AddBrowserExtensions(new[] { extArtifact });
 
-        Check(timeline.Count >= 18, "Timeline collected at least 18 multi-source events");
+        // 18. Btrfs File Record
+        var btrfsRec = new BtrfsScout.BtrfsFileRecord
+        {
+            InodeId = 256,
+            Name = "btrfs_kernel.log",
+            FullPath = "/var/log/btrfs_kernel.log",
+            Size = 8192,
+            ModifiedTimeUtcSeconds = 1795356840 // 2026-11-21 14:14:00 UTC
+        };
+        timeline.AddBtrfsFiles(new[] { btrfsRec });
+
+        // 19. XFS File Record
+        var xfsRec = new XfsScout.XfsFileRecord
+        {
+            InodeId = 512,
+            Name = "xfs_database.db",
+            FullPath = "/var/lib/xfs_database.db",
+            Size = 65536,
+            Format = 2,
+            ModifiedTimeSec = 1795356900 // 2026-11-21 14:15:00 UTC
+        };
+        timeline.AddXfsFiles(new[] { xfsRec });
+
+        // 20. ZFS File Record
+        var zfsRec = new ZfsScout.ZfsFileRecord
+        {
+            ObjectId = 1024,
+            Name = "zfs_pool_export.tar",
+            FullPath = "/tank/zfs_pool_export.tar",
+            FileSizeBytes = 1048576
+        };
+        timeline.AddZfsFiles(new[] { zfsRec });
+
+        // 21. F2FS File Record
+        var f2fsRec = new F2fsScout.F2fsFileRecord
+        {
+            InodeNumber = 2048,
+            Name = "flash_storage_manifest.bin",
+            FullPath = "/data/flash_storage_manifest.bin",
+            Size = 4096,
+            ModifiedTimeUtc = new DateTime(2026, 11, 21, 14, 16, 0, DateTimeKind.Utc)
+        };
+        timeline.AddF2fsFiles(new[] { f2fsRec });
+
+        Check(timeline.Count >= 22, "Timeline collected at least 22 multi-source events including all filesystems");
     }
 
     private static void TestChronologicalSorting()

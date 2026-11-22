@@ -513,6 +513,75 @@ namespace UsbRecovery
             }
         }
 
+        public void AddBtrfsFiles(IEnumerable<BtrfsScout.BtrfsFileRecord> records)
+        {
+            if (records == null) return;
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            foreach (var f in records)
+            {
+                if (f == null) continue;
+                string action = f.IsDirectory ? "DIRECTORY_ENTRY (Btrfs)" : "FILE_ENTRY (Btrfs)";
+                string desc = string.Format("Inode: {0}, Size: {1} bytes, Extents: {2}", f.InodeId, f.Size, f.Extents != null ? f.Extents.Count : 0);
+                if (f.ModifiedTimeUtcSeconds > 0 && f.ModifiedTimeUtcSeconds < 253402300799L)
+                {
+                    DateTime ts = epoch.AddSeconds(f.ModifiedTimeUtcSeconds);
+                    AddEvent(ts, "BTRFS", action + " - Modified", f.FullPath ?? f.Name, desc);
+                }
+            }
+        }
+
+        public void AddXfsFiles(IEnumerable<XfsScout.XfsFileRecord> records)
+        {
+            if (records == null) return;
+            DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            foreach (var f in records)
+            {
+                if (f == null) continue;
+                string action = f.IsDirectory ? "DIRECTORY_ENTRY (XFS)" : "FILE_ENTRY (XFS)";
+                string desc = string.Format("Inode: {0}, Size: {1} bytes, Extents: {2}, Format: {3}", f.InodeId, f.Size, f.Extents != null ? f.Extents.Count : 0, f.Format);
+                if (f.ModifiedTimeSec > 0 && f.ModifiedTimeSec < 253402300799L)
+                {
+                    DateTime ts = epoch.AddSeconds(f.ModifiedTimeSec);
+                    AddEvent(ts, "XFS", action + " - Modified", f.FullPath ?? f.Name, desc);
+                }
+            }
+        }
+
+        public void AddZfsFiles(IEnumerable<ZfsScout.ZfsFileRecord> records)
+        {
+            if (records == null) return;
+            foreach (var f in records)
+            {
+                if (f == null) continue;
+                string action = f.IsDirectory ? "DIRECTORY_ENTRY (ZFS)" : "FILE_ENTRY (ZFS)";
+                string desc = string.Format("ObjectId: {0}, Size: {1} bytes, Extents: {2}", f.ObjectId, f.FileSizeBytes, f.BlockExtents != null ? f.BlockExtents.Count : 0);
+                AddEvent(DateTime.UtcNow, "ZFS", action, f.FullPath ?? f.Name, desc);
+            }
+        }
+
+        public void AddF2fsFiles(IEnumerable<F2fsScout.F2fsFileRecord> records)
+        {
+            if (records == null) return;
+            foreach (var f in records)
+            {
+                if (f == null) continue;
+                string action = f.IsDirectory ? "DIRECTORY_ENTRY (F2FS)" : (f.IsInline ? "FILE_INLINE (F2FS)" : "FILE_ENTRY (F2FS)");
+                string desc = string.Format("Inode: {0}, Size: {1} bytes, Links: {2}", f.InodeNumber, f.Size, f.Links);
+                if (f.ModifiedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.ModifiedTimeUtc, "F2FS", action + " - Modified", f.FullPath ?? f.Name, desc);
+                }
+                if (f.CreatedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.CreatedTimeUtc, "F2FS", action + " - Created", f.FullPath ?? f.Name, desc);
+                }
+                if (f.AccessedTimeUtc > DateTime.MinValue)
+                {
+                    AddEvent(f.AccessedTimeUtc, "F2FS", action + " - Accessed", f.FullPath ?? f.Name, desc);
+                }
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

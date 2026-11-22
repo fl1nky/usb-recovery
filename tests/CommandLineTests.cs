@@ -195,7 +195,41 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "evtx", dummyEvtx }) == 0, "evtx execution returns 0");
             Check(CommandLineHandler.Run(new[] { "evtx", dummyEvtx, "--json" }) == 0, "evtx --json returns 0");
 
-            // 5. salvage-office execution test
+            // 5. Prefetch, Browser History, SQLite Carver & Directory Triage Timeline
+            string dummyPf = Path.Combine(work, "CMDTEST.PF");
+            byte[] pfBytes = new byte[512];
+            BitConverter.GetBytes((uint)30).CopyTo(pfBytes, 0); // Win10/11 version
+            BitConverter.GetBytes((uint)0x41434353).CopyTo(pfBytes, 4); // SCCA magic
+            Encoding.Unicode.GetBytes("CMDTEST.EXE").CopyTo(pfBytes, 16);
+            File.WriteAllBytes(dummyPf, pfBytes);
+
+            Check(CommandLineHandler.Run(new[] { "prefetch", dummyPf }) == 0, "prefetch execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "prefetch", dummyPf, "--json" }) == 0, "prefetch --json returns 0");
+
+            string dummySqlite = Path.Combine(work, "test_history.db");
+            byte[] sqliteBytes = new byte[4096];
+            Encoding.ASCII.GetBytes("SQLite format 3\0").CopyTo(sqliteBytes, 0);
+            sqliteBytes[16] = 0x10; sqliteBytes[17] = 0x00; // 4096 page size
+            sqliteBytes[18] = 0x01; sqliteBytes[19] = 0x01;
+            sqliteBytes[21] = 64; sqliteBytes[22] = 32; sqliteBytes[23] = 32;
+            sqliteBytes[100] = 0x0D; // Leaf table page
+            File.WriteAllBytes(dummySqlite, sqliteBytes);
+
+            Check(CommandLineHandler.Run(new[] { "carve-sqlite", dummySqlite }) == 0, "carve-sqlite execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "carve-sqlite", dummySqlite, "--json" }) == 0, "carve-sqlite --json returns 0");
+
+            Check(CommandLineHandler.Run(new[] { "browser-history", dummySqlite }) == 0, "browser-history execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "browser-history", dummySqlite, "--json" }) == 0, "browser-history --json returns 0");
+
+            string triageDir = Path.Combine(work, "triage_dir");
+            Directory.CreateDirectory(triageDir);
+            File.Copy(dummyPf, Path.Combine(triageDir, "SAMPLE.PF"));
+            File.WriteAllBytes(Path.Combine(triageDir, "sample.evtx"), new byte[4096]);
+            string triageOut = Path.Combine(work, "triage_timeline.csv");
+            Check(CommandLineHandler.Run(new[] { "timeline", triageDir, "-o", triageOut, "--json" }) == 0, "directory triage timeline returns 0");
+            Check(File.Exists(triageOut), "triage timeline CSV exported");
+
+            // 6. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");
             byte[] docXml = Encoding.UTF8.GetBytes("<w:document><w:body><w:p><w:t>CLI Salvage Verified</w:t></w:p></w:body></w:document>");
             byte[] samplePkg = OfficeXmlSalvage.BuildRepairedZipPackage(OfficeDocumentKind.WordDocx, new[] { new OfficeSalvagePart("word/document.xml", docXml, false, "application/xml") });

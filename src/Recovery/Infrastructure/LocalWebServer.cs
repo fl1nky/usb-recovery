@@ -70,6 +70,22 @@ namespace UsbRecovery
         List<UsnRecord> cachedUsnRecords;
         string cachedUsnPath;
 
+        readonly object prefetchLock = new object();
+        List<PrefetchArtifact> cachedPrefetchArtifacts;
+        string cachedPrefetchPath;
+
+        readonly object browserHistoryLock = new object();
+        List<BrowserHistoryRecord> cachedBrowserHistoryRecords;
+        string cachedBrowserHistoryPath;
+
+        readonly object sqliteLock = new object();
+        List<CarvedSqliteRecord> cachedSqliteRecords;
+        string cachedSqlitePath;
+
+        readonly object filesystemsLock = new object();
+        object cachedFilesystemsReport;
+        string cachedFilesystemsPath;
+
         Thread workerThread;
         bool running;
         CancellationTokenSource scanCts;
@@ -407,6 +423,22 @@ namespace UsbRecovery
                 else if (path == "/api/evtx")
                 {
                     ServeEvtx(req, res);
+                }
+                else if (path == "/api/prefetch")
+                {
+                    ServePrefetch(req, res);
+                }
+                else if (path == "/api/browser-history")
+                {
+                    ServeBrowserHistory(req, res);
+                }
+                else if (path == "/api/sqlite")
+                {
+                    ServeSqlite(req, res);
+                }
+                else if (path == "/api/filesystems")
+                {
+                    ServeFilesystems(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -1674,6 +1706,81 @@ namespace UsbRecovery
             });
         }
 
+        void PopulateFullTimeline(ForensicTimeline timeline)
+        {
+            lock (usnLock)
+            {
+                if (cachedUsnRecords != null) timeline.AddUsnRecords(cachedUsnRecords);
+            }
+            lock (mftLock)
+            {
+                if (cachedMftRecords != null) timeline.AddMftRecords(cachedMftRecords);
+            }
+            lock (shimLock)
+            {
+                if (cachedShimRecords != null) timeline.AddShimcache(cachedShimRecords);
+            }
+            lock (amcacheLock)
+            {
+                if (cachedAmcacheRecords != null) timeline.AddAmcache(cachedAmcacheRecords);
+            }
+            lock (shellbagsLock)
+            {
+                if (cachedShellbagRecords != null) timeline.AddShellbags(cachedShellbagRecords);
+            }
+            lock (srumLock)
+            {
+                if (cachedSrumReport != null && cachedSrumReport.NetworkEntries != null)
+                {
+                    timeline.AddSrumNetworkEntries(cachedSrumReport.NetworkEntries);
+                    timeline.AddSrumAppUsageEntries(cachedSrumReport.AppUsageEntries);
+                }
+            }
+            lock (jumpListLock)
+            {
+                if (cachedJumpListReport != null && cachedJumpListReport.Entries != null)
+                    timeline.AddJumpListEntries(cachedJumpListReport.Entries);
+            }
+            lock (recycleBinLock)
+            {
+                if (cachedRecycleBinReport != null && cachedRecycleBinReport.Entries != null)
+                    timeline.AddRecycleBinEntries(cachedRecycleBinReport.Entries);
+            }
+            lock (vssLock)
+            {
+                if (cachedVssReport != null && cachedVssReport.Snapshots != null)
+                    timeline.AddVssSnapshots(cachedVssReport.Snapshots);
+            }
+            lock (isoLock)
+            {
+                if (cachedIsoReport != null && cachedIsoReport.Files != null)
+                    timeline.AddIsoUdfFiles(cachedIsoReport.Files);
+            }
+            lock (extensionsLock)
+            {
+                if (cachedExtensionsReport != null && cachedExtensionsReport.Extensions != null)
+                    timeline.AddBrowserExtensions(cachedExtensionsReport.Extensions);
+            }
+            lock (evtxLock)
+            {
+                if (cachedEvtxReport != null && cachedEvtxReport.Records != null)
+                    timeline.AddEvtxRecords(cachedEvtxReport.Records);
+            }
+            lock (prefetchLock)
+            {
+                if (cachedPrefetchArtifacts != null)
+                {
+                    for (int i = 0; i < cachedPrefetchArtifacts.Count; i++)
+                        timeline.AddPrefetch(cachedPrefetchArtifacts[i]);
+                }
+            }
+            lock (browserHistoryLock)
+            {
+                if (cachedBrowserHistoryRecords != null)
+                    timeline.AddBrowserHistory(cachedBrowserHistoryRecords);
+            }
+        }
+
         void ServeTimeline(HttpListenerRequest req, HttpListenerResponse res)
         {
             string action = (req.QueryString["action"] ?? "events").ToLowerInvariant();
@@ -1685,18 +1792,7 @@ namespace UsbRecovery
                 res.AddHeader("Content-Disposition", "attachment; filename=\"forensic-super-timeline.csv\"");
 
                 ForensicTimeline timeline = new ForensicTimeline();
-                lock (usnLock)
-                {
-                    if (cachedUsnRecords != null) timeline.AddUsnRecords(cachedUsnRecords);
-                }
-                lock (mftLock)
-                {
-                    if (cachedMftRecords != null) timeline.AddMftRecords(cachedMftRecords);
-                }
-                lock (shimLock)
-                {
-                    if (cachedShimRecords != null) timeline.AddShimcache(cachedShimRecords);
-                }
+                PopulateFullTimeline(timeline);
 
                 timeline.SortChronological(true);
                 timeline.ExportToCsv(res.OutputStream);
@@ -1704,18 +1800,7 @@ namespace UsbRecovery
             }
 
             ForensicTimeline activeTimeline = new ForensicTimeline();
-            lock (usnLock)
-            {
-                if (cachedUsnRecords != null) activeTimeline.AddUsnRecords(cachedUsnRecords);
-            }
-            lock (mftLock)
-            {
-                if (cachedMftRecords != null) activeTimeline.AddMftRecords(cachedMftRecords);
-            }
-            lock (shimLock)
-            {
-                if (cachedShimRecords != null) activeTimeline.AddShimcache(cachedShimRecords);
-            }
+            PopulateFullTimeline(activeTimeline);
 
             activeTimeline.SortChronological(true);
             var eventList = activeTimeline.Events;
@@ -2187,6 +2272,269 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServePrefetch(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<PrefetchArtifact> artifacts = null;
+            lock (prefetchLock)
+            {
+                if (cachedPrefetchPath == imagePath && cachedPrefetchArtifacts != null)
+                {
+                    artifacts = cachedPrefetchArtifacts;
+                }
+                else
+                {
+                    artifacts = new List<PrefetchArtifact>();
+                    if (File.Exists(imagePath))
+                    {
+                        if (imagePath.EndsWith(".pf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            try { artifacts.Add(PrefetchParser.ParseFile(imagePath)); } catch { }
+                        }
+                    }
+                    else if (Directory.Exists(imagePath))
+                    {
+                        var files = Directory.GetFiles(imagePath, "*.pf", SearchOption.AllDirectories);
+                        for (int i = 0; i < Math.Min(files.Length, 100); i++)
+                        {
+                            try { artifacts.Add(PrefetchParser.ParseFile(files[i])); } catch { }
+                        }
+                    }
+                    cachedPrefetchArtifacts = artifacts;
+                    cachedPrefetchPath = imagePath;
+                }
+            }
+
+            var jsonList = new List<object>();
+            for (int i = 0; i < Math.Min(artifacts.Count, 200); i++)
+            {
+                var a = artifacts[i];
+                string lastRun = a.LastRunTimes.Count > 0 ? a.LastRunTimes[0].ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—";
+                jsonList.Add(new
+                {
+                    executableName = a.ExecutableName,
+                    hash = a.Hash,
+                    version = a.Version,
+                    runCount = a.RunCount,
+                    lastRun = lastRun,
+                    loadedFilesCount = a.LoadedFiles.Count
+                });
+            }
+
+            WriteJson(res, new
+            {
+                source = imagePath,
+                totalFiles = artifacts.Count,
+                results = jsonList
+            });
+        }
+
+        void ServeBrowserHistory(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<BrowserHistoryRecord> records = null;
+            lock (browserHistoryLock)
+            {
+                if (cachedBrowserHistoryPath == imagePath && cachedBrowserHistoryRecords != null)
+                {
+                    records = cachedBrowserHistoryRecords;
+                }
+                else
+                {
+                    records = new List<BrowserHistoryRecord>();
+                    if (File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            if (imagePath.IndexOf("places", StringComparison.OrdinalIgnoreCase) >= 0)
+                                records = BrowserHistoryParser.ParseFirefox(imagePath);
+                            else
+                                records = BrowserHistoryParser.ParseChromium(imagePath);
+                        }
+                        catch { }
+                    }
+                    else if (Directory.Exists(imagePath))
+                    {
+                        var files = Directory.GetFiles(imagePath, "*", SearchOption.AllDirectories);
+                        for (int i = 0; i < files.Length; i++)
+                        {
+                            string fn = Path.GetFileName(files[i]).ToLowerInvariant();
+                            try
+                            {
+                                if (fn == "history" || fn.StartsWith("history-"))
+                                    records.AddRange(BrowserHistoryParser.ParseChromium(files[i]));
+                                else if (fn == "places.sqlite" || fn.StartsWith("places.sqlite"))
+                                    records.AddRange(BrowserHistoryParser.ParseFirefox(files[i]));
+                            }
+                            catch { }
+                        }
+                    }
+                    cachedBrowserHistoryRecords = records;
+                    cachedBrowserHistoryPath = imagePath;
+                }
+            }
+
+            var jsonList = new List<object>();
+            for (int i = 0; i < Math.Min(records.Count, 300); i++)
+            {
+                var r = records[i];
+                string lastVisit = r.LastVisitUtc > DateTime.MinValue ? r.LastVisitUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—";
+                jsonList.Add(new
+                {
+                    browser = r.Browser.ToString(),
+                    url = r.Url,
+                    title = r.Title,
+                    visitCount = r.VisitCount,
+                    typedCount = r.TypedCount,
+                    lastVisit = lastVisit
+                });
+            }
+
+            WriteJson(res, new
+            {
+                source = imagePath,
+                totalRecords = records.Count,
+                results = jsonList
+            });
+        }
+
+        void ServeSqlite(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            List<CarvedSqliteRecord> records = null;
+            lock (sqliteLock)
+            {
+                if (cachedSqlitePath == imagePath && cachedSqliteRecords != null)
+                {
+                    records = cachedSqliteRecords;
+                }
+                else
+                {
+                    records = new List<CarvedSqliteRecord>();
+                    if (File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            {
+                                records = SqliteCarver.CarveDatabase(fs);
+                            }
+                        }
+                        catch { }
+                    }
+                    cachedSqliteRecords = records;
+                    cachedSqlitePath = imagePath;
+                }
+            }
+
+            int activeCount = 0;
+            int deletedCount = 0;
+            var jsonList = new List<object>();
+            for (int i = 0; i < records.Count; i++)
+            {
+                var r = records[i];
+                if (r.Origin == CarvedRecordOrigin.ActiveCell) activeCount++;
+                else deletedCount++;
+
+                if (jsonList.Count < 200)
+                {
+                    var cols = new List<string>();
+                    if (r.Columns != null)
+                    {
+                        for (int c = 0; c < Math.Min(r.Columns.Count, 6); c++)
+                        {
+                            string s = r.Columns[c].AsString();
+                            if (s.Length > 40) s = s.Substring(0, 37) + "...";
+                            cols.Add(s);
+                        }
+                    }
+                    jsonList.Add(new
+                    {
+                        pageNumber = r.PageNumber,
+                        origin = r.Origin.ToString(),
+                        columnsCount = r.Columns != null ? r.Columns.Count : 0,
+                        preview = string.Join(" | ", cols.ToArray())
+                    });
+                }
+            }
+
+            WriteJson(res, new
+            {
+                source = imagePath,
+                totalCarved = records.Count,
+                activeCount = activeCount,
+                deletedCount = deletedCount,
+                results = jsonList
+            });
+        }
+
+        void ServeFilesystems(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            object report = null;
+            lock (filesystemsLock)
+            {
+                if (cachedFilesystemsPath == imagePath && cachedFilesystemsReport != null)
+                {
+                    report = cachedFilesystemsReport;
+                }
+                else
+                {
+                    string btrfsStatus = "Not detected";
+                    string xfsStatus = "Not detected";
+                    string zfsStatus = "Not detected";
+                    string f2fsStatus = "Not detected";
+                    string exfatStatus = "Not detected";
+                    string hfsStatus = "Not detected";
+
+                    if (File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            {
+                                var btrfs = BtrfsScout.Scout(fs, CancellationToken.None, null);
+                                if (btrfs != null && btrfs.Superblocks.Count > 0)
+                                    btrfsStatus = string.Format("Detected ({0} Superblocks, {1} Files)", btrfs.Superblocks.Count, btrfs.FilesCount);
+
+                                var xfs = XfsScout.Scout(fs, CancellationToken.None, null);
+                                if (xfs != null && xfs.Superblocks.Count > 0)
+                                    xfsStatus = string.Format("Detected ({0} Superblocks, {1} Files)", xfs.Superblocks.Count, xfs.FilesCount);
+
+                                var zfs = ZfsScout.Scout(fs, CancellationToken.None, null);
+                                if (zfs != null && (zfs.LabelsFound > 0 || zfs.UberblocksFound > 0))
+                                    zfsStatus = string.Format("Detected ({0} Labels, {1} Uberblocks)", zfs.LabelsFound, zfs.UberblocksFound);
+
+                                var f2fs = F2fsScout.Scout(fs, CancellationToken.None, null);
+                                if (f2fs != null && f2fs.Superblocks.Count > 0)
+                                    f2fsStatus = string.Format("Detected ({0} Superblocks, {1} Inodes)", f2fs.Superblocks.Count, f2fs.FilesCount);
+                            }
+
+                            var exfat = ExFatScout.Scout(imagePath);
+                            if (exfat != null && (exfat.PrimaryBoot != null || exfat.BackupBoot != null))
+                                exfatStatus = string.Format("Detected ({0} Active, {1} Deleted Carved)", exfat.TotalActiveCount, exfat.TotalDeletedCount);
+
+                            var hfs = HfsPlusScout.Scout(imagePath);
+                            if (hfs != null && (hfs.VolumeHeader != null || hfs.BackupVolumeHeader != null))
+                                hfsStatus = string.Format("Detected ({0} Files, {1} Deleted Carved)", hfs.FilesCount, hfs.DeletedCount);
+                        }
+                        catch { }
+                    }
+
+                    report = new
+                    {
+                        source = imagePath,
+                        btrfs = btrfsStatus,
+                        xfs = xfsStatus,
+                        zfs = zfsStatus,
+                        f2fs = f2fsStatus,
+                        exfat = exfatStatus,
+                        hfsPlus = hfsStatus
+                    };
+                    cachedFilesystemsReport = report;
+                    cachedFilesystemsPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2232,7 +2580,9 @@ namespace UsbRecovery
                 activeTl.AddEvtxRecords(cachedEvtxReport.Records);
             }
 
-            string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
+            string html = CourtReportGenerator.GenerateHtmlReport(
+                meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport,
+                cachedSrumReport, cachedJumpListReport, cachedRecycleBinReport, cachedExtensionsReport, cachedEvtxReport, cachedVssReport);
             byte[] bytes = Encoding.UTF8.GetBytes(html);
 
             res.StatusCode = 200;
@@ -2348,6 +2698,10 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('iso')"">💿 ISO / UDF Optical</button>
   <button class=""tab-btn"" onclick=""switchTab('extensions')"">🧩 Browser Extensions</button>
   <button class=""tab-btn"" onclick=""switchTab('evtx')"">📜 Event Logs (EVTX)</button>
+  <button class=""tab-btn"" onclick=""switchTab('prefetch')"">⚡ Prefetch (PF)</button>
+  <button class=""tab-btn"" onclick=""switchTab('browserhistory')"">🌐 Browser History</button>
+  <button class=""tab-btn"" onclick=""switchTab('sqlite')"">🗄️ SQLite Carver</button>
+  <button class=""tab-btn"" onclick=""switchTab('filesystems')"">📁 Filesystems (Scouts)</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>
@@ -2559,6 +2913,476 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
       </div>
     </div>
   </div>
+
+  <!-- MFT CARVER & TIMESTOMP TAB -->
+  <div id=""mft"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🧩 NTFS Master File Table ($MFT) Carver & Anti-Forensic Timestomp Detection</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Carves 1024-byte NTFS FILE records, resident $DATA payloads, non-resident data runs, and detects $STANDARD_INFO vs $FILE_NAME timestomping anomalies.
+      </p>
+      <div style=""display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;"">
+        <button class=""btn"" onclick=""loadMft('deleted')"">🗑️ Carved Deleted Records</button>
+        <button class=""btn"" style=""background: #334155; border-color: #475569;"" onclick=""loadMft('timestomped')"">🚨 Timestomped Anomalies Only</button>
+        <button class=""btn"" style=""background: #334155; border-color: #475569;"" onclick=""loadMft('all')"">📜 All Carved Records</button>
+      </div>
+      <div id=""mft-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Carved Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Record #</th>
+              <th>File Name</th>
+              <th>$STD Created (UTC)</th>
+              <th>$FN Created (UTC)</th>
+              <th>Timestomp Status</th>
+              <th>Payload Type / Size</th>
+            </tr>
+          </thead>
+          <tbody id=""mft-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Click a button above to carve MFT records.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHIMCACHE TAB -->
+  <div id=""shimcache"" class=""tab-content"">
+    <div class=""card"">
+      <h2>⚡ Windows AppCompatCache (Shimcache) Execution History</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Tracks historical executable file execution, last modification timestamps, and program caching across Windows 7/8/10/11.
+      </p>
+      <div id=""shim-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Total Entries: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Entry #</th>
+              <th>Executable Path</th>
+              <th>Last Modified (UTC)</th>
+              <th>Cache Size</th>
+              <th>Execution State</th>
+            </tr>
+          </thead>
+          <tbody id=""shim-tbody"">
+            <tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Loading Shimcache...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNIFIED SUPER-TIMELINE TAB -->
+  <div id=""timeline"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🌐 Unified Chronological DFIR Super-Timeline</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Correlates USN, MFT, EVTX, Prefetch, Browser History, Shimcache, Amcache, Shellbags, SRUM, Jump Lists, Recycle Bin, VSS, ISO/UDF, Extensions, and Filesystem Scouts into a single unified timeline.
+      </p>
+      <div style=""display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap;"">
+        <input type=""text"" id=""timeline-filter"" placeholder=""Filter timeline events (e.g. exe, USB, delete, network)..."" class=""hex-input"" style=""flex: 1; min-width: 200px;"" oninput=""loadSuperTimeline()""/>
+        <a href=""/api/timeline?action=export-csv"" class=""btn"" style=""background: #059669; border-color: #10b981;"">📥 Export RFC 4180 CSV</a>
+      </div>
+      <div id=""timeline-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Correlated Events: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Source</th>
+              <th>Action</th>
+              <th>Target Path</th>
+              <th>Forensic Details</th>
+            </tr>
+          </thead>
+          <tbody id=""timeline-tbody"">
+            <tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Loading timeline events...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AMCACHE TAB -->
+  <div id=""amcache"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🛡️ Windows Amcache.hve Program Execution & SHA-1 Inventory</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Tracks PE binary executions, SHA-1 cryptographic hashes, publisher signatures, compilation link dates, and detects double extensions or suspicious execution paths.
+      </p>
+      <div id=""amcache-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Amcache Entries: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Program Path</th>
+              <th>SHA-1 Hash</th>
+              <th>File Size</th>
+              <th>Execution / Link Date (UTC)</th>
+              <th>Publisher</th>
+              <th>Threat Heuristics</th>
+            </tr>
+          </thead>
+          <tbody id=""amcache-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Amcache entries...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHELLBAGS TAB -->
+  <div id=""shellbags"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📁 Windows Shellbags Folder Access & Removable USB Drive History</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Reconstructs directory browsing history, removable flash drive mount letters, folder modified dates, and MRU access order from UsrClass.dat and NTUSER.DAT.
+      </p>
+      <div id=""shellbags-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Shellbag Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Full Folder Path</th>
+              <th>Item Type</th>
+              <th>Folder Modified (UTC)</th>
+              <th>Registry Access (UTC)</th>
+              <th>MRU Path</th>
+              <th>Source Hive</th>
+            </tr>
+          </thead>
+          <tbody id=""shellbags-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Shellbags records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENTROPY TAB -->
+  <div id=""entropy"" class=""tab-content"">
+    <div class=""card"">
+      <h2>⚡ Shannon Entropy & Ransomware Encryption Profiling</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Computes 64 KiB block-level Shannon entropy (0 to 8 bits/byte) to classify plain text, structured binaries, compressed media, and anomalous ransomware encryption.
+      </p>
+      <div id=""entropy-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Entropy Profile: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Mean Entropy</th>
+              <th>Std Deviation</th>
+              <th>Dominant Category</th>
+              <th>Total Analyzed</th>
+              <th>Ransomware Classification</th>
+            </tr>
+          </thead>
+          <tbody id=""entropy-tbody"">
+            <tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Loading Entropy profile...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SRUM TAB -->
+  <div id=""srum"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📡 Windows System Resource Usage Monitor (SRUM) & Exfiltration Tracker</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Tracks per-application network transmission (bytes sent/received), wireless and wired interface usage, and flags anomalies indicative of data exfiltration.
+      </p>
+      <div id=""srum-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">SRUM Network Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Application</th>
+              <th>Bytes Sent</th>
+              <th>Bytes Received</th>
+              <th>Interface Type</th>
+              <th>Alert Status</th>
+            </tr>
+          </thead>
+          <tbody id=""srum-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading SRUM metrics...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- JUMP LISTS TAB -->
+  <div id=""jumplist"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📋 Windows Jump Lists (AutomaticDestinations & CustomDestinations)</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Unpacks CFBF compound binary files, DestList MRU records, pinned application shortcuts, NetBIOS hostnames, and MAC hardware addresses.
+      </p>
+      <div id=""jumplist-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Jump List Entries: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Application</th>
+              <th>Target Path</th>
+              <th>Access Count</th>
+              <th>Last Access (UTC)</th>
+              <th>Pin Status</th>
+              <th>Category</th>
+            </tr>
+          </thead>
+          <tbody id=""jumplist-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Jump Lists...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECYCLE BIN TAB -->
+  <div id=""recyclebin"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🗑️ Windows Recycle Bin ($I / $R) Deletion Forensics & File Restoration</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Correlates $I index metadata with $R data payloads across Vista/7/8/10/11, extracts user SIDs, original file paths, deletion timestamps, and flags anti-forensic wiping.
+      </p>
+      <div id=""recyclebin-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Deleted Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Original File Path</th>
+              <th>Original Size</th>
+              <th>Deletion Timestamp (UTC)</th>
+              <th>User SID</th>
+              <th>Payload Status ($R)</th>
+              <th>Threat Indicator</th>
+            </tr>
+          </thead>
+          <tbody id=""recyclebin-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Recycle Bin records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VSS TAB -->
+  <div id=""vss"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📷 Windows Volume Shadow Copies (VSS) & Snapshot Catalog</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Detects VSS store headers, parses Catalog 1 and Catalog 2 descriptors, reconstructs Copy-on-Write (CoW) block mappings, and flags ransomware shadow copy deletion (T1490).
+      </p>
+      <div id=""vss-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Volume Snapshots: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Snapshot GUID</th>
+              <th>Creation Timestamp (UTC)</th>
+              <th>Volume Size</th>
+              <th>Allocated CoW Size</th>
+              <th>Store Blocks</th>
+              <th>Carved / Orphaned</th>
+            </tr>
+          </thead>
+          <tbody id=""vss-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Volume Shadow Copies...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISO / UDF TAB -->
+  <div id=""iso"" class=""tab-content"">
+    <div class=""card"">
+      <h2>💿 Optical & USB Hybrid ISO 9660, Joliet & UDF Scout</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Inspects Primary and Supplementary Volume Descriptors (PVD/SVD), decodes Big-Endian UCS-2 Joliet long filenames, UDF AVDP descriptors, and carves unallocated optical remnants.
+      </p>
+      <div id=""iso-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Optical Files: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>File Name / Path</th>
+              <th>File Size</th>
+              <th>Recording Timestamp (UTC)</th>
+              <th>Extent Sector</th>
+              <th>Encoding Type</th>
+              <th>Carved Status</th>
+            </tr>
+          </thead>
+          <tbody id=""iso-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading ISO / UDF files...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSER EXTENSIONS TAB -->
+  <div id=""extensions"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🧩 Web Browser Extensions & Cryptocurrency Wallet Analyst</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Audits Chromium and Firefox extensions, identifies cryptocurrency wallets (MetaMask, Phantom, Coinbase Wallet), password managers, LevelDB credential stores, and flags MITRE ATT&CK T1176 Man-in-the-Browser permissions.
+      </p>
+      <div id=""extensions-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Browser Extensions: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Extension Name</th>
+              <th>Extension ID</th>
+              <th>Category</th>
+              <th>Manifest</th>
+              <th>LevelDB Credentials</th>
+              <th>Threat Heuristics</th>
+            </tr>
+          </thead>
+          <tbody id=""extensions-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Browser Extensions...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVTX TAB -->
+  <div id=""evtx"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📜 Windows Event Log (.evtx) Security Auditor</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Parses 64 KiB EVTX chunks and BinXml tokens, flagging Logons (4624), Brute Force / Auth Failures (4625), Process Creations (4688), Service Persistence (7045), and Anti-Forensic Log Clears (1102/104).
+      </p>
+      <div id=""evtx-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Event Log Audit: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Event ID</th>
+              <th>Event Classification</th>
+              <th>Provider Name</th>
+              <th>Computer</th>
+              <th>Threat Alert</th>
+            </tr>
+          </thead>
+          <tbody id=""evtx-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Event Log entries...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREFETCH TAB -->
+  <div id=""prefetch"" class=""tab-content"">
+    <div class=""card"">
+      <h2>⚡ Windows Prefetch (.pf) Execution Forensics</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Decompresses Windows 10/11 MAM XPRESS Huffman containers, extracts execution counts, last run timestamps, hash signatures, and loaded DLL modules.
+      </p>
+      <div id=""prefetch-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Prefetch Files: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Executable Name</th>
+              <th>Hash</th>
+              <th>Version</th>
+              <th>Run Count</th>
+              <th>Last Run Time (UTC)</th>
+              <th>Loaded Files Count</th>
+            </tr>
+          </thead>
+          <tbody id=""prefetch-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Prefetch artifacts...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BROWSER HISTORY TAB -->
+  <div id=""browserhistory"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🌐 Web Browser Navigation & History Forensics</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Pure C# managed parsing of Chromium and Firefox SQLite history stores, extracting visited URLs, page titles, visit frequency, typed counts, and timestamps.
+      </p>
+      <div id=""history-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">History Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Browser</th>
+              <th>Page Title</th>
+              <th>Visited URL</th>
+              <th>Visit Count</th>
+              <th>Typed Count</th>
+              <th>Last Visit Time (UTC)</th>
+            </tr>
+          </thead>
+          <tbody id=""history-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Browser History...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQLITE CARVER TAB -->
+  <div id=""sqlite"" class=""tab-content"">
+    <div class=""card"">
+      <h2>🗄️ SQLite Database & Deleted Slack Record Carver</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Carves SQLite B-tree pages, active table cells, freelist leaf pages, freeblocks, and unallocated slack records without requiring external SQLite libraries.
+      </p>
+      <div id=""sqlite-stats"" style=""font-size: 14px; margin-bottom: 12px; color: var(--accent);"">Carved Records: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Page #</th>
+              <th>Record Origin</th>
+              <th>Columns Count</th>
+              <th>Row Data Preview</th>
+            </tr>
+          </thead>
+          <tbody id=""sqlite-tbody"">
+            <tr><td colspan=""4"" style=""text-align: center; color: var(--text-muted);"">Loading Carved SQLite Records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILESYSTEMS SCOUTS TAB -->
+  <div id=""filesystems"" class=""tab-content"">
+    <div class=""card"">
+      <h2>📁 Filesystem Scouts & Extent Reconstruction Engine</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Deep metadata probing across modern non-Windows and flash storage filesystems: Btrfs, XFS, ZFS, F2FS, Apple HFS+/HFSX, and exFAT.
+      </p>
+      <div class=""grid-stats"">
+        <div class=""stat-box""><div class=""stat-label"">Btrfs (B-tree FS)</div><div class=""stat-value"" id=""fs-btrfs"" style=""font-size: 14px;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">XFS Enterprise</div><div class=""stat-value"" id=""fs-xfs"" style=""font-size: 14px;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">OpenZFS Pool</div><div class=""stat-value"" id=""fs-zfs"" style=""font-size: 14px;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">F2FS Flash-Friendly</div><div class=""stat-value"" id=""fs-f2fs"" style=""font-size: 14px;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">exFAT Removable</div><div class=""stat-value"" id=""fs-exfat"" style=""font-size: 14px;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Apple HFS+ / HFSX</div><div class=""stat-value"" id=""fs-hfs"" style=""font-size: 14px;"">—</div></div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -2568,13 +3392,31 @@ let clusterBlocks = [];
 function switchTab(tabId) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById(tabId).classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
+  var targetEl = document.getElementById(tabId);
+  if (targetEl) targetEl.classList.add('active');
   if (tabId === 'clusters') renderClusters();
   if (tabId === 'hex') loadHex();
   if (tabId === 'files') loadFiles();
   if (tabId === 'registry') loadRegistryHives();
   if (tabId === 'usn') loadUsnDeleted();
+  if (tabId === 'mft') loadMft('deleted');
+  if (tabId === 'shimcache') loadShimcache();
+  if (tabId === 'timeline') loadSuperTimeline();
+  if (tabId === 'amcache') loadAmcache();
+  if (tabId === 'shellbags') loadShellbags();
+  if (tabId === 'entropy') loadEntropy();
+  if (tabId === 'srum') loadSrum();
+  if (tabId === 'jumplist') loadJumpLists();
+  if (tabId === 'recyclebin') loadRecycleBin();
+  if (tabId === 'vss') loadVss();
+  if (tabId === 'iso') loadIso();
+  if (tabId === 'extensions') loadExtensions();
+  if (tabId === 'evtx') loadEvtx();
+  if (tabId === 'prefetch') loadPrefetch();
+  if (tabId === 'browserhistory') loadBrowserHistory();
+  if (tabId === 'sqlite') loadSqlite();
+  if (tabId === 'filesystems') loadFilesystems();
 }
 
 async function refreshStatus() {
@@ -3093,6 +3935,256 @@ async function loadSuperTimeline() {
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">Error loading timeline events.</td></tr>';
   }
+}
+
+async function loadAmcache() {
+  var tbody = document.getElementById('amcache-tbody');
+  var stats = document.getElementById('amcache-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Amcache...</td></tr>';
+  try {
+    var res = await fetch('/api/amcache');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Entries: <strong>' + data.totalEntries + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Amcache entries found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      var badge = r.isSuspicious ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">ALERT: ' + r.suspicionReason + '</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr><td><code>' + r.path + '</code></td><td><code>' + r.sha1 + '</code></td><td>' + r.fileSizeHuman + '</td><td>' + r.lastModifiedUtc + '</td><td>' + (r.publisher || '—') + '</td><td>' + badge + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Amcache.</td></tr>'; }
+}
+
+async function loadShellbags() {
+  var tbody = document.getElementById('shellbags-tbody');
+  var stats = document.getElementById('shellbags-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Shellbags...</td></tr>';
+  try {
+    var res = await fetch('/api/shellbags');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Shellbags: <strong>' + data.totalRecords + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Shellbags records found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      html += '<tr><td><code>' + r.fullPath + '</code></td><td><span class=""logo-badge"">' + r.itemType + '</span></td><td>' + r.modifiedUtc + '</td><td>' + r.accessedUtc + '</td><td><code>' + r.mruPath + '</code></td><td>' + r.registrySource + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Shellbags.</td></tr>'; }
+}
+
+async function loadEntropy() {
+  var tbody = document.getElementById('entropy-tbody');
+  var stats = document.getElementById('entropy-stats');
+  tbody.innerHTML = '<tr><td colspan=""5"" style=""text-align: center; color: var(--text-muted);"">Computing Shannon Entropy...</td></tr>';
+  try {
+    var res = await fetch('/api/entropy');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Mean Entropy: <strong>' + data.meanEntropy.toFixed(4) + ' bits/byte</strong> | Category: <strong>' + data.dominantCategory + '</strong>';
+    var alertBadge = data.isSuspiciousRansomware ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">🚨 RANSOMWARE ENCRYPTION ANOMALY</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+    tbody.innerHTML = '<tr><td><strong>' + data.meanEntropy.toFixed(4) + '</strong></td><td>' + data.standardDeviation.toFixed(4) + '</td><td>' + data.dominantCategory + '</td><td>' + (data.totalBytesAnalyzed / (1024*1024)).toFixed(2) + ' MB</td><td>' + alertBadge + '</td></tr>';
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""5"" style=""color: #ef4444; text-align: center;"">Error computing entropy.</td></tr>'; }
+}
+
+async function loadSrum() {
+  var tbody = document.getElementById('srum-tbody');
+  var stats = document.getElementById('srum-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading SRUM metrics...</td></tr>';
+  try {
+    var res = await fetch('/api/srum');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Network Records: <strong>' + data.totalNetworkEntries + '</strong> | Exfiltrated Bytes: <strong>' + data.totalBytesSentHuman + '</strong>';
+    if (!data.networkEntries || data.networkEntries.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No SRUM records found.</td></tr>'; return; }
+    var html = '';
+    data.networkEntries.forEach(function(r) {
+      var badge = r.isSuspicious ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">ALERT: ' + r.suspicionReason + '</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr><td>' + r.timestampUtc + '</td><td><code>' + r.appName + '</code></td><td><strong>' + r.bytesSentHuman + '</strong></td><td>' + r.bytesReceivedHuman + '</td><td>' + r.interfaceType + '</td><td>' + badge + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading SRUM.</td></tr>'; }
+}
+
+async function loadJumpLists() {
+  var tbody = document.getElementById('jumplist-tbody');
+  var stats = document.getElementById('jumplist-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Jump Lists...</td></tr>';
+  try {
+    var res = await fetch('/api/jumplists');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Jump List Entries: <strong>' + data.totalEntries + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Jump Lists found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      html += '<tr><td>' + r.appName + '</td><td><code>' + r.targetPath + '</code></td><td>' + r.accessCount + '</td><td>' + r.lastAccessUtc + '</td><td><span class=""logo-badge"">' + r.pinStatus + '</span></td><td>' + r.category + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Jump Lists.</td></tr>'; }
+}
+
+async function loadRecycleBin() {
+  var tbody = document.getElementById('recyclebin-tbody');
+  var stats = document.getElementById('recyclebin-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Recycle Bin...</td></tr>';
+  try {
+    var res = await fetch('/api/recyclebin');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Deleted Files: <strong>' + data.totalRecords + '</strong> | Deleted Bytes: <strong>' + data.totalDeletedBytesHuman + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Recycle Bin records found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      var payloadBadge = r.hasDataFile ? '<span style=""color: #10b981;"">✓ Recoverable ($R)</span>' : '<span style=""color: #ef4444;"">Wiped / Metadata Only</span>';
+      var alertBadge = r.isSuspiciousWiping ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">🚨 Anti-Forensics Wiped</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr><td><code>' + r.originalFilePath + '</code></td><td>' + r.fileSizeHuman + '</td><td>' + r.deletionTimeUtc + '</td><td><code>' + r.userSid + '</code></td><td>' + payloadBadge + '</td><td>' + alertBadge + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Recycle Bin.</td></tr>'; }
+}
+
+async function loadVss() {
+  var tbody = document.getElementById('vss-tbody');
+  var stats = document.getElementById('vss-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading VSS Snapshots...</td></tr>';
+  try {
+    var res = await fetch('/api/vss');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Snapshots: <strong>' + data.totalSnapshots + '</strong> | CoW Blocks: <strong>' + data.totalStoreBlocks + '</strong>';
+    if (!data.snapshots || data.snapshots.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Volume Shadow Copies found.</td></tr>'; return; }
+    var html = '';
+    data.snapshots.forEach(function(r) {
+      html += '<tr><td><code>' + r.snapshotId + '</code></td><td>' + r.creationTimeUtc + '</td><td>' + r.volumeSizeHuman + '</td><td>' + r.allocatedBytesHuman + '</td><td>' + r.storeBlockCount + '</td><td>' + (r.isCarved ? '<span style=""color: #ef4444;"">Carved</span>' : '<span style=""color: #10b981;"">Active Catalog</span>') + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading VSS.</td></tr>'; }
+}
+
+async function loadIso() {
+  var tbody = document.getElementById('iso-tbody');
+  var stats = document.getElementById('iso-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading ISO / UDF files...</td></tr>';
+  try {
+    var res = await fetch('/api/iso');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Files: <strong>' + data.totalFiles + '</strong> | Type: <strong>' + data.filesystemType + '</strong>';
+    if (!data.files || data.files.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No ISO / UDF files found.</td></tr>'; return; }
+    var html = '';
+    data.files.forEach(function(r) {
+      html += '<tr><td><code>' + r.fullPath + '</code></td><td>' + r.sizeHuman + '</td><td>' + r.recordingTimeUtc + '</td><td>' + r.extentOffset + '</td><td><span class=""logo-badge"">' + (r.isJoliet ? 'Joliet UCS-2' : 'ISO 9660') + '</span></td><td>' + (r.isCarved ? '<span style=""color: #ef4444;"">Carved</span>' : 'Standard') + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading ISO / UDF.</td></tr>'; }
+}
+
+async function loadExtensions() {
+  var tbody = document.getElementById('extensions-tbody');
+  var stats = document.getElementById('extensions-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Browser Extensions...</td></tr>';
+  try {
+    var res = await fetch('/api/extensions');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Extensions: <strong>' + data.totalExtensions + '</strong> | Crypto Wallets: <strong style=""color: #f59e0b;"">' + data.cryptoWalletsCount + '</strong>';
+    if (!data.extensions || data.extensions.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Browser Extensions found.</td></tr>'; return; }
+    var html = '';
+    data.extensions.forEach(function(r) {
+      var badge = r.isSuspicious ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">ALERT: ' + r.suspicionReason + '</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr><td><strong>' + r.name + '</strong></td><td><code>' + r.extensionId + '</code></td><td><span class=""logo-badge"">' + r.category + '</span></td><td>V' + r.manifestVersion + '</td><td>' + r.levelDbKeyCount + '</td><td>' + badge + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Extensions.</td></tr>'; }
+}
+
+async function loadEvtx() {
+  var tbody = document.getElementById('evtx-tbody');
+  var stats = document.getElementById('evtx-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Event Logs...</td></tr>';
+  try {
+    var res = await fetch('/api/evtx');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Records: <strong>' + data.totalRecords + '</strong> | Threat Indicators: <strong style=""color: #ef4444;"">' + data.threatAlertCount + '</strong>';
+    if (!data.records || data.records.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Event Log records found.</td></tr>'; return; }
+    var html = '';
+    data.records.forEach(function(r) {
+      var alertBadge = r.isSuspicious ? '<span class=""logo-badge"" style=""background: rgba(239, 68, 68, 0.2); color: #ef4444;"">ALERT: ' + r.threatDetails + '</span>' : '<span style=""color: #10b981;"">✓ Normal</span>';
+      html += '<tr><td>' + r.timestampUtc + '</td><td><code>' + r.eventId + '</code></td><td><strong>' + r.classification + '</strong></td><td>' + r.providerName + '</td><td>' + r.computerName + '</td><td>' + alertBadge + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading EVTX.</td></tr>'; }
+}
+
+async function loadPrefetch() {
+  var tbody = document.getElementById('prefetch-tbody');
+  var stats = document.getElementById('prefetch-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Prefetch artifacts...</td></tr>';
+  try {
+    var res = await fetch('/api/prefetch');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Parsed Files: <strong>' + data.totalFiles + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Prefetch files found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      html += '<tr><td><strong>' + r.executableName + '</strong></td><td><code>' + r.hash + '</code></td><td>' + r.version + '</td><td>' + r.runCount + '</td><td>' + r.lastRun + '</td><td>' + r.loadedFilesCount + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Prefetch.</td></tr>'; }
+}
+
+async function loadBrowserHistory() {
+  var tbody = document.getElementById('history-tbody');
+  var stats = document.getElementById('history-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Browser History...</td></tr>';
+  try {
+    var res = await fetch('/api/browser-history');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total History Records: <strong>' + data.totalRecords + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Browser History found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      html += '<tr><td><span class=""logo-badge"">' + r.browser + '</span></td><td><strong>' + (r.title || '(Untitled)') + '</strong></td><td><code style=""color: #38bdf8;"">' + r.url + '</code></td><td>' + r.visitCount + '</td><td>' + r.typedCount + '</td><td>' + r.lastVisit + '</td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Browser History.</td></tr>'; }
+}
+
+async function loadSqlite() {
+  var tbody = document.getElementById('sqlite-tbody');
+  var stats = document.getElementById('sqlite-stats');
+  tbody.innerHTML = '<tr><td colspan=""4"" style=""text-align: center; color: var(--text-muted);"">Carving SQLite records...</td></tr>';
+  try {
+    var res = await fetch('/api/sqlite');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""4"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    stats.innerHTML = 'Total Carved: <strong>' + data.totalCarved + '</strong> | Active: <strong>' + data.activeCount + '</strong> | Deleted/Slack: <strong style=""color: #ef4444;"">' + data.deletedCount + '</strong>';
+    if (!data.results || data.results.length === 0) { tbody.innerHTML = '<tr><td colspan=""4"" style=""text-align: center; color: var(--text-muted);"">No SQLite records found.</td></tr>'; return; }
+    var html = '';
+    data.results.forEach(function(r) {
+      var badge = r.origin === 'ActiveCell' ? '<span style=""color: #10b981;"">Active Cell</span>' : '<span style=""color: #ef4444;"">Deleted Slack (' + r.origin + ')</span>';
+      html += '<tr><td>Page ' + r.pageNumber + '</td><td>' + badge + '</td><td>' + r.columnsCount + '</td><td><code>' + r.preview + '</code></td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""4"" style=""color: #ef4444; text-align: center;"">Error carving SQLite.</td></tr>'; }
+}
+
+async function loadFilesystems() {
+  try {
+    var res = await fetch('/api/filesystems');
+    var data = await res.json();
+    document.getElementById('fs-btrfs').innerText = data.btrfs || '—';
+    document.getElementById('fs-xfs').innerText = data.xfs || '—';
+    document.getElementById('fs-zfs').innerText = data.zfs || '—';
+    document.getElementById('fs-f2fs').innerText = data.f2fs || '—';
+    document.getElementById('fs-exfat').innerText = data.exfat || '—';
+    document.getElementById('fs-hfs').innerText = data.hfsPlus || '—';
+  } catch (e) { }
 }
 
 // Initial boot

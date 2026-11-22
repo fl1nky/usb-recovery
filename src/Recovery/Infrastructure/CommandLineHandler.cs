@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "evtx" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "evtx" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk" || first == "prefetch" || first == "browser-history" || first == "carve-sqlite";
         }
 
         public static int Run(string[] args)
@@ -149,6 +149,15 @@ namespace UsbRecovery
                 case "lnk":
                     return ExecuteLnk(args);
 
+                case "prefetch":
+                    return ExecutePrefetch(args);
+
+                case "browser-history":
+                    return ExecuteBrowserHistory(args);
+
+                case "carve-sqlite":
+                    return ExecuteCarveSqlite(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -195,6 +204,9 @@ namespace UsbRecovery
             Console.WriteLine("  court-report <image_path>      Rule 902(14) Expert Witness court package with Chain of Custody hashes");
             Console.WriteLine("  benchmark [--mb <size>] [--json] Run high-speed forensic benchmark & zero-leak audit (SWAR, Entropy, MFT)");
             Console.WriteLine("  lnk <file_or_dir> [--json]     Parse Windows Shell Link (.lnk) shortcuts, target paths, MAC & serials");
+            Console.WriteLine("  prefetch <file_or_dir> [--json] Windows Prefetch (.pf) execution forensics, run count & loaded DLLs");
+            Console.WriteLine("  browser-history <file_or_dir>  Web browser SQLite history forensics (Chromium & Firefox URLs/Visits)");
+            Console.WriteLine("  carve-sqlite <file_or_image>   Carve SQLite database tables, active cells, freelist & deleted slack rows");
             Console.WriteLine("  registry <hive_path>           Inspect Windows REGF registry hive, dump system summary, search, or carve");
             Console.WriteLine("  usn <image_or_drive>           Parse NTFS USN Change Journal ($UsnJrnl:$J) and reconstruct deleted files");
             Console.WriteLine("  carve-mft <image_path> -o <dir> Carve 1024-byte NTFS $MFT FILE records & extract resident payloads");
@@ -1733,24 +1745,17 @@ namespace UsbRecovery
             {
                 ForensicTimeline timeline = new ForensicTimeline();
 
-                if (File.Exists(target))
+                if (Directory.Exists(target))
                 {
-                    if (target.EndsWith(".evtx", StringComparison.OrdinalIgnoreCase))
+                    string[] allFiles = Directory.GetFiles(target, "*", SearchOption.AllDirectories);
+                    for (int i = 0; i < allFiles.Length; i++)
                     {
-                        timeline.AddEvtxRecords(EvtxParser.ParseFile(target));
+                        IngestTimelineFile(timeline, allFiles[i]);
                     }
-                    else if (target.EndsWith(".pf", StringComparison.OrdinalIgnoreCase))
-                    {
-                        PrefetchArtifact pf = PrefetchParser.ParseFile(target);
-                        if (pf != null) timeline.AddPrefetch(pf);
-                    }
-                    else
-                    {
-                        using (FileStream fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        {
-                            timeline.AddUsnRecords(UsnJournalParser.ParseStream(fs, CancellationToken.None));
-                        }
-                    }
+                }
+                else if (File.Exists(target))
+                {
+                    IngestTimelineFile(timeline, target);
                 }
 
                 timeline.SortChronological(true);
@@ -2987,5 +2992,361 @@ namespace UsbRecovery
             }
             return 0;
         }
+
+        private static void IngestTimelineFile(ForensicTimeline timeline, string file)
+        {
+            if (string.IsNullOrEmpty(file) || !File.Exists(file)) return;
+            string ext = Path.GetExtension(file).ToLowerInvariant();
+            string name = Path.GetFileName(file).ToLowerInvariant();
+
+            try
+            {
+                if (ext == ".evtx")
+                {
+                    timeline.AddEvtxRecords(EvtxParser.ParseFile(file));
+                }
+                else if (ext == ".pf")
+                {
+                    var pf = PrefetchParser.ParseFile(file);
+                    if (pf != null) timeline.AddPrefetch(pf);
+                }
+                else if (ext == ".lnk")
+                {
+                    byte[] lnkBytes = File.ReadAllBytes(file);
+                    var lnk = LnkParser.Parse(lnkBytes);
+                    if (lnk != null) timeline.AddLnk(lnk);
+                }
+                else if (ext == ".automaticdestinations-ms" || ext == ".customdestinations-ms")
+                {
+                    var jl = JumpListParser.Parse(file);
+                    if (jl != null && jl.Entries != null) timeline.AddJumpListEntries(jl.Entries);
+                }
+                else if (name.StartsWith("$i") && name.Length > 2)
+                {
+                    var rb = RecycleBinParser.Parse(file);
+                    if (rb != null && rb.Entries != null) timeline.AddRecycleBinEntries(rb.Entries);
+                }
+                else if (name == "srudb.dat")
+                {
+                    var srum = SrumParser.Parse(file);
+                    if (srum != null && srum.NetworkEntries != null) timeline.AddSrumNetworkEntries(srum.NetworkEntries);
+                }
+                else if (name == "amcache.hve")
+                {
+                    var am = AmcacheParser.Parse(file);
+                    if (am != null) timeline.AddAmcache(am);
+                }
+                else if (name == "usrclass.dat" || name == "ntuser.dat")
+                {
+                    var sb = ShellbagsParser.Parse(file);
+                    if (sb != null) timeline.AddShellbags(sb);
+                }
+                else if (name == "places.sqlite" || name.StartsWith("places.sqlite"))
+                {
+                    timeline.AddBrowserHistory(BrowserHistoryParser.ParseFirefox(file));
+                }
+                else if (name == "history" || name.StartsWith("history-"))
+                {
+                    timeline.AddBrowserHistory(BrowserHistoryParser.ParseChromium(file));
+                }
+                else
+                {
+                    using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                    {
+                        timeline.AddUsnRecords(UsnJournalParser.ParseStream(fs, CancellationToken.None));
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private static int ExecutePrefetch(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'prefetch' requires a target file or directory.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe prefetch <file_or_dir> [--json]");
+                return 2;
+            }
+
+            string target = Path.GetFullPath(args[1]);
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(target) && !Directory.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", target);
+                return 1;
+            }
+
+            var list = new List<PrefetchArtifact>();
+            try
+            {
+                if (File.Exists(target))
+                {
+                    list.Add(PrefetchParser.ParseFile(target));
+                }
+                else
+                {
+                    var files = Directory.GetFiles(target, "*.pf", SearchOption.AllDirectories);
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        try
+                        {
+                            var a = PrefetchParser.ParseFile(files[i]);
+                            if (a != null) list.Add(a);
+                        }
+                        catch { }
+                    }
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(new
+                    {
+                        SourcePath = target,
+                        TotalPrefetchFiles = list.Count,
+                        Artifacts = list
+                    }));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows Prefetch (.pf) Execution Forensics");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:              {0}", target);
+                    Console.WriteLine("  Total Parsed Files:  {0}", list.Count);
+                    Console.WriteLine("================================================================================");
+                    int displayCount = Math.Min(list.Count, 30);
+                    for (int i = 0; i < displayCount; i++)
+                    {
+                        var pf = list[i];
+                        string lastRun = pf.LastRunTimes.Count > 0 ? pf.LastRunTimes[0].ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "N/A";
+                        Console.WriteLine("  [{0}] {1} (Hash: {2}, Version: {3})", i + 1, pf.ExecutableName, pf.Hash, pf.Version);
+                        Console.WriteLine("       Run Count: {0}, Last Run: {1}, Loaded Files: {2}", pf.RunCount, lastRun, pf.LoadedFiles.Count);
+                    }
+                    if (list.Count > displayCount)
+                    {
+                        Console.WriteLine("  ... and {0} more prefetch files.", list.Count - displayCount);
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error parsing prefetch artifact: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteBrowserHistory(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'browser-history' requires a SQLite history database file or directory.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe browser-history <file_or_dir> [--browser chromium|firefox|auto] [--json]");
+                return 2;
+            }
+
+            string target = Path.GetFullPath(args[1]);
+            bool json = false;
+            string browser = "auto";
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+                else if (args[i] == "--browser" && i + 1 < args.Length)
+                {
+                    browser = args[++i].ToLowerInvariant();
+                }
+            }
+
+            if (!File.Exists(target) && !Directory.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", target);
+                return 1;
+            }
+
+            var list = new List<BrowserHistoryRecord>();
+            try
+            {
+                if (File.Exists(target))
+                {
+                    if (browser == "firefox" || (browser == "auto" && target.IndexOf("places", StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        list = BrowserHistoryParser.ParseFirefox(target);
+                    }
+                    else
+                    {
+                        list = BrowserHistoryParser.ParseChromium(target);
+                    }
+                }
+                else
+                {
+                    var files = Directory.GetFiles(target, "*", SearchOption.AllDirectories);
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        string fn = Path.GetFileName(files[i]).ToLowerInvariant();
+                        if (fn == "history" || fn.StartsWith("history-"))
+                        {
+                            try { list.AddRange(BrowserHistoryParser.ParseChromium(files[i])); } catch { }
+                        }
+                        else if (fn == "places.sqlite" || fn.StartsWith("places.sqlite"))
+                        {
+                            try { list.AddRange(BrowserHistoryParser.ParseFirefox(files[i])); } catch { }
+                        }
+                    }
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(new
+                    {
+                        SourcePath = target,
+                        TotalRecords = list.Count,
+                        Records = list
+                    }));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Web Browser Navigation & History Forensics");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:              {0}", target);
+                    Console.WriteLine("  Total History URLs:  {0}", list.Count);
+                    Console.WriteLine("================================================================================");
+                    int displayCount = Math.Min(list.Count, 30);
+                    for (int i = 0; i < displayCount; i++)
+                    {
+                        var r = list[i];
+                        string lastVisit = r.LastVisitUtc > DateTime.MinValue ? r.LastVisitUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "N/A";
+                        Console.WriteLine("  [{0}] ({1}) {2}", i + 1, r.Browser, !String.IsNullOrEmpty(r.Title) ? r.Title : "(Untitled)");
+                        Console.WriteLine("       URL: {0}", r.Url);
+                        Console.WriteLine("       Visits: {0}, Typed: {1}, Last Visit: {2}", r.VisitCount, r.TypedCount, lastVisit);
+                    }
+                    if (list.Count > displayCount)
+                    {
+                        Console.WriteLine("  ... and {0} more history records.", list.Count - displayCount);
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error parsing browser history: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        private static int ExecuteCarveSqlite(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'carve-sqlite' requires a database file, disk image, or raw memory dump.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe carve-sqlite <file_or_image> [--min-cols <n>] [--json]");
+                return 2;
+            }
+
+            string target = Path.GetFullPath(args[1]);
+            bool json = false;
+            int minCols = 1;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+                else if (args[i] == "--min-cols" && i + 1 < args.Length)
+                {
+                    int.TryParse(args[++i], out minCols);
+                }
+            }
+
+            if (!File.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Source file not found: {0}", target);
+                return 1;
+            }
+
+            try
+            {
+                List<CarvedSqliteRecord> records;
+                using (var fs = new FileStream(target, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    records = SqliteCarver.CarveDatabase(fs);
+                }
+
+                if (minCols > 1)
+                {
+                    records = records.FindAll(r => r.Columns != null && r.Columns.Count >= minCols);
+                }
+
+                int activeCount = 0;
+                int deletedCount = 0;
+                for (int i = 0; i < records.Count; i++)
+                {
+                    if (records[i].Origin == CarvedRecordOrigin.ActiveCell) activeCount++;
+                    else deletedCount++;
+                }
+
+                if (json)
+                {
+                    var js = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
+                    Console.WriteLine(js.Serialize(new
+                    {
+                        SourcePath = target,
+                        TotalCarvedRecords = records.Count,
+                        ActiveCells = activeCount,
+                        DeletedSlackRecords = deletedCount,
+                        Records = records
+                    }));
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — SQLite Database & Deleted Slack Record Carver");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:              {0}", target);
+                    Console.WriteLine("  Total Carved Rows:   {0:N0}", records.Count);
+                    Console.WriteLine("  Active Table Cells:  {0:N0}", activeCount);
+                    Console.WriteLine("  Deleted/Slack Rows:  {0:N0} (Freelist, Freeblocks, Gaps)", deletedCount);
+                    Console.WriteLine("================================================================================");
+                    int displayCount = Math.Min(records.Count, 25);
+                    for (int i = 0; i < displayCount; i++)
+                    {
+                        var r = records[i];
+                        var colVals = new List<string>();
+                        if (r.Columns != null)
+                        {
+                            int colLimit = Math.Min(r.Columns.Count, 6);
+                            for (int c = 0; c < colLimit; c++)
+                            {
+                                string s = r.Columns[c].AsString();
+                                if (s.Length > 30) s = s.Substring(0, 27) + "...";
+                                colVals.Add(s);
+                            }
+                        }
+                        string originTag = r.Origin == CarvedRecordOrigin.ActiveCell ? "[ACTIVE]" : "[DELETED/CARVED]";
+                        Console.WriteLine("  #{0} {1} Page {2} (Cols: {3}): {4}", i + 1, originTag, r.PageNumber, r.Columns != null ? r.Columns.Count : 0, string.Join(" | ", colVals.ToArray()));
+                    }
+                    if (records.Count > displayCount)
+                    {
+                        Console.WriteLine("  ... and {0} more carved records.", records.Count - displayCount);
+                    }
+                    Console.WriteLine("================================================================================");
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error carving SQLite records: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+
     }
 }

@@ -49,7 +49,13 @@ namespace UsbRecovery
             List<AmcacheEntry> amcache = null,
             List<ShellbagRecord> shellbags = null,
             List<MftFileRecord> mftRecords = null,
-            EntropyReport entropy = null)
+            EntropyReport entropy = null,
+            SrumReport srum = null,
+            JumpListReport jumpLists = null,
+            RecycleBinReport recycleBin = null,
+            BrowserExtensionsReport extensions = null,
+            EvtxAuditReport evtx = null,
+            VssReport vss = null)
         {
             if (meta == null) meta = new ForensicCaseMetadata();
 
@@ -209,7 +215,119 @@ namespace UsbRecovery
                 sb.AppendLine("  </div>");
             }
 
-            // Section 8: Sworn Expert Declaration & Signature Block
+            // Section 8: SRUM Network Exfiltration & App Resource Forensics
+            if (srum != null && srum.NetworkEntries != null && srum.NetworkEntries.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">8. Windows SRUM Network Exfiltration Forensics</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Application</th><th>Bytes Sent</th><th>Bytes Recv</th><th>Interface</th><th>Classification</th></tr>");
+                int limit = Math.Min(srum.NetworkEntries.Count, 15);
+                for (int i = 0; i < limit; i++)
+                {
+                    var n = srum.NetworkEntries[i];
+                    string badge = n.IsSuspicious ? "<span class=\"badge badge-alert\">ALERT: " + HtmlEncode(n.SuspicionReason) + "</span>" : "<span class=\"badge badge-ok\">NORMAL</span>";
+                    sb.AppendLine("      <tr><td><code>" + HtmlEncode(n.AppName) + "</code></td><td>" + FormatBytes((long)n.BytesSent) + "</td><td>" + FormatBytes((long)n.BytesReceived) + "</td><td>" + HtmlEncode(n.InterfaceType) + "</td><td>" + badge + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 9: Jump Lists & Recent Files Forensics
+            if (jumpLists != null && jumpLists.Entries != null && jumpLists.Entries.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">9. Windows Jump Lists Application History</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Application</th><th>Target File</th><th>Access Count</th><th>Last Access (UTC)</th><th>Pinned</th></tr>");
+                int limit = Math.Min(jumpLists.Entries.Count, 15);
+                for (int i = 0; i < limit; i++)
+                {
+                    var j = jumpLists.Entries[i];
+                    sb.AppendLine("      <tr><td>" + HtmlEncode(j.AppName) + "</td><td><code>" + HtmlEncode(j.TargetPath) + "</code></td><td>" + j.AccessCount + "</td><td>" + (j.LastAccessUtc > DateTime.MinValue ? j.LastAccessUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—") + "</td><td>" + HtmlEncode(j.PinStatus) + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 10: Windows Recycle Bin ($I/$R) Analysis
+            if (recycleBin != null && recycleBin.Entries != null && recycleBin.Entries.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">10. Windows Recycle Bin ($I/$R) Deletion Forensics</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Original File Path</th><th>Original Size</th><th>Deletion Time (UTC)</th><th>User SID</th><th>Payload Status</th></tr>");
+                int limit = Math.Min(recycleBin.Entries.Count, 15);
+                for (int i = 0; i < limit; i++)
+                {
+                    var r = recycleBin.Entries[i];
+                    string payloadBadge = r.HasDataFile ? "<span class=\"badge badge-ok\">RECOVERABLE ($R)</span>" : "<span class=\"badge badge-alert\">WIPED / CARVED ONLY</span>";
+                    sb.AppendLine("      <tr><td><code>" + HtmlEncode(r.OriginalFilePath) + "</code></td><td>" + FormatBytes(r.OriginalFileSize) + "</td><td>" + (r.DeletionTimeUtc > DateTime.MinValue ? r.DeletionTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—") + "</td><td><code>" + HtmlEncode(r.UserSid) + "</code></td><td>" + payloadBadge + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 11: Browser Extensions & Crypto Wallets
+            if (extensions != null && extensions.Extensions != null && extensions.Extensions.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">11. Browser Extensions & Cryptocurrency Wallet Artifacts</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Extension Name</th><th>Extension ID</th><th>Category</th><th>Manifest</th><th>LevelDB Keys</th><th>Classification</th></tr>");
+                int limit = Math.Min(extensions.Extensions.Count, 15);
+                for (int i = 0; i < limit; i++)
+                {
+                    var ext = extensions.Extensions[i];
+                    string badge = ext.IsSuspicious ? "<span class=\"badge badge-alert\">ALERT: " + HtmlEncode(ext.SuspicionReason) + "</span>" : "<span class=\"badge badge-ok\">VALID</span>";
+                    sb.AppendLine("      <tr><td><strong>" + HtmlEncode(ext.Name) + "</strong></td><td><code>" + HtmlEncode(ext.ExtensionId) + "</code></td><td>" + HtmlEncode(ext.Category) + "</td><td>V" + ext.ManifestVersion + "</td><td>" + ext.LevelDbKeyCount + "</td><td>" + badge + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 12: Windows Event Log (.evtx) High Risk Security Events
+            if (evtx != null && evtx.Records != null && evtx.Records.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">12. Windows Event Log (EVTX) High Risk Security Events</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Timestamp (UTC)</th><th>Event ID</th><th>Provider</th><th>Computer</th><th>Classification</th></tr>");
+                int limit = Math.Min(evtx.Records.Count, 20);
+                for (int i = 0; i < limit; i++)
+                {
+                    var ev = evtx.Records[i];
+                    string evName = "Event " + ev.EventId;
+                    if (ev.EventId == 4624) evName = "Successful Logon (4624)";
+                    else if (ev.EventId == 4625) evName = "Auth Failure / Brute Force (4625)";
+                    else if (ev.EventId == 4688) evName = "Process Creation (4688)";
+                    else if (ev.EventId == 7045) evName = "Service Installed (7045)";
+                    else if (ev.EventId == 1102 || ev.EventId == 104) evName = "Audit Log Cleared (Anti-Forensics)";
+
+                    sb.AppendLine("      <tr><td>" + (ev.TimestampUtc > DateTime.MinValue ? ev.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—") + "</td><td><code>" + evName + "</code></td><td>" + HtmlEncode(ev.ProviderName) + "</td><td>" + HtmlEncode(ev.ComputerName) + "</td><td><span class=\"badge badge-alert\">ALERT</span></td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 13: Volume Shadow Copies (VSS) Analysis
+            if (vss != null && vss.Snapshots != null && vss.Snapshots.Count > 0)
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">13. Volume Shadow Copies (VSS) Historical Snapshots</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Snapshot ID</th><th>Created Time (UTC)</th><th>Volume Size</th><th>Allocated CoW</th><th>Attributes</th></tr>");
+                int limit = Math.Min(vss.Snapshots.Count, 10);
+                for (int i = 0; i < limit; i++)
+                {
+                    var sn = vss.Snapshots[i];
+                    sb.AppendLine("      <tr><td><code>" + sn.SnapshotId.ToString() + "</code></td><td>" + (sn.CreationTimeUtc > DateTime.MinValue ? sn.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "—") + "</td><td>" + FormatBytes(sn.VolumeSize) + "</td><td>" + FormatBytes(sn.AllocatedBytes) + "</td><td>" + HtmlEncode(sn.Attributes) + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 14: Sworn Expert Declaration & Signature Block
             sb.AppendLine("  <div class=\"cert-box\">");
             sb.AppendLine("    <strong>EXPERT WITNESS CERTIFICATION (FEDERAL RULES OF EVIDENCE RULE 902(14))</strong><br><br>");
             sb.AppendLine("    I declare under penalty of perjury that the forensic examination of the evidence described herein was conducted using validated, forensically sound methodologies adhering strictly to ISO/IEC 27037. The original source media remained unaltered throughout acquisition and processing (100% write-blocked). All cryptographic hashes, artifact timestamps, and reconstructed timelines recorded in this report reflect exact mathematical fidelity to the digital artifacts present on the media.<br><br>");
@@ -223,6 +341,8 @@ namespace UsbRecovery
             sb.AppendLine("</body>");
             sb.AppendLine("</html>");
 
+
+
             return sb.ToString();
         }
 
@@ -232,7 +352,13 @@ namespace UsbRecovery
             List<AmcacheEntry> amcache = null,
             List<ShellbagRecord> shellbags = null,
             List<MftFileRecord> mftRecords = null,
-            EntropyReport entropy = null)
+            EntropyReport entropy = null,
+            SrumReport srum = null,
+            JumpListReport jumpLists = null,
+            RecycleBinReport recycleBin = null,
+            BrowserExtensionsReport extensions = null,
+            EvtxAuditReport evtx = null,
+            VssReport vss = null)
         {
             if (meta == null) meta = new ForensicCaseMetadata();
 
@@ -297,6 +423,48 @@ namespace UsbRecovery
                     var ev = events[i];
                     sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- `[{0:yyyy-MM-dd HH:mm:ss} UTC]` **[{1}]** {2}: `{3}` ({4})", ev.TimeStampUtc, ev.Source, ev.Action, ev.TargetPath, ev.Description));
                 }
+                sb.AppendLine();
+            }
+
+            if (srum != null && srum.NetworkEntries != null && srum.NetworkEntries.Count > 0)
+            {
+                sb.AppendLine("## 8. Windows SRUM Network Exfiltration Forensics");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total Network Records: `{0}`", srum.NetworkEntries.Count));
+                sb.AppendLine();
+            }
+
+            if (jumpLists != null && jumpLists.Entries != null && jumpLists.Entries.Count > 0)
+            {
+                sb.AppendLine("## 9. Windows Jump Lists Application History");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total Jump List Entries: `{0}`", jumpLists.Entries.Count));
+                sb.AppendLine();
+            }
+
+            if (recycleBin != null && recycleBin.Entries != null && recycleBin.Entries.Count > 0)
+            {
+                sb.AppendLine("## 10. Windows Recycle Bin ($I/$R) Deletion Forensics");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total Deleted Files Identified: `{0}`", recycleBin.Entries.Count));
+                sb.AppendLine();
+            }
+
+            if (extensions != null && extensions.Extensions != null && extensions.Extensions.Count > 0)
+            {
+                sb.AppendLine("## 11. Browser Extensions & Cryptocurrency Wallet Artifacts");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total Extensions Analyzed: `{0}`", extensions.Extensions.Count));
+                sb.AppendLine();
+            }
+
+            if (evtx != null && evtx.Records != null && evtx.Records.Count > 0)
+            {
+                sb.AppendLine("## 12. Windows Event Log (EVTX) High Risk Security Events");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total High Risk Events: `{0}`", evtx.Records.Count));
+                sb.AppendLine();
+            }
+
+            if (vss != null && vss.Snapshots != null && vss.Snapshots.Count > 0)
+            {
+                sb.AppendLine("## 13. Volume Shadow Copies (VSS) Historical Snapshots");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total Volume Snapshots: `{0}`", vss.Snapshots.Count));
                 sb.AppendLine();
             }
 

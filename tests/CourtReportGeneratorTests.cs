@@ -107,7 +107,61 @@ public static class CourtReportGeneratorTests
             SuspicionReason = "CRITICAL: 100% of blocks exhibit cryptographic entropy without compression headers"
         };
 
-        string html = CourtReportGenerator.GenerateHtmlReport(meta, timeline, amcache, shellbags, mftRecords, entropy);
+        var srum = new SrumReport
+        {
+            DatabasePath = @"C:\Windows\System32\sru\SRUDB.dat",
+            NetworkEntries = new List<SrumNetworkEntry>
+            {
+                new SrumNetworkEntry { AppName = "exfil.exe", BytesSent = 104857600, BytesReceived = 1024, InterfaceType = "Wireless", IsSuspicious = true, SuspicionReason = "High volume wireless exfiltration" }
+            }
+        };
+
+        var jumpLists = new JumpListReport
+        {
+            SourcePath = @"C:\Users\suspect\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations",
+            Entries = new List<JumpListEntry>
+            {
+                new JumpListEntry { AppName = "Explorer", TargetPath = @"E:\Confidential\source_code.zip", AccessCount = 5, PinStatus = "Pinned" }
+            }
+        };
+
+        var recycleBin = new RecycleBinReport
+        {
+            SourcePath = @"C:\$Recycle.Bin",
+            Entries = new List<RecycleBinEntry>
+            {
+                new RecycleBinEntry { OriginalFilePath = @"C:\Users\suspect\Documents\shredded.docx", OriginalFileSize = 8192, HasDataFile = true, UserSid = "S-1-5-21-1234567890-1001" }
+            }
+        };
+
+        var extensions = new BrowserExtensionsReport
+        {
+            SourcePath = @"C:\Users\suspect\AppData\Local\Google\Chrome\User Data\Default\Extensions",
+            Extensions = new List<BrowserExtensionArtifact>
+            {
+                new BrowserExtensionArtifact { Name = "MetaMask", ExtensionId = "nkbihfbeogaeaoehlefnkodbefgpgknn", Category = "Crypto Wallet", ManifestVersion = "3", LevelDbKeyCount = 12 }
+            }
+        };
+
+        var evtx = new EvtxAuditReport
+        {
+            SourcePath = @"C:\Windows\System32\winevt\Logs\Security.evtx",
+            Records = new List<EvtxRecord>
+            {
+                new EvtxRecord { EventId = 4625, ProviderName = "Microsoft-Windows-Security-Auditing", ComputerName = "TARGET-PC", TimestampUtc = new DateTime(2026, 11, 21, 10, 0, 0, DateTimeKind.Utc) }
+            }
+        };
+
+        var vss = new VssReport
+        {
+            SourcePath = @"C:\images\suspect_drive.e01",
+            Snapshots = new List<VssSnapshotRecord>
+            {
+                new VssSnapshotRecord { SnapshotId = Guid.NewGuid(), VolumeSize = 512110190592L, AllocatedBytes = 104857600L, Attributes = "ClientAccessible" }
+            }
+        };
+
+        string html = CourtReportGenerator.GenerateHtmlReport(meta, timeline, amcache, shellbags, mftRecords, entropy, srum, jumpLists, recycleBin, extensions, evtx, vss);
 
         Check(html.Contains("CR-2026-9042"), "HTML must contain Case Number");
         Check(html.Contains("Jane Doe"), "HTML must contain Investigator Name");
@@ -117,6 +171,12 @@ public static class CourtReportGeneratorTests
         Check(html.Contains("Secret_R&amp;D_Designs") || html.Contains("Secret_R&D_Designs"), "HTML must list Shellbags folder access");
         Check(html.Contains("miner.exe"), "HTML must report Amcache execution");
         Check(html.Contains("7.9600 bits/byte"), "HTML must display Mean Entropy");
+        Check(html.Contains("SRUM Network Exfiltration"), "HTML must contain SRUM section");
+        Check(html.Contains("Jump Lists Application History"), "HTML must contain Jump Lists section");
+        Check(html.Contains("Recycle Bin ($I/$R) Deletion"), "HTML must contain Recycle Bin section");
+        Check(html.Contains("Browser Extensions &amp; Cryptocurrency") || html.Contains("Browser Extensions & Cryptocurrency"), "HTML must contain Browser Extensions section");
+        Check(html.Contains("Windows Event Log (EVTX)"), "HTML must contain EVTX section");
+        Check(html.Contains("Volume Shadow Copies (VSS)"), "HTML must contain VSS section");
 
         string outHtmlPath = Path.Combine(testDir, "report.html");
         File.WriteAllText(outHtmlPath, html, Encoding.UTF8);
@@ -134,10 +194,27 @@ public static class CourtReportGeneratorTests
             TotalBytes = 1073741824L
         };
 
-        string md = CourtReportGenerator.GenerateMarkdownReport(meta);
+        var srumMd = new SrumReport
+        {
+            DatabasePath = @"C:\Windows\System32\sru\SRUDB.dat",
+            NetworkEntries = new List<SrumNetworkEntry> { new SrumNetworkEntry { AppName = "test.exe", BytesSent = 100 } }
+        };
+        var jlMd = new JumpListReport { Entries = new List<JumpListEntry> { new JumpListEntry { AppName = "test", TargetPath = @"C:\test.txt" } } };
+        var rbMd = new RecycleBinReport { Entries = new List<RecycleBinEntry> { new RecycleBinEntry { OriginalFilePath = @"C:\del.txt" } } };
+        var extMd = new BrowserExtensionsReport { Extensions = new List<BrowserExtensionArtifact> { new BrowserExtensionArtifact { Name = "Wallet", ExtensionId = "123" } } };
+        var evtxMd = new EvtxAuditReport { Records = new List<EvtxRecord> { new EvtxRecord { EventId = 4624 } } };
+        var vssMd = new VssReport { Snapshots = new List<VssSnapshotRecord> { new VssSnapshotRecord { SnapshotId = Guid.NewGuid() } } };
+
+        string md = CourtReportGenerator.GenerateMarkdownReport(meta, srum: srumMd, jumpLists: jlMd, recycleBin: rbMd, extensions: extMd, evtx: evtxMd, vss: vssMd);
         Check(md.Contains("INCIDENT-2026-B"), "MD must contain Case Number");
         Check(md.Contains("Alex Smith"), "MD must contain Examiner Name");
         Check(md.Contains("1.00 GiB"), "MD must format size as 1.00 GiB");
         Check(md.Contains("Rule 902(14)"), "MD must cite Rule 902(14)");
+        Check(md.Contains("Windows SRUM Network Exfiltration"), "MD must contain SRUM section");
+        Check(md.Contains("Windows Jump Lists Application History"), "MD must contain Jump Lists section");
+        Check(md.Contains("Windows Recycle Bin ($I/$R) Deletion"), "MD must contain Recycle Bin section");
+        Check(md.Contains("Browser Extensions & Cryptocurrency Wallet Artifacts"), "MD must contain Browser Extensions section");
+        Check(md.Contains("Windows Event Log (EVTX) High Risk"), "MD must contain EVTX section");
+        Check(md.Contains("Volume Shadow Copies (VSS) Historical"), "MD must contain VSS section");
     }
 }

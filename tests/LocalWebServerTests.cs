@@ -131,7 +131,25 @@ public static class LocalWebServerTests
                     Check(html.Contains("ISO / UDF Optical"), "Dashboard HTML contains ISO / UDF Optical tab");
                     Check(html.Contains("Browser Extensions"), "Dashboard HTML contains Browser Extensions tab");
                     Check(html.Contains("Event Logs (EVTX)"), "Dashboard HTML contains Event Logs (EVTX) tab");
+                    Check(html.Contains("Prefetch (PF)"), "Dashboard HTML contains Prefetch tab");
+                    Check(html.Contains("Browser History"), "Dashboard HTML contains Browser History tab");
+                    Check(html.Contains("SQLite Carver"), "Dashboard HTML contains SQLite Carver tab");
+                    Check(html.Contains("Filesystems (Scouts)"), "Dashboard HTML contains Filesystems tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
+
+                    // Verify that all 17 forensic and subsystem container divs exist
+                    string[] expectedTabDivs = new string[] {
+                        "id=\"overview\"", "id=\"clusters\"", "id=\"hex\"", "id=\"files\"",
+                        "id=\"registry\"", "id=\"usn\"", "id=\"mft\"", "id=\"shimcache\"",
+                        "id=\"timeline\"", "id=\"amcache\"", "id=\"shellbags\"", "id=\"entropy\"",
+                        "id=\"srum\"", "id=\"jumplist\"", "id=\"recyclebin\"", "id=\"vss\"",
+                        "id=\"iso\"", "id=\"extensions\"", "id=\"evtx\"", "id=\"prefetch\"",
+                        "id=\"browserhistory\"", "id=\"sqlite\"", "id=\"filesystems\""
+                    };
+                    for (int di = 0; di < expectedTabDivs.Length; di++)
+                    {
+                        Check(html.Contains(expectedTabDivs[di]), "Dashboard HTML contains container div: " + expectedTabDivs[di]);
+                    }
                 }
 
                 // Test 2: GET /api/status
@@ -456,6 +474,64 @@ public static class LocalWebServerTests
                     Check(evtxObj.ContainsKey("TotalRecords"), "EVTX contains TotalRecords");
                     Check(evtxObj.ContainsKey("LogonCount"), "EVTX contains LogonCount");
                     Check(evtxObj.ContainsKey("ThreatAlertCount"), "EVTX contains ThreatAlertCount");
+                }
+
+                // Test 24: GET /api/prefetch
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string pfJson = client.DownloadString(baseUrl + "/api/prefetch");
+                    var serializer = new JavaScriptSerializer();
+                    var pfObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(pfJson);
+                    Check(pfObj != null, "Prefetch JSON parsed");
+                    Check(pfObj.ContainsKey("source"), "Prefetch contains source");
+                    Check(pfObj.ContainsKey("totalFiles"), "Prefetch contains totalFiles");
+                    Check(pfObj.ContainsKey("results"), "Prefetch contains results");
+                }
+
+                // Test 25: GET /api/browser-history
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string bhJson = client.DownloadString(baseUrl + "/api/browser-history");
+                    var serializer = new JavaScriptSerializer();
+                    var bhObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(bhJson);
+                    Check(bhObj != null, "BrowserHistory JSON parsed");
+                    Check(bhObj.ContainsKey("source"), "BrowserHistory contains source");
+                    Check(bhObj.ContainsKey("totalRecords"), "BrowserHistory contains totalRecords");
+                    Check(bhObj.ContainsKey("results"), "BrowserHistory contains results");
+                }
+
+                // Test 26: GET /api/sqlite
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string sqlJson = client.DownloadString(baseUrl + "/api/sqlite");
+                    var serializer = new JavaScriptSerializer();
+                    var sqlObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(sqlJson);
+                    Check(sqlObj != null, "SQLite JSON parsed");
+                    Check(sqlObj.ContainsKey("source"), "SQLite contains source");
+                    Check(sqlObj.ContainsKey("totalCarved"), "SQLite contains totalCarved");
+                    Check(sqlObj.ContainsKey("activeCount"), "SQLite contains activeCount");
+                    Check(sqlObj.ContainsKey("deletedCount"), "SQLite contains deletedCount");
+                    Check(sqlObj.ContainsKey("results"), "SQLite contains results");
+                }
+
+                // Test 27: GET /api/filesystems
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string fsJson = client.DownloadString(baseUrl + "/api/filesystems");
+                    var serializer = new JavaScriptSerializer();
+                    var fsObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(fsJson);
+                    Check(fsObj != null, "Filesystems JSON parsed");
+                    Check(fsObj.ContainsKey("source"), "Filesystems contains source");
+                    Check(fsObj.ContainsKey("btrfs"), "Filesystems contains btrfs");
+                    Check(fsObj.ContainsKey("xfs"), "Filesystems contains xfs");
+                    Check(fsObj.ContainsKey("zfs"), "Filesystems contains zfs");
+                    Check(fsObj.ContainsKey("f2fs"), "Filesystems contains f2fs");
+                    Check(fsObj.ContainsKey("exfat"), "Filesystems contains exfat");
+                    Check(fsObj.ContainsKey("hfsPlus"), "Filesystems contains hfsPlus");
                 }
 
                 server.Stop();
