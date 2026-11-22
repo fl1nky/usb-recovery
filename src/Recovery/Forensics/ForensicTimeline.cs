@@ -582,6 +582,26 @@ namespace UsbRecovery
             }
         }
 
+        public void AddTelegramMessages(IEnumerable<TelegramMessageRecord> records)
+        {
+            if (records == null) return;
+            foreach (var m in records)
+            {
+                if (m == null) continue;
+                string action = m.IsDeletedOrCarved ? "DELETED_MESSAGE (Telegram)" : (m.IsOut ? "SENT_MESSAGE (Telegram)" : "RECEIVED_MESSAGE (Telegram)");
+                string target = string.Format("{0}:{1}", m.PeerType, m.PeerId);
+                string preview = m.Text;
+                if (!String.IsNullOrEmpty(preview) && preview.Length > 80)
+                    preview = preview.Substring(0, 77) + "...";
+                string desc = string.Format("MsgId: {0}, Origin: {1}, Offset: 0x{2:X}, Text: \"{3}\"",
+                    m.MessageId, m.SourceOrigin, m.Offset, preview ?? String.Empty);
+                if (m.TimestampUtc > DateTime.MinValue)
+                {
+                    AddEvent(m.TimestampUtc, "Telegram", action, target, desc, m.Text);
+                }
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

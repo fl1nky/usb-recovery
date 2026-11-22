@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "evtx" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk" || first == "prefetch" || first == "browser-history" || first == "carve-sqlite";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "evtx" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk" || first == "prefetch" || first == "browser-history" || first == "carve-sqlite" || first == "telegram";
         }
 
         public static int Run(string[] args)
@@ -158,6 +158,9 @@ namespace UsbRecovery
                 case "carve-sqlite":
                     return ExecuteCarveSqlite(args);
 
+                case "telegram":
+                    return ExecuteTelegram(args);
+
                 default:
                     Console.Error.WriteLine("Error: Unknown command '{0}'. Run 'USB-Recovery.exe --help' for usage.", args[0]);
                     return 2;
@@ -207,6 +210,7 @@ namespace UsbRecovery
             Console.WriteLine("  prefetch <file_or_dir> [--json] Windows Prefetch (.pf) execution forensics, run count & loaded DLLs");
             Console.WriteLine("  browser-history <file_or_dir>  Web browser SQLite history forensics (Chromium & Firefox URLs/Visits)");
             Console.WriteLine("  carve-sqlite <file_or_image>   Carve SQLite database tables, active cells, freelist & deleted slack rows");
+            Console.WriteLine("  telegram <file_or_dir> [--json] Telegram Desktop (tdata) and mobile SQLite chat history & carved records");
             Console.WriteLine("  registry <hive_path>           Inspect Windows REGF registry hive, dump system summary, search, or carve");
             Console.WriteLine("  usn <image_or_drive>           Parse NTFS USN Change Journal ($UsnJrnl:$J) and reconstruct deleted files");
             Console.WriteLine("  carve-mft <image_path> -o <dir> Carve 1024-byte NTFS $MFT FILE records & extract resident payloads");
@@ -3343,6 +3347,107 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error carving SQLite records: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        static int ExecuteTelegram(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'telegram' requires a file, tdata directory, or disk image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe telegram <path> [-o <out_dir>] [--json]");
+                return 2;
+            }
+
+            string target = Path.GetFullPath(args[1]);
+            if (!File.Exists(target) && !Directory.Exists(target))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", target);
+                return 1;
+            }
+
+            bool json = args.Any(a => string.Equals(a, "--json", StringComparison.OrdinalIgnoreCase));
+            string outputDir = null;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if ((args[i] == "-o" || args[i] == "--output") && i + 1 < args.Length)
+                {
+                    outputDir = Path.GetFullPath(args[i + 1]);
+                    i++;
+                }
+            }
+
+            try
+            {
+                var report = TelegramParser.Analyze(target);
+                if (outputDir != null)
+                {
+                    Directory.CreateDirectory(outputDir);
+                    var serializer = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 };
+                    File.WriteAllText(Path.Combine(outputDir, "telegram-report.json"), serializer.Serialize(report), Encoding.UTF8);
+
+                    var sb = new StringBuilder();
+                    sb.AppendLine("MessageId,TimestampUtc,Direction,PeerType,PeerId,SourceOrigin,IsDeleted,Text");
+                    if (report.Messages != null && report.Messages.Count > 0)
+                    {
+                        for (int mi = 0; mi < report.Messages.Count; mi++)
+                        {
+                            var m = report.Messages[mi];
+                            sb.AppendLine(string.Format("\"{0}\",\"{1:yyyy-MM-dd HH:mm:ss}\",\"{2}\",\"{3}\",\"{4}\",\"{5}\",\"{6}\",\"{7}\"",
+                                m.MessageId, m.TimestampUtc, m.IsOut ? "OUT" : "IN", m.PeerType, m.PeerId, m.SourceOrigin, m.IsDeletedOrCarved,
+                                (m.Text ?? "").Replace("\"", "\"\"").Replace("\r", "").Replace("\n", " ")));
+                        }
+                    }
+                    File.WriteAllText(Path.Combine(outputDir, "messages.csv"), sb.ToString(), Encoding.UTF8);
+                }
+
+                if (json)
+                {
+                    var serializer = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 };
+                    Console.WriteLine(serializer.Serialize(report));
+                }
+                else
+                {
+                    Console.WriteLine("=== Telegram Forensics Report ===");
+                    Console.WriteLine("Target: {0}", target);
+                    Console.WriteLine("Desktop Profiles: {0}", report.DesktopProfiles != null ? report.DesktopProfiles.Count : 0);
+                    if (report.DesktopProfiles != null && report.DesktopProfiles.Count > 0)
+                    {
+                        for (int pi = 0; pi < report.DesktopProfiles.Count; pi++)
+                        {
+                            var dp = report.DesktopProfiles[pi];
+                            Console.WriteLine("  [{0}] Path: {1}, Accounts: {2}, HasKeyData: {3}, HasPasscode: {4}, MediaFiles: {5}",
+                                pi + 1, dp.Path, dp.AccountsCount, dp.HasKeyData, dp.HasPasscode, dp.MediaFilesCount);
+                        }
+                    }
+                    Console.WriteLine("Active Messages: {0}", report.ActiveMessagesCount);
+                    Console.WriteLine("Carved (Deleted) Messages: {0}", report.CarvedMessagesCount);
+                    Console.WriteLine("Total TDF Containers Carved: {0}", report.TotalTdfContainersFound);
+
+                    if (report.Messages != null && report.Messages.Count > 0)
+                    {
+                        Console.WriteLine("\nRecent Messages / Carved Fragments (First 20):");
+                        Console.WriteLine("{0,-20} {1,-6} {2,-18} {3,-15} {4}", "Timestamp (UTC)", "Dir", "Peer", "Origin", "Message Preview");
+                        Console.WriteLine(new string('-', 85));
+                        int limit = Math.Min(report.Messages.Count, 20);
+                        for (int mi = 0; mi < limit; mi++)
+                        {
+                            var m = report.Messages[mi];
+                            string dir = m.IsOut ? "OUT" : "IN";
+                            string peer = string.Format("{0}:{1}", m.PeerType, m.PeerId);
+                            string text = m.Text ?? "";
+                            if (text.Length > 35) text = text.Substring(0, 32) + "...";
+                            Console.WriteLine("{0,-20:yyyy-MM-dd HH:mm:ss} {1,-6} {2,-18} {3,-15} {4}",
+                                m.TimestampUtc, dir, peer, m.SourceOrigin, text);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error analyzing Telegram artifacts: {0}", ex.Message);
                 return 1;
             }
         }

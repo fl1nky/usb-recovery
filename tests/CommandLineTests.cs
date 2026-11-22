@@ -221,6 +221,16 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "browser-history", dummySqlite }) == 0, "browser-history execution returns 0");
             Check(CommandLineHandler.Run(new[] { "browser-history", dummySqlite, "--json" }) == 0, "browser-history --json returns 0");
 
+            string dummyTg = Path.Combine(work, "dummy_tdata");
+            Directory.CreateDirectory(dummyTg);
+            File.WriteAllBytes(Path.Combine(dummyTg, "key_datas"), new byte[64]);
+            string tgOut = Path.Combine(work, "telegram_out");
+            Check(CommandLineHandler.Run(new[] { "telegram", dummyTg }) == 0, "telegram execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "telegram", dummyTg, "--json" }) == 0, "telegram --json returns 0");
+            Check(CommandLineHandler.Run(new[] { "telegram", dummyTg, "-o", tgOut }) == 0, "telegram -o returns 0");
+            Check(File.Exists(Path.Combine(tgOut, "telegram-report.json")), "telegram report JSON exists");
+            Check(File.Exists(Path.Combine(tgOut, "messages.csv")), "telegram messages CSV exists");
+
             string triageDir = Path.Combine(work, "triage_dir");
             Directory.CreateDirectory(triageDir);
             File.Copy(dummyPf, Path.Combine(triageDir, "SAMPLE.PF"));

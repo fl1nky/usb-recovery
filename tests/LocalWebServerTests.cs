@@ -135,16 +135,17 @@ public static class LocalWebServerTests
                     Check(html.Contains("Browser History"), "Dashboard HTML contains Browser History tab");
                     Check(html.Contains("SQLite Carver"), "Dashboard HTML contains SQLite Carver tab");
                     Check(html.Contains("Filesystems (Scouts)"), "Dashboard HTML contains Filesystems tab");
+                    Check(html.Contains("Telegram Forensics"), "Dashboard HTML contains Telegram Forensics tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
 
-                    // Verify that all 17 forensic and subsystem container divs exist
+                    // Verify that all 24 forensic and subsystem container divs exist
                     string[] expectedTabDivs = new string[] {
                         "id=\"overview\"", "id=\"clusters\"", "id=\"hex\"", "id=\"files\"",
                         "id=\"registry\"", "id=\"usn\"", "id=\"mft\"", "id=\"shimcache\"",
                         "id=\"timeline\"", "id=\"amcache\"", "id=\"shellbags\"", "id=\"entropy\"",
                         "id=\"srum\"", "id=\"jumplist\"", "id=\"recyclebin\"", "id=\"vss\"",
                         "id=\"iso\"", "id=\"extensions\"", "id=\"evtx\"", "id=\"prefetch\"",
-                        "id=\"browserhistory\"", "id=\"sqlite\"", "id=\"filesystems\""
+                        "id=\"browserhistory\"", "id=\"sqlite\"", "id=\"filesystems\"", "id=\"telegram\""
                     };
                     for (int di = 0; di < expectedTabDivs.Length; di++)
                     {
@@ -532,6 +533,24 @@ public static class LocalWebServerTests
                     Check(fsObj.ContainsKey("f2fs"), "Filesystems contains f2fs");
                     Check(fsObj.ContainsKey("exfat"), "Filesystems contains exfat");
                     Check(fsObj.ContainsKey("hfsPlus"), "Filesystems contains hfsPlus");
+                }
+
+                // Test 28: GET /api/telegram
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string tgJson = client.DownloadString(baseUrl + "/api/telegram");
+                    var serializer = new JavaScriptSerializer();
+                    var tgObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(tgJson);
+                    Check(tgObj != null, "Telegram JSON parsed");
+                    Check(tgObj.ContainsKey("source"), "Telegram contains source");
+                    Check(tgObj.ContainsKey("totalProfiles"), "Telegram contains totalProfiles");
+                    Check(tgObj.ContainsKey("totalMessages"), "Telegram contains totalMessages");
+                    Check(tgObj.ContainsKey("activeMessages"), "Telegram contains activeMessages");
+                    Check(tgObj.ContainsKey("deletedMessages"), "Telegram contains deletedMessages");
+                    Check(tgObj.ContainsKey("tdfContainers"), "Telegram contains tdfContainers");
+                    Check(tgObj.ContainsKey("profiles"), "Telegram contains profiles list");
+                    Check(tgObj.ContainsKey("messages"), "Telegram contains messages list");
                 }
 
                 server.Stop();

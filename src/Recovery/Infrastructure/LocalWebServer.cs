@@ -86,6 +86,10 @@ namespace UsbRecovery
         object cachedFilesystemsReport;
         string cachedFilesystemsPath;
 
+        readonly object telegramLock = new object();
+        TelegramForensicReport cachedTelegramReport;
+        string cachedTelegramPath;
+
         Thread workerThread;
         bool running;
         CancellationTokenSource scanCts;
@@ -439,6 +443,10 @@ namespace UsbRecovery
                 else if (path == "/api/filesystems")
                 {
                     ServeFilesystems(req, res);
+                }
+                else if (path == "/api/telegram")
+                {
+                    ServeTelegram(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -1779,6 +1787,11 @@ namespace UsbRecovery
                 if (cachedBrowserHistoryRecords != null)
                     timeline.AddBrowserHistory(cachedBrowserHistoryRecords);
             }
+            lock (telegramLock)
+            {
+                if (cachedTelegramReport != null && cachedTelegramReport.Messages != null)
+                    timeline.AddTelegramMessages(cachedTelegramReport.Messages);
+            }
         }
 
         void ServeTimeline(HttpListenerRequest req, HttpListenerResponse res)
@@ -2535,6 +2548,90 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeTelegram(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            TelegramForensicReport report = null;
+            lock (telegramLock)
+            {
+                if (cachedTelegramPath == imagePath && cachedTelegramReport != null)
+                {
+                    report = cachedTelegramReport;
+                }
+                else
+                {
+                    if (File.Exists(imagePath) || Directory.Exists(imagePath))
+                    {
+                        try
+                        {
+                            report = TelegramParser.Analyze(imagePath);
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new TelegramForensicReport();
+                    }
+                    cachedTelegramReport = report;
+                    cachedTelegramPath = imagePath;
+                }
+            }
+
+            var profilesJson = new List<object>();
+            if (report.DesktopProfiles != null)
+            {
+                for (int i = 0; i < report.DesktopProfiles.Count; i++)
+                {
+                    var p = report.DesktopProfiles[i];
+                    string lastAct = p.LastActivityUtc > DateTime.MinValue ? p.LastActivityUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—";
+                    profilesJson.Add(new
+                    {
+                        path = p.Path,
+                        hasKeyData = p.HasKeyData,
+                        hasPasscode = p.HasPasscode,
+                        accountsCount = p.AccountsCount,
+                        mediaFilesCount = p.MediaFilesCount,
+                        tdfFilesCount = p.TotalTdfFiles,
+                        lastActivity = lastAct
+                    });
+                }
+            }
+
+            var messagesJson = new List<object>();
+            if (report.Messages != null)
+            {
+                int limit = Math.Min(300, report.Messages.Count);
+                for (int i = 0; i < limit; i++)
+                {
+                    var m = report.Messages[i];
+                    string ts = m.TimestampUtc > DateTime.MinValue ? m.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") : "—";
+                    messagesJson.Add(new
+                    {
+                        messageId = m.MessageId,
+                        peerId = m.PeerId,
+                        peerType = m.PeerType,
+                        timestamp = ts,
+                        isOut = m.IsOut,
+                        text = m.Text,
+                        isDeleted = m.IsDeletedOrCarved,
+                        sourceOrigin = m.SourceOrigin,
+                        offset = m.Offset
+                    });
+                }
+            }
+
+            WriteJson(res, new
+            {
+                source = imagePath,
+                totalProfiles = report.DesktopProfiles != null ? report.DesktopProfiles.Count : 0,
+                totalMessages = report.Messages != null ? report.Messages.Count : 0,
+                activeMessages = report.ActiveMessagesCount,
+                deletedMessages = report.CarvedMessagesCount,
+                tdfContainers = report.TotalTdfContainersFound,
+                profiles = profilesJson,
+                messages = messagesJson
+            });
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2579,10 +2676,15 @@ namespace UsbRecovery
             {
                 activeTl.AddEvtxRecords(cachedEvtxReport.Records);
             }
+            if (cachedTelegramReport != null && cachedTelegramReport.Messages != null)
+            {
+                activeTl.AddTelegramMessages(cachedTelegramReport.Messages);
+            }
 
             string html = CourtReportGenerator.GenerateHtmlReport(
                 meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport,
-                cachedSrumReport, cachedJumpListReport, cachedRecycleBinReport, cachedExtensionsReport, cachedEvtxReport, cachedVssReport);
+                cachedSrumReport, cachedJumpListReport, cachedRecycleBinReport, cachedExtensionsReport, cachedEvtxReport, cachedVssReport,
+                cachedTelegramReport);
             byte[] bytes = Encoding.UTF8.GetBytes(html);
 
             res.StatusCode = 200;
@@ -2702,6 +2804,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('browserhistory')"">🌐 Browser History</button>
   <button class=""tab-btn"" onclick=""switchTab('sqlite')"">🗄️ SQLite Carver</button>
   <button class=""tab-btn"" onclick=""switchTab('filesystems')"">📁 Filesystems (Scouts)</button>
+  <button class=""tab-btn"" onclick=""switchTab('telegram')"">💬 Telegram Forensics</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>
@@ -3383,6 +3486,41 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
       </div>
     </div>
   </div>
+
+  <!-- TELEGRAM FORENSICS TAB -->
+  <div id=""telegram"" class=""tab-content"">
+    <div class=""card"">
+      <h2>💬 Telegram Desktop & Mobile Forensic Triage</h2>
+      <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
+        Extracts Telegram Desktop tdata session state, TDF$ encrypted containers, encrypted media cache, and carves active/deleted chat messages from SQLite databases.
+      </p>
+      <div class=""grid-stats"">
+        <div class=""stat-box""><div class=""stat-label"">Profiles (tdata)</div><div class=""stat-value"" id=""tg-profiles"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Total Messages</div><div class=""stat-value"" id=""tg-total-msgs"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Active Messages</div><div class=""stat-value"" id=""tg-active-msgs"" style=""color: #10b981;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Deleted / Carved Messages</div><div class=""stat-value"" id=""tg-deleted-msgs"" style=""color: #ef4444;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">TDF$ Containers</div><div class=""stat-value"" id=""tg-tdf"">—</div></div>
+      </div>
+      <div id=""tg-stats"" style=""font-size: 14px; margin-top: 16px; margin-bottom: 12px; color: var(--accent);"">Messages: <strong>—</strong></div>
+      <div style=""overflow-x: auto;"">
+        <table class=""file-table"">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Status</th>
+              <th>Sender</th>
+              <th>Recipient</th>
+              <th>Message Text</th>
+              <th>Source Origin</th>
+            </tr>
+          </thead>
+          <tbody id=""tg-tbody"">
+            <tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Telegram Messages...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -3417,6 +3555,7 @@ function switchTab(tabId) {
   if (tabId === 'browserhistory') loadBrowserHistory();
   if (tabId === 'sqlite') loadSqlite();
   if (tabId === 'filesystems') loadFilesystems();
+  if (tabId === 'telegram') loadTelegram();
 }
 
 async function refreshStatus() {
@@ -4185,6 +4324,31 @@ async function loadFilesystems() {
     document.getElementById('fs-exfat').innerText = data.exfat || '—';
     document.getElementById('fs-hfs').innerText = data.hfsPlus || '—';
   } catch (e) { }
+}
+
+async function loadTelegram() {
+  var tbody = document.getElementById('tg-tbody');
+  var stats = document.getElementById('tg-stats');
+  tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">Loading Telegram Forensics...</td></tr>';
+  try {
+    var res = await fetch('/api/telegram');
+    var data = await res.json();
+    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    document.getElementById('tg-profiles').innerText = data.totalProfiles;
+    document.getElementById('tg-total-msgs').innerText = data.totalMessages;
+    document.getElementById('tg-active-msgs').innerText = data.activeMessages;
+    document.getElementById('tg-deleted-msgs').innerText = data.deletedMessages;
+    document.getElementById('tg-tdf').innerText = data.tdfContainers;
+    stats.innerHTML = 'Total Messages: <strong>' + data.totalMessages + '</strong> (Active: ' + data.activeMessages + ', Deleted/Carved: ' + data.deletedMessages + ')';
+    if (!data.messages || data.messages.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Telegram messages found.</td></tr>'; return; }
+    var html = '';
+    data.messages.forEach(function(m) {
+      var badge = m.isDeleted ? '<span style=""color: #ef4444;"">Deleted</span>' : '<span style=""color: #10b981;"">Active</span>';
+      var sender = m.isOut ? 'Outgoing User' : ('Peer ' + m.peerId);
+      html += '<tr><td>' + m.timestamp + '</td><td>' + badge + '</td><td><strong>' + sender + '</strong></td><td>' + m.peerType + ' ' + m.peerId + '</td><td>' + (m.text || '—') + '</td><td><code>' + m.sourceOrigin + '</code></td></tr>';
+    });
+    tbody.innerHTML = html;
+  } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Telegram artifacts.</td></tr>'; }
 }
 
 // Initial boot

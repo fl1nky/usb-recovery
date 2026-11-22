@@ -161,7 +161,23 @@ public static class CourtReportGeneratorTests
             }
         };
 
-        string html = CourtReportGenerator.GenerateHtmlReport(meta, timeline, amcache, shellbags, mftRecords, entropy, srum, jumpLists, recycleBin, extensions, evtx, vss);
+        var telegram = new TelegramForensicReport
+        {
+            TargetPath = @"C:\Users\suspect\AppData\Roaming\Telegram Desktop\tdata",
+            TotalTdfContainersFound = 14,
+            ActiveMessagesCount = 42,
+            CarvedMessagesCount = 8,
+            DesktopProfiles = new List<TelegramDesktopProfile>
+            {
+                new TelegramDesktopProfile { Path = @"C:\Users\suspect\AppData\Roaming\Telegram Desktop\tdata", HasKeyData = true, HasPasscode = false, AccountsCount = 1, MediaFilesCount = 120, TotalTdfFiles = 14 }
+            },
+            Messages = new List<TelegramMessageRecord>
+            {
+                new TelegramMessageRecord { MessageId = 1001, PeerId = 987654321, PeerType = "User", TimestampUtc = new DateTime(2026, 11, 21, 12, 0, 0, DateTimeKind.Utc), IsOut = false, Text = "Confidential transfer confirmed", IsDeletedOrCarved = true, SourceOrigin = "FreelistPage" }
+            }
+        };
+
+        string html = CourtReportGenerator.GenerateHtmlReport(meta, timeline, amcache, shellbags, mftRecords, entropy, srum, jumpLists, recycleBin, extensions, evtx, vss, telegram);
 
         Check(html.Contains("CR-2026-9042"), "HTML must contain Case Number");
         Check(html.Contains("Jane Doe"), "HTML must contain Investigator Name");
@@ -177,6 +193,9 @@ public static class CourtReportGeneratorTests
         Check(html.Contains("Browser Extensions &amp; Cryptocurrency") || html.Contains("Browser Extensions & Cryptocurrency"), "HTML must contain Browser Extensions section");
         Check(html.Contains("Windows Event Log (EVTX)"), "HTML must contain EVTX section");
         Check(html.Contains("Volume Shadow Copies (VSS)"), "HTML must contain VSS section");
+        Check(html.Contains("Telegram Desktop &amp; Mobile Forensic Artifacts") || html.Contains("Telegram Desktop & Mobile Forensic Artifacts"), "HTML must contain Telegram section");
+        Check(html.Contains("Confidential transfer confirmed"), "HTML must contain carved Telegram message");
+        Check(html.Contains("FreelistPage"), "HTML must contain carved origin");
 
         string outHtmlPath = Path.Combine(testDir, "report.html");
         File.WriteAllText(outHtmlPath, html, Encoding.UTF8);
@@ -204,8 +223,15 @@ public static class CourtReportGeneratorTests
         var extMd = new BrowserExtensionsReport { Extensions = new List<BrowserExtensionArtifact> { new BrowserExtensionArtifact { Name = "Wallet", ExtensionId = "123" } } };
         var evtxMd = new EvtxAuditReport { Records = new List<EvtxRecord> { new EvtxRecord { EventId = 4624 } } };
         var vssMd = new VssReport { Snapshots = new List<VssSnapshotRecord> { new VssSnapshotRecord { SnapshotId = Guid.NewGuid() } } };
+        var tgMd = new TelegramForensicReport
+        {
+            Messages = new List<TelegramMessageRecord>
+            {
+                new TelegramMessageRecord { MessageId = 555, PeerId = 111, TimestampUtc = new DateTime(2026, 11, 21, 14, 0, 0, DateTimeKind.Utc), Text = "Confirmed target coordinates", IsDeletedOrCarved = false }
+            }
+        };
 
-        string md = CourtReportGenerator.GenerateMarkdownReport(meta, srum: srumMd, jumpLists: jlMd, recycleBin: rbMd, extensions: extMd, evtx: evtxMd, vss: vssMd);
+        string md = CourtReportGenerator.GenerateMarkdownReport(meta, srum: srumMd, jumpLists: jlMd, recycleBin: rbMd, extensions: extMd, evtx: evtxMd, vss: vssMd, telegram: tgMd);
         Check(md.Contains("INCIDENT-2026-B"), "MD must contain Case Number");
         Check(md.Contains("Alex Smith"), "MD must contain Examiner Name");
         Check(md.Contains("1.00 GiB"), "MD must format size as 1.00 GiB");
@@ -216,5 +242,7 @@ public static class CourtReportGeneratorTests
         Check(md.Contains("Browser Extensions & Cryptocurrency Wallet Artifacts"), "MD must contain Browser Extensions section");
         Check(md.Contains("Windows Event Log (EVTX) High Risk"), "MD must contain EVTX section");
         Check(md.Contains("Volume Shadow Copies (VSS) Historical"), "MD must contain VSS section");
+        Check(md.Contains("Telegram Desktop & Mobile Forensic Artifacts"), "MD must contain Telegram section");
+        Check(md.Contains("Confirmed target coordinates"), "MD must contain Telegram message text");
     }
 }

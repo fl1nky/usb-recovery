@@ -55,7 +55,8 @@ namespace UsbRecovery
             RecycleBinReport recycleBin = null,
             BrowserExtensionsReport extensions = null,
             EvtxAuditReport evtx = null,
-            VssReport vss = null)
+            VssReport vss = null,
+            TelegramForensicReport telegram = null)
         {
             if (meta == null) meta = new ForensicCaseMetadata();
 
@@ -327,7 +328,34 @@ namespace UsbRecovery
                 sb.AppendLine("  </div>");
             }
 
-            // Section 14: Sworn Expert Declaration & Signature Block
+            // Section 14: Telegram Desktop & Mobile Forensic Artifacts
+            if (telegram != null && ((telegram.DesktopProfiles != null && telegram.DesktopProfiles.Count > 0) || (telegram.Messages != null && telegram.Messages.Count > 0) || telegram.TotalTdfContainersFound > 0))
+            {
+                sb.AppendLine("  <div class=\"section\">");
+                sb.AppendLine("    <div class=\"section-title\">14. Telegram Desktop & Mobile Forensic Artifacts</div>");
+                sb.AppendLine("    <table>");
+                sb.AppendLine("      <tr><th>Desktop Profiles</th><th>Active Messages</th><th>Carved Messages</th><th>TDF Containers Carved</th></tr>");
+                sb.AppendLine("      <tr><td>" + (telegram.DesktopProfiles != null ? telegram.DesktopProfiles.Count : 0) + "</td><td>" + telegram.ActiveMessagesCount + "</td><td><span class=\"badge " + (telegram.CarvedMessagesCount > 0 ? "badge-alert" : "badge-ok") + "\">" + telegram.CarvedMessagesCount + "</span></td><td>" + telegram.TotalTdfContainersFound + "</td></tr>");
+                sb.AppendLine("    </table>");
+                if (telegram.Messages != null && telegram.Messages.Count > 0)
+                {
+                    sb.AppendLine("    <br><table>");
+                    sb.AppendLine("      <tr><th>Timestamp (UTC)</th><th>Direction</th><th>Peer</th><th>Origin</th><th>Preview</th></tr>");
+                    int msgLimit = Math.Min(telegram.Messages.Count, 15);
+                    for (int mi = 0; mi < msgLimit; mi++)
+                    {
+                        var m = telegram.Messages[mi];
+                        string dir = m.IsOut ? "OUTGOING" : "INCOMING";
+                        string preview = m.Text;
+                        if (!String.IsNullOrEmpty(preview) && preview.Length > 60) preview = preview.Substring(0, 57) + "...";
+                        sb.AppendLine("      <tr><td>" + m.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss") + "</td><td>" + dir + "</td><td><code>" + m.PeerType + ":" + m.PeerId + "</code></td><td>" + m.SourceOrigin + "</td><td>" + HtmlEncode(preview) + "</td></tr>");
+                    }
+                    sb.AppendLine("    </table>");
+                }
+                sb.AppendLine("  </div>");
+            }
+
+            // Section 15: Sworn Expert Declaration & Signature Block
             sb.AppendLine("  <div class=\"cert-box\">");
             sb.AppendLine("    <strong>EXPERT WITNESS CERTIFICATION (FEDERAL RULES OF EVIDENCE RULE 902(14))</strong><br><br>");
             sb.AppendLine("    I declare under penalty of perjury that the forensic examination of the evidence described herein was conducted using validated, forensically sound methodologies adhering strictly to ISO/IEC 27037. The original source media remained unaltered throughout acquisition and processing (100% write-blocked). All cryptographic hashes, artifact timestamps, and reconstructed timelines recorded in this report reflect exact mathematical fidelity to the digital artifacts present on the media.<br><br>");
@@ -358,7 +386,8 @@ namespace UsbRecovery
             RecycleBinReport recycleBin = null,
             BrowserExtensionsReport extensions = null,
             EvtxAuditReport evtx = null,
-            VssReport vss = null)
+            VssReport vss = null,
+            TelegramForensicReport telegram = null)
         {
             if (meta == null) meta = new ForensicCaseMetadata();
 
@@ -468,7 +497,31 @@ namespace UsbRecovery
                 sb.AppendLine();
             }
 
-            sb.AppendLine("## 7. Expert Witness Certification");
+            if (telegram != null && ((telegram.DesktopProfiles != null && telegram.DesktopProfiles.Count > 0) || (telegram.Messages != null && telegram.Messages.Count > 0) || telegram.TotalTdfContainersFound > 0))
+            {
+                sb.AppendLine("## 14. Telegram Desktop & Mobile Forensic Artifacts");
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Desktop Profiles Found: `{0}`", telegram.DesktopProfiles != null ? telegram.DesktopProfiles.Count : 0));
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Active Messages: `{0}`", telegram.ActiveMessagesCount));
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Carved Messages: `{0}`", telegram.CarvedMessagesCount));
+                sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Total TDF Containers Carved: `{0}`", telegram.TotalTdfContainersFound));
+                sb.AppendLine();
+
+                if (telegram.Messages != null && telegram.Messages.Count > 0)
+                {
+                    sb.AppendLine("| Timestamp (UTC) | Origin | Sender | Text |");
+                    sb.AppendLine("|---|---|---|---|");
+                    int mCount = Math.Min(10, telegram.Messages.Count);
+                    for (int i = 0; i < mCount; i++)
+                    {
+                        var m = telegram.Messages[i];
+                        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "| {0:yyyy-MM-dd HH:mm:ss} | {1} | {2} | {3} |",
+                            m.TimestampUtc, m.SourceOrigin, m.IsOut ? "User (Out)" : ("Peer " + m.PeerId), (m.Text ?? "").Replace("|", "/")));
+                    }
+                    sb.AppendLine();
+                }
+            }
+
+            sb.AppendLine("## 15. Expert Witness Certification");
             sb.AppendLine("I declare under penalty of perjury that this examination was conducted adhering to ISO/IEC 27037 and Rule 902(14). The evidence source remained 100% write-blocked and unaltered.\n");
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "**Examiner**: {0}\n", meta.InvestigatorName));
 
