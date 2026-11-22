@@ -98,6 +98,9 @@ USB-Recovery.exe jumplist C:\Users\Admin\AppData\Roaming\Microsoft\Windows\Recen
 # Парсинг корзины Windows Recycle Bin, анализ SID пользователей и восстановление файлов
 USB-Recovery.exe recycle-bin C:\$Recycle.Bin -o C:\recovered_recycle --json
 
+# Разведка теневых копий тома (VSS), каталога снимков и CoW дескрипторов
+USB-Recovery.exe vss-scout C:\images\evidence.raw --json
+
 # Анализ энтропии Шеннона потока и выявление шифрования вымогателями (Ransomware)
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 

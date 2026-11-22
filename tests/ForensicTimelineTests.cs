@@ -197,7 +197,22 @@ public static class ForensicTimelineTests
         };
         timeline.AddRecycleBinEntries(new[] { rbEntry });
 
-        Check(timeline.Count >= 15, "Timeline collected at least 15 multi-source events");
+        // 15. VSS Snapshot Entry
+        var vssRecord = new VssSnapshotRecord
+        {
+            SnapshotId = Guid.NewGuid(),
+            SnapshotSetId = Guid.NewGuid(),
+            CreationTimeUtc = new DateTime(2026, 11, 21, 14, 12, 0, DateTimeKind.Utc),
+            VolumeSize = 100000000000L,
+            AllocatedBytes = 500000000L,
+            StoreBlockCount = 30517,
+            MachineName = "DESKTOP-FORENSIC",
+            Attributes = "ClientAccessible",
+            IsCarved = true
+        };
+        timeline.AddVssSnapshots(new[] { vssRecord });
+
+        Check(timeline.Count >= 16, "Timeline collected at least 16 multi-source events");
     }
 
     private static void TestChronologicalSorting()

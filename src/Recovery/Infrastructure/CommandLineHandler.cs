@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -119,6 +119,9 @@ namespace UsbRecovery
                 case "recycle-bin":
                     return ExecuteRecycleBin(args);
 
+                case "vss-scout":
+                    return ExecuteVssScout(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -173,6 +176,7 @@ namespace UsbRecovery
             Console.WriteLine("  srum <path_or_image>           Windows SRUM database, network exfiltration & resource usage");
             Console.WriteLine("  jumplist <file_or_dir>         Windows Jump Lists parser (.automaticDestinations, .customDestinations)");
             Console.WriteLine("  recycle-bin <path> [-o <dir>]  Windows Recycle Bin parser ($I/$R), SID tracking & file restore");
+            Console.WriteLine("  vss-scout <image_path>         Windows Volume Shadow Copies (VSS), snapshot catalog & CoW mapping");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -2256,6 +2260,89 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during Recycle Bin parsing: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // VSS Scout Command
+        // =========================================================================
+        private static int ExecuteVssScout(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'vss-scout' requires a path to a raw disk image, volume, or System Volume Information directory.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe vss-scout <image_path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = VssScout.Scout(path);
+
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Volume Shadow Copies (VSS) Scout & Snapshot Carver");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Total Snapshots:   {0:N0}", report.TotalSnapshots);
+                    Console.WriteLine("  Total CoW Blocks:  {0:N0}", report.TotalStoreBlocks);
+                    Console.WriteLine("  Total Size:        {0:N0} bytes ({1:F2} MB)", report.TotalSnapshotBytes, report.TotalSnapshotBytes / 1048576.0);
+                    Console.WriteLine("  Wiped/Orphaned:    {0}", report.IsWipedOrOrphaned ? "🚨 ALERT (Anti-Forensics Detected)" : "✓ Normal");
+                    if (report.IsWipedOrOrphaned)
+                    {
+                        Console.WriteLine("  Alert Reason:      {0}", report.SuspicionReason);
+                    }
+                    Console.WriteLine("================================================================================");
+
+                    if (report.Snapshots != null && report.Snapshots.Count > 0)
+                    {
+                        Console.WriteLine("Volume Snapshot Descriptors:");
+                        for (int i = 0; i < report.Snapshots.Count; i++)
+                        {
+                            var s = report.Snapshots[i];
+                            string ts = s.CreationTimeUtc != DateTime.MinValue ? s.CreationTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "N/A";
+                            Console.WriteLine("  [{0,2}] Snapshot ID: {1}", i + 1, s.SnapshotId);
+                            Console.WriteLine("       Set ID:        {0}", s.SnapshotSetId);
+                            Console.WriteLine("       Created (UTC): {0}", ts);
+                            Console.WriteLine("       Volume Size:   {0:N0} bytes | Allocated: {1:N0} bytes", s.VolumeSize, s.AllocatedBytes);
+                            Console.WriteLine("       Machine Name:  {0} | Blocks: {1} | Carved: {2}", s.MachineName, s.StoreBlockCount > 0 ? s.StoreBlockCount : s.BlockMappings.Count, s.IsCarved);
+                            if (s.BlockMappings != null && s.BlockMappings.Count > 0)
+                            {
+                                Console.WriteLine("       CoW Block Mappings ({0} sample):", Math.Min(3, s.BlockMappings.Count));
+                                for (int b = 0; b < Math.Min(3, s.BlockMappings.Count); b++)
+                                {
+                                    var bm = s.BlockMappings[b];
+                                    Console.WriteLine("         [0x{0:X8}] VolumeOffset: 0x{1:X10} -> StoreOffset: 0x{2:X10} ({3} B)",
+                                        b, bm.OriginalVolumeOffset, bm.StoreOffset, bm.BlockLength);
+                                }
+                            }
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during VSS scouting: {0}", ex.Message);
                 return 1;
             }
         }

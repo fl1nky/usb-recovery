@@ -444,6 +444,27 @@ namespace UsbRecovery
             }
         }
 
+        public void AddVssSnapshots(IEnumerable<VssSnapshotRecord> snapshots)
+        {
+            if (snapshots == null) return;
+            foreach (var s in snapshots)
+            {
+                if (s == null || s.CreationTimeUtc == DateTime.MinValue) continue;
+
+                string action = s.IsCarved ? "SNAPSHOT_ORPHANED (VSS Carved)" : "SNAPSHOT_ACTIVE (VSS)";
+                string desc = string.Format("Volume Size: {0:N0} bytes, Allocated: {1:N0} bytes, CoW Blocks: {2}{3}",
+                    s.VolumeSize,
+                    s.AllocatedBytes,
+                    s.StoreBlockCount > 0 ? s.StoreBlockCount : s.BlockMappings.Count,
+                    s.IsCarved ? " [ALERT: Orphaned / deleted shadow copy detected (T1490)]" : "");
+
+                string details = string.Format("SnapshotId: {0}, SetId: {1}, Machine: {2}, Attributes: {3}",
+                    s.SnapshotId, s.SnapshotSetId, s.MachineName, s.Attributes);
+
+                AddEvent(s.CreationTimeUtc, "VSS", action, "Snapshot " + s.SnapshotId.ToString(), desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

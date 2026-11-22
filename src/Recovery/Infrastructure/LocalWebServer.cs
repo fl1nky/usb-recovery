@@ -48,6 +48,10 @@ namespace UsbRecovery
         RecycleBinReport cachedRecycleBinReport;
         string cachedRecycleBinPath;
 
+        readonly object vssLock = new object();
+        VssReport cachedVssReport;
+        string cachedVssPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -375,6 +379,10 @@ namespace UsbRecovery
                 else if (path == "/api/recyclebin")
                 {
                     ServeRecycleBin(req, res);
+                }
+                else if (path == "/api/vss")
+                {
+                    ServeVss(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -2007,6 +2015,45 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeVss(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            VssReport report = null;
+            lock (vssLock)
+            {
+                if (cachedVssPath == imagePath && cachedVssReport != null)
+                {
+                    report = cachedVssReport;
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            report = VssScout.Scout(imagePath);
+                        }
+                        catch { }
+                    }
+                    if (report == null && Directory.Exists(outputPath))
+                    {
+                        try
+                        {
+                            report = VssScout.Scout(outputPath);
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new VssReport();
+                    }
+                    cachedVssReport = report;
+                    cachedVssPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2034,6 +2081,10 @@ namespace UsbRecovery
             if (cachedRecycleBinReport != null && cachedRecycleBinReport.Entries != null)
             {
                 activeTl.AddRecycleBinEntries(cachedRecycleBinReport.Entries);
+            }
+            if (cachedVssReport != null && cachedVssReport.Snapshots != null)
+            {
+                activeTl.AddVssSnapshots(cachedVssReport.Snapshots);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2148,6 +2199,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('srum')"">📡 SRUM Exfiltration</button>
   <button class=""tab-btn"" onclick=""switchTab('jumplist')"">📋 Jump Lists</button>
   <button class=""tab-btn"" onclick=""switchTab('recyclebin')"">🗑️ Recycle Bin</button>
+  <button class=""tab-btn"" onclick=""switchTab('vss')"">📷 Volume Shadows (VSS)</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

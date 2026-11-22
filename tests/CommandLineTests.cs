@@ -48,6 +48,7 @@ public static class CommandLineTests
             Check(CommandLineHandler.IsCliCommand(new[] { "srum" }), "srum is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "jumplist" }), "jumplist is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "recycle-bin" }), "recycle-bin is CLI command");
+            Check(CommandLineHandler.IsCliCommand(new[] { "vss-scout" }), "vss-scout is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "amcache" }), "amcache is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "shellbags" }), "shellbags is CLI command");
             Check(CommandLineHandler.IsCliCommand(new[] { "entropy" }), "entropy is CLI command");
@@ -106,6 +107,8 @@ public static class CommandLineTests
             Check(CommandLineHandler.Run(new[] { "jumplist", Path.Combine(work, "missing.raw") }) == 2, "jumplist missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "recycle-bin" }) == 2, "recycle-bin without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "recycle-bin", Path.Combine(work, "missing.raw") }) == 2, "recycle-bin missing file returns 2");
+            Check(CommandLineHandler.Run(new[] { "vss-scout" }) == 2, "vss-scout without arguments returns 2");
+            Check(CommandLineHandler.Run(new[] { "vss-scout", Path.Combine(work, "missing.raw") }) == 2, "vss-scout missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache" }) == 2, "amcache without arguments returns 2");
             Check(CommandLineHandler.Run(new[] { "amcache", Path.Combine(work, "missing.raw") }) == 2, "amcache missing file returns 2");
             Check(CommandLineHandler.Run(new[] { "shellbags" }) == 2, "shellbags without arguments returns 2");
@@ -162,6 +165,11 @@ public static class CommandLineTests
             File.WriteAllBytes(dummyRecycle, new byte[544]);
             Check(CommandLineHandler.Run(new[] { "recycle-bin", dummyRecycle }) == 0, "recycle-bin execution returns 0");
             Check(CommandLineHandler.Run(new[] { "recycle-bin", dummyRecycle, "--json" }) == 0, "recycle-bin --json returns 0");
+
+            string dummyVss = Path.Combine(work, "test_vss.raw");
+            File.WriteAllBytes(dummyVss, new byte[1024]);
+            Check(CommandLineHandler.Run(new[] { "vss-scout", dummyVss }) == 0, "vss-scout execution returns 0");
+            Check(CommandLineHandler.Run(new[] { "vss-scout", dummyVss, "--json" }) == 0, "vss-scout --json returns 0");
 
             // 5. salvage-office execution test
             string syntheticDoc = Path.Combine(work, "damaged_office.raw");

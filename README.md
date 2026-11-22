@@ -98,6 +98,9 @@ USB-Recovery.exe jumplist C:\Users\Admin\AppData\Roaming\Microsoft\Windows\Recen
 # Parse Windows Recycle Bin, analyze user SIDs, and restore files to destination
 USB-Recovery.exe recycle-bin C:\$Recycle.Bin -o C:\recovered_recycle --json
 
+# Scout Volume Shadow Copies (VSS), snapshot catalog & CoW block descriptors
+USB-Recovery.exe vss-scout C:\images\evidence.raw --json
+
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 

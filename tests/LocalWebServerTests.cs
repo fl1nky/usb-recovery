@@ -127,6 +127,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("SRUM Exfiltration"), "Dashboard HTML contains SRUM tab");
                     Check(html.Contains("Jump Lists"), "Dashboard HTML contains Jump Lists tab");
                     Check(html.Contains("Recycle Bin"), "Dashboard HTML contains Recycle Bin tab");
+                    Check(html.Contains("Volume Shadows (VSS)"), "Dashboard HTML contains Volume Shadows (VSS) tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -400,6 +401,19 @@ public static class LocalWebServerTests
                     Check(rbObj.ContainsKey("TotalRecords"), "RecycleBin contains TotalRecords");
                     Check(rbObj.ContainsKey("TotalBytesDeleted"), "RecycleBin contains TotalBytesDeleted");
                     Check(rbObj.ContainsKey("Entries"), "RecycleBin contains Entries");
+                }
+
+                // Test 20: GET /api/vss
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string vssJson = client.DownloadString(baseUrl + "/api/vss");
+                    var serializer = new JavaScriptSerializer();
+                    var vssObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(vssJson);
+                    Check(vssObj != null, "VSS JSON parsed");
+                    Check(vssObj.ContainsKey("TotalSnapshots"), "VSS contains TotalSnapshots");
+                    Check(vssObj.ContainsKey("TotalStoreBlocks"), "VSS contains TotalStoreBlocks");
+                    Check(vssObj.ContainsKey("Snapshots"), "VSS contains Snapshots");
                 }
 
                 server.Stop();
