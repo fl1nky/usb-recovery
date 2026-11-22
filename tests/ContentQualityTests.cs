@@ -38,5 +38,10 @@ public static class ContentQualityTests
             string journal=Path.Combine(output,"atomic.json");for(int i=0;i<25;i++)RecoveryCore.SaveJson(journal,new{counter=i,status="valid"});Check(File.ReadAllText(journal).Contains("24"),"atomic reports replace last complete snapshot");Check(Directory.GetFiles(output,"*.partial").Length==0,"atomic reports leave no temporary file");
             Console.WriteLine("Content quality: "+checks+" checks passed; "+output);return 0;
         }catch(Exception ex){Console.Error.WriteLine(ex);return 1;}
+        finally{
+            try{
+                if(output!=null&&Directory.Exists(output))Directory.Delete(output,true);
+            }catch{}
+        }
     }
 }

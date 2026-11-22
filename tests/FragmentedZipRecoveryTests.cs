@@ -16,7 +16,8 @@ public static class FragmentedZipRecoveryTests
     static void Check(bool value,string why){checks++;if(!value)throw new Exception(why);}
     static string Hash(string file){using(var input=File.OpenRead(file))using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(input)).Replace("-","").ToLowerInvariant();}
     static IEnumerable<Dictionary<string,object>> Rows(object array){return ((IEnumerable)array).Cast<object>().Cast<Dictionary<string,object>>();}
-    static string RunPath(string name){return Path.Combine(root,name+"-"+Guid.NewGuid().ToString("N"));}
+    static List<string> createdPaths = new List<string>();
+    static string RunPath(string name){string path = Path.Combine(root,name+"-"+Guid.NewGuid().ToString("N")); createdPaths.Add(path); return path;}
     static bool ThrowsIo(Action action){try{action();return false;}catch(IOException){return true;}}
     static FragmentedZipRecovery.Report Report(string output){return Json().Deserialize<FragmentedZipRecovery.Report>(File.ReadAllText(Path.Combine(output,"fragmented-zip.json")));}
 
@@ -116,6 +117,18 @@ public static class FragmentedZipRecoveryTests
 
     public static int Main(string[] args)
     {
-        root=Path.GetFullPath(args[0]);Fixtures();Guards();Pipeline();Console.WriteLine("PASS FragmentedZipRecovery: "+checks+" checks");return 0;
+        root=Path.GetFullPath(args[0]);
+        try {
+            Fixtures();Guards();Pipeline();Console.WriteLine("PASS FragmentedZipRecovery: "+checks+" checks");return 0;
+        }
+        finally {
+            for (int i = 0; i < createdPaths.Count; i++) {
+                try {
+                    if (Directory.Exists(createdPaths[i])) Directory.Delete(createdPaths[i], true);
+                    else if (File.Exists(createdPaths[i])) File.Delete(createdPaths[i]);
+                    else if (File.Exists(createdPaths[i] + ".sha256")) File.Delete(createdPaths[i] + ".sha256");
+                } catch { }
+            }
+        }
     }
 }

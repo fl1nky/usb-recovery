@@ -89,5 +89,10 @@ public static class DeepRecoveryTests
     {
         root=Path.Combine(Path.GetFullPath(args[0]),"tests","Deep-results-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));Directory.CreateDirectory(root);
         try{Metadata();Containers(args[0]);Rescue();Catalog();NativeFormats(args[0]);LostNtfs(args[0]);Pipeline();Console.WriteLine("PASS "+checks+" deep-recovery assertions. Synthetic images/streams only. Results: "+root);return 0;}catch(Exception e){Console.WriteLine("FAIL "+e);return 1;}
+        finally{
+            try{
+                if(root!=null&&Directory.Exists(root))Directory.Delete(root,true);
+            }catch{}
+        }
     }
 }

@@ -36,7 +36,7 @@ $refs = @(
 $srcFiles = @(Get-ChildItem -LiteralPath "$repo\src" -Recurse -File -Filter '*.cs' | Select-Object -ExpandProperty FullName)
 
 $extraSources = @()
-if ($TestName -in @('LongPathRecoveryTests', 'ContentQualityTests', 'DeepRecoveryTests')) {
+if ($TestName -in @('LongPathRecoveryTests', 'ContentQualityTests', 'DeepRecoveryTests', 'ModernRecoveryTests')) {
     $extraSources += (Join-Path $repo "tests\FilesystemRecoveryTests.cs")
 }
 if ($TestName -eq 'ArchiveTextProtocolAuditTests') {
@@ -91,6 +91,12 @@ if ($TestName -eq 'RefsRecoveryTests') {
         (Join-Path $repo '.build\refs-fixtures-current'),
         (Join-Path $repo ('.build\refs-tests-' + [Guid]::NewGuid().ToString('N')))
     )
+}
+if ($TestName -eq 'ArchiveSalvageTests') {
+    $runArgs = @(Join-Path $repo '.build\archive-salvage-inputs-current')
+}
+if ($TestName -eq 'FragmentedZipRecoveryTests') {
+    $runArgs = @(Join-Path $repo '.build\fragmented-zip-inputs-current')
 }
 
 Write-Host "Running $TestName..."
