@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "vss-scout" || first == "iso-scout" || first == "browser-extensions" || first == "evtx" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -128,6 +128,9 @@ namespace UsbRecovery
                 case "browser-extensions":
                     return ExecuteBrowserExtensions(args);
 
+                case "evtx":
+                    return ExecuteEvtx(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -185,6 +188,7 @@ namespace UsbRecovery
             Console.WriteLine("  vss-scout <image_path>         Windows Volume Shadow Copies (VSS), snapshot catalog & CoW mapping");
             Console.WriteLine("  iso-scout <image_path> [-o <dir>] Optical & USB ISO 9660, Joliet, UDF scout & file carving");
             Console.WriteLine("  browser-extensions <dir_or_image> Chromium & Firefox extensions, crypto wallets & LevelDB credentials");
+            Console.WriteLine("  evtx <file_or_dir> [--json]    Windows Event Log (.evtx) audit, logons, service install & log wiping");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -2547,6 +2551,80 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during browser extension parsing: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // EVTX Command
+        // =========================================================================
+        private static int ExecuteEvtx(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'evtx' requires an .evtx file or directory path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe evtx <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = EvtxParser.Audit(path);
+
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows Event Log (.evtx) Forensic Auditor");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Total Records:     {0:N0}", report.TotalRecords);
+                    Console.WriteLine("  Successful Logons: {0:N0} (EventID 4624)", report.LogonCount);
+                    Console.WriteLine("  Failed Logons:     {0:N0} (EventID 4625 - Brute Force / Auth Fail)", report.FailedLogonCount);
+                    Console.WriteLine("  Process Creations: {0:N0} (EventID 4688)", report.ProcessCreationCount);
+                    Console.WriteLine("  Service Installs:  {0:N0} (EventID 7045 / 4697 - Persistence)", report.ServiceInstallCount);
+                    Console.WriteLine("  Audit Log Clears:  {0} (EventID 1102 / 104 - Anti-Forensics)", report.LogClearCount > 0 ? "🚨 ALERT (" + report.LogClearCount + " log clear events!)" : "0");
+                    Console.WriteLine("  Threat Indicators: {0}", report.ThreatAlertCount > 0 ? "🚨 ALERT (" + report.ThreatAlertCount + " security alerts)" : "✓ Normal");
+                    Console.WriteLine("================================================================================");
+
+                    if (report.Records != null && report.Records.Count > 0)
+                    {
+                        Console.WriteLine("Recent Event Log Records (Sample):");
+                        int show = Math.Min(30, report.Records.Count);
+                        for (int i = 0; i < show; i++)
+                        {
+                            var r = report.Records[i];
+                            string ts = r.TimestampUtc != DateTime.MinValue ? r.TimestampUtc.ToString("yyyy-MM-dd HH:mm:ss") : "N/A";
+                            Console.WriteLine("  [{0,2}] {1,-19} [ID {2,5}] [{3,-12}] {4}",
+                                i + 1, ts, r.EventId, string.IsNullOrEmpty(r.Channel) ? "Security" : r.Channel, r.ProviderName);
+                        }
+                        if (report.Records.Count > show)
+                        {
+                            Console.WriteLine("  ... and {0} more event records.", report.Records.Count - show);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during EVTX parsing: {0}", ex.Message);
                 return 1;
             }
         }

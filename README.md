@@ -107,6 +107,9 @@ USB-Recovery.exe iso-scout C:\images\hybrid_installer.iso -o C:\recovered_iso --
 # Analyze Chromium & Firefox extensions, crypto wallets (MetaMask, Phantom) & LevelDB credentials
 USB-Recovery.exe browser-extensions C:\Users\Admin\AppData\Local\Google\Chrome\User Data\Default --json
 
+# Audit Windows Event Log (.evtx), logons, service installations & anti-forensics log wiping
+USB-Recovery.exe evtx C:\Windows\System32\winevt\Logs\Security.evtx --json
+
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 

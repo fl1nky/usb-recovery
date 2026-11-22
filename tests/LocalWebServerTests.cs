@@ -130,6 +130,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Volume Shadows (VSS)"), "Dashboard HTML contains Volume Shadows (VSS) tab");
                     Check(html.Contains("ISO / UDF Optical"), "Dashboard HTML contains ISO / UDF Optical tab");
                     Check(html.Contains("Browser Extensions"), "Dashboard HTML contains Browser Extensions tab");
+                    Check(html.Contains("Event Logs (EVTX)"), "Dashboard HTML contains Event Logs (EVTX) tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -442,6 +443,19 @@ public static class LocalWebServerTests
                     Check(extObj.ContainsKey("TotalExtensions"), "Extensions contains TotalExtensions");
                     Check(extObj.ContainsKey("CryptoWalletsCount"), "Extensions contains CryptoWalletsCount");
                     Check(extObj.ContainsKey("Extensions"), "Extensions contains Extensions");
+                }
+
+                // Test 23: GET /api/evtx
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string evtxJson = client.DownloadString(baseUrl + "/api/evtx");
+                    var serializer = new JavaScriptSerializer();
+                    var evtxObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(evtxJson);
+                    Check(evtxObj != null, "EVTX JSON parsed");
+                    Check(evtxObj.ContainsKey("TotalRecords"), "EVTX contains TotalRecords");
+                    Check(evtxObj.ContainsKey("LogonCount"), "EVTX contains LogonCount");
+                    Check(evtxObj.ContainsKey("ThreatAlertCount"), "EVTX contains ThreatAlertCount");
                 }
 
                 server.Stop();

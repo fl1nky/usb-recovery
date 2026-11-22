@@ -26,6 +26,63 @@ namespace UsbRecovery
         }
     }
 
+    public sealed class EvtxAuditReport
+    {
+        public string SourcePath { get; set; }
+        public int TotalRecords { get; set; }
+        public int LogonCount { get; set; }
+        public int FailedLogonCount { get; set; }
+        public int ProcessCreationCount { get; set; }
+        public int ServiceInstallCount { get; set; }
+        public int LogClearCount { get; set; }
+        public int ThreatAlertCount { get; set; }
+        public List<EvtxRecord> Records { get; set; }
+
+        public EvtxAuditReport()
+        {
+            SourcePath = String.Empty;
+            Records = new List<EvtxRecord>();
+        }
+
+        public string ToJson()
+        {
+            var sb = new StringBuilder();
+            sb.Append("{");
+            sb.AppendFormat("\"SourcePath\":\"{0}\",", EscapeJson(SourcePath));
+            sb.AppendFormat("\"TotalRecords\":{0},", TotalRecords);
+            sb.AppendFormat("\"LogonCount\":{0},", LogonCount);
+            sb.AppendFormat("\"FailedLogonCount\":{0},", FailedLogonCount);
+            sb.AppendFormat("\"ProcessCreationCount\":{0},", ProcessCreationCount);
+            sb.AppendFormat("\"ServiceInstallCount\":{0},", ServiceInstallCount);
+            sb.AppendFormat("\"LogClearCount\":{0},", LogClearCount);
+            sb.AppendFormat("\"ThreatAlertCount\":{0},", ThreatAlertCount);
+            sb.Append("\"Records\":[");
+            int show = Math.Min(100, Records.Count);
+            for (int i = 0; i < show; i++)
+            {
+                if (i > 0) sb.Append(",");
+                var r = Records[i];
+                sb.Append("{");
+                sb.AppendFormat("\"RecordId\":{0},", r.RecordId);
+                sb.AppendFormat("\"EventId\":{0},", r.EventId);
+                sb.AppendFormat("\"TimestampUtc\":\"{0:O}\",", r.TimestampUtc);
+                sb.AppendFormat("\"Channel\":\"{0}\",", EscapeJson(r.Channel));
+                sb.AppendFormat("\"ProviderName\":\"{0}\",", EscapeJson(r.ProviderName));
+                sb.AppendFormat("\"ComputerName\":\"{0}\"", EscapeJson(r.ComputerName));
+                sb.Append("}");
+            }
+            sb.Append("]");
+            sb.Append("}");
+            return sb.ToString();
+        }
+
+        private static string EscapeJson(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return String.Empty;
+            return s.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", "").Replace("\n", " ");
+        }
+    }
+
     public sealed class EvtxChunkHeader
     {
         public long FirstRecordNumber { get; set; }
@@ -51,6 +108,47 @@ namespace UsbRecovery
         private const uint RecordMagic = 0x00002A2A; // 0x2A2A0000 little-endian
         private const int ChunkSize = 65536; // 64 KiB
         private const int FileHeaderSize = 4096;
+
+        public static EvtxAuditReport Audit(string path)
+        {
+            if (path == null) throw new ArgumentNullException("path");
+            var report = new EvtxAuditReport { SourcePath = path };
+
+            List<EvtxRecord> allRecords = new List<EvtxRecord>();
+
+            if (Directory.Exists(path))
+            {
+                var files = Directory.GetFiles(path, "*.evtx", SearchOption.AllDirectories);
+                foreach (var f in files)
+                {
+                    try
+                    {
+                        var recs = ParseFile(f);
+                        if (recs != null) allRecords.AddRange(recs);
+                    }
+                    catch { }
+                }
+            }
+            else if (File.Exists(path))
+            {
+                allRecords = ParseFile(path);
+            }
+
+            report.Records = allRecords;
+            report.TotalRecords = allRecords.Count;
+
+            foreach (var r in allRecords)
+            {
+                if (r.EventId == 4624) report.LogonCount++;
+                else if (r.EventId == 4625) { report.FailedLogonCount++; report.ThreatAlertCount++; }
+                else if (r.EventId == 4688) report.ProcessCreationCount++;
+                else if (r.EventId == 4697 || r.EventId == 7045) report.ServiceInstallCount++;
+                else if (r.EventId == 1102 || r.EventId == 104) { report.LogClearCount++; report.ThreatAlertCount++; }
+                else if (r.EventId == 1116 || r.EventId == 1117 || r.EventId == 4104) report.ThreatAlertCount++;
+            }
+
+            return report;
+        }
 
         public static List<EvtxRecord> ParseFile(string filePath)
         {

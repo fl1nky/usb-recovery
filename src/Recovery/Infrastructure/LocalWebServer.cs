@@ -60,6 +60,10 @@ namespace UsbRecovery
         BrowserExtensionsReport cachedExtensionsReport;
         string cachedExtensionsPath;
 
+        readonly object evtxLock = new object();
+        EvtxAuditReport cachedEvtxReport;
+        string cachedEvtxPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -399,6 +403,10 @@ namespace UsbRecovery
                 else if (path == "/api/extensions")
                 {
                     ServeBrowserExtensions(req, res);
+                }
+                else if (path == "/api/evtx")
+                {
+                    ServeEvtx(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -2140,6 +2148,45 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeEvtx(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            EvtxAuditReport report = null;
+            lock (evtxLock)
+            {
+                if (cachedEvtxPath == imagePath && cachedEvtxReport != null)
+                {
+                    report = cachedEvtxReport;
+                }
+                else
+                {
+                    if (Directory.Exists(outputPath))
+                    {
+                        try
+                        {
+                            report = EvtxParser.Audit(outputPath);
+                        }
+                        catch { }
+                    }
+                    if ((report == null || report.TotalRecords == 0) && !string.IsNullOrEmpty(imagePath) && (File.Exists(imagePath) || Directory.Exists(imagePath)))
+                    {
+                        try
+                        {
+                            report = EvtxParser.Audit(imagePath);
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new EvtxAuditReport();
+                    }
+                    cachedEvtxReport = report;
+                    cachedEvtxPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -2179,6 +2226,10 @@ namespace UsbRecovery
             if (cachedExtensionsReport != null && cachedExtensionsReport.Extensions != null)
             {
                 activeTl.AddBrowserExtensions(cachedExtensionsReport.Extensions);
+            }
+            if (cachedEvtxReport != null && cachedEvtxReport.Records != null)
+            {
+                activeTl.AddEvtxRecords(cachedEvtxReport.Records);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2296,6 +2347,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('vss')"">📷 Volume Shadows (VSS)</button>
   <button class=""tab-btn"" onclick=""switchTab('iso')"">💿 ISO / UDF Optical</button>
   <button class=""tab-btn"" onclick=""switchTab('extensions')"">🧩 Browser Extensions</button>
+  <button class=""tab-btn"" onclick=""switchTab('evtx')"">📜 Event Logs (EVTX)</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

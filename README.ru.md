@@ -107,6 +107,9 @@ USB-Recovery.exe iso-scout C:\images\hybrid_installer.iso -o C:\recovered_iso --
 # Анализ расширений браузеров Chromium и Firefox, криптокошельков (MetaMask, Phantom) и LevelDB
 USB-Recovery.exe browser-extensions C:\Users\Admin\AppData\Local\Google\Chrome\User Data\Default --json
 
+# Аудит журналов событий Windows (.evtx), входов в систему, служб и фактов зачистки логов
+USB-Recovery.exe evtx C:\Windows\System32\winevt\Logs\Security.evtx --json
+
 # Анализ энтропии Шеннона потока и выявление шифрования вымогателями (Ransomware)
 USB-Recovery.exe entropy C:\images\evidence.raw --json
 
