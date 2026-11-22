@@ -25,7 +25,8 @@
   - **Shimcache / AppCompatCache**: Windows 7/8 (`0xBADC0FFE`) and Windows 10/11 (`10ts`) execution cache parser.
   - **Shannon Entropy Classifier**: Streaming, zero-telemetry entropy classifier calculating byte Shannon entropy ($H = -\sum p \log_2 p$) with automated ransomware anomaly detection.
   - **Rule 902(14) Expert Witness Court Package**: Automated forensic court report generator compliant with Federal Rule of Evidence 902(14) and ISO/IEC 27037 with SHA-256 Chain of Custody hashes.
-  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, LNK, Browser History, Shimcache, Amcache, Shellbags) with RFC 4180 CSV export.
+  - **SRUM Exfiltration & Resource Monitor**: Windows System Resource Usage Monitor (`SRUDB.dat`) ESE parser, mapping application execution, user SIDs, interface LUIDs, byte-accurate network exfiltration, and CPU/energy metrics.
+  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, LNK, Browser History, Shimcache, Amcache, Shellbags, SRUM, exFAT, HFS+) with RFC 4180 CSV export.
   - **SQLite B-Tree Carver**: Deep database carver analyzing freeblocks, freelist pages, and orphan record cells.
 - **Forensic Benchmark Suite**: High-throughput benchmarking measuring SWAR signature scanning rate, Shannon entropy throughput, MFT parsing speed, and strictly validating zero-leak memory stability.
 - **Local Web-UI (`http://127.0.0.1:8080`)**: Zero-dependency local web dashboard featuring interactive tabs for Cluster Allocation Map, Hex Inspector, MFT Carver, Shimcache, Super-Timeline, Amcache, Shellbags, Entropy, Court Report, on-the-fly streaming ZIP downloader, and cryptographic Chain-of-Custody report generator.
@@ -46,6 +47,7 @@
 | **Shimcache / AppCompatCache** | **Native Win7/10/11 Parser** | ❌ None | Plugin required | ❌ None |
 | **Amcache & Execution Forensics** | **Built-in Win7/10/11 & SHA-1 Carve** | ❌ None | Plugin required | ❌ None |
 | **Shellbags (USB & Folder History)** | **Native BagMRU Hierarchical Parser** | ❌ None | Plugin required | ❌ None |
+| **SRUM Network Exfiltration** | **Built-in ESE Carving & IdMap Correlation** | ❌ None | SrumECmd needed | ❌ None |
 | **Shannon Entropy & Ransomware** | **O(1) Streaming Anomaly Engine** | ❌ None | ❌ None | Basic entropy view |
 | **Rule 902(14) Expert Witness Report** | **Automated ISO/IEC 27037 & SHA-256** | ❌ None | Manual export | Basic report |
 | **Flash / F2FS Filesystem Scout** | **Native Superblock & NAT Carver** | ❌ None | ❌ None | Basic |
@@ -82,6 +84,9 @@ USB-Recovery.exe amcache C:\cases\Amcache.hve --json
 
 # Parse Shellbags for USB drive history and folder access tracking
 USB-Recovery.exe shellbags C:\cases\UsrClass.dat --json
+
+# Parse Windows SRUM database and detect network exfiltration
+USB-Recovery.exe srum C:\cases\SRUDB.dat --json
 
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json

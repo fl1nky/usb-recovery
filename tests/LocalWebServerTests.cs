@@ -124,6 +124,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Amcache"), "Dashboard HTML contains Amcache tab");
                     Check(html.Contains("Shellbags"), "Dashboard HTML contains Shellbags tab");
                     Check(html.Contains("Entropy"), "Dashboard HTML contains Entropy tab");
+                    Check(html.Contains("SRUM Exfiltration"), "Dashboard HTML contains SRUM tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -357,6 +358,20 @@ public static class LocalWebServerTests
                     string reportHtml = client.DownloadString(baseUrl + "/api/court-report");
                     Check(reportHtml.Contains("RULE 902(14)"), "Court report HTML contains Rule 902(14)");
                     Check(reportHtml.Contains("Chain of Custody"), "Court report HTML contains Chain of Custody");
+                }
+
+                // Test 17: GET /api/srum
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string srumJson = client.DownloadString(baseUrl + "/api/srum");
+                    var serializer = new JavaScriptSerializer();
+                    var srumObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(srumJson);
+                    Check(srumObj != null, "SRUM JSON parsed");
+                    Check(srumObj.ContainsKey("PageSize"), "SRUM contains PageSize");
+                    Check(srumObj.ContainsKey("NetworkEntries"), "SRUM contains NetworkEntries");
+                    Check(srumObj.ContainsKey("AppUsageEntries"), "SRUM contains AppUsageEntries");
+                    Check(srumObj.ContainsKey("TotalBytesExfiltrated"), "SRUM contains TotalBytesExfiltrated");
                 }
 
                 server.Stop();

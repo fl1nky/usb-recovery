@@ -36,6 +36,10 @@ namespace UsbRecovery
         List<ShellbagRecord> cachedShellbagRecords;
         string cachedShellbagsPath;
 
+        readonly object srumLock = new object();
+        SrumReport cachedSrumReport;
+        string cachedSrumPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -351,6 +355,10 @@ namespace UsbRecovery
                 else if (path == "/api/entropy")
                 {
                     ServeEntropy(req, res);
+                }
+                else if (path == "/api/srum")
+                {
+                    ServeSrum(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -1851,6 +1859,48 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeSrum(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            SrumReport report = null;
+            lock (srumLock)
+            {
+                if (cachedSrumPath == imagePath && cachedSrumReport != null)
+                {
+                    report = cachedSrumReport;
+                }
+                else
+                {
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("SRUDB.dat", SearchOption.AllDirectories);
+                        if (files.Length > 0)
+                        {
+                            try { report = SrumParser.Parse(files[0].FullName); } catch { }
+                        }
+                    }
+                    if (report == null && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                report = SrumParser.ParseStream(s, imagePath, CancellationToken.None);
+                            }
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new SrumReport();
+                    }
+                    cachedSrumReport = report;
+                    cachedSrumPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -1866,6 +1916,11 @@ namespace UsbRecovery
             if (cachedShimRecords != null) activeTl.AddShimcache(cachedShimRecords);
             if (cachedAmcacheRecords != null) activeTl.AddAmcache(cachedAmcacheRecords);
             if (cachedShellbagRecords != null) activeTl.AddShellbags(cachedShellbagRecords);
+            if (cachedSrumReport != null && cachedSrumReport.NetworkEntries != null)
+            {
+                activeTl.AddSrumNetworkEntries(cachedSrumReport.NetworkEntries);
+                activeTl.AddSrumAppUsageEntries(cachedSrumReport.AppUsageEntries);
+            }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
             byte[] bytes = Encoding.UTF8.GetBytes(html);
@@ -1976,6 +2031,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('amcache')"">🛡️ Amcache</button>
   <button class=""tab-btn"" onclick=""switchTab('shellbags')"">📁 Shellbags</button>
   <button class=""tab-btn"" onclick=""switchTab('entropy')"">⚡ Entropy</button>
+  <button class=""tab-btn"" onclick=""switchTab('srum')"">📡 SRUM Exfiltration</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

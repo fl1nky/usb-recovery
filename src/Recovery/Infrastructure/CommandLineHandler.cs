@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -110,6 +110,9 @@ namespace UsbRecovery
                 case "hfs-scout":
                     return ExecuteHfsPlusScout(args);
 
+                case "srum":
+                    return ExecuteSrum(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -161,6 +164,7 @@ namespace UsbRecovery
             Console.WriteLine("  f2fs-scout <image_path>        Flash-Friendly File System (F2FS) scout for mobile/NVMe flash storage");
             Console.WriteLine("  exfat-scout <image_path>       Forensic exFAT scout, deleted entry sets carving & recovery");
             Console.WriteLine("  hfs-scout <image_path>         Apple HFS+ / HFSX scout, catalog B-Tree traversal & carving");
+            Console.WriteLine("  srum <path_or_image>           Windows SRUM database, network exfiltration & resource usage");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -1984,6 +1988,83 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during HFS+ scout: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // SRUM Command
+        // =========================================================================
+        private static int ExecuteSrum(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'srum' requires a database (SRUDB.dat) or disk image path.");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe srum <path> [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+            }
+
+            if (!File.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = SrumParser.Parse(path);
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows System Resource Usage Monitor (SRUM)");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Page Size:         {0} bytes", report.PageSize);
+                    Console.WriteLine("  Total Pages:       {0:N0}", report.TotalPages);
+                    Console.WriteLine("  IdMap Entries:     {0:N0}", report.IdMapCount);
+                    Console.WriteLine("  Network Records:   {0:N0}", report.NetworkEntries.Count);
+                    Console.WriteLine("  App Usage Records: {0:N0}", report.AppUsageEntries.Count);
+                    Console.WriteLine("  Total Sent:        {0:N0} bytes ({1:F2} MB)", report.TotalBytesExfiltrated, report.TotalBytesExfiltrated / 1048576.0);
+                    Console.WriteLine("  Total Received:    {0:N0} bytes ({1:F2} MB)", report.TotalBytesReceived, report.TotalBytesReceived / 1048576.0);
+                    Console.WriteLine("  Threat Alerts:     {0}", report.SuspiciousAlertCount > 0 ? "🚨 ALERT (" + report.SuspiciousAlertCount + " suspicious events)" : "✓ Normal");
+                    Console.WriteLine("================================================================================");
+
+                    if (report.NetworkEntries.Count > 0)
+                    {
+                        Console.WriteLine("Top Network Communications & Exfiltration:");
+                        int show = Math.Min(20, report.NetworkEntries.Count);
+                        for (int i = 0; i < show; i++)
+                        {
+                            var n = report.NetworkEntries[i];
+                            Console.WriteLine("  [{0}] {1,-35} Sent: {2,12:N0} B  Recv: {3,12:N0} B  {4}",
+                                i + 1, n.AppName, n.BytesSent, n.BytesReceived, n.InterfaceType);
+                            if (n.IsSuspicious)
+                            {
+                                Console.WriteLine("      └── [ALERT]: {0}", n.SuspicionReason);
+                            }
+                        }
+                        if (report.NetworkEntries.Count > show)
+                        {
+                            Console.WriteLine("  ... and {0} more network records.", report.NetworkEntries.Count - show);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during SRUM parsing: {0}", ex.Message);
                 return 1;
             }
         }

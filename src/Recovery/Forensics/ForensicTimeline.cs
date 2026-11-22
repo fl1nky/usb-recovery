@@ -363,6 +363,38 @@ namespace UsbRecovery
             }
         }
 
+        public void AddSrumNetworkEntries(IEnumerable<SrumNetworkEntry> srumEntries)
+        {
+            if (srumEntries == null) return;
+            foreach (var n in srumEntries)
+            {
+                if (n == null || n.TimestampUtc == DateTime.MinValue) continue;
+                string action = n.IsSuspicious ? "NETWORK_EXFILTRATION (SRUM Suspicious)" : "NETWORK_USAGE (SRUM)";
+                string desc = string.Format("Sent: {0:N0} bytes, Recv: {1:N0} bytes, Interface: {2}{3}",
+                    n.BytesSent, n.BytesReceived, n.InterfaceType,
+                    n.IsSuspicious ? " [ALERT: " + n.SuspicionReason + "]" : "");
+                string details = string.Format("AppId: {0}, UserSid: {1}, InterfaceLuid: 0x{2:X16}", n.AppId, n.UserSid, n.InterfaceLuid);
+
+                AddEvent(n.TimestampUtc, "SRUM", action, n.AppName, desc, details);
+            }
+        }
+
+        public void AddSrumAppUsageEntries(IEnumerable<SrumAppUsageEntry> usageEntries)
+        {
+            if (usageEntries == null) return;
+            foreach (var u in usageEntries)
+            {
+                if (u == null || u.TimestampUtc == DateTime.MinValue) continue;
+                string action = u.IsSuspicious ? "APP_EXECUTION (SRUM Suspicious)" : "APP_EXECUTION (SRUM)";
+                string desc = string.Format("Foreground: {0} ms, CPU Cycles: {1:N0}, Read: {2:N0} bytes, Write: {3:N0} bytes{4}",
+                    u.FaceTimeMs, u.CpuCycles, u.BytesRead, u.BytesWritten,
+                    u.IsSuspicious ? " [ALERT: " + u.SuspicionReason + "]" : "");
+                string details = string.Format("AppId: {0}, UserSid: {1}", u.AppId, u.UserSid);
+
+                AddEvent(u.TimestampUtc, "SRUM", action, u.AppName, desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

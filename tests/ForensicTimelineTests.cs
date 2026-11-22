@@ -152,7 +152,22 @@ public static class ForensicTimelineTests
         };
         timeline.AddHfsPlusFiles(new[] { hfsRec });
 
-        Check(timeline.Count >= 12, "Timeline collected at least 12 multi-source events");
+        // 12. SRUM Network Exfiltration Entry
+        var srumNet = new SrumNetworkEntry
+        {
+            AppId = 5,
+            AppName = @"C:\Users\Admin\AppData\Local\Temp\exfil.exe",
+            UserSid = "S-1-5-21-1234567890-1001",
+            BytesSent = 500000000,
+            BytesReceived = 10000,
+            InterfaceType = "Wireless (802.11)",
+            IsSuspicious = true,
+            SuspicionReason = "High-volume data transfer",
+            TimestampUtc = new DateTime(2026, 11, 21, 14, 9, 0, DateTimeKind.Utc)
+        };
+        timeline.AddSrumNetworkEntries(new[] { srumNet });
+
+        Check(timeline.Count >= 13, "Timeline collected at least 13 multi-source events");
     }
 
     private static void TestChronologicalSorting()
