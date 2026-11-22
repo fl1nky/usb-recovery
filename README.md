@@ -27,7 +27,8 @@
   - **Rule 902(14) Expert Witness Court Package**: Automated forensic court report generator compliant with Federal Rule of Evidence 902(14) and ISO/IEC 27037 with SHA-256 Chain of Custody hashes.
   - **SRUM Exfiltration & Resource Monitor**: Windows System Resource Usage Monitor (`SRUDB.dat`) ESE parser, mapping application execution, user SIDs, interface LUIDs, byte-accurate network exfiltration, and CPU/energy metrics.
   - **Windows Jump Lists Forensic Parser**: AutomaticDestinations (CFBF/OLE compound format) and CustomDestinations parser, extracting MRU access order, pin status, execution timestamps, NetBIOS hostnames, Volume/File DROIDs, embedded LNK payloads, and threat alerts.
-  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, LNK, Browser History, Shimcache, Amcache, Shellbags, SRUM, Jump Lists, exFAT, HFS+) with RFC 4180 CSV export.
+  - **Windows Recycle Bin Forensic Parser**: Windows Vista/7/8/10/11 ($I / $R) parser and carver with User SID resolution, original path reconstruction, payload integrity verification, anti-forensics tampering alerts, and direct file restoration.
+  - **Super-Timeline Engine**: Multi-source chronological timeline aggregator (USN, MFT, EVTX, Prefetch, LNK, Browser History, Shimcache, Amcache, Shellbags, SRUM, Jump Lists, Recycle Bin, exFAT, HFS+) with RFC 4180 CSV export.
   - **SQLite B-Tree Carver**: Deep database carver analyzing freeblocks, freelist pages, and orphan record cells.
 - **Forensic Benchmark Suite**: High-throughput benchmarking measuring SWAR signature scanning rate, Shannon entropy throughput, MFT parsing speed, and strictly validating zero-leak memory stability.
 - **Local Web-UI (`http://127.0.0.1:8080`)**: Zero-dependency local web dashboard featuring interactive tabs for Cluster Allocation Map, Hex Inspector, MFT Carver, Shimcache, Super-Timeline, Amcache, Shellbags, Entropy, Court Report, on-the-fly streaming ZIP downloader, and cryptographic Chain-of-Custody report generator.
@@ -50,6 +51,7 @@
 | **Shellbags (USB & Folder History)** | **Native BagMRU Hierarchical Parser** | ❌ None | Plugin required | ❌ None |
 | **SRUM Network Exfiltration** | **Built-in ESE Carving & IdMap Correlation** | ❌ None | SrumECmd needed | ❌ None |
 | **Windows Jump Lists (Automatic/Custom)** | **Native CFBF & Category LNK Parser** | ❌ None | JLECmd needed | ❌ None |
+| **Windows Recycle Bin ($I / $R)** | **Native V1/V2 Parser, File Restoration & Carving** | ❌ None | Plugin required | Basic |
 | **Shannon Entropy & Ransomware** | **O(1) Streaming Anomaly Engine** | ❌ None | ❌ None | Basic entropy view |
 | **Rule 902(14) Expert Witness Report** | **Automated ISO/IEC 27037 & SHA-256** | ❌ None | Manual export | Basic report |
 | **Flash / F2FS Filesystem Scout** | **Native Superblock & NAT Carver** | ❌ None | ❌ None | Basic |
@@ -92,6 +94,9 @@ USB-Recovery.exe srum C:\cases\SRUDB.dat --json
 
 # Parse Windows Jump Lists (.automaticDestinations-ms / .customDestinations-ms)
 USB-Recovery.exe jumplist C:\Users\Admin\AppData\Roaming\Microsoft\Windows\Recent\AutomaticDestinations --json
+
+# Parse Windows Recycle Bin, analyze user SIDs, and restore files to destination
+USB-Recovery.exe recycle-bin C:\$Recycle.Bin -o C:\recovered_recycle --json
 
 # Analyze stream Shannon entropy and detect ransomware encryption
 USB-Recovery.exe entropy C:\images\evidence.raw --json

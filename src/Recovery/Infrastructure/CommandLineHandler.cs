@@ -28,7 +28,7 @@ namespace UsbRecovery
             return first == "--help" || first == "-h" || first == "/?" || first == "help"
                 || first == "--version" || first == "-v" || first == "version"
                 || first == "probe" || first == "scan" || first == "gallery" || first == "serve" || first == "salvage-office" || first == "salvage-raw" || first == "btrfs-scout" || first == "xfs-scout" || first == "zfs-scout"
-                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
+                || first == "registry" || first == "usn" || first == "carve-mft" || first == "timeline" || first == "f2fs-scout" || first == "exfat-scout" || first == "hfs-scout" || first == "srum" || first == "jumplist" || first == "recycle-bin" || first == "amcache" || first == "shellbags" || first == "entropy" || first == "court-report" || first == "benchmark" || first == "lnk";
         }
 
         public static int Run(string[] args)
@@ -116,6 +116,9 @@ namespace UsbRecovery
                 case "jumplist":
                     return ExecuteJumpList(args);
 
+                case "recycle-bin":
+                    return ExecuteRecycleBin(args);
+
                 case "amcache":
                     return ExecuteAmcache(args);
 
@@ -169,6 +172,7 @@ namespace UsbRecovery
             Console.WriteLine("  hfs-scout <image_path>         Apple HFS+ / HFSX scout, catalog B-Tree traversal & carving");
             Console.WriteLine("  srum <path_or_image>           Windows SRUM database, network exfiltration & resource usage");
             Console.WriteLine("  jumplist <file_or_dir>         Windows Jump Lists parser (.automaticDestinations, .customDestinations)");
+            Console.WriteLine("  recycle-bin <path> [-o <dir>]  Windows Recycle Bin parser ($I/$R), SID tracking & file restore");
             Console.WriteLine("  amcache <hive_or_image>        Amcache.hve parser, PE execution forensics, SHA-1 & threat detection");
             Console.WriteLine("  shellbags <hive_or_file>       Windows Explorer Shellbags folder access & USB removable drive history");
             Console.WriteLine("  entropy <image_path>           Shannon entropy classifier, block profiling & ransomware detection");
@@ -2151,6 +2155,107 @@ namespace UsbRecovery
             catch (Exception ex)
             {
                 Console.Error.WriteLine("Error during Jump List parsing: {0}", ex.Message);
+                return 1;
+            }
+        }
+
+        // =========================================================================
+        // RecycleBin Command
+        // =========================================================================
+        private static int ExecuteRecycleBin(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.Error.WriteLine("Error: 'recycle-bin' requires a path to $Recycle.Bin or an index file ($I...).");
+                Console.Error.WriteLine("Usage: USB-Recovery.exe recycle-bin <path> [-o <restore_dir>] [--json]");
+                return 2;
+            }
+
+            string path = args[1];
+            string restoreDir = null;
+            bool json = false;
+            for (int i = 2; i < args.Length; i++)
+            {
+                if (args[i] == "--json") json = true;
+                else if ((args[i] == "-o" || args[i] == "--output") && i + 1 < args.Length)
+                {
+                    restoreDir = args[++i];
+                }
+            }
+
+            if (!File.Exists(path) && !Directory.Exists(path))
+            {
+                Console.Error.WriteLine("Error: Target path not found: {0}", path);
+                return 2;
+            }
+
+            try
+            {
+                var report = RecycleBinParser.Parse(path);
+
+                if (!string.IsNullOrEmpty(restoreDir) && report.Entries != null && report.Entries.Count > 0)
+                {
+                    if (!Directory.Exists(restoreDir)) Directory.CreateDirectory(restoreDir);
+                    int restored = 0;
+                    foreach (var e in report.Entries)
+                    {
+                        if (e.HasDataFile && RecycleBinParser.RestoreFile(e, restoreDir))
+                        {
+                            restored++;
+                        }
+                    }
+                    if (!json)
+                    {
+                        Console.WriteLine("Restored {0} file(s) to '{1}'", restored, restoreDir);
+                    }
+                }
+
+                if (json)
+                {
+                    Console.WriteLine(report.ToJson());
+                }
+                else
+                {
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  USB-Recovery — Windows Recycle Bin Forensic Parser");
+                    Console.WriteLine("================================================================================");
+                    Console.WriteLine("  Target:            {0}", path);
+                    Console.WriteLine("  Total Records:     {0:N0}", report.TotalRecords);
+                    Console.WriteLine("  Total Deleted:     {0:N0} bytes ({1:F2} MB)", report.TotalBytesDeleted, report.TotalBytesDeleted / 1048576.0);
+                    Console.WriteLine("  Available $R Files:{0:N0}", report.AvailablePayloads);
+                    Console.WriteLine("  Threat Alerts:     {0}", report.SuspiciousCount > 0 ? "🚨 ALERT (" + report.SuspiciousCount + " suspicious deletions)" : "✓ Normal");
+                    Console.WriteLine("================================================================================");
+
+                    if (report.Entries != null && report.Entries.Count > 0)
+                    {
+                        Console.WriteLine("Deleted File Artifacts:");
+                        int show = Math.Min(30, report.Entries.Count);
+                        for (int i = 0; i < show; i++)
+                        {
+                            var e = report.Entries[i];
+                            string ts = e.DeletionTimeUtc != DateTime.MinValue ? e.DeletionTimeUtc.ToString("yyyy-MM-dd HH:mm:ss") : "N/A";
+                            Console.WriteLine("  [{0,2}] {1,-19} [{2,10:N0} B] [{3}] {4}",
+                                i + 1, ts, e.OriginalFileSize, e.HasDataFile ? "PAYLOAD_OK" : "METADATA_ONLY", e.OriginalFilePath);
+                            if (!string.IsNullOrEmpty(e.UserSid))
+                            {
+                                Console.WriteLine("       User SID: {0} | Index: {1}", e.UserSid, e.IndexFileName);
+                            }
+                            if (e.IsSuspicious)
+                            {
+                                Console.WriteLine("       └── [ALERT]: {0}", e.ThreatDescription);
+                            }
+                        }
+                        if (report.Entries.Count > show)
+                        {
+                            Console.WriteLine("  ... and {0} more deleted items.", report.Entries.Count - show);
+                        }
+                    }
+                }
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error during Recycle Bin parsing: {0}", ex.Message);
                 return 1;
             }
         }

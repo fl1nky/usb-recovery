@@ -423,6 +423,27 @@ namespace UsbRecovery
             }
         }
 
+        public void AddRecycleBinEntries(IEnumerable<RecycleBinEntry> recycleBinEntries)
+        {
+            if (recycleBinEntries == null) return;
+            foreach (var r in recycleBinEntries)
+            {
+                if (r == null || r.DeletionTimeUtc == DateTime.MinValue) continue;
+
+                string action = r.IsSuspicious ? "DELETED_FILE (RecycleBin Suspicious)" : "DELETED_FILE (RecycleBin)";
+                string desc = string.Format("Original Size: {0:N0} bytes, User SID: {1}, Payload: {2}{3}",
+                    r.OriginalFileSize,
+                    string.IsNullOrEmpty(r.UserSid) ? "Unknown" : r.UserSid,
+                    r.HasDataFile ? "Preserved ($R available)" : "Missing ($R purged)",
+                    r.IsSuspicious ? " [ALERT: " + r.ThreatDescription + "]" : "");
+
+                string details = string.Format("IndexFile: {0}, DataFile: {1}, FormatVersion: {2}, Carved: {3}",
+                    r.IndexFileName, r.DataFileName, r.FormatVersion, r.IsCarved);
+
+                AddEvent(r.DeletionTimeUtc, "RecycleBin", action, r.OriginalFilePath, desc, details);
+            }
+        }
+
         /// <summary>
         /// Sorts all aggregated events in chronological order.
         /// </summary>

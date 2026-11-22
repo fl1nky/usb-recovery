@@ -44,6 +44,10 @@ namespace UsbRecovery
         JumpListReport cachedJumpListReport;
         string cachedJumpListPath;
 
+        readonly object recycleBinLock = new object();
+        RecycleBinReport cachedRecycleBinReport;
+        string cachedRecycleBinPath;
+
         readonly object entropyLock = new object();
         EntropyReport cachedEntropyReport;
         string cachedEntropyPath;
@@ -367,6 +371,10 @@ namespace UsbRecovery
                 else if (path == "/api/jumplists")
                 {
                     ServeJumpLists(req, res);
+                }
+                else if (path == "/api/recyclebin")
+                {
+                    ServeRecycleBin(req, res);
                 }
                 else if (path == "/api/court-report")
                 {
@@ -1954,6 +1962,51 @@ namespace UsbRecovery
             WriteJson(res, report);
         }
 
+        void ServeRecycleBin(HttpListenerRequest req, HttpListenerResponse res)
+        {
+            RecycleBinReport report = null;
+            lock (recycleBinLock)
+            {
+                if (cachedRecycleBinPath == imagePath && cachedRecycleBinReport != null)
+                {
+                    report = cachedRecycleBinReport;
+                }
+                else
+                {
+                    if (Directory.Exists(outputPath))
+                    {
+                        var files = new DirectoryInfo(outputPath).GetFiles("$I*", SearchOption.AllDirectories);
+                        if (files.Length > 0)
+                        {
+                            try { report = RecycleBinParser.ParseDirectory(files[0].DirectoryName); } catch { }
+                        }
+                    }
+                    if (report == null && !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+                    {
+                        try
+                        {
+                            using (var s = OpenImageStream())
+                            {
+                                int readLen = (int)Math.Min(s.Length, 16L * 1024 * 1024);
+                                byte[] buf = new byte[readLen];
+                                s.Read(buf, 0, readLen);
+                                report = RecycleBinParser.Carve(buf, imagePath);
+                            }
+                        }
+                        catch { }
+                    }
+                    if (report == null)
+                    {
+                        report = new RecycleBinReport();
+                    }
+                    cachedRecycleBinReport = report;
+                    cachedRecycleBinPath = imagePath;
+                }
+            }
+
+            WriteJson(res, report);
+        }
+
         void ServeCourtReport(HttpListenerRequest req, HttpListenerResponse res)
         {
             var meta = new ForensicCaseMetadata
@@ -1977,6 +2030,10 @@ namespace UsbRecovery
             if (cachedJumpListReport != null && cachedJumpListReport.Entries != null)
             {
                 activeTl.AddJumpListEntries(cachedJumpListReport.Entries);
+            }
+            if (cachedRecycleBinReport != null && cachedRecycleBinReport.Entries != null)
+            {
+                activeTl.AddRecycleBinEntries(cachedRecycleBinReport.Entries);
             }
 
             string html = CourtReportGenerator.GenerateHtmlReport(meta, activeTl, cachedAmcacheRecords, cachedShellbagRecords, cachedMftRecords, cachedEntropyReport);
@@ -2090,6 +2147,7 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
   <button class=""tab-btn"" onclick=""switchTab('entropy')"">⚡ Entropy</button>
   <button class=""tab-btn"" onclick=""switchTab('srum')"">📡 SRUM Exfiltration</button>
   <button class=""tab-btn"" onclick=""switchTab('jumplist')"">📋 Jump Lists</button>
+  <button class=""tab-btn"" onclick=""switchTab('recyclebin')"">🗑️ Recycle Bin</button>
   <button class=""tab-btn"" onclick=""window.open('/api/court-report', '_blank')"">⚖️ Court Report</button>
 </nav>
 <main>

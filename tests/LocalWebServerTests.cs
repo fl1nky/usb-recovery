@@ -126,6 +126,7 @@ public static class LocalWebServerTests
                     Check(html.Contains("Entropy"), "Dashboard HTML contains Entropy tab");
                     Check(html.Contains("SRUM Exfiltration"), "Dashboard HTML contains SRUM tab");
                     Check(html.Contains("Jump Lists"), "Dashboard HTML contains Jump Lists tab");
+                    Check(html.Contains("Recycle Bin"), "Dashboard HTML contains Recycle Bin tab");
                     Check(html.Contains("Court Report"), "Dashboard HTML contains Court Report button");
                 }
 
@@ -386,6 +387,19 @@ public static class LocalWebServerTests
                     Check(jlObj.ContainsKey("FileType"), "JumpLists contains FileType");
                     Check(jlObj.ContainsKey("TotalEntries"), "JumpLists contains TotalEntries");
                     Check(jlObj.ContainsKey("Entries"), "JumpLists contains Entries");
+                }
+
+                // Test 19: GET /api/recyclebin
+                using (var client = new WebClient())
+                {
+                    client.Encoding = Encoding.UTF8;
+                    string rbJson = client.DownloadString(baseUrl + "/api/recyclebin");
+                    var serializer = new JavaScriptSerializer();
+                    var rbObj = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(rbJson);
+                    Check(rbObj != null, "RecycleBin JSON parsed");
+                    Check(rbObj.ContainsKey("TotalRecords"), "RecycleBin contains TotalRecords");
+                    Check(rbObj.ContainsKey("TotalBytesDeleted"), "RecycleBin contains TotalBytesDeleted");
+                    Check(rbObj.ContainsKey("Entries"), "RecycleBin contains Entries");
                 }
 
                 server.Stop();

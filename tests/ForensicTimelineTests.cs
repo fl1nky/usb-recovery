@@ -183,7 +183,21 @@ public static class ForensicTimelineTests
         };
         timeline.AddJumpListEntries(new[] { jlEntry });
 
-        Check(timeline.Count >= 14, "Timeline collected at least 14 multi-source events");
+        // 14. Recycle Bin Deleted Entry
+        var rbEntry = new RecycleBinEntry
+        {
+            IndexFileName = "$I999999.pdf",
+            DataFileName = "$R999999.pdf",
+            OriginalFileName = "Wiped_Evidence.pdf",
+            OriginalFilePath = @"C:\Users\Admin\Documents\Wiped_Evidence.pdf",
+            OriginalFileSize = 120000,
+            DeletionTimeUtc = new DateTime(2026, 11, 21, 14, 11, 0, DateTimeKind.Utc),
+            UserSid = "S-1-5-21-1234567890-1001",
+            HasDataFile = true
+        };
+        timeline.AddRecycleBinEntries(new[] { rbEntry });
+
+        Check(timeline.Count >= 15, "Timeline collected at least 15 multi-source events");
     }
 
     private static void TestChronologicalSorting()
