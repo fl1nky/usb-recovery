@@ -128,9 +128,9 @@ public static class FatCheckpointTests
     }
     static void Invoke(string image, string root, object context)
     {
-        typeof(FilesystemRecovery).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
-            .Single(x => x.Name == "Recover" && x.GetParameters().Length == 8)
-            .Invoke(null, new object[] { image, root, CancellationToken.None, (Action<string>)(m => { }), null, false, false, context });
+        var recover = typeof(FilesystemRecovery).GetMethod("Recover", BindingFlags.NonPublic | BindingFlags.Static);
+        recover.Invoke(null, new object[] { image, root, CancellationToken.None,
+            (Action<string>)(m => { }), null, false, false, context, false });
     }
     static void FailedIo(bool publication, bool deleteScratch)
     {
