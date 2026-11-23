@@ -1,0 +1,56 @@
+name: Telegram evidence boundaries
+
+on:
+  push:
+    paths:
+      - 'src/Recovery/Forensics/**'
+      - 'src/Recovery/Infrastructure/CommandLineHandler.cs'
+      - 'src/Recovery/Infrastructure/LocalWebServer.cs'
+      - 'tests/Telegram*'
+      - 'tests/CourtReportGeneratorTests.cs'
+      - 'tests/SqliteCarverTests.cs'
+      - 'tests/run_test.ps1'
+      - '.github/workflows/telegram-evidence.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '.github/workflows/telegram-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build managed application
+        shell: powershell
+        run: ./scripts/build-app.ps1
+      - name: Check parser, reports and SQLite boundaries
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($test in 'TelegramParserTests','CourtReportGeneratorTests','SqliteCarverTests') {
+            ./tests/run_test.ps1 $test
+          }
+      - name: Check actual CLI with independently written SQLite databases
+        shell: powershell
+        run: |
+          $env:__COMPAT_LAYER = 'RunAsInvoker'
+          python tests/TelegramEvidenceIntegrationTests.py --exe .build/app/USB-Recovery.exe --work .build/telegram-evidence-ci
+          if ($LASTEXITCODE -ne 0) { throw 'Telegram evidence CLI checks failed' }
+      - name: Check dashboard evidence rendering without a browser
+        shell: powershell
+        run: |
+          python tests/TelegramEvidenceViewTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Telegram evidence renderer checks failed' }

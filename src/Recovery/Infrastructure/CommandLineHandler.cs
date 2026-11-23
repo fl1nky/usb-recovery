@@ -3386,6 +3386,8 @@ namespace UsbRecovery
                     Directory.CreateDirectory(outputDir);
                     var serializer = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 };
                     File.WriteAllText(Path.Combine(outputDir, "telegram-report.json"), serializer.Serialize(report), Encoding.UTF8);
+                    using (var fragmentsWriter = new StreamWriter(Path.Combine(outputDir, "text-fragments.csv"), false, Encoding.UTF8))
+                        TelegramEvidenceExport.WriteFragmentsCsv(fragmentsWriter, report.TextFragments);
 
                     var sb = new StringBuilder();
                     sb.AppendLine("MessageId,TimestampUtc,Direction,PeerType,PeerId,SourceOrigin,IsDeleted,Text");
@@ -3418,11 +3420,13 @@ namespace UsbRecovery
                         {
                             var dp = report.DesktopProfiles[pi];
                             Console.WriteLine("  [{0}] Path: {1}, Accounts: {2}, HasKeyData: {3}, HasPasscode: {4}, MediaFiles: {5}",
-                                pi + 1, dp.Path, dp.AccountsCount, dp.HasKeyData, dp.HasPasscode, dp.MediaFilesCount);
+                                pi + 1, dp.Path, dp.AccountsCount, dp.HasKeyData, dp.HasPasscode.HasValue ? dp.HasPasscode.Value.ToString() : "Unknown", dp.MediaFilesCount);
                         }
                     }
                     Console.WriteLine("Active Messages: {0}", report.ActiveMessagesCount);
-                    Console.WriteLine("Carved (Deleted) Messages: {0}", report.CarvedMessagesCount);
+                    Console.WriteLine("Carved Message Candidates (deletion unconfirmed): {0}", report.CarvedMessagesCount);
+                    Console.WriteLine("Unattributed SQLite Text Fragments: {0}", report.TextFragments.Count);
+                    Console.WriteLine("Text fragments do not establish a Telegram chat, sender, timestamp or deletion.");
                     Console.WriteLine("Total TDF Containers Carved: {0}", report.TotalTdfContainersFound);
 
                     if (report.Messages != null && report.Messages.Count > 0)

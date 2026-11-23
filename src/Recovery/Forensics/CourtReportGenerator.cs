@@ -329,10 +329,18 @@ namespace UsbRecovery
             }
 
             // Section 14: Telegram Desktop & Mobile Forensic Artifacts
-            if (telegram != null && ((telegram.DesktopProfiles != null && telegram.DesktopProfiles.Count > 0) || (telegram.Messages != null && telegram.Messages.Count > 0) || telegram.TotalTdfContainersFound > 0))
+            if (HasTelegramEvidence(telegram))
             {
                 sb.AppendLine("  <div class=\"section\">");
                 sb.AppendLine("    <div class=\"section-title\">14. Telegram Desktop & Mobile Forensic Artifacts</div>");
+                sb.AppendLine("    <p>Unattributed SQLite text fragments: " + telegram.TextFragments.Count + ". These do not establish Telegram attribution, a sender, a timestamp or deletion.</p>");
+                sb.AppendLine("    <table><tr><th>Source / offset / column</th><th>Origin</th><th>Unattributed text (first 15)</th></tr>");
+                for (int fi = 0; fi < Math.Min(15, telegram.TextFragments.Count); fi++)
+                {
+                    var fragment = telegram.TextFragments[fi];
+                    sb.AppendLine("      <tr><td>" + HtmlEncode(fragment.SourcePath) + " / " + fragment.Offset + " / " + fragment.ColumnIndex + "</td><td>" + HtmlEncode(fragment.SourceOrigin) + "</td><td>" + HtmlEncode(fragment.Text) + "</td></tr>");
+                }
+                sb.AppendLine("    </table>");
                 sb.AppendLine("    <table>");
                 sb.AppendLine("      <tr><th>Desktop Profiles</th><th>Active Messages</th><th>Carved Messages</th><th>TDF Containers Carved</th></tr>");
                 sb.AppendLine("      <tr><td>" + (telegram.DesktopProfiles != null ? telegram.DesktopProfiles.Count : 0) + "</td><td>" + telegram.ActiveMessagesCount + "</td><td><span class=\"badge " + (telegram.CarvedMessagesCount > 0 ? "badge-alert" : "badge-ok") + "\">" + telegram.CarvedMessagesCount + "</span></td><td>" + telegram.TotalTdfContainersFound + "</td></tr>");
@@ -497,9 +505,17 @@ namespace UsbRecovery
                 sb.AppendLine();
             }
 
-            if (telegram != null && ((telegram.DesktopProfiles != null && telegram.DesktopProfiles.Count > 0) || (telegram.Messages != null && telegram.Messages.Count > 0) || telegram.TotalTdfContainersFound > 0))
+            if (HasTelegramEvidence(telegram))
             {
                 sb.AppendLine("## 14. Telegram Desktop & Mobile Forensic Artifacts");
+                sb.AppendLine("Unattributed SQLite text fragments: " + telegram.TextFragments.Count + ". These do not establish Telegram attribution, a sender, a timestamp or deletion.");
+                sb.AppendLine("| Source / offset / column | Origin | Unattributed text (first 15) |");
+                sb.AppendLine("|---|---|---|");
+                for (int fi = 0; fi < Math.Min(15, telegram.TextFragments.Count); fi++)
+                {
+                    var fragment = telegram.TextFragments[fi];
+                    sb.AppendLine("| " + MarkdownEvidence(fragment.SourcePath) + " / " + fragment.Offset + " / " + fragment.ColumnIndex + " | " + MarkdownEvidence(fragment.SourceOrigin) + " | " + MarkdownEvidence(fragment.Text) + " |");
+                }
                 sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Desktop Profiles Found: `{0}`", telegram.DesktopProfiles != null ? telegram.DesktopProfiles.Count : 0));
                 sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Active Messages: `{0}`", telegram.ActiveMessagesCount));
                 sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "- Carved Messages: `{0}`", telegram.CarvedMessagesCount));
@@ -526,6 +542,22 @@ namespace UsbRecovery
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "**Examiner**: {0}\n", meta.InvestigatorName));
 
             return sb.ToString();
+        }
+
+        private static bool HasTelegramEvidence(TelegramForensicReport report)
+        {
+            return report != null && ((report.DesktopProfiles != null && report.DesktopProfiles.Count > 0)
+                || (report.Messages != null && report.Messages.Count > 0)
+                || report.TextFragments.Count > 0 || report.TotalTdfContainersFound > 0);
+        }
+
+        private static string MarkdownEvidence(string text)
+        {
+            // Literal evidence, including Markdown images, must not load remote content.
+            var encoded = new StringBuilder();
+            foreach (char c in text ?? String.Empty)
+                encoded.Append("&#").Append((int)c).Append(';');
+            return encoded.ToString();
         }
 
         private static string HtmlEncode(string text)

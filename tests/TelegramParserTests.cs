@@ -33,6 +33,7 @@ public static class TelegramParserTests
                 TestTdfStreamCarving();
                 TestForensicTimelineIntegration();
                 TestTopLevelAnalyze(work);
+                TestFragmentExport();
 
                 Console.WriteLine("PASS TelegramParserTests: {0} checks passed; TDF$ containers, MD5 verification, tdata inspection, SQLite message carving, and forensic timeline integration verified.", checks);
                 return 0;
@@ -130,7 +131,7 @@ public static class TelegramParserTests
 
             Check(profile != null, "Tdata inspection profile returned");
             Check(profile.HasKeyData, "Profile HasKeyData is true");
-            Check(profile.HasPasscode, "Profile HasPasscode is true");
+            Check(!profile.HasPasscode.HasValue, "Passcode cannot be inferred from key file length");
             Check(profile.AccountsCount >= 1, "Profile AccountsCount >= 1");
             Check(profile.MediaFilesCount == 1, "Profile MediaFilesCount matches 1");
             Check(profile.TotalTdfFiles >= 2, "Profile TotalTdfFiles >= 2");
@@ -170,15 +171,16 @@ public static class TelegramParserTests
 
             using (var ms = new MemoryStream(db))
             {
-                List<TelegramMessageRecord> records = TelegramParser.CarveDatabase(ms);
+                List<TelegramTextFragment> records = TelegramParser.CarveDatabase(ms);
 
-                Check(records != null && records.Count > 0, "CarveDatabase found Telegram messages");
-                TelegramMessageRecord rec = records[0];
+                Check(records != null && records.Count > 0, "CarveDatabase found unattributed text");
+                TelegramTextFragment rec = records.Find(f => f.Text == text && f.SourceOrigin == "ActiveCell");
+                Check(rec != null, "Active record text located among unclassified fragments");
                 Check(rec.Text == text, "Message text matches: " + rec.Text);
-                Check(rec.PeerId == peerId, "PeerId matches 987654321");
-                Check(rec.IsOut == true, "IsOut matches true");
-                Check(rec.TimestampUtc == new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(timestamp), "Timestamp matches 2023 date");
-                Check(rec.PeerType == "User", "PeerType is User");
+                Check(rec.EvidenceKind == "UnattributedSqliteText", "No Telegram attribution inferred from integer ranges");
+                Check(rec.PageNumber == 2 && rec.Offset == 4296, "Exact page and cell offset retained");
+                Check(rec.ColumnIndex == 3 && rec.SqliteRowId == 1, "SQLite coordinates retained, not treated as message identifiers");
+                Check(rec.SourcePath == null, "Anonymous stream has no invented path");
             }
         }
 
@@ -242,7 +244,7 @@ public static class TelegramParserTests
 
             var ev = timeline.Events[0];
             Check(ev.Source == "Telegram", "Timeline event source is Telegram");
-            Check(ev.Action == "DELETED_MESSAGE (Telegram)", "Timeline event action highlights deleted message");
+            Check(ev.Action == "CARVED_MESSAGE_CANDIDATE (Telegram; deletion unconfirmed)", "Carving does not prove deletion");
             Check(ev.TargetPath == "User:445566", "Timeline TargetPath contains User:445566");
             Check(ev.Description.Contains("FreelistSlack"), "Timeline description highlights FreelistSlack origin");
             Check(ev.Description.Contains("Wire transfer authorization approved"), "Timeline description contains text");
@@ -285,9 +287,33 @@ public static class TelegramParserTests
 
             Check(report != null, "Report generated");
             Check(report.DesktopProfiles.Count == 1, "Report found 1 desktop profile");
-            Check(report.Messages.Count >= 1, "Report found carved messages");
+            Check(report.Messages.Count == 0, "Unknown schema cannot produce messages");
+            Check(report.ActiveMessagesCount == 0 && report.CarvedMessagesCount == 0, "Fragments do not inflate message counts");
+            Check(report.TextFragments.Count >= 1, "Report keeps unattributed fragments separately");
             Check(report.TotalTdfContainersFound >= 1, "Report found TDF containers");
-            Check(report.Messages[0].Text == "Top level report check", "First message text verified");
+            Check(report.TextFragments.Exists(f => f.Text == "Top level report check"), "Fragment text preserved");
+            Check(report.TextFragments[0].SourcePath == dbFile, "Directory scan retains exact database path");
+            var direct = TelegramParser.Analyze(dbFile);
+            Check(direct.Messages.Count == 0 && direct.TextFragments[0].SourcePath == dbFile, "Direct scan also retains provenance and uncertainty");
+            var timeline = new ForensicTimeline();
+            timeline.AddTelegramMessages(report.Messages);
+            Check(timeline.Events.Count == 0, "Fragments cannot create dated Telegram timeline events");
+        }
+
+        private static void TestFragmentExport()
+        {
+            var fragments = new List<TelegramTextFragment> {
+                new TelegramTextFragment { Text = "Привет, \"мир\"\n<script>test</script>", SourcePath = "a.db", SourceOrigin = "Freeblock", Offset = 42, PageNumber = 1, ColumnIndex = 3 },
+                new TelegramTextFragment { Text = "=1+1", SourcePath = "b.db", SourceOrigin = "ActiveCell", Offset = 42, PageNumber = 1, ColumnIndex = 3 }
+            };
+            var writer = new StringWriter();
+            TelegramEvidenceExport.WriteFragmentsCsv(writer, fragments);
+            string csv = writer.ToString();
+            Check(csv.Contains("Привет, \"\"мир\"\"\n<script>test</script>"), "CSV quotes Unicode and multiline evidence without truncation");
+            Check(csv.Contains("\"'=1+1\""), "Spreadsheet formula is neutralized");
+            Check(csv.Contains("\"a.db\"") && csv.Contains("\"b.db\""), "Different sources with equal offsets are retained");
+            Check(!csv.Contains("MessageId") && !csv.Contains("IsDeleted"), "Fragment export does not invent message fields");
+            Check(fragments[1].Text == "=1+1", "Presentation protection does not mutate evidence");
         }
 
         // ---------------------------------------------------------------------

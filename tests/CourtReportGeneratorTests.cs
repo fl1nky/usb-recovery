@@ -27,6 +27,7 @@ public static class CourtReportGeneratorTests
         {
             TestHtmlReportGeneration(testDir);
             TestMarkdownReportGeneration(testDir);
+            TestUnattributedFragments();
 
             Console.WriteLine("PASS CourtReportGeneratorTests: {0} checks passed; Rule 902(14) Expert Witness report, Chain of Custody hashes, artifact synthesis, and HTML/MD rendering verified.", checks);
             return 0;
@@ -42,6 +43,23 @@ public static class CourtReportGeneratorTests
             }
             catch { }
         }
+    }
+
+    private static void TestUnattributedFragments()
+    {
+        var report = new TelegramForensicReport();
+        report.TextFragments.Add(new TelegramTextFragment {
+            SourcePath = "unrelated.db", Offset = 456, ColumnIndex = 2,
+            SourceOrigin = "Freeblock", Text = "<script>alert(1)</script> ![image](https://example.invalid/track)"
+        });
+        string html = CourtReportGenerator.GenerateHtmlReport(new ForensicCaseMetadata(), telegram: report);
+        Check(html.Contains("Unattributed SQLite text fragments: 1"), "Fragment-only report is included with separate count");
+        Check(html.Contains("do not establish Telegram attribution"), "HTML preserves attribution uncertainty");
+        Check(html.Contains("unrelated.db / 456 / 2"), "HTML includes exact fragment coordinates");
+        Check(!html.Contains("<script>alert(1)</script>") && html.Contains("&lt;script&gt;"), "Evidence HTML is escaped");
+        string markdown = CourtReportGenerator.GenerateMarkdownReport(new ForensicCaseMetadata(), telegram: report);
+        Check(markdown.Contains("Unattributed SQLite text fragments: 1"), "Markdown contains separate fragments");
+        Check(!markdown.Contains("![image]") && !markdown.Contains("<script>"), "Markdown evidence cannot embed remote images or scripts");
     }
 
     private static void TestHtmlReportGeneration(string testDir)

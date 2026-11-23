@@ -547,7 +547,8 @@ public static class LocalWebServerTests
                     Check(tgObj.ContainsKey("totalProfiles"), "Telegram contains totalProfiles");
                     Check(tgObj.ContainsKey("totalMessages"), "Telegram contains totalMessages");
                     Check(tgObj.ContainsKey("activeMessages"), "Telegram contains activeMessages");
-                    Check(tgObj.ContainsKey("deletedMessages"), "Telegram contains deletedMessages");
+                    Check(tgObj.ContainsKey("carvedMessages") && !tgObj.ContainsKey("deletedMessages"), "Carved count does not assert deletion");
+                    Check(tgObj.ContainsKey("textFragments") && tgObj.ContainsKey("totalTextFragments"), "Unattributed fragments have a separate collection and count");
                     Check(tgObj.ContainsKey("tdfContainers"), "Telegram contains tdfContainers");
                     Check(tgObj.ContainsKey("profiles"), "Telegram contains profiles list");
                     Check(tgObj.ContainsKey("messages"), "Telegram contains messages list");
@@ -594,7 +595,7 @@ public static class LocalWebServerTests
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine("FAIL LocalWebServer: {0}", ex.Message);
+            Console.Error.WriteLine("FAIL LocalWebServer: {0}", ex);
             return 1;
         }
         finally

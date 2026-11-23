@@ -6,6 +6,20 @@ using System.Text;
 
 namespace UsbRecovery
 {
+    // A decoded SQLite value is not proof of a Telegram message or of deletion.
+    // Row/column coordinates identify evidence, not a chat, author or message ID.
+    public sealed class TelegramTextFragment
+    {
+        public string Text { get; set; }
+        public string SourcePath { get; set; }
+        public string SourceOrigin { get; set; }
+        public long Offset { get; set; }
+        public uint PageNumber { get; set; }
+        public long? SqliteRowId { get; set; }
+        public int ColumnIndex { get; set; }
+        public string EvidenceKind { get { return "UnattributedSqliteText"; } }
+    }
+
     public sealed class TelegramMessageRecord
     {
         public long MessageId { get; set; }
@@ -30,7 +44,7 @@ namespace UsbRecovery
     {
         public string Path { get; set; }
         public bool HasKeyData { get; set; }
-        public bool HasPasscode { get; set; }
+        public bool? HasPasscode { get; set; }
         public int AccountsCount { get; set; }
         public int MediaFilesCount { get; set; }
         public int TotalTdfFiles { get; set; }
@@ -50,6 +64,7 @@ namespace UsbRecovery
         public string TargetPath { get; set; }
         public List<TelegramDesktopProfile> DesktopProfiles { get; set; }
         public List<TelegramMessageRecord> Messages { get; set; }
+        public List<TelegramTextFragment> TextFragments { get; set; }
         public int ActiveMessagesCount { get; set; }
         public int CarvedMessagesCount { get; set; }
         public int TotalTdfContainersFound { get; set; }
@@ -59,15 +74,13 @@ namespace UsbRecovery
             TargetPath = String.Empty;
             DesktopProfiles = new List<TelegramDesktopProfile>();
             Messages = new List<TelegramMessageRecord>();
+            TextFragments = new List<TelegramTextFragment>();
         }
     }
 
     public static class TelegramParser
     {
         private static readonly byte[] TdfMagic = new byte[] { 0x54, 0x44, 0x46, 0x24 }; // "TDF$"
-        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        private const long TelegramLaunchUnix = 1376438400L; // 2013-08-14
-        private const long MaxValidUnixTimestamp = 2147483647L; // 2038-01-19
 
         public static bool TryParseTdfPayload(byte[] data, out byte[] body, out uint version)
         {
@@ -176,22 +189,8 @@ namespace UsbRecovery
                     profile.HasKeyData = true;
                     profile.DiscoveredFiles.Add(Path.GetFileName(files[i]));
 
-                    // Check if passcode is set
-                    try
-                    {
-                        if (fi.Length >= 28 && fi.Length <= 1024 * 1024)
-                        {
-                            byte[] bytes = File.ReadAllBytes(files[i]);
-                            byte[] body;
-                            uint ver;
-                            if (TryParseTdfPayload(bytes, out body, out ver) && body.Length >= 36)
-                            {
-                                // In key_datas, body starts with salt (32 bytes). If length > 288 + 32, passcode might be present
-                                profile.HasPasscode = body.Length > 320;
-                            }
-                        }
-                    }
-                    catch { }
+                    // File size does not establish whether a local passcode is set.
+                    profile.HasPasscode = null;
                 }
                 else if (fn.StartsWith("D877F783D5D3EF8C") || fn.StartsWith("SETTINGS") || fn.StartsWith("MAP"))
                 {
@@ -224,96 +223,49 @@ namespace UsbRecovery
             return profile;
         }
 
-        public static List<TelegramMessageRecord> ParseDatabase(string sqlitePath)
+        public static List<TelegramTextFragment> ParseDatabase(string sqlitePath)
         {
             if (String.IsNullOrEmpty(sqlitePath) || !File.Exists(sqlitePath))
-                return new List<TelegramMessageRecord>();
+                return new List<TelegramTextFragment>();
 
             using (var fs = new FileStream(sqlitePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                return CarveDatabase(fs);
+                var fragments = CarveDatabase(fs);
+                foreach (var fragment in fragments)
+                    fragment.SourcePath = Path.GetFullPath(sqlitePath);
+                return fragments;
             }
         }
 
-        public static List<TelegramMessageRecord> CarveDatabase(Stream stream)
+        public static List<TelegramTextFragment> CarveDatabase(Stream stream)
         {
-            var results = new List<TelegramMessageRecord>();
-            if (stream == null || stream.Length < 100)
+            var results = new List<TelegramTextFragment>();
+            if (stream == null || !stream.CanRead || !stream.CanSeek || stream.Length < 100)
                 return results;
 
             List<CarvedSqliteRecord> rawRecords = SqliteCarver.CarveDatabase(stream);
             for (int i = 0; i < rawRecords.Count; i++)
             {
                 var r = rawRecords[i];
-                if (r.Columns == null || r.Columns.Count < 3)
+                if (r.Columns == null)
                     continue;
-
-                // Inspect columns to identify Telegram message structure:
-                // Typically: mid (int), uid/peer_id (int), date (int unix timestamp), text (string), out (int 0/1)
-                long mid = 0;
-                long peerId = 0;
-                long timestamp = 0;
-                string text = null;
-                bool isOut = false;
-                bool timestampFound = false;
-
+                // Preserve every text column. Column order and integer ranges are
+                // insufficient to identify a Telegram schema, even on an active page.
                 for (int c = 0; c < r.Columns.Count; c++)
                 {
                     var col = r.Columns[c];
-                    if (col.Type == SqliteColumnType.Integer)
+                    if (col.Type != SqliteColumnType.Text) continue;
+                    string text = col.AsString();
+                    if (String.IsNullOrEmpty(text) || text.Length >= 65536) continue;
+                    results.Add(new TelegramTextFragment
                     {
-                        long val = col.AsLong(0);
-                        if (!timestampFound && val >= TelegramLaunchUnix && val <= MaxValidUnixTimestamp)
-                        {
-                            timestamp = val;
-                            timestampFound = true;
-                        }
-                        else if (mid == 0 && val > 0 && val < 500000000)
-                        {
-                            mid = val;
-                        }
-                        else if (peerId == 0 && val != 0 && Math.Abs(val) < 1000000000000L)
-                        {
-                            peerId = val;
-                        }
-                        else if (c == r.Columns.Count - 1 && (val == 0 || val == 1))
-                        {
-                            isOut = (val == 1);
-                        }
-                    }
-                    else if (col.Type == SqliteColumnType.Text)
-                    {
-                        string str = col.AsString();
-                        if (text == null && !String.IsNullOrEmpty(str) && str.Length > 0 && str.Length < 65536)
-                        {
-                            // Avoid sqlite schema internal words
-                            if (!str.StartsWith("CREATE TABLE", StringComparison.OrdinalIgnoreCase) &&
-                                !str.StartsWith("index ", StringComparison.OrdinalIgnoreCase))
-                            {
-                                text = str;
-                            }
-                        }
-                    }
-                }
-
-                if (timestampFound && !String.IsNullOrEmpty(text))
-                {
-                    DateTime utc = UnixEpoch.AddSeconds(timestamp);
-                    string peerType = "User";
-                    if (peerId < 0) peerType = "Chat";
-                    else if (peerId > 1000000000L) peerType = "Channel";
-
-                    results.Add(new TelegramMessageRecord
-                    {
-                        MessageId = mid > 0 ? mid : r.AbsoluteOffset,
-                        PeerId = peerId != 0 ? peerId : 1,
-                        PeerType = peerType,
-                        TimestampUtc = utc,
-                        IsOut = isOut,
                         Text = text,
-                        IsDeletedOrCarved = (r.Origin != CarvedRecordOrigin.ActiveCell),
+                        SourcePath = null,
                         SourceOrigin = r.Origin.ToString(),
-                        Offset = r.AbsoluteOffset
+                        Offset = r.AbsoluteOffset,
+                        PageNumber = r.PageNumber,
+                        SqliteRowId = r.RowId,
+                        ColumnIndex = c
                     });
                 }
             }
@@ -444,7 +396,7 @@ namespace UsbRecovery
 
                         if (r >= 16 && Encoding.ASCII.GetString(head).StartsWith("SQLite format 3"))
                         {
-                            report.Messages = CarveDatabase(fs);
+                            report.TextFragments = CarveDatabase(fs);
                         }
                         else if (r >= 4 && head[0] == TdfMagic[0] && head[1] == TdfMagic[1] && head[2] == TdfMagic[2] && head[3] == TdfMagic[3])
                         {
@@ -460,11 +412,13 @@ namespace UsbRecovery
                         else
                         {
                             // Raw carve disk or binary image
-                            report.Messages = CarveDatabase(fs);
+                            report.TextFragments = CarveDatabase(fs);
                             var containers = CarveTdfContainers(fs);
                             report.TotalTdfContainersFound = containers.Count;
                         }
                     }
+                    foreach (var fragment in report.TextFragments)
+                        fragment.SourcePath = Path.GetFullPath(path);
                 }
                 catch { }
             }
@@ -506,7 +460,7 @@ namespace UsbRecovery
                         try
                         {
                             var msgs = ParseDatabase(dbFiles[i]);
-                            report.Messages.AddRange(msgs);
+                            report.TextFragments.AddRange(msgs);
                         }
                         catch { }
                     }

@@ -588,7 +588,7 @@ namespace UsbRecovery
             foreach (var m in records)
             {
                 if (m == null) continue;
-                string action = m.IsDeletedOrCarved ? "DELETED_MESSAGE (Telegram)" : (m.IsOut ? "SENT_MESSAGE (Telegram)" : "RECEIVED_MESSAGE (Telegram)");
+                string action = m.IsDeletedOrCarved ? "CARVED_MESSAGE_CANDIDATE (Telegram; deletion unconfirmed)" : (m.IsOut ? "SENT_MESSAGE (Telegram)" : "RECEIVED_MESSAGE (Telegram)");
                 string target = string.Format("{0}:{1}", m.PeerType, m.PeerId);
                 string preview = m.Text;
                 if (!String.IsNullOrEmpty(preview) && preview.Length > 80)

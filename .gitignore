@@ -27,6 +27,7 @@
 !/tests/*.cs
 !/tests/*.py
 !/tests/*.ps1
+!/tests/test.manifest
 !/tests/TelegramNativeFixtures/
 !/tests/TelegramMediaFixtures/
 !/tests/photorec-20261011T231546120952Z/

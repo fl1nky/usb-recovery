@@ -2612,7 +2612,7 @@ namespace UsbRecovery
                         timestamp = ts,
                         isOut = m.IsOut,
                         text = m.Text,
-                        isDeleted = m.IsDeletedOrCarved,
+                        isCarved = m.IsDeletedOrCarved,
                         sourceOrigin = m.SourceOrigin,
                         offset = m.Offset
                     });
@@ -2625,7 +2625,9 @@ namespace UsbRecovery
                 totalProfiles = report.DesktopProfiles != null ? report.DesktopProfiles.Count : 0,
                 totalMessages = report.Messages != null ? report.Messages.Count : 0,
                 activeMessages = report.ActiveMessagesCount,
-                deletedMessages = report.CarvedMessagesCount,
+                carvedMessages = report.CarvedMessagesCount,
+                totalTextFragments = report.TextFragments.Count,
+                textFragments = report.TextFragments.Take(300).ToList(),
                 tdfContainers = report.TotalTdfContainersFound,
                 profiles = profilesJson,
                 messages = messagesJson
@@ -3492,13 +3494,13 @@ table.file-table tr:hover { background: rgba(56, 189, 248, 0.04); }
     <div class=""card"">
       <h2>💬 Telegram Desktop & Mobile Forensic Triage</h2>
       <p style=""font-size: 13px; color: var(--text-muted); margin-bottom: 16px;"">
-        Extracts Telegram Desktop tdata session state, TDF$ encrypted containers, encrypted media cache, and carves active/deleted chat messages from SQLite databases.
+        Inspects Desktop profile files and finds SQLite text fragments. Fragments do not establish a Telegram chat, sender, timestamp or deletion. Encrypted containers are not decrypted by this triage view.
       </p>
       <div class=""grid-stats"">
         <div class=""stat-box""><div class=""stat-label"">Profiles (tdata)</div><div class=""stat-value"" id=""tg-profiles"">—</div></div>
         <div class=""stat-box""><div class=""stat-label"">Total Messages</div><div class=""stat-value"" id=""tg-total-msgs"">—</div></div>
         <div class=""stat-box""><div class=""stat-label"">Active Messages</div><div class=""stat-value"" id=""tg-active-msgs"" style=""color: #10b981;"">—</div></div>
-        <div class=""stat-box""><div class=""stat-label"">Deleted / Carved Messages</div><div class=""stat-value"" id=""tg-deleted-msgs"" style=""color: #ef4444;"">—</div></div>
+        <div class=""stat-box""><div class=""stat-label"">Unattributed Text Fragments</div><div class=""stat-value"" id=""tg-fragments"">—</div></div>
         <div class=""stat-box""><div class=""stat-label"">TDF$ Containers</div><div class=""stat-value"" id=""tg-tdf"">—</div></div>
       </div>
       <div id=""tg-stats"" style=""font-size: 14px; margin-top: 16px; margin-bottom: 12px; color: var(--accent);"">Messages: <strong>—</strong></div>
@@ -4333,21 +4335,32 @@ async function loadTelegram() {
   try {
     var res = await fetch('/api/telegram');
     var data = await res.json();
-    if (data.error) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">' + data.error + '</td></tr>'; return; }
+    if (data.error) { tbody.textContent = 'Error: ' + data.error; return; }
     document.getElementById('tg-profiles').innerText = data.totalProfiles;
     document.getElementById('tg-total-msgs').innerText = data.totalMessages;
     document.getElementById('tg-active-msgs').innerText = data.activeMessages;
-    document.getElementById('tg-deleted-msgs').innerText = data.deletedMessages;
+    document.getElementById('tg-fragments').innerText = data.totalTextFragments;
     document.getElementById('tg-tdf').innerText = data.tdfContainers;
-    stats.innerHTML = 'Total Messages: <strong>' + data.totalMessages + '</strong> (Active: ' + data.activeMessages + ', Deleted/Carved: ' + data.deletedMessages + ')';
-    if (!data.messages || data.messages.length === 0) { tbody.innerHTML = '<tr><td colspan=""6"" style=""text-align: center; color: var(--text-muted);"">No Telegram messages found.</td></tr>'; return; }
-    var html = '';
-    data.messages.forEach(function(m) {
-      var badge = m.isDeleted ? '<span style=""color: #ef4444;"">Deleted</span>' : '<span style=""color: #10b981;"">Active</span>';
-      var sender = m.isOut ? 'Outgoing User' : ('Peer ' + m.peerId);
-      html += '<tr><td>' + m.timestamp + '</td><td>' + badge + '</td><td><strong>' + sender + '</strong></td><td>' + m.peerType + ' ' + m.peerId + '</td><td>' + (m.text || '—') + '</td><td><code>' + m.sourceOrigin + '</code></td></tr>';
+    stats.textContent = 'Messages: ' + data.totalMessages + '; unattributed text fragments: ' + data.totalTextFragments + '. Showing at most 300 per category. Deletion is not established by carving.';
+    tbody.textContent = '';
+    function addRow(values) {
+      var row = document.createElement('tr');
+      values.forEach(function(value) {
+        var cell = document.createElement('td');
+        cell.textContent = value == null ? 'Unknown' : String(value);
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    }
+    (data.messages || []).forEach(function(m) {
+      addRow([m.timestamp, m.isCarved ? 'Carved candidate; deletion unconfirmed' : 'Message',
+        m.isOut ? 'Outgoing' : 'Incoming', m.peerType + ' ' + m.peerId, m.text, m.sourceOrigin]);
     });
-    tbody.innerHTML = html;
+    (data.textFragments || []).forEach(function(f) {
+      addRow([null, 'Unattributed SQLite text', null, null, f.Text,
+        f.SourcePath + ' — ' + f.SourceOrigin + ', page ' + f.PageNumber + ', offset ' + f.Offset + ', column ' + f.ColumnIndex]);
+    });
+    if (!tbody.children.length) addRow([null, 'No results in available sources', null, null, '', '']);
   } catch (e) { tbody.innerHTML = '<tr><td colspan=""6"" style=""color: #ef4444; text-align: center;"">Error loading Telegram artifacts.</td></tr>'; }
 }
 

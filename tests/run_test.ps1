@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo = 'C:\Users\danil\Desktop\projects\usb-recovery'
+$repo = Split-Path -Parent $PSScriptRoot
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $wpf = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WPF'
 
@@ -57,6 +57,7 @@ if ($TestName -eq 'TelegramUiTests') {
 
 $args = @(
     '/nologo',
+    '/codepage:65001',
     '/target:exe',
     "/out:$exe",
     "/main:$TestName",
