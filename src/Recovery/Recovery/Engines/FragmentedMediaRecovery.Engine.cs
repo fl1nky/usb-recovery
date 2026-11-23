@@ -31,7 +31,12 @@ namespace UsbRecovery
         {
             if (String.IsNullOrEmpty(role) || role.Any(ch => !(ch >= 'a' && ch <= 'z' || ch >= '0' && ch <= '9' || ch == '-')))
                 throw new IOException("MEDIA_CHILD_ROLE_INVALID");
-            string directory = Path.GetDirectoryName(RecoveryCatalog.SafeFile(parent.Directory,"fragmented-media.state/children/"+role+"/guard"));
+            string child = "fragmented-media.state/children/" + role;
+            // Metadata checkpoints add another state folder and SHA-256 filenames.
+            // Keep the original location for existing sessions.
+            if (role == "metadata" && !Directory.Exists(Path.Combine(parent.Directory, child)))
+                child = "fragmented-media.state/meta";
+            string directory = Path.GetDirectoryName(RecoveryCatalog.SafeFile(parent.Directory, child + "/guard"));
             RecoveryMethodCheckpoint resume = null;
             if (anchor != null) {
                 if (anchor.Path == null || Path.IsPathRooted(anchor.Path)) throw new IOException("MEDIA_CHILD_LINK_INVALID");
@@ -152,7 +157,7 @@ namespace UsbRecovery
                     string temp = RecoveryCatalog.SafeFile(root,"report-"+Guid.NewGuid().ToString("N")+".partial"); bool own = false;
                     try {
                         using (var file = new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.Read)) { own = true; file.Write(bytes,0,bytes.Length); file.Flush(true); }
-                        Guard(); File.Move(temp,path);
+                        Guard(); RecoveryLongPath.Move(temp,path);
                     } finally { if (own && File.Exists(temp)) File.Delete(temp); }
                 }
                 using (var file = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read)) {
@@ -162,7 +167,7 @@ namespace UsbRecovery
             }
             public int Run()
             {
-                Guard(); Directory.CreateDirectory(folder);
+                Guard(); RecoveryLongPath.CreateDirectory(folder);
                 var metadata = MediaChild(context,"metadata",state.Metadata,link => {
                     if (state.Phase != 0) throw new IOException("MEDIA_ENGINE_METADATA_AFTER_END");
                     var next = Clone(); next.Metadata = link; Save(next);

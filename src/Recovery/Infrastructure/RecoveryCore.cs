@@ -268,12 +268,13 @@ namespace UsbRecovery
             try{bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=maximumBytes}.Serialize(data));}
             catch(InvalidOperationException error){throw new IOException("Сохранённые данные превышают допустимый размер. Предыдущая точка продолжения сохранена.",error);}
             if(bytes.Length>maximumBytes)throw new IOException("Сохранённые данные превышают допустимый размер. Предыдущая точка продолжения сохранена.");
-            string temporary=Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)),".r"+Guid.NewGuid().ToString("N").Substring(0,12)+".partial");
+            path=RecoveryLongPath.FileName(path);
+            string temporary=RecoveryLongPath.FileName(Path.Combine(Path.GetDirectoryName(path),".r"+Guid.NewGuid().ToString("N").Substring(0,12)+".partial"));
             bool failed=false;
             try {
                 using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){output.Write(bytes,0,bytes.Length);output.Flush(true);}
                 for(int attempt=0;;attempt++){
-                    try{if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);break;}
+                    try{if(File.Exists(path))RecoveryLongPath.Replace(temporary,path);else RecoveryLongPath.Move(temporary,path);break;}
                     catch(IOException error){
                         uint code=unchecked((uint)error.HResult);
                         if(attempt>=3||!File.Exists(temporary)||(code!=0x80070020U&&code!=0x80070021U&&code!=0x80070497U))throw;
@@ -289,7 +290,7 @@ namespace UsbRecovery
         public static string HashFile(string path, CancellationToken cancel, Action<long, long> progress)
         {
             cancel.ThrowIfCancellationRequested();
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var stream = new FileStream(RecoveryLongPath.FileName(path), FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var hash = SHA256.Create())
             {
                 long total = stream.Length, done = 0; int count;

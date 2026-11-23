@@ -57,20 +57,20 @@ namespace UsbRecovery
         static string MetadataBlob(RecoveryCheckpointContext context,string digest)
         {
             if (!MetadataDigest(digest)) throw new IOException("METADATA_BLOB_INVALID");
-            return RecoveryCatalog.SafeFile(context.Directory,context.Method+".state/metadata-blobs/blob-"+digest+".json");
+            return RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(context.Directory,context.Method+".state/metadata-blobs/blob-"+digest+".json"));
         }
         static string SaveMetadataUnit(RecoveryCheckpointContext context,MetadataUnit unit,Context c)
         {
             byte[] bytes = new UTF8Encoding(false,true).GetBytes(new JavaScriptSerializer { MaxJsonLength = MaximumMetadataBlobBytes }.Serialize(unit));
             if (bytes.Length > MaximumMetadataBlobBytes) throw new IOException("METADATA_BLOB_LIMIT");
             string digest = MetadataHash(bytes),path = MetadataBlob(context,digest);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)); c.Cancel.ThrowIfCancellationRequested();
+            RecoveryLongPath.CreateDirectory(Path.GetDirectoryName(path)); c.Cancel.ThrowIfCancellationRequested();
             if (!File.Exists(path)) {
-                string temp = Path.Combine(Path.GetDirectoryName(path),Guid.NewGuid().ToString("N")+".partial"); bool own = false;
+                string temp = RecoveryLongPath.FileName(Path.Combine(Path.GetDirectoryName(path),Guid.NewGuid().ToString("N")+".partial")); bool own = false;
                 try {
                     using (var file = new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.Read))
                     { own = true; file.Write(bytes,0,bytes.Length); file.Flush(true); }
-                    c.Cancel.ThrowIfCancellationRequested(); File.Move(temp,path);
+                    c.Cancel.ThrowIfCancellationRequested(); RecoveryLongPath.Move(temp,path);
                 } finally { if (own && File.Exists(temp)) File.Delete(temp); }
             }
             using (var guard = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))

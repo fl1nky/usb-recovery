@@ -80,7 +80,7 @@ namespace UsbRecovery
             while (!Empty(head))
             {
                 cancel.ThrowIfCancellationRequested();
-                string file = FileFor(head);
+                string file = RecoveryLongPath.FileName(FileFor(head));
                 RecoveryOutputPage<T> page;
                 using (var guard = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
@@ -147,9 +147,9 @@ namespace UsbRecovery
                     throw new IOException("METHOD_OUTPUT_LEDGER_BYTES_LIMIT");
                 string relative = prefix + Guid.NewGuid().ToString("N") + ".json";
                 string path = RecoveryCatalog.SafeFile(context.Directory, relative);
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                RecoveryLongPath.CreateDirectory(Path.GetDirectoryName(path));
                 RecoveryCore.SaveJsonBounded(path, page, MaximumPageBytes);
-                chainBytes += new FileInfo(path).Length;
+                chainBytes += new FileInfo(RecoveryLongPath.FileName(path)).Length;
                 count += page.Records.Count;
                 head = new RecoveryOutputHead { Path = relative, Sha256 = Hash(path), Count = count };
             }

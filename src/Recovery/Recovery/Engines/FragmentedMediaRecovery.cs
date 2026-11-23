@@ -349,7 +349,7 @@ namespace UsbRecovery
                     owned=true;byte[] b=new byte[65536];foreach(var e in extents){c.Input.Position=e.ImageOffset;long left=e.Length;while(left>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(b,0,(int)Math.Min(left,b.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");c.Report.SourceReadBytes+=n;output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);left-=n;}}sha.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
                 }
                 if(expectedSha!=null&&digest!=expectedSha)throw new IOException("MEDIA_SOURCE_CHANGED");
-                string name="candidate-"+digest+".mp4",target=Path.Combine(folder,name);if(File.Exists(target)){File.Delete(temporary);owned=false;throw new Reject("duplicate_output");}File.Move(temporary,target);owned=false;
+                string name="candidate-"+digest+".mp4",target=Path.Combine(folder,name);if(File.Exists(target)){File.Delete(temporary);owned=false;throw new Reject("duplicate_output");}RecoveryLongPath.Move(temporary,target);owned=false;
                 return CandidateResult(movie,extents,audioSyntax,digest,length);
             }finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
         }
@@ -452,7 +452,7 @@ namespace UsbRecovery
         {
             string temporary=Path.Combine(Path.GetDirectoryName(path),".media-report-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
             try{
-                byte[] b=ReportBytes(report);using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}File.Move(temporary,path);owned=false;
+                byte[] b=ReportBytes(report);using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}RecoveryLongPath.Move(temporary,path);owned=false;
             }finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
         }
         static byte[] ReportBytes(Report report)
@@ -487,7 +487,7 @@ namespace UsbRecovery
         {
             cancel.ThrowIfCancellationRequested();if(limits==null)throw new ArgumentNullException("limits");limits.Validate();string source=FullPath(image),run=FullPath(runDirectory),folder=Path.Combine(run,"fragmented-media"),reportPath=Path.Combine(run,"fragmented-media.json");Local(source);Local(run);Local(folder);Local(reportPath);
             if(!File.Exists(source)||Directory.Exists(source)||source.Equals(reportPath,StringComparison.OrdinalIgnoreCase)||source.Equals(folder,StringComparison.OrdinalIgnoreCase)||source.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||File.Exists(reportPath)||Directory.Exists(folder)||File.Exists(folder))throw new IOException("MEDIA_FRESH_OUTPUT_REQUIRED");
-            Directory.CreateDirectory(run);Directory.CreateDirectory(folder);var report=new Report();
+            RecoveryLongPath.CreateDirectory(run);RecoveryLongPath.CreateDirectory(folder);var report=new Report();
             try{
                 using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
                     report.InputBytes=input.Length;var c=new Context{Input=input,Report=report,Limits=limits,Cancel=cancel};Execute(c,folder,progress);

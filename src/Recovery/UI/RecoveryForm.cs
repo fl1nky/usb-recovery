@@ -95,7 +95,7 @@ namespace UsbRecovery
             Configure(start, "Начать восстановление", delegate { StartCapture(); });
             start.Tag = "primary";
             actions.Controls.Add(start, 0, 0);
-            var analyze = new Button { Name = "analyze-data", AccessibleDescription = "Поиск публичных адресов Bitcoin в образе или восстановленном файле" };
+            var analyze = new Button { Name = "analyze-data", AccessibleDescription = "Поиск Bitcoin-кошельков и публичных адресов в образе или восстановленном файле" };
             Configure(analyze, "Анализ данных", delegate { if (!busy) BitcoinAnalysisForm.ChooseAndAnalyze(this); });
             actions.Controls.Add(analyze, 1, 0);
             Configure(stop, "Остановить", delegate { RequestRecoveryStop(); });

@@ -174,9 +174,9 @@ namespace UsbRecovery
             int recovered, long bytes, bool completed, bool limited, CancellationToken cancel)
         {
             string folder = RecoveryCatalog.SafeFile(root, "filesystem/guard"); folder = Path.GetDirectoryName(folder);
-            Directory.CreateDirectory(folder);
-            string csvPartial = RecoveryCatalog.SafeFile(root, "filesystem/.metadata-" + Guid.NewGuid().ToString("N") + ".partial");
-            string evidencePartial = RecoveryCatalog.SafeFile(root, "filesystem/.extents-" + Guid.NewGuid().ToString("N") + ".partial");
+            RecoveryLongPath.CreateDirectory(folder);
+            string csvPartial = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, "filesystem/.metadata-" + Guid.NewGuid().ToString("N") + ".partial"));
+            string evidencePartial = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, "filesystem/.extents-" + Guid.NewGuid().ToString("N") + ".partial"));
             bool reportCancelled = cancel.IsCancellationRequested;
             if (!reportCancelled)
             {
@@ -227,15 +227,15 @@ namespace UsbRecovery
                 "При продолжении проверяются исходный образ, параметры, служебные страницы и опубликованные файлы.\r\n\r\n" + String.Join("\r\n", notes.ToArray());
             RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root, "filesystem/notes.json"), new { notes = notes }, MaximumPlanBytes);
             string text = RecoveryCatalog.SafeFile(root, "filesystem/ПРОЧИТАЙ О РЕЗУЛЬТАТАХ.txt");
-            string partialText = Path.Combine(folder, ".notes-" + Guid.NewGuid().ToString("N") + ".partial");
+            string partialText = RecoveryLongPath.FileName(Path.Combine(folder, ".notes-" + Guid.NewGuid().ToString("N") + ".partial"));
             File.WriteAllText(partialText, explanation, new UTF8Encoding(true));
             ReplaceReport(partialText, text);
             if (reportCancelled) throw new OperationCanceledException(cancel);
         }
         static void ReplaceReport(string temporary, string target)
         {
-            if (File.Exists(target)) File.Replace(temporary, target, null);
-            else File.Move(temporary, target);
+            if (File.Exists(RecoveryLongPath.FileName(target))) RecoveryLongPath.Replace(temporary, target);
+            else RecoveryLongPath.Move(temporary, target);
         }
     }
 }

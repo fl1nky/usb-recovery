@@ -120,7 +120,7 @@ class TwoGapJpegs(unittest.TestCase):
         with self.source.open("rb") as stream:
             assembler = PhotoAssembler(stream)
             frame = header(assembler, offsets[0])
-            runs = sector_runs(assembler)
+            runs = sector_runs(assembler, offsets[0])
             recipes = recover_runs(assembler, frame, runs)
             self.assertEqual(len(recipes), 1)
             self.assertEqual([at for at, _ in recipes[0]], offsets)
@@ -138,6 +138,28 @@ class TwoGapJpegs(unittest.TestCase):
         state = json.loads(Path(anchors[-1]["Path"]).read_text(encoding="utf-8"))
         self.assertEqual(state["Cursor"]["Jpeg"], 0)
         self.assertTrue((self.output / "job.incomplete").exists())
+
+    def test_sector_neighbourhood_uses_header_grid_and_budgets_extents_individually(self):
+        from jpeg_fragments import header
+        from jpeg_sector_runs import WINDOW_BYTES, recover as recover_runs, sector_runs
+        image, offsets = scattered(self.raw)
+        clutter = bytes(range(251)) * 1400
+        for prefix, suffix, zero_tail in ((0, b"", WINDOW_BYTES), (1, b"", 0),
+                                          (0, clutter, 0), (WINDOW_BYTES + 17, b"", 0)):
+            with self.subTest(prefix=prefix, clutter=len(suffix), tail=zero_tail):
+                with self.source.open("wb") as target:
+                    target.seek(prefix)
+                    target.write(image)
+                    target.write(suffix)
+                    target.truncate(target.tell() + zero_tail)
+                anchor = prefix + offsets[0]
+                with self.source.open("rb") as source:
+                    assembler = PhotoAssembler(source)
+                    frame = header(assembler, anchor)
+                    recipes = recover_runs(assembler, frame, sector_runs(assembler, anchor))
+                self.assertEqual(len(recipes), 1)
+                self.assertEqual([pos for pos, _ in recipes[0]], [prefix + pos for pos in offsets])
+                self.assertEqual(b"".join(data for _, data in recipes[0]), self.raw)
 
     def test_cancel_inside_entropy_search_resumes_from_durable_candidate_boundary(self):
         self.source.write_bytes(scattered(self.raw)[0])

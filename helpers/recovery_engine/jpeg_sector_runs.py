@@ -1,40 +1,67 @@
 """Reassemble baseline JPEGs from sector runs separated by uniformly filled sectors."""
 
 from functools import lru_cache
+from heapq import nsmallest
 import re
 
 SECTOR = 512
-MAX_IMAGE = 64 * 1024 * 1024
+WINDOW_BYTES = 64 * 1024 * 1024
 MAX_CONTENT = 256 * 1024
 MAX_RUNS = 96
 # FF00 is a stuffed data byte. Other marker segments cannot occur inside this scan.
 MARKER = re.compile(b"\\xff+(?!\\xff)([\\x01-\\xfe])")
 
 
-def sector_runs(assembler):
-    if assembler.size > MAX_IMAGE:
-        return ()
-    runs = []
-    current = bytearray()
-    total = 0
-    start = 0
-    for base in range(0, assembler.size, 65536):
-        page = assembler.read(base, min(65536, assembler.size - base))
+def _ranges(assembler, low, high):
+    """Yield physical extents without retaining their payloads."""
+    start = None
+    for base in range(low, high, 65536):
+        page = assembler.read(base, min(65536, high - base))
+        if not page:
+            return
+        if page.count(page[:1]) == len(page):
+            if start is not None:
+                yield start, base
+                start = None
+            continue
         for index in range(0, len(page), SECTOR):
             sector = page[index:index + SECTOR]
             if sector.count(sector[:1]) == len(sector):
-                if current:
-                    runs.append((start, bytes(current)))
-                    current.clear()
-                continue
-            if not current:
+                if start is not None:
+                    yield start, base + index
+                    start = None
+            elif start is None:
                 start = base + index
-            total += len(sector)
-            if total > MAX_CONTENT or len(runs) >= MAX_RUNS:
-                return ()
-            current.extend(sector)
-    if current:
-        runs.append((start, bytes(current)))
+    if start is not None:
+        yield start, high
+
+
+def sector_runs(assembler, anchor):
+    """Search a bounded neighbourhood on the sector grid of this JPEG header."""
+    phase = anchor % SECTOR
+    low = max(phase, min(anchor - WINDOW_BYTES // 2, assembler.size - WINDOW_BYTES))
+    low -= (low - phase) % SECTOR
+    high = min(assembler.size, low + WINDOW_BYTES)
+
+    def eligible():
+        for start, end in _ranges(assembler, low, high):
+            if start <= anchor < end:
+                start = anchor
+            if end - start <= MAX_CONTENT:
+                yield start, end
+
+    # A large unrelated extent cannot be part of a solution under this model.
+    # Budget only the selected extents, so such an extent cannot erase prior hits.
+    nearest = nsmallest(MAX_RUNS, eligible(), key=lambda span: abs(span[0] - anchor))
+    runs = []
+    remaining = MAX_CONTENT
+    for start, end in nearest:
+        length = end - start
+        if length <= remaining:
+            data = assembler.read(start, length)
+            if len(data) == length:
+                runs.append((start, data))
+                remaining -= length
     return tuple(runs)
 
 

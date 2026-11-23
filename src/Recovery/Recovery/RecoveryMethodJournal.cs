@@ -94,7 +94,7 @@ namespace UsbRecovery
             if (resume.Sequence <= 0 || resume.Sequence > MaximumSequence ||
                 !String.Equals(Path.GetFullPath(resume.Path), CheckpointPath(resume.Sequence), StringComparison.OrdinalIgnoreCase))
                 throw new IOException("METHOD_CHECKPOINT_PATH_INVALID");
-            string file = CheckpointPath(resume.Sequence);
+            string file = RecoveryLongPath.FileName(CheckpointPath(resume.Sequence));
             using (var guard = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 if (guard.Length <= 0 || guard.Length > MaximumStateBytes ||
@@ -124,10 +124,10 @@ namespace UsbRecovery
             if (!Enabled) { Payload = payload; return; }
             if (payload == null) throw new ArgumentNullException("payload");
             cancel.ThrowIfCancellationRequested();
-            Directory.CreateDirectory(folder);
+            RecoveryLongPath.CreateDirectory(folder);
             long next = sequence + 1;
             int inspected = 0;
-            foreach (string file in Directory.EnumerateFiles(folder, "checkpoint-*.json"))
+            foreach (string file in Directory.EnumerateFiles(RecoveryLongPath.SearchDirectory(folder, "checkpoint-*.json"), "checkpoint-*.json"))
             {
                 if (++inspected > 100000) throw new IOException("METHOD_CHECKPOINT_DIRECTORY_LIMIT");
                 next = Math.Max(next, Generation(file) + 1);
@@ -142,7 +142,7 @@ namespace UsbRecovery
             long prior = sequence;
             sequence = next;
             Payload = payload;
-            foreach (string file in Directory.EnumerateFiles(folder, "checkpoint-*.json"))
+            foreach (string file in Directory.EnumerateFiles(RecoveryLongPath.SearchDirectory(folder, "checkpoint-*.json"), "checkpoint-*.json"))
             {
                 long old = Generation(file);
                 if (old <= 0 || old >= next || old == prior) continue;

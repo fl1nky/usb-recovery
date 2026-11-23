@@ -1529,9 +1529,9 @@ def progressive_paths(assembler, frame, markers, allow_gaps=False, allow_partial
 def sparse_fallback(assembler, frame):
     """Try a different fragment model only when a bounded primary search stopped."""
     import jpeg_sector_runs
-    if not hasattr(assembler, "sparse_sector_runs"):
-        assembler.sparse_sector_runs = jpeg_sector_runs.sector_runs(assembler)
-    for recipe in jpeg_sector_runs.recover(assembler, frame, assembler.sparse_sector_runs):
+    start, _ = frame["prefix"]
+    runs = jpeg_sector_runs.sector_runs(assembler, start)
+    for recipe in jpeg_sector_runs.recover(assembler, frame, runs):
         yield (recipe, "jpeg_gap_structural_candidate",
                "Sector runs separated by uniform fill. Huffman counts, restart order, padding, "
                "EOI and decoding agree within the bounded search. Source ownership is unknown.")
@@ -1567,6 +1567,8 @@ def recover_jpegs(assembler):
                 recipes = baseline_stream_paths(assembler, frame, baseline_markers)
                 if not recipes:
                     recipes = baseline_gap_paths(assembler, frame, baseline_markers)
+                if not recipes:
+                    yield from sparse_fallback(assembler, frame)
                 for recipe in recipes:
                     yield (recipe, "jpeg_gap_structural_candidate",
                            "Exact baseline Huffman MCU count, one-bit padding, EOI and JPEG decoding agree for a unique minimum-gap byte result within a bounded search. The paged one-gap search supports files up to 64 MiB with no 8 KiB first-run restriction; the additional two-gap hypothesis remains bounded to 128 KiB with first/middle runs up to 8 KiB. Source jumps and cuts are 512-byte aligned. Reported extents are one replayable mapping; jpeg_gap_source_mapping_ambiguous means original physical placement is unknown. Structural candidate only: original ownership, payload integrity and deletion are not authenticated.")
@@ -1578,9 +1580,8 @@ def recover_jpegs(assembler):
                         yield (recipe,'jpeg_gap_structural_candidate',
                                'Byte-identical source alias from the complete bounded one-gap search; physical placement and original ownership are unknown and not authenticated.')
                 continue
-            prior_limits = assembler.skipped["jpeg_search_incomplete"]
             recipes = restart_paths(assembler, frame, baseline_markers)
-            if not recipes and assembler.skipped["jpeg_search_incomplete"] > prior_limits:
+            if not recipes:
                 yield from sparse_fallback(assembler, frame)
             for recipe in recipes:
                 if len(recipe) < 2:

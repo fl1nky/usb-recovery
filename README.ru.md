@@ -2,6 +2,8 @@
 
 **[Скачать ZIP для Windows x64](https://github.com/fl1nky/usb-recovery/releases/latest/download/USB-Recovery-Windows-x64.zip)** · Распакуй архив целиком и открой `USB-Recovery.exe`.
 
+Для поиска старого Bitcoin-кошелька открой **Флешки и образы → Анализ данных** и выбери RAW-образ или восстановленный файл. [Поддерживаемые кошельки](docs/guides/recovery.md)
+
 [![Лицензия: AGPL-3.0](https://img.shields.io/badge/Лицензия-AGPL--3.0-blue.svg)](LICENSE)
 [![Zero Telemetry](https://img.shields.io/badge/Телеметрия-0%25%20Air--Gapped-success.svg)](README.ru.md)
 [![Forensic Grade](https://img.shields.io/badge/Форензика-Chain%20of%20Custody-orange.svg)](README.ru.md)

@@ -49,9 +49,10 @@ namespace UsbRecovery
         {
             string fullRoot=System.IO.Path.GetFullPath(root).TrimEnd('\\','/'),full=System.IO.Path.GetFullPath(System.IO.Path.Combine(fullRoot,relative??""));
             if(!full.StartsWith(fullRoot+System.IO.Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new IOException("Путь вне архива.");
-            for(var entry=new DirectoryInfo(System.IO.Path.GetDirectoryName(full));entry!=null;entry=entry.Parent)
+            for(var entry=new DirectoryInfo(RecoveryLongPath.DirectoryName(System.IO.Path.GetDirectoryName(full)));entry!=null;entry=entry.Parent)
                 if(entry.Exists && (entry.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("Перенаправление пути недопустимо.");
-            if(File.Exists(full) && (File.GetAttributes(full)&FileAttributes.ReparsePoint)!=0)throw new IOException("Файл-ссылка недопустим.");
+            string ioPath=RecoveryLongPath.FileName(full);
+            if(File.Exists(ioPath) && (File.GetAttributes(ioPath)&FileAttributes.ReparsePoint)!=0)throw new IOException("Файл-ссылка недопустим.");
             return full;
         }
         public static RecoveryFileIndex Build(string root,CancellationToken cancel,Action<string> progress)
@@ -76,7 +77,7 @@ namespace UsbRecovery
                 }
                 string ext=System.IO.Path.GetExtension(file),status;photos.TryGetValue(relative,out status);
                 string method=LogicalPath(relative).StartsWith("ext4/",StringComparison.Ordinal)?"ext4":LogicalPath(relative).StartsWith("refs/",StringComparison.Ordinal)?"ReFS":(LogicalPath(relative).StartsWith("apfs-files/",StringComparison.Ordinal)||LogicalPath(relative).StartsWith("apfs/files/",StringComparison.Ordinal))?"APFS":LogicalPath(relative).StartsWith("user-signatures/",StringComparison.Ordinal)?"Своя сигнатура":LogicalPath(relative).StartsWith("filesystem/",StringComparison.Ordinal)?"FAT/exFAT":LogicalPath(relative).StartsWith("ntfs/",StringComparison.Ordinal)?"NTFS":LogicalPath(relative).StartsWith("metadata-rescue/",StringComparison.Ordinal)?"Независимые записи NTFS":LogicalPath(relative).StartsWith("fragmented-archives/",StringComparison.Ordinal)?"Сборка ZIP / Office":LogicalPath(relative).StartsWith("salvage-content/",StringComparison.Ordinal)?"Часть ZIP / Office":LogicalPath(relative).StartsWith("extra-photos/",StringComparison.Ordinal)?"JPEG/PNG внутри данных":LogicalPath(relative).StartsWith("containers/",StringComparison.Ordinal)?"Контейнер по смещению":"PhotoRec";
-                var item=new RecoveredItem { Name=System.IO.Path.GetFileName(file),Path=relative,Extension=ext,Category=Category(ext),Method=method,Bytes=new FileInfo(file).Length,Sha256=sha,Status=status=="decoded"?"Изображение открывается":status=="partial"||status=="damaged_candidate"?"Повреждённый кандидат":"Требует проверки",Note="Наличие файла не доказывает целостность или факт удаления. Сравни содержимое с ожидаемым. Все копии сохранены." };
+                var item=new RecoveredItem { Name=System.IO.Path.GetFileName(file),Path=relative,Extension=ext,Category=Category(ext),Method=method,Bytes=new FileInfo(RecoveryLongPath.FileName(file)).Length,Sha256=sha,Status=status=="decoded"?"Изображение открывается":status=="partial"||status=="damaged_candidate"?"Повреждённый кандидат":"Требует проверки",Note="Наличие файла не доказывает целостность или факт удаления. Сравни содержимое с ожидаемым. Все копии сохранены." };
                 if(method=="Контейнер по смещению")item.Note="Найдена структура контейнера; содержимое/CRC и фрагментация полностью не подтверждены. Имя и дата неизвестны.";
                 if(LogicalPath(relative).StartsWith("text-fragments/",StringComparison.Ordinal)){item.Method="Текстовый остаток";item.Status="Фрагмент, не документ";item.Note="Только найденная строка. Границы документа, автор, дата и факт удаления неизвестны. Позиция и исходная кодировка: text-search.json.";}
                 if(relative.Contains("/orphan-")){item.Status="Потерянный каталог";item.Note+=" Каталог не связан с корнем. Исходный родитель и факт удаления файла неизвестны.";}
@@ -119,7 +120,7 @@ namespace UsbRecovery
         }
         static string Cell(string value) { value=value??"";if(value.Length>0 && "=+-@\t\r".IndexOf(value[0])>=0)value="'"+value;return "\""+value.Replace("\"","\"\"")+"\""; }
         public static RecoveryFileIndex Load(string root) {
-            string file=SafeFile(root,"files-index.json");if(new FileInfo(file).Length>256L*1024*1024)throw new IOException("Слишком большой каталог.");
+            string file=SafeFile(root,"files-index.json");if(new FileInfo(RecoveryLongPath.FileName(file)).Length>256L*1024*1024)throw new IOException("Слишком большой каталог.");
             try {
                 var index=Json().Deserialize<RecoveryFileIndex>(File.ReadAllText(file,Encoding.UTF8));
                 if(index==null||index.Items==null||index.Items.Count>100000)throw new IOException("Каталог не завершён или повреждён.");

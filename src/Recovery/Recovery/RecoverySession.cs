@@ -60,7 +60,7 @@ namespace UsbRecovery
         public static RecoverySessionState Read(string root, CancellationToken cancel)
         {
             cancel.ThrowIfCancellationRequested();
-            string file = RecoveryCatalog.SafeFile(root, FileName);
+            string file = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, FileName));
             if (!File.Exists(file) || new FileInfo(file).Length > 64L * 1024 * 1024)
                 throw new IOException("Сохранённая сессия не найдена или слишком велика.");
             try
@@ -214,7 +214,7 @@ namespace UsbRecovery
                 foreach (var artifact in stage.Artifacts)
                 {
                     cancel.ThrowIfCancellationRequested();
-                    string file = RecoveryCatalog.SafeFile(root, artifact.Path);
+                    string file = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, artifact.Path));
                     if (!File.Exists(file) || new FileInfo(file).Length != artifact.Bytes || !String.Equals(RecoveryCore.HashFile(file, cancel, (a, b) =>
                     {
                     }), artifact.Sha256, StringComparison.OrdinalIgnoreCase))
@@ -305,7 +305,7 @@ namespace UsbRecovery
 
         void VerifyCheckpoint(SessionStage stage, CancellationToken cancel)
         {
-            string file = RecoveryCatalog.SafeFile(root, stage.CheckpointPath);
+            string file = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, stage.CheckpointPath));
             if (!File.Exists(file) || new FileInfo(file).Length != stage.CheckpointBytes || !String.Equals(RecoveryCore.HashFile(file, cancel, (a, b) =>
             {
             }), stage.CheckpointSha256, StringComparison.OrdinalIgnoreCase))
@@ -349,7 +349,7 @@ namespace UsbRecovery
             string relative = full.Substring(prefix.Length).Replace('\\', '/');
             if (!CheckpointName(key, relative, checkpoint.Sequence))
                 throw new IOException("Неверный путь точки продолжения.");
-            string file = RecoveryCatalog.SafeFile(root, relative);
+            string file = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, relative));
             long bytes = File.Exists(file) ? new FileInfo(file).Length : 0;
             if (bytes <= 0 || bytes > 16L * 1024 * 1024 || !String.Equals(RecoveryCore.HashFile(file, CancellationToken.None, (a, b) =>
             {
@@ -397,7 +397,7 @@ namespace UsbRecovery
                     throw new IOException("Слишком много файлов для безопасного сохранения этапа.");
                 string relative = file.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/');
                 RecoveryCatalog.SafeFile(root, relative);
-                artifacts.Add(new SessionArtifact { Path = relative, Bytes = new FileInfo(file).Length, Sha256 = RecoveryCore.HashFile(file, cancel, (a, b) =>
+                artifacts.Add(new SessionArtifact { Path = relative, Bytes = new FileInfo(RecoveryLongPath.FileName(file)).Length, Sha256 = RecoveryCore.HashFile(file, cancel, (a, b) =>
                 {
                 }) });
             }

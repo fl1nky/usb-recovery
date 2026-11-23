@@ -133,7 +133,7 @@ namespace UsbRecovery
                 if (!cancelled) throw new OperationCanceledException(cancel);
                 return;
             }
-            string pending = RecoveryCatalog.SafeFile(root, "metadata-rescue/.report-" + Guid.NewGuid().ToString("N") + ".partial");
+            string pending = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(root, "metadata-rescue/.report-" + Guid.NewGuid().ToString("N") + ".partial"));
             try
             {
                 // Keep the report's historical 128-MiB character bound, but

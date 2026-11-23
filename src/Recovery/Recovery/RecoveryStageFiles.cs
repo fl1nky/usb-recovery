@@ -42,7 +42,7 @@ namespace UsbRecovery
             foreach (string name in names)
             {
                 string path = RecoveryCatalog.SafeFile(root, name);
-                if (File.Exists(path) || Directory.Exists(path))
+                if (File.Exists(RecoveryLongPath.FileName(path)) || Directory.Exists(RecoveryLongPath.DirectoryName(path)))
                     yield return path;
             }
 
@@ -58,7 +58,7 @@ namespace UsbRecovery
         {
             foreach (string path in Paths(root, key))
             {
-                if (File.Exists(path))
+                if (File.Exists(RecoveryLongPath.FileName(path)))
                 {
                     yield return path;
                     continue;
@@ -70,11 +70,12 @@ namespace UsbRecovery
                 {
                     string at = todo.Pop();
                     RecoveryCatalog.SafeFile(root, at.Substring(root.TrimEnd('\\').Length + 1) + "/guard");
-                    foreach (string file in Directory.EnumerateFiles(at))
+                    string directory = RecoveryLongPath.SearchDirectory(at, "*");
+                    foreach (string file in Directory.EnumerateFiles(directory))
                         if (!file.EndsWith(".partial", StringComparison.OrdinalIgnoreCase))
-                            yield return file;
-                    foreach (string child in Directory.EnumerateDirectories(at))
-                        todo.Push(child);
+                            yield return Path.Combine(at, Path.GetFileName(file));
+                    foreach (string child in Directory.EnumerateDirectories(directory))
+                        todo.Push(Path.Combine(at, Path.GetFileName(child)));
                 }
             }
         }

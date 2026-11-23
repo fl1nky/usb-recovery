@@ -6,6 +6,9 @@ on:
       - 'src/Recovery/Recovery/**'
       - 'src/Recovery/UI/**'
       - 'src/Recovery/Forensics/Bitcoin*.cs'
+      - 'src/Recovery/Forensics/ElectrumWalletProbe.cs'
+      - 'src/Recovery/Infrastructure/RecoveryLongPath.cs'
+      - 'helpers/recovery_engine/jpeg*.py'
       - 'src/Recovery/Infrastructure/RecoveryCore.cs'
       - 'helpers/recovery_engine/resumable_copy.py'
       - 'helpers/recovery_engine/recovery_io.py'
@@ -57,6 +60,7 @@ jobs:
           switch ('${{ matrix.group }}') {
             'core' {
               ./tests/run_test.ps1 BitcoinTraceScanTests
+              ./tests/run_test.ps1 BitcoinWalletContainerTests
               foreach ($name in 'RecoveryRestartTests','SessionCheckpointSaveTests','TextCheckpointTests','TextUnicodeRecoveryTests','RecoveryContinuityTests','PhotoCheckpointSessionTests','RecoveryStageProgressTests','RecoveryRunPresentationTests') {
                 ./tests/run_test.ps1 $name
               }

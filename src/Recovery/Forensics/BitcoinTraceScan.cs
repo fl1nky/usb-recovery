@@ -22,7 +22,9 @@ namespace UsbRecovery
     internal sealed class BitcoinTraceScan
     {
         public readonly List<BitcoinTrace> Matches = new List<BitcoinTrace>();
+        public readonly List<BitcoinWalletFinding> Wallets = new List<BitcoinWalletFinding>();
         public bool Limited { get; private set; }
+        public bool WalletSearchLimited { get; private set; }
 
         internal const int Chunk = 1024 * 1024;
         internal const int Limit = 1000;
@@ -53,6 +55,8 @@ namespace UsbRecovery
             byte[] buffer = new byte[Chunk + Overlap];
             int carry = 0, lastPercent = -1;
             long length = stream.Length, read = 0, nextStart = 0;
+            var wallets = new BitcoinWalletProbe(stream, token, result.Wallets);
+            var byteText = Encoding.GetEncoding(28591); // One character per byte, including BDB magic bytes.
             using (var hash = SHA256.Create())
             {
                 do
@@ -70,8 +74,16 @@ namespace UsbRecovery
                     read += got;
                     int count = carry + got;
                     long stop = read == length ? length : read - MaxTokenBytes - BoundaryBytes;
-                    string block = Encoding.ASCII.GetString(buffer, 0, count);
-                    for (Match match = Candidates.Match(block); match.Success; match = match.NextMatch())
+                    string block = byteText.GetString(buffer, 0, count);
+                    wallets.Inspect(block, blockStart, nextStart, stop);
+                    if (blockStart == 0 && count == length)
+                    {
+                        int first = count >= 3 && buffer[0] == 0xef && buffer[1] == 0xbb && buffer[2] == 0xbf ? 3 : 0;
+                        while (first < count && (buffer[first] == 32 || buffer[first] == 9 || buffer[first] == 10 || buffer[first] == 13)) first++;
+                        if (first < count && buffer[first] == '{' && ElectrumWalletProbe.Matches(buffer, first, count - first))
+                            result.Wallets.Add(new BitcoinWalletFinding(0, "Electrum · JSON", "Версия и тип кошелька в корне целого JSON-файла"));
+                    }
+                    for (Match match = result.Limited ? Match.Empty : Candidates.Match(block); match.Success; match = match.NextMatch())
                     {
                         token.ThrowIfCancellationRequested();
                         long offset = blockStart + match.Index;
@@ -80,7 +92,7 @@ namespace UsbRecovery
                         string text = match.Groups["wide"].Success ? match.Value.Replace("\0", "") : match.Value;
                         bool name = text.Equals("wallet.dat", StringComparison.OrdinalIgnoreCase);
                         if (!name && !BitcoinPublicAddress.IsValid(text, hash)) continue;
-                        if (result.Matches.Count == Limit) { result.Limited = true; return result; }
+                        if (result.Matches.Count == Limit) { result.Limited = true; break; }
                         result.Matches.Add(new BitcoinTrace(offset, text, name));
                     }
                     nextStart = stop;
@@ -91,6 +103,7 @@ namespace UsbRecovery
                     lastPercent = percent;
                 } while (read < length);
             }
+            result.WalletSearchLimited = wallets.Limited;
             return result;
         }
     }

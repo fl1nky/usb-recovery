@@ -32,7 +32,7 @@ namespace UsbRecovery
             layout.Controls.Add(new Label { Text = Path.GetFileName(file), Dock = DockStyle.Fill, AutoEllipsis = true,
                 Font = new Font("Segoe UI", 13F, FontStyle.Bold) }, 0, 0);
             layout.Controls.Add(new Label { Dock = DockStyle.Fill,
-                Text = "Поиск публичных адресов основной сети Bitcoin и упоминаний wallet.dat в ASCII и UTF-16LE. Смещения указаны в байтах от начала файла." }, 0, 1);
+                Text = "Ищем структуры кошельков Bitcoin и публичные адреса. Смещения в байтах отсчитываются от начала выбранного файла или RAW-образа." }, 0, 1);
             layout.Controls.Add(progress, 0, 2);
             layout.Controls.Add(status, 0, 3);
             layout.Controls.Add(results, 0, 4);
@@ -63,14 +63,21 @@ namespace UsbRecovery
             {
                 var scan = await Task.Run(() => BitcoinTraceScan.ReadFile(file, cancellation.Token, updates));
                 var lines = new StringBuilder();
+                lines.AppendLine("Файлы и структуры кошельков");
+                foreach (var wallet in scan.Wallets)
+                    lines.AppendFormat("0x{0:X}   {1}\r\n             {2}\r\n", wallet.Offset, wallet.Format, wallet.Evidence);
+                if (scan.Wallets.Count == 0) lines.AppendLine("Совпадений по поддерживаемым структурам нет.");
+                if (scan.WalletSearchLimited) lines.AppendLine("Достигнут предел проверки структур. Этот поиск неполон.");
+                lines.AppendLine().AppendLine("Публичные адреса и упоминания файлов");
                 foreach (var hit in scan.Matches)
                     lines.AppendFormat("0x{0:X}   {1}   {2}", hit.Offset,
                         hit.IsWalletName ? "Упоминание файла" : "Публичный адрес", hit.Text).AppendLine();
+                if (scan.Matches.Count == 0) lines.AppendLine("Текстовых совпадений нет.");
+                if (scan.Limited) lines.AppendLine("Показаны первые 1000 текстовых совпадений.");
                 results.Text = lines.ToString();
-                if (!scan.Limited) progress.Value = 100;
-                status.Text = scan.Limited ? "Показана первая 1000 совпадений. Поиск остановлен на лимите."
-                    : scan.Matches.Count == 0 ? "В прочитанных данных совпадений нет."
-                    : "Поиск завершён. Совпадений: " + scan.Matches.Count + ". Выделенный текст можно скопировать.";
+                progress.Value = 100;
+                status.Text = String.Format("Кандидатов в кошельки: {0}. Текстовых совпадений: {1}.",
+                    scan.Wallets.Count, scan.Matches.Count);
             }
             catch (OperationCanceledException) { status.Text = "Анализ остановлен. Файл можно выбрать повторно."; }
             catch (IOException e) { status.Text = "Не удалось прочитать файл. " + e.Message; }
@@ -81,7 +88,7 @@ namespace UsbRecovery
         public static void ChooseAndAnalyze(IWin32Window owner)
         {
             using (var picker = new OpenFileDialog {
-                Title = "Выбери RAW-образ диска или восстановленный файл для поиска Bitcoin-адресов",
+                Title = "Выбери RAW-образ или восстановленный файл для поиска Bitcoin-кошельков",
                 Filter = "Образы RAW (*.img;*.dd;*.raw;*.bin)|*.img;*.dd;*.raw;*.bin|Все файлы (*.*)|*.*",
                 FilterIndex = 2, CheckFileExists = true, RestoreDirectory = true })
             {

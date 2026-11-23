@@ -58,6 +58,17 @@ public static class FragmentedMediaSessionCheckpointTests
         RecoveryPipeline.Resume(root,CancellationToken.None,m => { if (reportOnly && Inner(m)) throw new Exception("completed source phase repeated during session resume: "+m); });
         Check(!Directory.Exists(Path.Combine(root,"attempt-history")),"checkpoint continuation retains the same working attempt"); Verify(root,sha);
     }
+    static void DeepOutput()
+    {
+        int pad = Math.Max(50, 177 - work.Length - 34);
+        string root = Folder(new string('d', pad));
+        string sourceSha = Hash(Path.Combine(root, "usb.dd"));
+        Start(root, CancellationToken.None, s => { });
+        Verify(root, sourceSha);
+        var stage = RecoverySession.Read(root).Stages.Single();
+        Check(stage.Artifacts.Any(a => Path.Combine(root, a.Path).Length >= 260),
+            "session verifies an artifact beyond the Windows legacy path length");
+    }
     static void ParentFailure()
     {
         string root = Folder("parent"),sha = Hash(Path.Combine(root,"usb.dd")); FileStream held = null; bool failed = false; long sequence = 0;
@@ -137,7 +148,7 @@ public static class FragmentedMediaSessionCheckpointTests
             fixture = Path.Combine(Path.GetFullPath(args[1]),"avc-scattered.dd");
             work = Path.Combine(Path.GetFullPath(args[0]),".build","media-session-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(work);
             foreach (string phase in new[] { "fragmented-media: metadata unit ","fragmented-media: mapped bytes ","fragmented-media: report pending","fragmented-media: report ready","fragmented-media: engine complete" }) CancelResume(phase);
-            ParentFailure(); SourceFailure(); TamperedChild(); RestartWithoutAnchor(); KilledWorker();
+            DeepOutput(); ParentFailure(); SourceFailure(); TamperedChild(); RestartWithoutAnchor(); KilledWorker();
             Console.WriteLine("PASS FragmentedMediaSessionCheckpoint: "+checks+" checks; actual managed Pipeline/Session and catalog on owned images; not portable package or real devices"); return 0;
         } catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }

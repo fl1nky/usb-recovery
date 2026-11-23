@@ -92,6 +92,7 @@
 # Small pinned Linux MD images with upstream license and hashes
 !/tests/fixtures/
 /tests/fixtures/*
+!/tests/fixtures/bitcoin-public-metadata/
 !/tests/fixtures/raid-md/
 !/tests/fixtures/ext4/
 !/tests/fixtures/refs/

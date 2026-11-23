@@ -57,7 +57,7 @@ public static class MediaBenchmark
                     var catalog=RecoveryCatalog.Load(run);
                     foreach(var candidate in catalog.Items){
                         string file=RecoveryCatalog.SafeFile(run,candidate.Path);
-                        candidates.Add(new{path=file,sha256=Hash(file),bytes=new FileInfo(file).Length,method=candidate.Method,status=candidate.Status,category=candidate.Category,original_path=candidate.OriginalPath});
+                        candidates.Add(new{path=file,sha256=Hash(file),bytes=candidate.Bytes,method=candidate.Method,status=candidate.Status,category=candidate.Category,original_path=candidate.OriginalPath});
                     }
                 }catch(Exception error){failure=error.GetType().Name+": "+error.Message;}
                 clock.Stop();string after=Hash(image);if(before!=after)throw new IOException("Recovery modified corpus image");

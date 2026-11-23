@@ -178,18 +178,18 @@ namespace UsbRecovery
         string WorkFile()
         {
             if (!WorkId(state.WorkId)) throw new IOException("MAPPED_FILE_WORK_INVALID");
-            return RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/work/copy-" + state.WorkId + ".partial");
+            return RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/work/copy-" + state.WorkId + ".partial"));
         }
         string Destination()
         {
             if (plan.ContentAddressed && !Digest(state.Sha256)) throw new IOException("MAPPED_FILE_HASH_NOT_READY");
-            return RecoveryCatalog.SafeFile(plan.OutputRoot,plan.ContentAddressed ? plan.RelativeOutput.Replace("{sha256}",state.Sha256) : plan.RelativeOutput);
+            return RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(plan.OutputRoot,plan.ContentAddressed ? plan.RelativeOutput.Replace("{sha256}",state.Sha256) : plan.RelativeOutput));
         }
         FileStream Create(string id)
         {
             if (!WorkId(id)) throw new IOException("MAPPED_FILE_WORK_INVALID");
-            string path = RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/work/copy-" + id + ".partial");
-            Directory.CreateDirectory(Path.GetDirectoryName(path)); return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
+            string path = RecoveryLongPath.FileName(RecoveryCatalog.SafeFile(context.Directory, context.Method + ".state/work/copy-" + id + ".partial"));
+            RecoveryLongPath.CreateDirectory(Path.GetDirectoryName(path)); return new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
         }
         byte[] ReadMapped(long at, int length)
         {
@@ -281,7 +281,7 @@ namespace UsbRecovery
             }
             Guard();
             if (plan.ContentAddressed) using (var existing = ExistingOutput()) if (existing != null) return Published();
-            string destination = Destination(); Directory.CreateDirectory(Path.GetDirectoryName(destination)); File.Move(WorkFile(), destination);
+            string destination = Destination(); RecoveryLongPath.CreateDirectory(Path.GetDirectoryName(destination)); RecoveryLongPath.Move(WorkFile(), destination);
             using (var final = ExistingOutput()) { if (final == null) throw new IOException("MAPPED_FILE_OUTPUT_MISSING"); return Published(); }
         }
         public void Dispose() { if (disposed) return; disposed = true; if (sourceLease != null) sourceLease.Dispose(); }
