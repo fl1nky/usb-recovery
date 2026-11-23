@@ -32,7 +32,7 @@ namespace UsbRecovery
         public bool MappingComplete;
         public long? Offset;
     }
-    public sealed class FileEvidence
+    public sealed partial class FileEvidence
     {
         readonly Dictionary<string,EvidenceEntry> entries=new Dictionary<string,EvidenceEntry>(StringComparer.OrdinalIgnoreCase);
         public List<FileExtent> Unread=new List<FileExtent>();
@@ -305,6 +305,7 @@ namespace UsbRecovery
                     foreach(var extent in Rows(row,"ranges")){long offset=Number(extent,"Offset",-1),length=Number(extent,"Length");if(offset>=0&&length>0&&offset<=Int64.MaxValue-length)item.Ranges.Add(new FileExtent{Offset=offset,Length=length});}if(item.Ranges.Count>0)item.Offset=item.Ranges[0].Offset;result.entries[path]=item;
                 }
             }
+            LoadNativeNtfs(root,result,localSession);
             if(result.sourceSha256!=null)foreach(var entry in result.entries.Values)if(!entry.SourceScopeSpecified){entry.SourceSha256=result.sourceSha256;entry.SourceBytes=result.sourceBytes;entry.SourceScopeVerified=true;}
             string history=RecoveryCatalog.SafeFile(root,"attempt-history");if(depth==0&&Directory.Exists(history)){
                 var attempts=Directory.EnumerateDirectories(history).Take(257).ToArray();if(attempts.Length>256)throw new IOException("Слишком много предыдущих попыток.");
@@ -420,6 +421,7 @@ namespace UsbRecovery
             }
             if(!changedRecord)ApplyMapGroups(item,record,matching);
             if(record!=null&&record.Kind=="ntfs_record"&&!record.MappingComplete)item.IntegrityDetail+=" Для resident-данных восстановлены USA-байты записи; указан адрес записи, а точная физическая карта содержимого не заявляется.";
+            if(record!=null&&record.Kind=="ntfs_native_candidate")ApplyNativeNtfs(item,record);
             if(record!=null&&record.Kind=="encoded_zip_entry")item.IntegrityDetail+=" Диапазон относится к закодированной ZIP-записи с заголовком, а не к несжатому содержимому.";
             if(record!=null&&(record.Kind=="apfs_snapshot"||record.Kind=="apfs_checkpoint"||record.Kind=="apfs_referenced_file")){if(record.Components!=null&&record.Components.Count>0){item.Name=record.Components[record.Components.Count-1];int dot=item.Name.LastIndexOf('.');item.Extension=dot>=0?item.Name.Substring(dot):"";item.Category=RecoveryCatalog.Category(item.Extension);}item.Method=record.Kind=="apfs_checkpoint"?"APFS · предыдущее состояние":record.Kind=="apfs_snapshot"?"APFS · снимок":"APFS · файл";item.Status=record.Kind=="apfs_referenced_file"?"Сохранившийся файл APFS":"Предыдущая версия APFS";item.Note="Файл прочитан по сохранившейся записи APFS; факт удаления не устанавливается. Снимок, том и запись приведены в происхождении. SHA256 удостоверяет полученные байты, а не исходную полноту.";item.IntegrityDetail+=" "+record.PathEvidence+"; физическая карта блоков не установлена.";}
             if(record!=null&&record.Kind=="reassembled_zip")item.IntegrityDetail+=" ZIP собран из раздельных записей; проверены размеры и CRC элементов. Исходное имя, факт удаления и подлинность содержимого неизвестны.";

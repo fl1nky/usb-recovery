@@ -1,0 +1,109 @@
+name: Native NTFS checkpoints
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/Recovery.Native/**'
+      - 'src/Recovery/Recovery/Native/**'
+      - 'src/Recovery/Recovery/Engines/AdvancedEngines*'
+      - 'scripts/*native*'
+      - 'tests/*Native*'
+      - 'tests/*native*'
+      - '.github/workflows/ntfs-checkpoints.yml'
+  pull_request:
+    paths:
+      - 'src/Recovery.Native/**'
+      - 'src/Recovery/Recovery/**'
+      - 'scripts/*native*'
+      - 'tests/*Native*'
+      - 'tests/*native*'
+      - '.github/workflows/ntfs-checkpoints.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ntfs-checkpoints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native-ntfs-windows:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Restore pinned archives without installers
+        run: |
+          New-Item -ItemType Directory -Force -Path .build | Out-Null
+          ./scripts/restore-native-build-inputs.ps1 2>&1 | Tee-Object -FilePath .build/native-restore.log
+          $nativeRestoreExit = $LASTEXITCODE
+          if ($nativeRestoreExit -ne 0) {
+            $nativeRestoreDetail = (Get-Content -LiteralPath .build/native-restore.log -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output ('::error title=Native dependency restore log::'+$nativeRestoreDetail)
+            exit $nativeRestoreExit
+          }
+      - name: Restore isolated compiler from verified archives
+        run: python scripts/prepare-native-toolchain.py --destination .build/native-toolchain --archive-cache .build/native-archives --offline --runtime-sources
+      - name: Build NTFS worker and source bundle
+        run: python scripts/build-native-recovery.py --toolchain .build/native-toolchain --archive-cache .build/native-archives --testdisk-archive .build/native-archives/upstream/testdisk-7.2-source.tar.bz2 --ntfs-archive .build/native-archives/upstream/ntfs-3g_ntfsprogs-2026.9.28.tgz --destination .build/native-build
+      - name: Install independent fixture parser with pinned wheels
+        run: |
+          python -m pip install --require-hashes --only-binary=:all: -r scripts/native-ntfs-test-requirements.txt
+      - name: Prepare pinned native and authored fixtures
+        run: python tests/prepare_native_ntfs_fixtures.py --destination .build/native-fixtures --packed .build/native-archives/fixtures/ntfs.bin.gz
+      - name: Prepare independently parsed stream corpus
+        run: python tests/build_native_ntfs_corpus.py --base .build/native-fixtures/derived/deleted-small-mft-derived.dd --destination .build/native-stream-corpus
+      - name: Verify build-input rejection boundaries
+        run: |
+          python tests/NativeBuildInputsTests.py 2>&1 | Tee-Object -FilePath .build/native-input-tests.log
+          $nativeInputExit = $LASTEXITCODE
+          if ($nativeInputExit -ne 0) {
+            $nativeInputDetail = (Get-Content -LiteralPath .build/native-input-tests.log -Raw).Replace('%','%25').Replace("`r",'%0D').Replace("`n",'%0A')
+            Write-Output ('::error title=Native build input controls::' + $nativeInputDetail)
+            exit $nativeInputExit
+          }
+      - name: Verify runtime installation and rejection controls
+        run: ./tests/NativeRuntimeInstallTests.ps1 -RuntimeDirectory .build/native-build/runtime -EvidenceDirectory .build/native-install-evidence
+      - name: Verify actual native worker and managed pipeline
+        run: ./scripts/test-native-ntfs-checkpoints.ps1 -Worker .build/native-build/runtime/ntfs_worker.exe -Fixture .build/native-fixtures/derived/deleted-resident-derived.dd -LargeFixture .build/native-fixtures/derived/deleted-large-derived.dd -ExpectedPayload .build/native-fixtures/derived/expected.bin -PipelineFixture .build/native-fixtures/derived/deleted-small-mft-derived.dd -EvidenceDirectory .build/native-checkpoint-evidence
+      - name: Verify application CLI, fragmented streams and actual parent crash
+        env:
+          __COMPAT_LAYER: RunAsInvoker
+        run: |
+          ./scripts/build-app.ps1 -OutputDirectory .build/native-product
+          ./scripts/install-native-runtime.ps1 -RuntimeDirectory .build/native-build/runtime -Destination .build/native-product/tools/native-recovery
+          python tests/NativeNtfsPackagedTests.py --package .build/native-product --image .build/native-fixtures/derived/deleted-small-mft-derived.dd --expected .build/native-fixtures/derived/expected.bin --evidence .build/native-product-cli
+          if ($LASTEXITCODE -ne 0) { throw 'Application native CLI failed' }
+          python tests/NativeNtfsStreamCorpusTests.py --package .build/native-product --corpus .build/native-stream-corpus --evidence .build/native-product-streams
+          if ($LASTEXITCODE -ne 0) { throw 'Native stream corpus failed' }
+          python tests/NativeNtfsParentCrashTests.py --package .build/native-product --image .build/native-stream-corpus/fragmented/image.dd --expected .build/native-stream-corpus/fragmented/0.bin --evidence .build/native-product-parent-crash
+          if ($LASTEXITCODE -ne 0) { throw 'Native parent-crash continuation failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ntfs-checkpoints
+          # Keep every path below .build to preserve native-build/runtime on download.
+          path: |
+            .build/native-build/runtime
+            .build/native-build/logs
+            .build/native-checkpoint-evidence/receipt.json
+            .build/native-checkpoint-evidence/source-manifest.json
+            .build/native-checkpoint-evidence/*.log
+            .build/native-fixtures/derived/deleted-small-mft-derived.dd
+            .build/native-fixtures/derived/expected.bin
+            .build/native-stream-corpus
+            .build/native-install-evidence/receipt.json
+            .build/native-input-tests.log
+            .build/native-restore.log
+            .build/native-product-*/receipt.json
+            .build/native-product-*/**/*.log
+          retention-days: 14
+          include-hidden-files: true

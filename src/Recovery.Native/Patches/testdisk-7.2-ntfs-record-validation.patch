@@ -1,0 +1,26 @@
+--- a/src/ntfs_udl.c
++++ b/src/ntfs_udl.c
+@@ -561,6 +561,23 @@
+ 
+ 	ntfs_attr_close(mft);
+ 	mft = NULL;
++
++	/* mst_pread returns the record count even if fixup marked it BAAD.
++	 * Reject torn or malformed headers before parsing any attributes. */
++	if (!ntfs_is_file_record(file->mft->magic) ||
++	    le16_to_cpu(file->mft->usa_count) != 1 + vol->mft_record_size / 512 ||
++	    (le16_to_cpu(file->mft->usa_ofs) & 1) ||
++	    le16_to_cpu(file->mft->usa_ofs) < 8 ||
++	    le16_to_cpu(file->mft->usa_ofs) +
++	        (u32)le16_to_cpu(file->mft->usa_count) * 2 > 510 ||
++	    le32_to_cpu(file->mft->bytes_in_use) > vol->mft_record_size ||
++	    le16_to_cpu(file->mft->attrs_offset) < 48 ||
++	    (le16_to_cpu(file->mft->attrs_offset) & 7) ||
++	    le32_to_cpu(file->mft->bytes_in_use) <
++	        (u32)le16_to_cpu(file->mft->attrs_offset) + 4) {
++		free_file(file);
++		return NULL;
++	}
+ 
+ 	attr10 = find_first_attribute(AT_STANDARD_INFORMATION,	file->mft);
+ 	attr20 = find_first_attribute(AT_ATTRIBUTE_LIST,	file->mft);

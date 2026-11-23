@@ -1,6 +1,7 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
-    [string]$TestName
+    [string]$TestName,
+    [string[]]$TestArguments
 )
 
 $ErrorActionPreference = 'Stop'
@@ -99,6 +100,8 @@ if ($TestName -eq 'ArchiveSalvageTests') {
 if ($TestName -eq 'FragmentedZipRecoveryTests') {
     $runArgs = @(Join-Path $repo '.build\fragmented-zip-inputs-current')
 }
+
+if ($PSBoundParameters.ContainsKey('TestArguments')) { $runArgs = $TestArguments }
 
 Write-Host "Running $TestName..."
 try {

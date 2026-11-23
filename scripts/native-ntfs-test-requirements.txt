@@ -1,0 +1,4 @@
+# Independent fixture parser; build/test dependency, not the recovery runtime.
+dissect.ntfs==3.16 --hash=sha256:35625b3adae0ce6b0db16bbbd04179b92537816fa7e7135bb7d4ddd2fc530243
+dissect.cstruct==4.7 --hash=sha256:0427621ce67baa3106df2dc63a320d0a7f5c2da88ba3faf2ef5886a1a6b458fd
+dissect.util==3.24 --hash=sha256:5bc368d495afeb867b8bf5711f752bd023ae22334b474b375f5ac9a326fea89c

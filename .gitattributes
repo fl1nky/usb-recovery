@@ -58,3 +58,6 @@
 /tests/fixtures/forensic-images/** -text whitespace=cr-at-eol
 /tests/fixtures/telegram-postbox/** -text whitespace=cr-at-eol
 /tests/postbox_oracle/PostboxWriter.cs -text
+
+# Unified patch context contains intentional prefix spaces.
+/src/Recovery.Native/Patches/*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

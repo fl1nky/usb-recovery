@@ -1,0 +1,11 @@
+--- a/src/adv.c
++++ b/src/adv.c
+@@ -378,7 +378,7 @@
+     ask_location(dst_path, sizeof(dst_path), msg, "");
+   }
+ #else
+-  td_getcwd(&dst_path, sizeof(dst_path));
++  td_getcwd(dst_path, sizeof(dst_path));
+ #endif
+   if(dst_path[0]!='\0')
+   {

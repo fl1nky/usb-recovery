@@ -10,7 +10,7 @@ namespace UsbRecovery
     {
         static readonly Dictionary<string,string> Reports=new Dictionary<string,string>(StringComparer.Ordinal){
             {"partitions","partition-search.json"},{"ext4","ext4/report.json"},{"refs","refs/report.json"},{"apfs","apfs/report.json"},
-            {"ntfs-records","metadata-rescue/report.json"},{"photos","extra-photo-search.json"},
+            {"ntfs","ntfs/report.json"},{"ntfs-records","metadata-rescue/report.json"},{"photos","extra-photo-search.json"},
             {"containers","container-search.json"},{"archive-members","archive-salvage.json"},
             {"fragmented-zip","fragmented-zip.json"},{"fragmented-photos","fragmented-photo-search.json"},
             {"fragmented-media","fragmented-media.json"},{"user-signatures","user-signatures.json"},{"text","text-search.json"}};
