@@ -1,8 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace UsbRecovery
 {
+    public sealed class RecoveryMethodCheckpoint
+    {
+        public string Path, Sha256;
+        public long Sequence;
+    }
+
     public sealed class SessionArtifact
     {
         public string Path, Sha256;
@@ -17,6 +24,14 @@ namespace UsbRecovery
         public string CheckpointPath, CheckpointSha256;
         public long CheckpointSequence, CheckpointBytes;
         public List<SessionArtifact> Artifacts = new List<SessionArtifact>();
+        public RecoveryOutputHead ArtifactIndex;
+
+        internal SessionStage StorageCopy()
+        {
+            var copy = (SessionStage)MemberwiseClone();
+            if (ArtifactIndex != null) copy.Artifacts = new List<SessionArtifact>();
+            return copy;
+        }
     }
 
     public sealed class RecoverySessionState
@@ -28,5 +43,13 @@ namespace UsbRecovery
         public string RelativeSourcePath;
         public RecoveryOptions Options;
         public List<SessionStage> Stages = new List<SessionStage>();
+
+        internal RecoverySessionState StorageCopy()
+        {
+            var copy = (RecoverySessionState)MemberwiseClone();
+            copy.Stages = Stages.Select(stage => stage.StorageCopy()).ToList();
+            copy.Schema = copy.Stages.Any(stage => stage.ArtifactIndex != null) ? 2 : 1;
+            return copy;
+        }
     }
 }

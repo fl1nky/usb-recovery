@@ -18,7 +18,7 @@ namespace UsbRecovery
     /// outside surviving trees and snapshots (unreferenced inodes, non-contiguous extents, and directory records).
     /// All access is strictly read-only; source SHA256 immutability is strictly asserted.
     /// </summary>
-    public static class ApfsRecovery
+    public static partial class ApfsRecovery
     {
         // -------------------------------------------------------------
         // Resource Limits & Safety Bounds
@@ -60,7 +60,7 @@ namespace UsbRecovery
             public DateTime? EntryChangeTimeUtc;
             public DateTime? LastAccessTimeUtc;
             public uint FileAttributes;
-            public string Status;             // "recovered_live", "deleted_apfs_unreferenced_candidate", "unsupported_feature"
+            public string Status;             // "recovered_live", "unreferenced_apfs_candidate", "unsupported_feature"
             public string Reason;
             public string Output;
             public string Sha256;
@@ -138,6 +138,10 @@ namespace UsbRecovery
             public Report Report;
             public long OutputBytes;
             public int EntryCount;
+            public long ContainerOffset;
+            public Func<long,int,byte[]> MetadataRead = null;
+            public Action<Entry> PublishFile = null;
+            public RecoveryVerifiedImage VerifiedImage = null;
         }
 
         internal sealed class RawInode
@@ -192,8 +196,7 @@ namespace UsbRecovery
             cancel.ThrowIfCancellationRequested();
 
             if (limits == null) limits = new Limits();
-            if (limits.MaximumDirectories <= 0 || limits.MaximumFileBytes <= 0 || limits.MaximumOutputBytes <= 0)
-                throw new ArgumentException("Resource limits must be strictly positive.");
+            MetadataLimitsIdentity(limits);
 
             string apfsRoot = Path.Combine(destinationDirectory, "apfs");
             if (Directory.Exists(apfsRoot))
@@ -277,7 +280,7 @@ namespace UsbRecovery
                 report.OutputBytes = ctx.OutputBytes;
                 report.Candidates = report.Entries.Count;
                 report.RecoveredFiles = report.Entries.Count(e => e.Status == "recovered_live");
-                report.DeletedCandidates = report.Entries.Count(e => e.Status == "deleted_apfs_unreferenced_candidate");
+                report.DeletedCandidates = report.Entries.Count(e => e.Status == "unreferenced_apfs_candidate");
 
                 string reportJsonPath = Path.Combine(apfsRoot, "report.json");
                 var serializer = new JavaScriptSerializer { MaxJsonLength = 64 * 1024 * 1024 };
@@ -293,31 +296,44 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         private static void ExecuteRecovery(Context ctx, IEnumerable<long> volumeOffsets, Action<string> progress)
         {
+            if (volumeOffsets == null) { ExecuteContainer(ctx,progress); return; }
+            var offsets = volumeOffsets.Take(16390).ToList();
+            if (offsets.Count > 16389) throw new IOException("APFS_OFFSET_REQUEST_LIMIT");
+            int found = 0;
+            try {
+                foreach (long offset in offsets.Distinct()) {
+                    ctx.Cancel.ThrowIfCancellationRequested();
+                    if (offset < 0 || (offset&511) != 0 || offset > ctx.Stream.Length-4096) { ctx.Report.Warnings.Add("APFS invalid container offset"); continue; }
+                    ctx.ContainerOffset = offset;
+                    try { ExecuteContainer(ctx,progress); found++; }
+                    catch (InvalidDataException) { ctx.Report.Warnings.Add("APFS container at requested offset is unreadable or unsupported"); }
+                }
+                if (found == 0) throw new InvalidDataException("No readable APFS container at supplied offsets");
+            } finally { ctx.ContainerOffset = 0; }
+        }
+        private static void ExecuteContainer(Context ctx, Action<string> progress)
+        {
             ctx.Cancel.ThrowIfCancellationRequested();
             if (progress != null) progress("Scanning container and volume headers...");
 
-            long length = ctx.Stream.Length;
+            long length = ctx.Stream.Length-ctx.ContainerOffset;
             uint blockSize = 4096;
 
             // 1. Locate Container Superblock (NXSB)
-            byte[] block0 = new byte[blockSize];
-            ctx.Stream.Position = 0;
-            int r0 = ctx.Stream.Read(block0, 0, (int)blockSize);
-            if (r0 < blockSize) throw new InvalidDataException("Source image smaller than minimum container block size.");
-
-            ulong block0Cksum = BitConverter.ToUInt64(block0, 0);
-            ulong block0Calc = ComputeFletcher64(block0, 8, (int)blockSize - 8);
-            bool containerCksumValid = (block0Cksum == block0Calc);
+            byte[] block0 = ReadMetadata(ctx,0,(int)blockSize);
+            if (block0 == null) throw new InvalidDataException("Source image smaller than minimum container block size.");
+            long containerHeader = 0;
 
             string magic = Encoding.ASCII.GetString(block0, 32, 4);
             if (magic != "NXSB")
             {
                 // Fallback scan for NXSB at first few blocks
                 bool found = false;
-                for (int b = 1; b < Math.Min(16, (int)(length / blockSize)); b++)
+                for (int b = 1; b < Math.Min(16L, length / blockSize); b++)
                 {
-                    ctx.Stream.Position = (long)b * blockSize;
-                    ctx.Stream.Read(block0, 0, (int)blockSize);
+                    containerHeader = (long)b * blockSize;
+                    block0 = ReadMetadata(ctx,containerHeader,(int)blockSize);
+                    if (block0 == null) break;
                     if (Encoding.ASCII.GetString(block0, 32, 4) == "NXSB")
                     {
                         found = true;
@@ -328,10 +344,16 @@ namespace UsbRecovery
             }
 
             uint nxBlockSize = BitConverter.ToUInt32(block0, 36);
-            if (nxBlockSize >= 512 && nxBlockSize <= 65536 && (nxBlockSize & (nxBlockSize - 1)) == 0)
-                blockSize = nxBlockSize;
+            if (nxBlockSize < 1024 || nxBlockSize > 65536 || (nxBlockSize & (nxBlockSize-1)) != 0)
+                throw new InvalidDataException("APFS block size is unsupported by this reader");
+            blockSize = nxBlockSize;
+            if (block0.Length != blockSize) block0 = ReadMetadata(ctx,containerHeader,(int)blockSize);
+            if (block0 == null || BitConverter.ToUInt64(block0,0) != ComputeFletcher64(block0,8,(int)blockSize-8))
+                throw new InvalidDataException("APFS container header checksum invalid");
 
             ulong blockCount = BitConverter.ToUInt64(block0, 40);
+            if (blockCount == 0 || blockCount > (ulong)(length/blockSize)) throw new InvalidDataException("APFS container geometry outside source");
+            length = (long)blockCount*blockSize;
             byte[] containerUuidBytes = new byte[16];
             Array.Copy(block0, 72, containerUuidBytes, 0, 16);
             string containerUuid = new Guid(containerUuidBytes).ToString("D");
@@ -352,14 +374,14 @@ namespace UsbRecovery
             var volumes = new List<DiscoveredVolume>();
             long totalBlocks = length / blockSize;
             long scanBlocks = Math.Min(totalBlocks, (long)ctx.Limits.MaximumBlocks);
+            if (scanBlocks < totalBlocks) { ctx.Report.Limited = true; ctx.Report.Warnings.Add("APFS block scan limited by MaximumBlocks"); }
 
             byte[] scanBuf = new byte[blockSize];
             for (long b = 0; b < scanBlocks; b++)
             {
                 ctx.Cancel.ThrowIfCancellationRequested();
-                ctx.Stream.Position = b * blockSize;
-                int read = ctx.Stream.Read(scanBuf, 0, (int)blockSize);
-                if (read < blockSize) break;
+                scanBuf = ReadMetadata(ctx,b*blockSize,(int)blockSize);
+                if (scanBuf == null) break;
 
                 // Check for APSB magic at offset 32
                 if (scanBuf[32] == 'A' && scanBuf[33] == 'P' && scanBuf[34] == 'S' && scanBuf[35] == 'B')
@@ -370,7 +392,7 @@ namespace UsbRecovery
                     {
                         var vol = new DiscoveredVolume();
                         vol.BlockNumber = (ulong)b;
-                        vol.BlockOffset = b * blockSize;
+                        vol.BlockOffset = ctx.ContainerOffset+b * blockSize;
                         vol.Oid = BitConverter.ToUInt64(scanBuf, 8);
                         vol.Xid = BitConverter.ToUInt64(scanBuf, 16);
                         vol.RootTreeType = BitConverter.ToUInt32(scanBuf, 116);
@@ -386,7 +408,8 @@ namespace UsbRecovery
                         vol.VolumeName = Encoding.UTF8.GetString(scanBuf, 704, nameEnd - 704);
                         if (string.IsNullOrEmpty(vol.VolumeName)) vol.VolumeName = "Volume_" + vol.Oid;
 
-                        volumes.Add(vol);
+                        if (ctx.Report.Volumes.Count+volumes.Count < ctx.Limits.MaximumVolumes) volumes.Add(vol);
+                        else { ctx.Report.Limited = true; ctx.Report.Warnings.Add("APFS volume limit reached"); break; }
                     }
                 }
             }
@@ -455,9 +478,8 @@ namespace UsbRecovery
             if (vol.RootTreeOid != 0 && vol.RootTreeOid < (ulong)scanBlocks)
             {
                 byte[] rootBlock = new byte[blockSize];
-                ctx.Stream.Position = (long)vol.RootTreeOid * blockSize;
-                int rd = ctx.Stream.Read(rootBlock, 0, (int)blockSize);
-                if (rd == blockSize)
+                rootBlock = ReadMetadata(ctx,(long)vol.RootTreeOid*blockSize,(int)blockSize);
+                if (rootBlock != null)
                 {
                     ulong expectedCk = BitConverter.ToUInt64(rootBlock, 0);
                     ulong calcCk = ComputeFletcher64(rootBlock, 8, (int)blockSize - 8);
@@ -483,9 +505,8 @@ namespace UsbRecovery
             for (long b = 0; b < scanBlocks; b++)
             {
                 ctx.Cancel.ThrowIfCancellationRequested();
-                ctx.Stream.Position = b * blockSize;
-                int n = ctx.Stream.Read(blockBuf, 0, (int)blockSize);
-                if (n < blockSize) break;
+                blockBuf = ReadMetadata(ctx,b*blockSize,(int)blockSize);
+                if (blockBuf == null) break;
 
                 // Object header obj_phys_t:
                 // o_type at offset 24 (4 bytes), subtype at offset 28 (4 bytes)
@@ -549,14 +570,17 @@ namespace UsbRecovery
             Func<ulong, string> buildPath = null;
             buildPath = oid =>
             {
-                if (oid <= 2) return "";
-                RawDrec drec;
-                if (drecByFileId.TryGetValue(oid, out drec))
-                {
-                    string parentPath = buildPath(drec.ParentId);
-                    return string.IsNullOrEmpty(parentPath) ? drec.Name : parentPath + "/" + drec.Name;
+                var visited = new HashSet<ulong>(); var parts = new List<string>();
+                while (oid > 2) {
+                    ctx.Cancel.ThrowIfCancellationRequested();
+                    if (!visited.Add(oid) || parts.Count >= ctx.Limits.MaximumTreeDepth || parts.Count >= ctx.Limits.MaximumDirectories) {
+                        ctx.Report.Limited = true; ctx.Report.Warnings.Add("APFS parent chain cyclic or beyond limits"); return "[Lost+Found]";
+                    }
+                    RawDrec drec;
+                    if (!drecByFileId.TryGetValue(oid,out drec)) { parts.Add("[Lost+Found]"); break; }
+                    parts.Add(drec.Name); oid = drec.ParentId;
                 }
-                return "[Lost+Found]";
+                parts.Reverse(); return String.Join("/",parts);
             };
 
             // Group extents by KeyOid
@@ -581,6 +605,7 @@ namespace UsbRecovery
                 // Check if directory
                 bool isDir = (inode.Mode & 0xF000) == 0x00004000;
                 if (isDir) continue;
+                if (++ctx.EntryCount > ctx.Limits.MaximumEntries) { ctx.Report.Limited = true; ctx.Report.Warnings.Add("APFS entry limit reached"); break; }
 
                 bool isLive = liveOids.Contains(inode.ObjectId);
 
@@ -617,7 +642,7 @@ namespace UsbRecovery
                     {
                         cleanExtents.Add(new Extent
                         {
-                            ImageOffset = (long)e.PhysicalBlockNumber * blockSize,
+                            ImageOffset = e.PhysicalBlockNumber > (ulong)((Int64.MaxValue-ctx.ContainerOffset)/blockSize) ? -1 : ctx.ContainerOffset+(long)e.PhysicalBlockNumber * blockSize,
                             LogicalOffset = (long)e.LogicalOffset,
                             Length = (long)e.Length,
                             PhysicalBlockNumber = e.PhysicalBlockNumber
@@ -639,7 +664,7 @@ namespace UsbRecovery
                     continue;
                 }
 
-                if (ctx.OutputBytes + declaredSize > ctx.Limits.MaximumOutputBytes)
+                if (declaredSize < 0 || ctx.OutputBytes < 0 || declaredSize > ctx.Limits.MaximumOutputBytes-ctx.OutputBytes)
                 {
                     ctx.Report.Limited = true;
                     ctx.Report.Warnings.Add(string.Format("MaximumOutputBytes limit reached ({0} bytes); stopping file extraction.",
@@ -672,71 +697,6 @@ namespace UsbRecovery
                 }
 
                 string relativePath = string.IsNullOrEmpty(dirPath) ? filename : dirPath + "/" + filename;
-                string subfolder = isLive ? "recovered_live" : "deleted_apfs_unreferenced_candidate";
-                string outputRelPath = Path.Combine(subfolder, relativePath.Replace('/', Path.DirectorySeparatorChar));
-                string fullOutputPath = Path.Combine(ctx.Destination, outputRelPath);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(fullOutputPath));
-
-                // Extract Payload
-                long recoveredBytes = 0;
-                string sha256Hex = null;
-
-                using (var sha = SHA256.Create())
-                using (var outFs = new FileStream(fullOutputPath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    long remaining = declaredSize;
-                    byte[] copyBuf = new byte[65536];
-
-                    foreach (var ext in cleanExtents)
-                    {
-                        if (remaining <= 0) break;
-                        long bytesToReadFromExtent = Math.Min(ext.Length, remaining);
-
-                        if (ext.PhysicalBlockNumber == 0)
-                        {
-                            // Sparse extent
-                            long zerosRemaining = bytesToReadFromExtent;
-                            Array.Clear(copyBuf, 0, copyBuf.Length);
-                            while (zerosRemaining > 0)
-                            {
-                                int chunk = (int)Math.Min(copyBuf.Length, zerosRemaining);
-                                outFs.Write(copyBuf, 0, chunk);
-                                sha.TransformBlock(copyBuf, 0, chunk, copyBuf, 0);
-                                zerosRemaining -= chunk;
-                                recoveredBytes += chunk;
-                            }
-                        }
-                        else
-                        {
-                            long imageOffset = (long)ext.PhysicalBlockNumber * blockSize;
-                            if (imageOffset >= ctx.Stream.Length)
-                                break;
-
-                            ctx.Stream.Position = imageOffset;
-                            long extentRemaining = bytesToReadFromExtent;
-                            while (extentRemaining > 0)
-                            {
-                                int toRead = (int)Math.Min(copyBuf.Length, extentRemaining);
-                                int n = ctx.Stream.Read(copyBuf, 0, toRead);
-                                if (n == 0) break;
-
-                                outFs.Write(copyBuf, 0, n);
-                                sha.TransformBlock(copyBuf, 0, n, copyBuf, 0);
-                                extentRemaining -= n;
-                                recoveredBytes += n;
-                            }
-                        }
-
-                        remaining -= bytesToReadFromExtent;
-                    }
-
-                    sha.TransformFinalBlock(new byte[0], 0, 0);
-                    sha256Hex = BitConverter.ToString(sha.Hash).Replace("-", "").ToLowerInvariant();
-                }
-
-                ctx.OutputBytes += recoveredBytes;
-
                 var entry = new Entry
                 {
                     VolumeOffset = vol.BlockOffset,
@@ -745,25 +705,26 @@ namespace UsbRecovery
                     Name = filename,
                     RelativePath = relativePath,
                     DeclaredSize = declaredSize,
-                    RecoveredBytes = recoveredBytes,
+
                     CreationTimeUtc = FromUnixNs(inode.CreateTimeNs),
                     LastWriteTimeUtc = FromUnixNs(inode.ModTimeNs),
                     EntryChangeTimeUtc = FromUnixNs(inode.ChangeTimeNs),
                     LastAccessTimeUtc = FromUnixNs(inode.AccessTimeNs),
                     FileAttributes = (uint)inode.Mode,
-                    Status = isLive ? "recovered_live" : "deleted_apfs_unreferenced_candidate",
+                    Status = isLive ? "recovered_live" : "unreferenced_apfs_candidate",
                     Reason = isLive ? "live_filesystem_tree" : "unreferenced_leaf_node_salvage",
-                    DeletionEvidence = isLive ? "none" : "unreferenced_in_live_btree",
-                    Output = outputRelPath.Replace('\\', '/'),
-                    Sha256 = sha256Hex,
+                    DeletionEvidence = null,
+
                     IsResident = false,
                     MetadataChecksumVerified = true,
-                    ContentAuthenticityVerified = isLive,
+                    ContentAuthenticityVerified = false,
                     IsOrphan = isOrphan,
                     TransactionId = inode.Xid,
                     Extents = cleanExtents
                 };
 
+                if (ctx.PublishFile != null) ctx.PublishFile(entry); else WriteFileLegacy(ctx, entry);
+                ctx.OutputBytes += entry.RecoveredBytes;
                 ctx.Report.Entries.Add(entry);
                 if (isLive) volReport.RecoveredLiveFiles++;
                 else volReport.DeletedCandidates++;

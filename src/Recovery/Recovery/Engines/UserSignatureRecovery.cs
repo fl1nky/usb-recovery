@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -43,6 +42,12 @@ namespace UsbRecovery
         sealed class Compiled
         {
             public UserSignatureRule Rule;public byte[] Header,Footer;public int[] Failure;
+        }
+        public sealed class ScanState
+        {
+            public long Position;
+            public bool Complete, Limited;
+            public Report Report;
         }
         static JavaScriptSerializer Json(){return new JavaScriptSerializer{MaxJsonLength=128*1024,RecursionLimit=8};}
         static IOException Invalid(string message){return new IOException("USER_SIGNATURE_INVALID: "+message);}
@@ -139,45 +144,168 @@ namespace UsbRecovery
                 for(int i=0;i<read;i++){while(matched>0&&buffer[i]!=rule.Footer[matched])matched=rule.Failure[matched-1];if(buffer[i]==rule.Footer[matched])matched++;if(matched==rule.Footer.Length)return at+i+1-start;}at+=read;
             }return -1;
         }
-        static Result Copy(FileStream source,long offset,long count,Compiled rule,string folder,Report report,CancellationToken cancel)
+        static string CandidatePath(long offset, UserSignatureRule rule)
         {
-            string name=rule.Rule.Id+"-"+offset.ToString("D16")+"."+rule.Rule.Extension,path=Path.Combine(folder,name),partial=path+".partial";string digest;
-            try{using(var output=new FileStream(partial,FileMode.CreateNew,FileAccess.Write,FileShare.Read))using(var sha=SHA256.Create()){
-                source.Position=offset;byte[] block=new byte[1024*1024];long left=count;while(left>0){cancel.ThrowIfCancellationRequested();int n=source.Read(block,0,(int)Math.Min(block.Length,left));if(n==0)throw new IOException("Образ изменился во время чтения.");output.Write(block,0,n);sha.TransformBlock(block,0,n,null,0);left-=n;}sha.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
-            }cancel.ThrowIfCancellationRequested();File.Move(partial,path);}
-            finally{if(File.Exists(partial))File.Delete(partial);}
-            return new Result{Path="user-signatures/"+name,Sha256=digest,RuleId=rule.Rule.Id,RuleName=rule.Rule.Name,Offset=offset,HeaderOffset=rule.Rule.HeaderOffset,Bytes=count,Boundary=rule.Footer==null?"user_fixed_size":"first_matching_footer"};
+            return "user-signatures/" + rule.Id + "-" + offset.ToString("D16", System.Globalization.CultureInfo.InvariantCulture) + "." + rule.Extension;
         }
         public static int Recover(string image,string runDirectory,IEnumerable<UserSignatureRule> rules,CancellationToken cancel,Action<long,long> progress)
+        {
+            return Recover(image, runDirectory, rules, cancel, progress, null);
+        }
+        static RecoveryRangeRecord Range(Result result)
+        {
+            return new RecoveryRangeRecord { Path = result.Path, Offset = result.Offset, Bytes = result.Bytes,
+                Format = Path.GetExtension(result.Path), Sha256 = result.Sha256 };
+        }
+        static void ValidateState(ScanState state, long length, IList<UserSignatureRule> normalized)
+        {
+            if (state == null || state.Position < 0 || state.Position > length || state.Complete && state.Limited ||
+                state.Complete && state.Position != length || !state.Complete && !state.Limited && state.Position % BlockBytes != 0 ||
+                state.Report == null || state.Report.Schema != 1 || state.Report.InputBytes != length ||
+                state.Report.Files == null || state.Report.Files.Count > MaximumFiles ||
+                state.Report.Recovered != state.Report.Files.Count || state.Report.Candidates < state.Report.Recovered ||
+                state.Report.Candidates > MaximumCandidates + 1 || state.Report.HeaderWorkBytes < 0 ||
+                state.Report.HeaderWorkBytes > MaximumHeaderWorkBytes + 1 || state.Report.FooterWorkBytes < 0 ||
+                state.Report.FooterWorkBytes > MaximumFooterWorkBytes || state.Report.OutputBytes < 0 ||
+                state.Report.OutputBytes > MaximumOutputBytes || state.Report.Skipped == null ||
+                state.Report.Skipped.Any(x => !new[] { "negative_start", "footer_missing", "truncated_fixed_size" }.Contains(x.Key) ||
+                    x.Value < 0 || x.Value > MaximumCandidates + 1) ||
+                Json().Serialize(Validate(state.Report.Rules)) != Json().Serialize(normalized))
+                throw new IOException("USER_SIGNATURE_CHECKPOINT_INVALID");
+            var byId = normalized.ToDictionary(x => x.Id, StringComparer.Ordinal);
+            foreach (var result in state.Report.Files)
+            {
+                UserSignatureRule rule;
+                if (result == null || result.RuleId == null || !byId.TryGetValue(result.RuleId, out rule) ||
+                    result.RuleName != rule.Name || result.HeaderOffset != rule.HeaderOffset ||
+                    result.Status != "signature_candidate" || result.Path != CandidatePath(result.Offset, rule) ||
+                    result.Offset < 0 || result.Offset >= state.Position || result.Bytes < rule.MinBytes ||
+                    result.Bytes > rule.MaxBytes || result.Offset > length - result.Bytes ||
+                    rule.FixedBytes > 0 && result.Bytes != rule.FixedBytes ||
+                    result.Boundary != (rule.FixedBytes > 0 ? "user_fixed_size" : "first_matching_footer"))
+                    throw new IOException("USER_SIGNATURE_CHECKPOINT_RECORD_INVALID");
+            }
+            if (state.Report.OutputBytes != state.Report.Files.Sum(x => x.Bytes))
+                throw new IOException("USER_SIGNATURE_CHECKPOINT_BYTES_CHANGED");
+        }
+        internal static int Recover(string image, string runDirectory, IEnumerable<UserSignatureRule> rules,
+            CancellationToken cancel, Action<long, long> progress, RecoveryCheckpointContext checkpoint)
         {
             cancel.ThrowIfCancellationRequested();var normalized=Validate(rules);image=FullPath(image);runDirectory=FullPath(runDirectory);NoLinks(image);NoLinks(runDirectory);
             if(!File.Exists(image)||Directory.Exists(image))throw new IOException("Для поиска нужен существующий файл образа.");
             if(image.EndsWith(".partial",StringComparison.OrdinalIgnoreCase))throw new IOException("Незавершённый образ .partial не подходит для поиска.");
             string folder=RecoveryCatalog.SafeFile(runDirectory,"user-signatures"),reportPath=RecoveryCatalog.SafeFile(runDirectory,"user-signatures.json");
-            if(String.Equals(image,reportPath,StringComparison.OrdinalIgnoreCase)||image.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||Directory.Exists(folder)||File.Exists(folder)||File.Exists(reportPath)||Directory.Exists(reportPath))throw new IOException("Источник пересекается с отчётами или папка уже содержит результаты сигнатур.");
+            if(String.Equals(image,reportPath,StringComparison.OrdinalIgnoreCase)||image.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||File.Exists(folder)||Directory.Exists(reportPath)||
+                checkpoint==null&&(Directory.Exists(folder)||File.Exists(reportPath)))throw new IOException("Источник пересекается с отчётами или папка уже содержит результаты сигнатур.");
             if(folder.Length+80>32700)throw new IOException("Выбери более короткую папку для результатов сигнатур.");
-            Directory.CreateDirectory(folder);var report=new Report{Rules=normalized};var byFirst=new Dictionary<byte,List<Compiled>>();int longest=0;
+            var journal = new RecoveryMethodJournal<ScanState>(image, new ScanState {
+                Report = new Report { Rules = normalized, InputBytes = new FileInfo(image).Length } }, checkpoint, cancel);
+            var state = journal.Payload;
+            ValidateState(state, new FileInfo(image).Length, normalized);
+            var report = state.Report;
+            var byFirst=new Dictionary<byte,List<Compiled>>();int longest=0;
             foreach(var rule in normalized){var compiled=new Compiled{Rule=rule,Header=DecodeHex(rule.HeaderHex),Footer=String.IsNullOrEmpty(rule.FooterHex)?null:DecodeHex(rule.FooterHex)};if(compiled.Footer!=null)compiled.Failure=Failure(compiled.Footer);List<Compiled> bucket;if(!byFirst.TryGetValue(compiled.Header[0],out bucket)){bucket=new List<Compiled>();byFirst.Add(compiled.Header[0],bucket);}bucket.Add(compiled);longest=Math.Max(longest,compiled.Header.Length);}
-            try{using(var source=new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read)){
-                report.InputBytes=source.Length;byte[] block=new byte[BlockBytes+longest-1];long at=0;
-                while(at<source.Length){cancel.ThrowIfCancellationRequested();source.Position=at;int wanted=(int)Math.Min(block.Length,source.Length-at),read=0,n;while(read<wanted&&(n=source.Read(block,read,wanted-read))>0)read+=n;if(read!=wanted)throw new IOException("Образ изменился во время чтения.");int positions=(int)Math.Min(BlockBytes,source.Length-at);
-                    for(int i=0;i<positions;i++){if((i&4095)==0)cancel.ThrowIfCancellationRequested();List<Compiled> possible;if(!byFirst.TryGetValue(block[i],out possible))continue;
-                        foreach(var rule in possible){if(rule.Header.Length>read-i)continue;bool matches=true;for(int j=1;j<rule.Header.Length;j++){
-                            if(++report.HeaderWorkBytes>MaximumHeaderWorkBytes){report.Status="limited";throw new IOException("Достигнут предел сравнений заголовков. Уточни слишком похожие сигнатуры.");}
-                            if(block[i+j]!=rule.Header[j]){matches=false;break;}
-                        }if(!matches)continue;
-                            if(++report.Candidates>MaximumCandidates){report.Status="limited";throw new IOException("Сигнатура слишком частая: достигнут предел кандидатов. Уточни заголовок.");}long offset=at+i-rule.Rule.HeaderOffset;if(offset<0){Skip(report,"negative_start");continue;}
-                            long length=rule.Footer==null?rule.Rule.FixedBytes:Footer(source,offset,at+i+rule.Header.Length,rule,report,cancel);
-                            if(length<0){Skip(report,"footer_missing");continue;}if(length>source.Length-offset){Skip(report,"truncated_fixed_size");continue;}
-                            if(report.Recovered>=MaximumFiles||length>MaximumOutputBytes-report.OutputBytes){report.Status="limited";throw new IOException("Поиск сигнатур достиг предела объёма результатов.");}
-                            report.Files.Add(Copy(source,offset,length,rule,folder,report,cancel));report.Recovered++;report.OutputBytes+=length;
+            using (var source = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                var output = new RecoveryRangeOutput(runDirectory, "user-signatures", source, MaximumFileBytes, cancel,
+                    r => normalized.Any(rule => r.Format == "." + rule.Extension && r.Path == CandidatePath(r.Offset, rule)));
+                output.RestoreAll(report.Files.Select(Range).ToList(), state.Position);
+                if (journal.Resumed && progress != null) progress(state.Position, source.Length);
+                if (state.Limited) throw new IOException("Поиск сигнатур ранее достиг предела. Найденное проверено; уточни правила в отдельном поиске.");
+                Directory.CreateDirectory(folder);
+                int committed = report.Files.Count;
+                long lastHeader = state.Position;
+                var pending = new List<RecoveryRangeRecord>();
+                try
+                {
+                    if (journal.Enabled && !journal.Resumed) journal.Save(state);
+                    byte[] block = new byte[BlockBytes + longest - 1];
+                    while (!state.Complete && state.Position < source.Length)
+                    {
+                        cancel.ThrowIfCancellationRequested();
+                        long at = state.Position;
+                        source.Position = at;
+                        int wanted = (int)Math.Min(block.Length, source.Length - at), read = 0;
+                        while (read < wanted)
+                        {
+                            int amount = source.Read(block, read, wanted - read);
+                            if (amount == 0) throw new IOException("Образ изменился во время чтения.");
+                            read += amount;
                         }
-                    }at+=positions;if(progress!=null)progress(at,source.Length);
+                        int positions = (int)Math.Min(BlockBytes, source.Length - at);
+                        pending.Clear();
+                        for (int i = 0; i < positions; i++)
+                        {
+                            if ((i & 4095) == 0) cancel.ThrowIfCancellationRequested();
+                            lastHeader = at + i;
+                            List<Compiled> possible;
+                            if (!byFirst.TryGetValue(block[i], out possible)) continue;
+                            foreach (var rule in possible)
+                            {
+                                if (rule.Header.Length > read - i) continue;
+                                bool matches = true;
+                                for (int j = 1; j < rule.Header.Length; j++)
+                                {
+                                    if (++report.HeaderWorkBytes > MaximumHeaderWorkBytes)
+                                    { report.Status = "limited"; throw new IOException("Достигнут предел сравнений заголовков. Уточни слишком похожие сигнатуры."); }
+                                    if (block[i + j] != rule.Header[j]) { matches = false; break; }
+                                }
+                                if (!matches) continue;
+                                if (++report.Candidates > MaximumCandidates)
+                                { report.Status = "limited"; throw new IOException("Сигнатура слишком частая: достигнут предел кандидатов. Уточни заголовок."); }
+                                long offset = lastHeader - rule.Rule.HeaderOffset;
+                                if (offset < 0) { Skip(report, "negative_start"); continue; }
+                                long length = rule.Footer == null ? rule.Rule.FixedBytes :
+                                    Footer(source, offset, lastHeader + rule.Header.Length, rule, report, cancel);
+                                if (length < 0) { Skip(report, "footer_missing"); continue; }
+                                if (length > source.Length - offset) { Skip(report, "truncated_fixed_size"); continue; }
+                                if (report.Recovered >= MaximumFiles || length > MaximumOutputBytes - report.OutputBytes)
+                                { report.Status = "limited"; throw new IOException("Поиск сигнатур достиг предела объёма результатов."); }
+                                var planned = output.Plan(offset, length, "." + rule.Rule.Extension, CandidatePath(offset, rule.Rule));
+                                report.Files.Add(new Result { Path = planned.Path, Sha256 = planned.Sha256,
+                                    Offset = offset, Bytes = length, RuleId = rule.Rule.Id, RuleName = rule.Rule.Name,
+                                    HeaderOffset = rule.Rule.HeaderOffset,
+                                    Boundary = rule.Footer == null ? "user_fixed_size" : "first_matching_footer" });
+                                pending.Add(planned);
+                                report.Recovered++;
+                                report.OutputBytes += length;
+                            }
+                        }
+                        state.Position = at + positions;
+                        state.Complete = state.Position == source.Length;
+                        journal.Save(state);
+                        committed = report.Files.Count;
+                        foreach (var record in pending) output.Restore(record);
+                        if (progress != null) progress(state.Position, source.Length);
+                    }
+                    cancel.ThrowIfCancellationRequested();
+                    if (!state.Complete) { state.Complete = true; journal.Save(state); }
+                    report.Status = "complete";
+                    return report.Recovered;
                 }
-            }report.Status="complete";return report.Recovered;}
-            catch(OperationCanceledException){report.Status="cancelled";throw;}
-            catch(IOException){if(report.Status!="limited")report.Status="incomplete";throw;}
-            finally{RecoveryCore.SaveJson(reportPath,report);}
+                catch (OperationCanceledException) { report.Status = "cancelled"; throw; }
+                catch (IOException)
+                {
+                    if (report.Status == "limited")
+                    {
+                        state.Limited = true;
+                        state.Position = Math.Min(source.Length, lastHeader + 1);
+                        journal.Save(state);
+                        committed = report.Files.Count;
+                        foreach (var record in pending) output.Restore(record);
+                    }
+                    else report.Status = "incomplete";
+                    throw;
+                }
+                finally
+                {
+                    // Unacknowledged in-memory candidates never enter the saved report.
+                    report.Files = report.Files.Take(committed).ToList();
+                    report.Recovered = report.Files.Count;
+                    report.OutputBytes = report.Files.Sum(x => x.Bytes);
+                    RecoveryCore.SaveJson(reportPath, report);
+                }
+            }
         }
     }
 }

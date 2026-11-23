@@ -283,7 +283,10 @@ namespace UsbRecovery
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var hash = SHA256.Create())
             {
-                byte[] buffer = new byte[ChunkSize]; long total = stream.Length, done = 0; int count;
+                long total = stream.Length, done = 0; int count;
+                // Large recovered sets contain many tiny files. Keep the large
+                // sequential buffer for images without allocating it per tiny file.
+                byte[] buffer = new byte[(int)Math.Min(ChunkSize, Math.Max(1L, total))];
                 while ((count = stream.Read(buffer, 0, buffer.Length)) != 0)
                 {
                     cancel.ThrowIfCancellationRequested(); hash.TransformBlock(buffer, 0, count, null, 0); done += count; progress(done, total);
@@ -385,6 +388,8 @@ namespace UsbRecovery
             string fragments = Path.Combine(runDirectory, "text-fragments"); if (Directory.Exists(fragments)) roots.Add(fragments);
             string records = Path.Combine(runDirectory, "metadata-rescue", "files"); if (Directory.Exists(records)) roots.Add(records);
             string ext4 = Path.Combine(runDirectory, "ext4", "files"); if (Directory.Exists(ext4)) roots.Add(ext4);
+            string refs = Path.Combine(runDirectory, "refs", "files"); if (Directory.Exists(refs)) roots.Add(refs);
+            string apfsSalvage = Path.Combine(runDirectory, "apfs", "files"); if (Directory.Exists(apfsSalvage)) roots.Add(apfsSalvage);
             string members = Path.Combine(runDirectory, "salvage-content"); if (Directory.Exists(members)) roots.Add(members);
             string assembled = Path.Combine(runDirectory, "fragmented-archives"); if (Directory.Exists(assembled)) roots.Add(assembled);
             string photoPieces=Path.Combine(runDirectory,"fragmented-photos"),videoPieces=Path.Combine(runDirectory,"fragmented-media");

@@ -99,8 +99,8 @@ public static class ApfsRecoveryTests
                 var entry = report.Entries.FirstOrDefault(e => e.Name == Path.GetFileName(rel) && e.Status == "recovered_live");
                 Assert(entry != null, "Live file entry found in report: " + rel);
                 Assert(entry.Status == "recovered_live", "Status is recovered_live");
-                Assert(entry.DeletionEvidence == "none", "Live file deletion evidence is none");
-                Assert(entry.ContentAuthenticityVerified, "Live file content authenticity verified");
+                Assert(entry.DeletionEvidence == null, "Live record does not establish deletion evidence");
+                Assert(!entry.ContentAuthenticityVerified, "Live metadata checksum does not authenticate file content");
                 Assert(entry.DeclaredSize == expSize, "Live file size matches declared: " + rel);
                 Assert(entry.Sha256 == expSha, "Live file sha256 matches expectation: " + rel);
 
@@ -119,10 +119,10 @@ public static class ApfsRecoveryTests
                 long expSize = Convert.ToInt64(expected["size"]);
                 ulong expInode = Convert.ToUInt64(expected["inode"]);
 
-                var entry = report.Entries.FirstOrDefault(e => e.ObjectId == expInode && e.Status == "deleted_apfs_unreferenced_candidate");
+                var entry = report.Entries.FirstOrDefault(e => e.ObjectId == expInode && e.Status == "unreferenced_apfs_candidate");
                 Assert(entry != null, "Salvaged file entry found in report: " + rel + " (inode " + expInode + ")");
-                Assert(entry.Status == "deleted_apfs_unreferenced_candidate", "Status is deleted_apfs_unreferenced_candidate");
-                Assert(entry.DeletionEvidence == "unreferenced_in_live_btree", "Deletion evidence is unreferenced_in_live_btree");
+                Assert(entry.Status == "unreferenced_apfs_candidate", "Status is deleted_apfs_unreferenced_candidate");
+                Assert(entry.DeletionEvidence == null, "A page outside the inspected root does not establish deletion");
                 Assert(!entry.ContentAuthenticityVerified, "Deleted candidate content authenticity correctly unverified");
                 Assert(entry.MetadataChecksumVerified, "Deleted candidate metadata checksum verified via Fletcher-64");
                 Assert(entry.DeclaredSize == expSize, "Salvaged file size matches declared: " + rel);

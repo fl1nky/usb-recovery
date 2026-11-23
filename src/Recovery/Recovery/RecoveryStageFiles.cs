@@ -16,22 +16,22 @@ namespace UsbRecovery
         // Output scopes are shared by validation, hashing and retry archival.
         static readonly Dictionary<string, string[]> OutputNames = new Dictionary<string, string[]>
         {
-            { "partitions", new[] { "partition-search.json" } },
-            { "fat", new[] { "filesystem" } },
+            { "partitions", new[] { "partition-search.json", "partitions.state" } },
+            { "fat", new[] { "filesystem", "fat.state" } },
             { "ntfs", new[] { "ntfs" } },
-            { "ext4", new[] { "ext4" } },
-            { "refs", new[] { "refs" } },
-            { "apfs", new[] { "apfs" } },
-            { "ntfs-records", new[] { "metadata-rescue" } },
+            { "ext4", new[] { "ext4", "ext4.state" } },
+            { "refs", new[] { "refs", "refs.state" } },
+            { "apfs", new[] { "apfs", "apfs.state" } },
+            { "ntfs-records", new[] { "metadata-rescue", "ntfs-records.state" } },
             { "photorec", new[] { "photorec.log", "photorec.ses" } },
-            { "photos", new[] { "extra-photos", "extra-photo-search.json" } },
-            { "containers", new[] { "containers", "container-search.json" } },
-            { "archive-members", new[] { "salvage-content", "archive-salvage.json" } },
-            { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.json" } },
+            { "photos", new[] { "extra-photos", "photos.state", "extra-photo-search.json" } },
+            { "containers", new[] { "containers", "containers.state", "container-search.json" } },
+            { "archive-members", new[] { "salvage-content", "archive-members.state", "archive-salvage.json" } },
+            { "fragmented-zip", new[] { "fragmented-archives", "fragmented-zip.state", "fragmented-zip.json" } },
             { "fragmented-photos", new[] { "fragmented-photos", "fragmented-photos.state", "fragmented-photos.index", "fragmented-photo-search.json" } },
-            { "fragmented-media", new[] { "fragmented-media", "fragmented-media.json" } },
-            { "user-signatures", new[] { "user-signatures", "user-signatures.json" } },
-            { "text", new[] { "text-fragments", "text-search.json" } },
+            { "fragmented-media", new[] { "fragmented-media", "fragmented-media.state", "fragmented-media.json" } },
+            { "user-signatures", new[] { "user-signatures", "user-signatures.state", "user-signatures.json" } },
+            { "text", new[] { "text-fragments", "text.state", "text-search.json" } },
         };
         internal static readonly string[] Keys = OutputNames.Keys.ToArray();
         internal static IEnumerable<string> Paths(string root, string key)
@@ -87,7 +87,7 @@ namespace UsbRecovery
             int files = 0;
             foreach (string path in Files(key))
             {
-                if (++files > 100000)
+                if (++files > RecoveryArtifactInventory.MaximumArtifacts)
                     throw new IOException("Слишком много файлов предыдущей попытки. Создай новый поиск.");
                 RecoveryCatalog.SafeFile(root, path.Substring(root.TrimEnd('\\').Length + 1));
             }

@@ -54,7 +54,7 @@ namespace UsbRecovery
                 return Execute(prepared.Image, directory, request.Options, cancel, progress, prepared.Checksum, started, activity);
             }
 
-            var saved = RecoverySession.Read(directory);
+            var saved = RecoverySession.Read(directory, cancel);
             if (String.Equals(Path.GetFullPath(saved.SourcePath), ForensicImageSource.WorkingPath(directory), StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Параметры подготовки образа утрачены.");
             return Execute(saved.SourcePath, directory, saved.Options, cancel, progress, null, true, activity);
@@ -85,6 +85,7 @@ namespace UsbRecovery
             string currentKey = "verify", currentTitle = "Проверка образа";
             string lastActivityKey = null, lastActivityState = null;
             long lastActivityTick = 0;
+            bool resumingCheckpoint = false;
             Action<string, long, long, long> observe = (state, done, total, candidates) =>
             {
                 if (activity == null)
@@ -95,7 +96,9 @@ namespace UsbRecovery
                 lastActivityKey = currentKey;
                 lastActivityState = state;
                 lastActivityTick = now;
-                activity(new RecoveryStageProgress { Key = currentKey, Title = currentTitle, State = state, Completed = done, Total = total, Candidates = candidates });
+                var checkpoint = session == null ? null : session.MethodCheckpoint(currentKey);
+                activity(new RecoveryStageProgress { Key = currentKey, Title = currentTitle, State = state, Completed = done, Total = total, Candidates = candidates,
+                    CheckpointSequence = checkpoint == null ? 0 : checkpoint.Sequence, ResumingCheckpoint = resumingCheckpoint && checkpoint != null });
             };
             var source = new ImageRecoverySource(image);
             if (String.Equals(Path.GetFullPath(image), RecoveryCatalog.SafeFile(directory, "recovery-run.lock"), StringComparison.OrdinalIgnoreCase))
@@ -107,7 +110,7 @@ namespace UsbRecovery
                 string expected;
                 if (resume)
                 {
-                    var saved = RecoverySession.Read(directory);
+                    var saved = RecoverySession.Read(directory, cancel);
                     expected = saved.SourceSha256;
                     if (!String.Equals(RecoveryCore.HashFile(image, cancel, (a, b) => observe("running", a, b, -1)), expected, StringComparison.OrdinalIgnoreCase))
                         throw new IOException("Образ изменился после сохранения сессии. Продолжение остановлено.");
@@ -176,7 +179,7 @@ namespace UsbRecovery
                     {
                         session = RecoverySession.Open(directory, image, options, cancel, progress);
                         warnings = session.State.ExternalImage;
-                        progress("Сессия проверена. Завершённые этапы используются повторно. Поиск фрагментов фото продолжится с сохранённой точки, если она есть; остальные незавершённые методы начнутся сначала.");
+                        progress("Сессия проверена. Завершённые этапы используются повторно. Методы с подтверждённой внутренней точкой продолжатся с неё; остальные незавершённые методы начнутся сначала.");
                     }
 
                     try
@@ -193,7 +196,11 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("ext4: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = Ext4Recovery.Recover(image, directory, cancel, progress);
+                                int found = Ext4Recovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "ext4",
+                                        SourceSha256 = expected, Settings = "ext4-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("ext4"),
+                                        Commit = value => session.CaptureMethodCheckpoint("ext4", value) });
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024
@@ -207,7 +214,12 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("refs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = RefsRecovery.Recover(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null);
+                                int found = RefsRecovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "refs",
+                                        SourceSha256 = expected, Settings = "refs-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("refs"),
+                                        Commit = value => session.CaptureMethodCheckpoint("refs", value) },
+                                    options.LostPartitions ? bootCandidates.Select(b => b.Offset) : null);
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024
@@ -221,7 +233,11 @@ namespace UsbRecovery
                             {
                                 if (FileEvidence.HasUnreadSource(directory, image))
                                     throw new IOException("apfs: карта ошибок чтения не позволяет подтвердить метаданные занятости.");
-                                int found = ApfsRecovery.Recover(image, directory, cancel, progress, options.LostPartitions && bootCandidates != null ? bootCandidates.Select(b => b.Offset) : null);
+                                int found = ApfsRecovery.RecoverCheckpointed(image, directory, cancel, progress,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "apfs",
+                                        SourceSha256 = expected, Settings = "apfs-retained-metadata-v1",
+                                        Resume = session.MethodCheckpoint("apfs"), Commit = value => session.CaptureMethodCheckpoint("apfs", value) },
+                                    options.LostPartitions && bootCandidates != null ? bootCandidates.Select(b => b.Offset) : null);
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 64 * 1024 * 1024
@@ -237,7 +253,10 @@ namespace UsbRecovery
                                 {
                                     observe("running", done, total, -1);
                                     progress("Поиск разделов: " + done * 100 / Math.Max(1, total) + "%");
-                                });
+                                }, new RecoveryCheckpointContext { Directory = directory, Method = "partitions",
+                                    SourceSha256 = expected, Settings = "boot-sector-scan-v1",
+                                    Resume = session.MethodCheckpoint("partitions"),
+                                    Commit = value => session.CaptureMethodCheckpoint("partitions", value) });
                                 RecoveryCore.SaveJson(RecoveryCatalog.SafeFile(directory, "partition-search.json"), new { status = bootCandidates.Count >= BootScout.MaximumVolumes ? "limited" : "complete", candidates = bootCandidates, note = "Candidates validated by filesystem parsers. Original image unchanged." });
                                 if (bootCandidates.Count >= BootScout.MaximumVolumes)
                                     warnings = true;
@@ -251,13 +270,23 @@ namespace UsbRecovery
                         }
 
                         if (options.FatMetadata && !unsafeMetadata)
-                            methods.Add(new Work { Key = "fat", Name = "Записи удалённых файлов FAT/exFAT", Run = () => FilesystemRecovery.Recover(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null, options.AlternateFat, options.OrphanDirectories) });
+                            methods.Add(new Work { Key = "fat", Name = "Записи удалённых файлов FAT/exFAT", Run = () => FilesystemRecovery.Recover(image, directory, cancel, progress,
+                                options.LostPartitions ? bootCandidates : null, options.AlternateFat, options.OrphanDirectories,
+                                new RecoveryCheckpointContext { Directory = directory, Method = "fat", SourceSha256 = expected,
+                                    Settings = new JavaScriptSerializer().Serialize(new { alternateFat = options.AlternateFat,
+                                        orphanDirectories = options.OrphanDirectories, discovered = options.LostPartitions ? bootCandidates : null }),
+                                    Resume = session.MethodCheckpoint("fat"), Commit = value => session.CaptureMethodCheckpoint("fat", value) }) });
                         if (options.NtfsMetadata && !unsafeMetadata)
                             methods.Add(new Work { Key = "ntfs", Name = "Записи удалённых файлов NTFS", Run = () => AdvancedEngines.RecoverNtfs(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null) });
                         if (options.MetadataRescue)
                             methods.Add(new Work { Key = "ntfs-records", Name = "Независимые уцелевшие записи NTFS", Run = () =>
                             {
-                                int found = MetadataRescue.Recover(image, directory, cancel, progress, options.LostPartitions ? bootCandidates : null, options.UnknownNtfsAllocation);
+                                int found = MetadataRescue.Recover(image, directory, cancel, progress,
+                                    options.LostPartitions ? bootCandidates : null, options.UnknownNtfsAllocation,
+                                    new RecoveryCheckpointContext { Directory = directory, Method = "ntfs-records", SourceSha256 = expected,
+                                        Settings = new JavaScriptSerializer().Serialize(new { unknownAllocation = options.UnknownNtfsAllocation,
+                                            discovered = options.LostPartitions ? bootCandidates : null }),
+                                        Resume = session.MethodCheckpoint("ntfs-records"), Commit = value => session.CaptureMethodCheckpoint("ntfs-records", value) });
                                 var report = new JavaScriptSerializer
                                 {
                                     MaxJsonLength = 128 * 1024 * 1024
@@ -283,25 +312,38 @@ namespace UsbRecovery
                             {
                                 observe("running", done, total, -1);
                                 progress("Фотографии: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "photos",
+                                SourceSha256 = expected, Settings = "embedded-jpeg-png-v1",
+                                Resume = session.MethodCheckpoint("photos"),
+                                Commit = value => session.CaptureMethodCheckpoint("photos", value) }) });
                         if (options.Containers)
                             methods.Add(new Work { Key = "containers", Name = "Контейнеры и медиа по смещениям", Run = () => ContainerCarver.Recover(image, directory, options, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Контейнеры: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "containers",
+                                SourceSha256 = expected, Settings = new JavaScriptSerializer().Serialize(new {
+                                    options.Photos, options.Video, options.Audio, options.Documents, options.Archives, options.Other }),
+                                Resume = session.MethodCheckpoint("containers"),
+                                Commit = value => session.CaptureMethodCheckpoint("containers", value) }) });
                         if (options.ArchiveMembers)
                             methods.Add(new Work { Key = "archive-members", Name = "Исправные части повреждённых ZIP / Office", Run = () => ArchiveSalvage.Recover(image, directory, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Части архивов: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "archive-members",
+                                SourceSha256 = expected, Settings = "zip32-local-members-v1",
+                                Resume = session.MethodCheckpoint("archive-members"),
+                                Commit = value => session.CaptureMethodCheckpoint("archive-members", value) }) });
                         if (options.FragmentedArchives)
                             methods.Add(new Work { Key = "fragmented-zip", Name = "Сборка ZIP / Office из раздельных записей", Run = () => FragmentedZipRecovery.Recover(image, directory, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Сборка ZIP: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "fragmented-zip",
+                                SourceSha256 = expected, Settings = "zip32-between-members-v1",
+                                Resume = session.MethodCheckpoint("fragmented-zip"),
+                                Commit = value => session.CaptureMethodCheckpoint("fragmented-zip", value) }) });
                         if (options.FragmentedPhotos)
                             methods.Add(new Work { Key = "fragmented-photos", Name = "Сборка разрозненных фотографий", Run = () => FragmentedPhotoRecovery.Recover(image, directory, cancel, (done, total) =>
                             {
@@ -309,29 +351,36 @@ namespace UsbRecovery
                                 progress("Фрагменты фотографий: " + done * 100 / Math.Max(1, total) + "%");
                             }, session.PhotoCheckpoint(), session.CapturePhotoCheckpoint, expected, options.StreamingPngIndex) });
                         if (options.FragmentedVideo)
-                            methods.Add(new Work { Key = "fragmented-media", Name = "Сборка фрагментов MP4 / MOV", Run = () => FragmentedMediaRecovery.Recover(image, directory, cancel, (done, total) =>
+                            methods.Add(new Work { Key = "fragmented-media", Name = "Сборка фрагментов MP4 / MOV", Run = () => FragmentedMediaRecovery.RecoverCheckpointed(image, directory, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Фрагменты видео: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, progress, new RecoveryCheckpointContext { Directory = directory, Method = "fragmented-media",
+                                SourceSha256 = expected, Settings = "iso-bmff-structural-assembly-v1",
+                                Resume = session.MethodCheckpoint("fragmented-media"),
+                                Commit = value => session.CaptureMethodCheckpoint("fragmented-media", value) }) });
                         if (options.CustomSignatures)
                             methods.Add(new Work { Key = "user-signatures", Name = "Свои типы файлов", Run = () => UserSignatureRecovery.Recover(image, directory, options.CustomRules, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Свои типы: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, new RecoveryCheckpointContext { Directory = directory, Method = "user-signatures",
+                                SourceSha256 = expected, Settings = new JavaScriptSerializer().Serialize(options.CustomRules),
+                                Resume = session.MethodCheckpoint("user-signatures"),
+                                Commit = value => session.CaptureMethodCheckpoint("user-signatures", value) }) });
                         if (options.TextFragments)
                             methods.Add(new Work { Key = "text", Name = "Текстовые остатки по ключевым словам", Run = () => RawTextSearch.Recover(image, directory, options.TextQuery, cancel, (done, total) =>
                             {
                                 observe("running", done, total, -1);
                                 progress("Текст: " + done * 100 / Math.Max(1, total) + "%");
-                            }) });
+                            }, session.MethodCheckpoint("text"), value => session.CaptureMethodCheckpoint("text", value), expected) });
                         foreach (var method in methods)
                         {
                             cancel.ThrowIfCancellationRequested();
                             ioHealth.Check(cancel);
                             currentKey = method.Key;
                             currentTitle = method.Name;
+                            resumingCheckpoint = false;
                             observe("running", 0, 0, -1);
                             var prior = session.Completed(method.Key);
                             if (prior != null)
@@ -372,9 +421,10 @@ namespace UsbRecovery
                                 continue;
                             }
 
-                            bool continuePhoto = method.Key == "fragmented-photos" && session.PhotoCheckpoint() != null;
-                            session.Begin(method.Key, continuePhoto);
-                            progress(method.Name + (continuePhoto ? ": продолжение с сохранённой точки…" : "…"));
+                            bool continueMethod = session.MethodCheckpoint(method.Key) != null;
+                            session.Begin(method.Key, continueMethod);
+                            resumingCheckpoint = continueMethod;
+                            progress(method.Name + (continueMethod ? ": продолжение с сохранённой точки…" : "…"));
                             try
                             {
                                 int count = method.Run();

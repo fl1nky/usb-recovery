@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
@@ -17,51 +17,86 @@ namespace UsbRecovery
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel, Action<long, long> progress)
         {
+            return Recover(image, runDirectory, cancel, progress, null);
+        }
+        internal static int Recover(string image, string runDirectory, CancellationToken cancel,
+            Action<long, long> progress, RecoveryCheckpointContext checkpoint)
+        {
             cancel.ThrowIfCancellationRequested();
             if (image.StartsWith(@"\\.\") || image.StartsWith(@"\\?\") || !File.Exists(image)) throw new IOException("Дополнительный поиск работает только с обычным файлом копии.");
-            string output = Path.Combine(runDirectory, "extra-photos");
-            var records = new List<object>();
-            byte[] block = new byte[4 * 1024 * 1024 + 8];
-            int carry = 0, found = 0;
-            long position = 0;
+            const int blockBytes = 4 * 1024 * 1024;
+            string reportPath = RecoveryCatalog.SafeFile(runDirectory, "extra-photo-search.json");
+            if (String.Equals(Path.GetFullPath(image), reportPath, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Исходный образ не может быть отчётом поиска.");
+            var journal = new RecoveryMethodJournal<RecoveryRangeScanState>(image,
+                new RecoveryRangeScanState(), checkpoint, cancel);
+            var state = journal.Payload;
+            var ledger = new RecoveryOutputLedger<RecoveryRangeRecord>(checkpoint, state.Output, 100000, cancel);
             using (var scan = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, 4 * 1024 * 1024))
             using (var parser = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024))
             {
-                int read;
-                while ((read = scan.Read(block, carry, block.Length - carry)) > 0)
+                if (state.Position < 0 || state.Position > scan.Length || state.SkipUntil != 0 || state.Probes != 0 ||
+                    state.Complete && state.Position != scan.Length || state.Complete && state.Limited ||
+                    !state.Complete && !state.Limited && state.Position % blockBytes != 0 ||
+                    ledger.Records.Any(r => r.Format != ".jpg" && r.Format != ".png"))
+                    throw new IOException("PHOTO_SCAN_CHECKPOINT_INVALID");
+                var output = new RecoveryRangeOutput(runDirectory, "extra-photos", parser, MaximumPhoto, cancel);
+                output.RestoreAll(ledger.Records, state.Position);
+                if (state.Limited) throw new IOException("Дополнительный поиск ранее достиг ограничения. Найденные файлы проверены; начни отдельный поиск с меньшей областью.");
+                if (journal.Resumed && progress != null) progress(state.Position, scan.Length);
+                if (journal.Enabled && !journal.Resumed) journal.Save(state);
+                byte[] block = new byte[blockBytes + 7];
+                while (!state.Complete && state.Position < scan.Length)
                 {
                     cancel.ThrowIfCancellationRequested();
-                    int length = carry + read;
-                    long blockStart = position - carry;
-                    // Keep seven bytes so signatures crossing a read boundary are tested once.
-                    int limit = scan.Position == scan.Length ? length : length - 7;
+                    scan.Position = state.Position;
+                    int length = (int)Math.Min(block.Length, scan.Length - state.Position);
+                    if (!ReadExact(scan, block, length)) throw new IOException("PHOTO_SOURCE_TRUNCATED");
+                    int limit = (int)Math.Min(blockBytes, scan.Length - state.Position);
+                    var pending = new List<RecoveryRangeRecord>();
                     for (int i = 0; i < limit; i++)
                     {
                         if ((i & 65535) == 0) cancel.ThrowIfCancellationRequested();
                         bool jpeg = i + 2 < length && block[i] == 255 && block[i + 1] == 216 && block[i + 2] == 255;
                         bool png = i + 7 < length && IsPng(block, i);
                         if (!jpeg && !png) continue;
-                        long offset = blockStart + i;
+                        long offset = state.Position + i;
                         long end = jpeg ? JpegEnd(parser, offset, cancel) : PngEnd(parser, offset, cancel);
                         if (end <= offset) continue;
-                        if (found >= 100000) throw new IOException("Дополнительный поиск достиг ограничения 100 000 изображений. Уже найденные файлы сохранены.");
-                        Directory.CreateDirectory(output);
-                        string name = "offset-" + offset.ToString("D16") + (jpeg ? ".jpg" : ".png");
-                        string target = Path.Combine(output, name);
-                        if (File.Exists(target)) continue;
-                        CopyRange(parser, offset, end - offset, target, cancel);
-                        records.Add(new { path = "extra-photos/" + name, offset = offset, size = end - offset, method = "byte-offset-structural", check = jpeg ? "JPEG markers and EOI" : "PNG chunks and CRC32" });
-                        found++;
+                        if (ledger.Records.Count + pending.Count >= 100000)
+                        {
+                            state.Position += i;
+                            state.Limited = true;
+                            state.Output = ledger.Append(state.Output, pending);
+                            journal.Save(state);
+                            ledger.Accept(pending);
+                            foreach (var record in pending) output.Restore(record);
+                            SaveReport(reportPath, ledger.Records, "limited", journal.Resumed);
+                            throw new IOException("Дополнительный поиск достиг ограничения 100 000 изображений. Уже подтверждённые файлы сохранены.");
+                        }
+                        pending.Add(output.Plan(offset, end - offset, jpeg ? ".jpg" : ".png"));
                     }
-                    position += read;
-                    carry = length - limit;
-                    Buffer.BlockCopy(block, limit, block, 0, carry);
-                    progress(scan.Position, scan.Length);
+                    state.Position += limit;
+                    state.Complete = state.Position == scan.Length;
+                    state.Output = ledger.Append(state.Output, pending);
+                    journal.Save(state); // The parent acknowledges every range before its named output.
+                    ledger.Accept(pending);
+                    foreach (var record in pending) output.Restore(record);
+                    if (progress != null) progress(state.Position, scan.Length);
                 }
+                if (!state.Complete) { state.Complete = true; journal.Save(state); }
             }
             cancel.ThrowIfCancellationRequested();
-            File.WriteAllText(Path.Combine(runDirectory, "extra-photo-search.json"), new JavaScriptSerializer { MaxJsonLength = Int32.MaxValue }.Serialize(new { status = "complete", candidates = found, maximumFileBytes = MaximumPhoto, files = records }), new UTF8Encoding(false));
-            return found;
+            SaveReport(reportPath, ledger.Records, "complete", journal.Resumed);
+            return ledger.Records.Count;
+        }
+        static void SaveReport(string path, IList<RecoveryRangeRecord> records, string status, bool resumed)
+        {
+            RecoveryCore.SaveJson(path, new { status = status, candidates = records.Count,
+                maximumFileBytes = MaximumPhoto, resumedFromCheckpoint = resumed,
+                files = records.Select(r => new { path = r.Path, offset = r.Offset, size = r.Bytes,
+                    sha256 = r.Sha256, method = "byte-offset-structural",
+                    check = r.Format == ".jpg" ? "JPEG markers and EOI" : "PNG chunks and CRC32" }).ToList() });
         }
 
         static bool IsPng(byte[] data, int index)
@@ -172,18 +207,6 @@ namespace UsbRecovery
             int total = 0;
             while (total < length) { int read = stream.Read(buffer, total, length - total); if (read == 0) return false; total += read; }
             return true;
-        }
-        static void CopyRange(FileStream source, long offset, long length, string target, CancellationToken cancel)
-        {
-            source.Position = offset;
-            byte[] buffer = new byte[65536];
-            string partial = target + "." + Guid.NewGuid().ToString("N") + ".partial";
-            using (var output = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
-            {
-                while (length > 0) { cancel.ThrowIfCancellationRequested(); int count = (int)Math.Min(length, buffer.Length); if (!ReadExact(source, buffer, count)) throw new IOException("Копия изменилась или оборвалась во время дополнительного поиска."); output.Write(buffer, 0, count); length -= count; }
-                cancel.ThrowIfCancellationRequested(); output.Flush(true);
-            }
-            File.Move(partial, target);
         }
         static uint[] CreateCrcTable()
         {

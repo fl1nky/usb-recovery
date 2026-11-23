@@ -1,6 +1,13 @@
+param([string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
+if ($OutputDirectory) {
+    $taskBuildRoot = [IO.Path]::GetFullPath((Join-Path $taskLayout.Root '.build'))
+    $taskOutput = if ([IO.Path]::IsPathRooted($OutputDirectory)) { [IO.Path]::GetFullPath($OutputDirectory) } else { [IO.Path]::GetFullPath((Join-Path $taskLayout.Root $OutputDirectory)) }
+    if (-not $taskOutput.StartsWith($taskBuildRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Isolated build output must stay under this checkout .build directory.' }
+    $taskLayout.App = $taskOutput
+}
 $taskCompiler=Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if(-not(Test-Path -LiteralPath $taskCompiler)){throw '.NET Framework compiler not found.'}
 New-Item -ItemType Directory -Force -Path $taskLayout.App|Out-Null

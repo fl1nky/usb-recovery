@@ -18,7 +18,7 @@ namespace UsbRecovery
     /// Unreferenced pages are structural candidates, never proof of deletion or allocation state.
     /// All access is strictly read-only; source SHA256 immutability is strictly asserted.
     /// </summary>
-    public static class RefsRecovery
+    public static partial class RefsRecovery
     {
         // -------------------------------------------------------------
         // Resource Limits & Safety Bounds
@@ -140,6 +140,9 @@ namespace UsbRecovery
             public CancellationToken Cancel;
             public Limits Limits;
             public Report Report;
+            public Func<long, int, byte[]> MetadataRead;
+            public Action<Entry, byte[], string> PublishFile = null;
+            public RecoveryVerifiedImage VerifiedImage = null;
             public int DirectoryCount;
             public int EntryCount;
             public long OutputBytes;
@@ -333,69 +336,7 @@ namespace UsbRecovery
                     report.InputBytes = input.Length;
                     report.SourceSha256 = HashStream(input, cancel);
 
-                    var locations = offsets == null ? Discover(input) : offsets.Distinct().ToList();
-                    foreach (long offset in locations)
-                    {
-                        cancel.ThrowIfCancellationRequested();
-                        if (report.Volumes.Count >= limits.MaximumVolumes)
-                        {
-                            report.Limited = true;
-                            Skip(c, "volume_limit");
-                            break;
-                        }
-                        if (offset < 0 || (offset & 511) != 0 || offset > input.Length - 1024)
-                        {
-                            Skip(c, "invalid_partition_offset");
-                            continue;
-                        }
-
-                        VolumeGeometry geom = ReadVbr(c, offset);
-                        if (geom == null) continue;
-
-                        var vr = new VolumeReport
-                        {
-                            Offset = offset,
-                            Bytes = (long)(geom.NumberOfSectors * geom.BytesPerSector),
-                            Version = string.Format("{0}.{1}", geom.MajorVersion, geom.MinorVersion),
-                            SectorSize = geom.BytesPerSector,
-                            ClusterSize = geom.ClusterBlockSize,
-                            BlockSize = geom.MetadataBlockSize,
-                            ContainerSize = geom.ContainerSize,
-                            Status = "rejected"
-                        };
-                        report.Volumes.Add(vr);
-
-                        // Check supported versions
-                        if (geom.MajorVersion != 1 && geom.MajorVersion != 3)
-                        {
-                            vr.Reason = string.Format("unsupported_refs_major_version_{0}", geom.MajorVersion);
-                            vr.Capabilities.UnsupportedFeatures.Add(vr.Reason);
-                            report.Capabilities.UnsupportedFeatures.Add(vr.Reason);
-                            continue;
-                        }
-
-                        vr.Capabilities.ReFSVersion = vr.Version;
-                        vr.Capabilities.BytesPerSector = geom.BytesPerSector;
-                        vr.Capabilities.ClusterBlockSize = geom.ClusterBlockSize;
-                        vr.Capabilities.MetadataBlockSize = geom.MetadataBlockSize;
-                        vr.Capabilities.ContainerSize = geom.ContainerSize;
-                        vr.Capabilities.PrimaryVbrValid = geom.PrimaryVbrValid;
-                        vr.Capabilities.BackupVbrUsed = geom.BackupVbrUsed;
-                        vr.Capabilities.SupportedFeatures.Add("vbr_fsrs_parsed");
-                        if (geom.BackupVbrUsed) vr.Capabilities.SupportedFeatures.Add("backup_vbr_fallback");
-
-                        // Update top-level report capabilities
-                        report.Capabilities.ReFSVersion = vr.Capabilities.ReFSVersion;
-                        report.Capabilities.BytesPerSector = vr.Capabilities.BytesPerSector;
-                        report.Capabilities.ClusterBlockSize = vr.Capabilities.ClusterBlockSize;
-                        report.Capabilities.MetadataBlockSize = vr.Capabilities.MetadataBlockSize;
-                        report.Capabilities.ContainerSize = vr.Capabilities.ContainerSize;
-                        report.Capabilities.PrimaryVbrValid = vr.Capabilities.PrimaryVbrValid;
-                        report.Capabilities.BackupVbrUsed = vr.Capabilities.BackupVbrUsed;
-
-                        if (progress != null) progress(string.Format("ReFS: разбор метаданных, раздел {0}", offset));
-                        ScanVolume(c, geom, vr, progress);
-                    }
+                    RunVolumes(c, offsets, progress);
 
                     report.SourceUnchanged = input.Length == report.InputBytes && HashStream(input, cancel) == report.SourceSha256;
                     if (!report.SourceUnchanged)
@@ -1116,44 +1057,19 @@ namespace UsbRecovery
                 c.Report.Limited = true; Skip(c, "output_limit"); return;
             }
             string outName = string.Format("volume_{0}_entry_{1}_{2}", geom.VolumeOffset, c.Report.Entries.Count, SanitizeFileName(name));
-            string dest = Path.Combine(c.Root, "files", outName), temp = dest + ".partial";
-            byte[] buffer = new byte[1024 * 1024];
-            string hash;
-            try
-            {
-                using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-                {
-                    if (resident != null) output.Write(resident, 0, resident.Length);
-                    else foreach (var extent in extents)
-                    {
-                        if (extent.ImageOffset >= 0) c.Input.Position = extent.ImageOffset;
-                        long remaining = extent.Length;
-                        if (extent.ImageOffset < 0) Array.Clear(buffer, 0, buffer.Length);
-                        while (remaining > 0)
-                        {
-                            c.Cancel.ThrowIfCancellationRequested();
-                            int n = extent.ImageOffset < 0 ? (int)Math.Min(remaining, buffer.Length) : c.Input.Read(buffer, 0, (int)Math.Min(remaining, buffer.Length));
-                            if (n == 0) throw new EndOfStreamException("Неполное чтение refs");
-                            output.Write(buffer, 0, n); remaining -= n;
-                        }
-                    }
-                    output.Flush(true);
-                }
-                using (var source = File.OpenRead(temp)) using (var sha = SHA256.Create()) hash = Hex(sha.ComputeHash(source));
-                c.Cancel.ThrowIfCancellationRequested(); File.Move(temp, dest);
-            }
-            finally { if (File.Exists(temp)) File.Delete(temp); }
             var entry = new Entry { VolumeOffset = geom.VolumeOffset, ObjectId = objectId,
                 ParentObjectId = parentObjectId, Name = name, RelativePath = relativePath, DeclaredSize = declaredSize,
-                RecoveredBytes = declaredSize, CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
+                CreationTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh)),
                 LastWriteTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 8)),
                 EntryChangeTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 16)),
                 LastAccessTimeUtc = SafeFileTimeUtc(BitConverter.ToUInt64(val, fh + 24)), FileAttributes = attrs,
-                Status = isLive ? "recovered_live" : "unreferenced_refs_candidate", Output = "files/" + outName,
-                Sha256 = hash, IsResident = resident != null, MetadataChecksumVerified = verified,
+                Status = isLive ? "recovered_live" : "unreferenced_refs_candidate",
+                IsResident = resident != null, MetadataChecksumVerified = verified,
                 ContentAuthenticityVerified = false, DeletionEvidence = null,
                 Note = isLive ? "Контрольные суммы метаданных проверены; целостность файловых данных отдельно не подтверждена." :
                     "Структурный кандидат вне посещённых деревьев; удаление, свободное состояние и checksum не подтверждены.", Extents = extents };
+            if (c.PublishFile != null) c.PublishFile(entry, resident, "files/" + outName);
+            else WriteFileLegacy(c, entry, resident, "files/" + outName);
             c.Report.Entries.Add(entry); c.Report.Candidates++; c.Report.RecoveredFiles++; c.Report.OutputBytes += declaredSize;
             c.OutputBytes += declaredSize; vr.RecoveredFiles++;
         }
@@ -1302,6 +1218,7 @@ namespace UsbRecovery
         // -------------------------------------------------------------
         private static byte[] Read(Context c, long offset, int bytes)
         {
+            if (c.MetadataRead != null) return c.MetadataRead(offset, bytes);
             c.Cancel.ThrowIfCancellationRequested();
             if (offset < 0 || bytes <= 0 || offset > c.Input.Length - bytes) return null;
             byte[] buffer = new byte[bytes];
@@ -1316,12 +1233,12 @@ namespace UsbRecovery
             return buffer;
         }
 
-        private static List<long> Discover(FileStream input)
+        private static List<long> Discover(Context c)
         {
             var positions = new List<long> { 0 };
-            byte[] mbr = new byte[512];
-            input.Position = 0;
-            if (input.Read(mbr, 0, 512) != 512 || BitConverter.ToUInt16(mbr, 510) != 0xaa55)
+            var input = c.Input;
+            byte[] mbr = Read(c, 0, 512);
+            if (mbr == null || BitConverter.ToUInt16(mbr, 510) != 0xaa55)
                 return positions;
 
             for (int i = 0; i < 4; i++)
@@ -1331,9 +1248,8 @@ namespace UsbRecovery
             }
 
             // GPT entries
-            byte[] header = new byte[512];
-            input.Position = 512;
-            if (input.Read(header, 0, 512) == 512 && Encoding.ASCII.GetString(header, 0, 8) == "EFI PART")
+            byte[] header = Read(c, 512, 512);
+            if (header != null && Encoding.ASCII.GetString(header, 0, 8) == "EFI PART")
             {
                 ulong table = BitConverter.ToUInt64(header, 72);
                 uint count = BitConverter.ToUInt32(header, 80);
@@ -1341,11 +1257,10 @@ namespace UsbRecovery
                 if (table <= (ulong)(input.Length / 512) && count <= 16384 && size >= 128 && size <= 4096 &&
                     (ulong)count * size <= (ulong)input.Length - table * 512)
                 {
-                    byte[] entry = new byte[size];
                     for (uint i = 0; i < count; i++)
                     {
-                        input.Position = (long)table * 512 + (long)i * size;
-                        if (input.Read(entry, 0, entry.Length) != entry.Length) break;
+                        byte[] entry = Read(c, (long)table * 512 + (long)i * size, (int)size);
+                        if (entry == null) break;
                         ulong lba = BitConverter.ToUInt64(entry, 32);
                         if (entry.Take(16).Any(x => x != 0) && lba > 0 && lba <= (ulong)((input.Length - 2048) / 512))
                             positions.Add((long)lba * 512);

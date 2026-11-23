@@ -86,7 +86,7 @@ namespace UsbRecovery
         {
             object raw;long schema;sha=null;bytes=-1;
             if(session==null||!session.TryGetValue("SourceSha256",out raw)||!(raw is string))return false;
-            sha=(string)raw;return MappingNumber(session,"Schema",out schema)&&schema==1&&MappingNumber(session,"SourceBytes",out bytes)&&bytes>0&&ValidSha(sha);
+            sha=(string)raw;return MappingNumber(session,"Schema",out schema)&&(schema==1||schema==2)&&MappingNumber(session,"SourceBytes",out bytes)&&bytes>0&&ValidSha(sha);
         }
         static bool ValidSha(string sha){return sha!=null&&sha.Length==64&&sha.All(Uri.IsHexDigit);}
         static void BindSource(EvidenceEntry entry,Dictionary<string,object> report,Dictionary<string,object> session,bool sessionFallback=false)
@@ -445,6 +445,13 @@ namespace UsbRecovery
                     ?"Восстановлена карта удалённого файла из журнала JBD2. Исходные блоки свободны в образе, но могли быть перезаписаны после удаления."
                     :"Сохранилась карта удалённого inode. Блоки свободны в этом образе, но могли быть перезаписаны после удаления. Исходное имя и содержимое не подтверждены.";
                 item.IntegrityDetail+=" "+record.Note+" Ссылки каталогов без поколения inode приведены только в ext4/report.json; исходный путь по ним не восстанавливается.";
+            }
+            if(record!=null&&record.Kind=="refs_recovered_file"){
+                item.Method="ReFS · запись файла";item.Status="Сохранившийся файл ReFS";
+                if(!PreserveProblem(item)){item.Quality="metadata_candidate";item.QualityLabel="Метаданные согласованы";}
+                item.SourceVolumeOffset=record.VolumeOffset;
+                item.Note="Имя и карта файла прочитаны из метаданных ReFS. Факт удаления и подлинность содержимого не подтверждены.";
+                item.IntegrityDetail+=" "+record.Note;
             }
             if(!HasReadErrors)return;
             if(item.SourceMapGroupsLimited){item.UnreadBytes=null;return;}

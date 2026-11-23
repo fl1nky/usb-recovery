@@ -8,8 +8,8 @@ using System.Web.Script.Serialization;
 
 namespace UsbRecovery
 {
-    // Completed methods are hash-bound. The photo helper additionally anchors
-    // immutable within-method checkpoints; unsupported methods retain history.
+    // Completed methods are hash-bound. Supported engines anchor immutable
+    // within-method checkpoints; other interrupted methods retain history.
     public sealed class RecoverySession
     {
         public const string FileName = "recovery-session.json";
@@ -54,6 +54,12 @@ namespace UsbRecovery
 
         public static RecoverySessionState Read(string root)
         {
+            return Read(root, CancellationToken.None);
+        }
+
+        public static RecoverySessionState Read(string root, CancellationToken cancel)
+        {
+            cancel.ThrowIfCancellationRequested();
             string file = RecoveryCatalog.SafeFile(root, FileName);
             if (!File.Exists(file) || new FileInfo(file).Length > 64L * 1024 * 1024)
                 throw new IOException("Сохранённая сессия не найдена или слишком велика.");
@@ -63,7 +69,7 @@ namespace UsbRecovery
                 {
                     MaxJsonLength = 64 * 1024 * 1024
                 }.Deserialize<RecoverySessionState>(File.ReadAllText(file, Encoding.UTF8));
-                if (state == null || state.Schema != 1 || state.Options == null || !Hash(state.SourceSha256) || state.SourceBytes <= 0 || String.IsNullOrEmpty(state.SourcePath) || state.Stages == null || state.Stages.Count > Keys.Length)
+                if (state == null || state.Schema != 1 && state.Schema != 2 || state.Options == null || !Hash(state.SourceSha256) || state.SourceBytes <= 0 || String.IsNullOrEmpty(state.SourcePath) || state.Stages == null || state.Stages.Count > Keys.Length)
                     throw new IOException("Сессия повреждена или имеет неподдерживаемую версию.");
                 if (state.SourceInWorkingDirectory)
                 {
@@ -84,10 +90,13 @@ namespace UsbRecovery
                     throw new IOException("Неизвестное состояние сессии.");
                 state.Options.Validate();
                 SourceLocation(root, state.SourcePath);
+                if ((state.Schema == 2) != state.Stages.Any(stage => stage != null && stage.ArtifactIndex != null))
+                    throw new IOException("Некорректная версия списка результатов сессии.");
                 var seen = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var stage in state.Stages)
                 {
-                    if (stage == null || !Keys.Contains(stage.Key) || !seen.Add(stage.Key) || stage.Artifacts == null || stage.Artifacts.Count > 100000 || stage.Candidates < 0 || !new[]
+                    cancel.ThrowIfCancellationRequested();
+                    if (stage == null || !Keys.Contains(stage.Key) || !seen.Add(stage.Key) || stage.Artifacts == null || stage.Artifacts.Count > RecoveryArtifactInventory.LegacyInlineArtifacts || stage.Candidates < 0 || !new[]
                     {
                         "running",
                         "complete",
@@ -95,9 +104,16 @@ namespace UsbRecovery
                         "cancelled"
                     }.Contains(stage.Status))
                         throw new IOException("Некорректные этапы сохранённой сессии.");
+                    if (stage.ArtifactIndex != null)
+                    {
+                        if (stage.Status != "complete" || stage.Artifacts.Count != 0)
+                            throw new IOException("Некорректный список результатов завершённого этапа.");
+                        stage.Artifacts = RecoveryArtifactInventory.Read(root, stage.Key, stage.ArtifactIndex, cancel);
+                    }
                     var artifactNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                     foreach (var artifact in stage.Artifacts)
                     {
+                        cancel.ThrowIfCancellationRequested();
                         if (artifact == null || !artifactNames.Add(artifact.Path) || !Hash(artifact.Sha256) || artifact.Bytes < 0)
                             throw new IOException("Некорректная контрольная сумма результата.");
                         RecoveryCatalog.SafeFile(root, artifact.Path);
@@ -107,7 +123,7 @@ namespace UsbRecovery
                 foreach (var stage in state.Stages)
                     if (stage.CheckpointPath != null || stage.CheckpointSha256 != null || stage.CheckpointSequence != 0 || stage.CheckpointBytes != 0)
                     {
-                        if (stage.Key != "fragmented-photos" || !CheckpointName(stage.CheckpointPath, stage.CheckpointSequence) || !Hash(stage.CheckpointSha256) || stage.CheckpointBytes <= 0 || stage.CheckpointBytes > 16L * 1024 * 1024)
+                        if (!CheckpointName(stage.Key, stage.CheckpointPath, stage.CheckpointSequence) || !Hash(stage.CheckpointSha256) || stage.CheckpointBytes <= 0 || stage.CheckpointBytes > 16L * 1024 * 1024)
                             throw new IOException("Некорректная точка продолжения поиска фотографий.");
                         RecoveryCatalog.SafeFile(root, stage.CheckpointPath);
                     }
@@ -167,7 +183,7 @@ namespace UsbRecovery
 
         public static RecoverySession Open(string root, string image, RecoveryOptions options, CancellationToken cancel, Action<string> progress)
         {
-            var state = Read(root);
+            var state = Read(root, cancel);
             if (state.SourceBytes != new FileInfo(image).Length || !String.Equals(state.SourcePath, Path.GetFullPath(image), StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Источник сессии изменился.");
             string map = RecoveryCatalog.SafeFile(root, "source-read-errors.json");
@@ -230,8 +246,8 @@ namespace UsbRecovery
             lock (gate)
             {
                 SessionStage old = State.Stages.FirstOrDefault(x => x.Key == key);
-                if (continueCheckpoint && (old == null || key != "fragmented-photos" || old.Status == "complete" || old.CheckpointPath == null))
-                    throw new IOException("Нет подтверждённой точки продолжения фотографий.");
+                if (continueCheckpoint && (old == null || !CheckpointSupported(key) || old.Status == "complete" || old.CheckpointPath == null))
+                    throw new IOException("Нет подтверждённой точки продолжения метода.");
                 if (continueCheckpoint)
                     VerifyCheckpoint(old, CancellationToken.None);
                 var next = new SessionStage
@@ -276,9 +292,15 @@ namespace UsbRecovery
             }
         }
 
-        static bool CheckpointName(string path, long sequence)
+        static bool CheckpointSupported(string key)
         {
-            return sequence > 0 && sequence <= 999999999999L && path == "fragmented-photos.state/checkpoint-" + sequence.ToString("D12", System.Globalization.CultureInfo.InvariantCulture) + ".json";
+            return key == "fragmented-photos" || key == "fragmented-media" || key == "text" || key == "partitions" || key == "photos" || key == "containers" || key == "user-signatures" || key == "archive-members" || key == "fragmented-zip" || key == "fat" || key == "ntfs-records" || key == "ext4" || key == "refs" || key == "apfs";
+        }
+
+        static bool CheckpointName(string key, string path, long sequence)
+        {
+            return CheckpointSupported(key) && sequence > 0 && sequence <= 999999999999L &&
+                path == key + ".state/checkpoint-" + sequence.ToString("D12", System.Globalization.CultureInfo.InvariantCulture) + ".json";
         }
 
         void VerifyCheckpoint(SessionStage stage, CancellationToken cancel)
@@ -287,15 +309,22 @@ namespace UsbRecovery
             if (!File.Exists(file) || new FileInfo(file).Length != stage.CheckpointBytes || !String.Equals(RecoveryCore.HashFile(file, cancel, (a, b) =>
             {
             }), stage.CheckpointSha256, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("Точка продолжения фотографий изменена или отсутствует. Результаты сохранены; начни отдельный поиск.");
+                throw new IOException("Точка продолжения изменена или отсутствует. Результаты сохранены; начни отдельный поиск.");
         }
 
         public PhotoRecoveryCheckpoint PhotoCheckpoint()
         {
+            var value = MethodCheckpoint("fragmented-photos");
+            return value == null ? null : new PhotoRecoveryCheckpoint { Path = value.Path, Sha256 = value.Sha256, Sequence = value.Sequence };
+        }
+
+        public RecoveryMethodCheckpoint MethodCheckpoint(string key)
+        {
+            if (!CheckpointSupported(key)) return null;
             lock (gate)
             {
-                var stage = State.Stages.FirstOrDefault(x => x.Key == "fragmented-photos" && x.Status != "complete" && x.CheckpointPath != null);
-                return stage == null ? null : new PhotoRecoveryCheckpoint
+                var stage = State.Stages.FirstOrDefault(x => x.Key == key && x.Status != "complete" && x.CheckpointPath != null);
+                return stage == null ? null : new RecoveryMethodCheckpoint
                 {
                     Path = RecoveryCatalog.SafeFile(root, stage.CheckpointPath),
                     Sha256 = stage.CheckpointSha256,
@@ -306,13 +335,19 @@ namespace UsbRecovery
 
         public void CapturePhotoCheckpoint(PhotoRecoveryCheckpoint checkpoint)
         {
-            if (checkpoint == null || String.IsNullOrWhiteSpace(checkpoint.Path) || !Path.IsPathRooted(checkpoint.Path) || !Hash(checkpoint.Sha256))
-                throw new IOException("Неверная точка продолжения фотографий.");
+            CaptureMethodCheckpoint("fragmented-photos", checkpoint == null ? null : new RecoveryMethodCheckpoint
+                { Path = checkpoint.Path, Sha256 = checkpoint.Sha256, Sequence = checkpoint.Sequence });
+        }
+
+        public void CaptureMethodCheckpoint(string key, RecoveryMethodCheckpoint checkpoint)
+        {
+            if (!CheckpointSupported(key) || checkpoint == null || String.IsNullOrWhiteSpace(checkpoint.Path) || !Path.IsPathRooted(checkpoint.Path) || !Hash(checkpoint.Sha256))
+                throw new IOException("Неверная точка продолжения метода.");
             string prefix = root.TrimEnd('\\', '/') + Path.DirectorySeparatorChar, full = Path.GetFullPath(checkpoint.Path);
             if (!full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Точка продолжения вне папки поиска.");
             string relative = full.Substring(prefix.Length).Replace('\\', '/');
-            if (!CheckpointName(relative, checkpoint.Sequence))
+            if (!CheckpointName(key, relative, checkpoint.Sequence))
                 throw new IOException("Неверный путь точки продолжения.");
             string file = RecoveryCatalog.SafeFile(root, relative);
             long bytes = File.Exists(file) ? new FileInfo(file).Length : 0;
@@ -322,7 +357,7 @@ namespace UsbRecovery
                 throw new IOException("Контрольная сумма точки продолжения не совпала.");
             lock (gate)
             {
-                var stage = State.Stages.FirstOrDefault(x => x.Key == "fragmented-photos");
+                var stage = State.Stages.FirstOrDefault(x => x.Key == key);
                 if (stage == null || stage.Status != "running" || checkpoint.Sequence < stage.CheckpointSequence)
                     throw new IOException("Точка продолжения получена вне текущего этапа.");
                 if (checkpoint.Sequence == stage.CheckpointSequence)
@@ -332,11 +367,22 @@ namespace UsbRecovery
                     throw new IOException("Изменена уже сохранённая точка продолжения.");
                 }
 
+                string oldPath = stage.CheckpointPath, oldHash = stage.CheckpointSha256, oldUpdated = State.UpdatedUtc;
+                long oldSequence = stage.CheckpointSequence, oldBytes = stage.CheckpointBytes;
                 stage.CheckpointPath = relative;
                 stage.CheckpointSha256 = checkpoint.Sha256;
                 stage.CheckpointSequence = checkpoint.Sequence;
                 stage.CheckpointBytes = bytes;
-                Save();
+                try { Save(); }
+                catch
+                {
+                    stage.CheckpointPath = oldPath;
+                    stage.CheckpointSha256 = oldHash;
+                    stage.CheckpointSequence = oldSequence;
+                    stage.CheckpointBytes = oldBytes;
+                    State.UpdatedUtc = oldUpdated;
+                    throw;
+                }
             }
         }
 
@@ -347,7 +393,7 @@ namespace UsbRecovery
             foreach (string file in Files(key))
             {
                 cancel.ThrowIfCancellationRequested();
-                if (artifacts.Count >= 100000)
+                if (artifacts.Count >= RecoveryArtifactInventory.MaximumFor(key))
                     throw new IOException("Слишком много файлов для безопасного сохранения этапа.");
                 string relative = file.Substring(root.TrimEnd('\\').Length + 1).Replace('\\', '/');
                 RecoveryCatalog.SafeFile(root, relative);
@@ -356,14 +402,27 @@ namespace UsbRecovery
                 }) });
             }
 
+            var index = RecoveryArtifactInventory.Write(root, key, artifacts, cancel);
             cancel.ThrowIfCancellationRequested();
             lock (gate)
             {
+                var previousArtifacts = stage.Artifacts;
+                var previousIndex = stage.ArtifactIndex;
+                int previousCount = stage.Candidates;
+                bool previousWarnings = stage.Warnings;
+                string previousStatus = stage.Status;
                 stage.Artifacts = artifacts;
+                stage.ArtifactIndex = index;
                 stage.Candidates = count;
                 stage.Warnings = warnings;
                 stage.Status = "complete";
-                Save();
+                try { Save(); }
+                catch
+                {
+                    stage.Artifacts = previousArtifacts; stage.ArtifactIndex = previousIndex;
+                    stage.Candidates = previousCount; stage.Warnings = previousWarnings; stage.Status = previousStatus;
+                    throw;
+                }
             }
         }
 
@@ -446,8 +505,11 @@ namespace UsbRecovery
         {
             lock (gate)
             {
-                State.UpdatedUtc = DateTime.UtcNow.ToString("o");
-                RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root, FileName), State, 64 * 1024 * 1024);
+                var stored = State.StorageCopy();
+                stored.UpdatedUtc = DateTime.UtcNow.ToString("o");
+                RecoveryCore.SaveJsonBounded(RecoveryCatalog.SafeFile(root, FileName), stored, 64 * 1024 * 1024);
+                State.UpdatedUtc = stored.UpdatedUtc;
+                State.Schema = stored.Schema;
             }
         }
 

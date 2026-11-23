@@ -1,0 +1,73 @@
+name: Recovery continuation
+
+on:
+  push:
+    paths:
+      - 'src/Recovery/Recovery/**'
+      - 'src/Recovery/UI/**'
+      - 'src/Recovery/Infrastructure/RecoveryCore.cs'
+      - 'helpers/recovery_engine/resumable_copy.py'
+      - 'helpers/recovery_engine/recovery_io.py'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/recovery-continuation.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'helpers/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - '.github/workflows/recovery-continuation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [core, flash, ext4, refs, apfs, media]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install fixture image dependency
+        run: python -m pip install Pillow==11.3.0
+      - name: Run continuation checks without UI or devices
+        shell: powershell
+        env:
+          __COMPAT_LAYER: RunAsInvoker
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $python = (Get-Command python).Source
+          switch ('${{ matrix.group }}') {
+            'core' {
+              foreach ($name in 'RecoveryRestartTests','SessionCheckpointSaveTests','TextCheckpointTests','TextUnicodeRecoveryTests','RecoveryContinuityTests','PhotoCheckpointSessionTests','RecoveryStageProgressTests','RecoveryRunPresentationTests') {
+                ./tests/run_test.ps1 $name
+              }
+              python tests/ResumableCopyTests.py
+              if ($LASTEXITCODE -ne 0) { throw 'Copy regressions failed' }
+              python tests/ForensicImageTests.py
+              if ($LASTEXITCODE -ne 0) { throw 'Image regressions failed' }
+            }
+            'flash' { ./scripts/test-flash-checkpoints.ps1 -Python312 $python }
+            'ext4' { ./scripts/test-ext4-checkpoints.ps1 -Python $python }
+            'refs' { ./scripts/test-refs-checkpoints.ps1 -Python $python }
+            'apfs' { ./scripts/test-apfs-checkpoints.ps1 -Python $python }
+            'media' { ./scripts/test-media-checkpoints.ps1 -Python $python }
+          }
+      - name: Upload small validation receipts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: continuation-${{ matrix.group }}
+          path: |
+            .build/**/receipt.json
+            .build/*-validation.json
+            .build/**/*.log
+          if-no-files-found: ignore

@@ -13,13 +13,15 @@ namespace UsbRecovery
     // consistency, never the historical contents of a deleted file's blocks.
     // On-disk definitions: kernel.org/doc/html/latest/filesystems/ext4/ and
     // e2fsprogs lib/ext2fs/csum.c. Journal replay is an in-memory overlay only.
-    public static class Ext4Recovery
+    public static partial class Ext4Recovery
     {
         public sealed class Limits
         {
             public int MaximumVolumes = 32, MaximumGroups = 65536, MaximumInodes = 1000000;
             public int MaximumCandidates = 10000, MaximumExtents = 100000, MaximumTreeBlocks = 4096;
             public int MaximumDirectories = 20000, MaximumNames = 100000;
+            public int InodesPerCheckpoint = 256;
+            public int AllocationBlocksPerCheckpoint = 4096;
             public int MaximumJournalBlocks = 262144;
             public long MaximumJournalBytes = 256L * 1024 * 1024;
             public long MaximumDirectoryBytes = 256L * 1024 * 1024;
@@ -30,6 +32,8 @@ namespace UsbRecovery
         {
             public uint DirectoryInode, TargetInode;
             public long EntryOffset;
+            public long? JournalBlockOffset, TargetBlockOffset;
+            public uint? JournalTransactionSequence;
             public string Name, DirectoryPath, Status = "validated_directory_reference_no_inode_generation";
             public bool DirectoryChecksumVerified;
         }
@@ -44,6 +48,11 @@ namespace UsbRecovery
             public string Note = "Сохранившаяся карта удалённого inode. Свободные блоки могли быть перезаписаны до снимка; контрольной суммы исходного содержимого в ext4 нет.";
             public List<Extent> Extents = new List<Extent>();
             public List<NameLink> Names = new List<NameLink>();
+            internal Entry HeaderCopy()
+            {
+                var copy = (Entry)MemberwiseClone();
+                copy.Extents = new List<Extent>(); copy.Names = new List<NameLink>(); return copy;
+            }
         }
         public sealed class VolumeReport
         {
@@ -155,6 +164,7 @@ namespace UsbRecovery
             public CancellationToken Cancel;
             public Limits Limits;
             public Report Report;
+            public MetadataSourceScope CheckpointSource;
             public int InodesRead, DirectoryCount, NameCount;
             public long DirectoryBytes;
         }
@@ -171,15 +181,9 @@ namespace UsbRecovery
                 throw new IOException("Источник находится в папке результатов ext4");
             if (Directory.Exists(root) || File.Exists(root)) throw new IOException("Папка результатов ext4 уже существует");
             limits = limits ?? new Limits();
-            if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
-                limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
-                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
-                limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
-                throw new ArgumentException("Неверные ограничения ext4");
+            ValidateExt4Limits(limits);
             Directory.CreateDirectory(Path.Combine(root, "files"));
-            var report = new Report { Status = "running" };
-            report.Warnings.Add("Восстанавливаются удалённые inode с полной инициализированной картой, включая зафиксированные транзакции JBD2. Replay выполняется только в памяти. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и fast commit не подменяются исходными байтами.");
-            report.Warnings.Add("Проверенные CRC метаданных и свободный bitmap не доказывают сохранность старого содержимого. Имена — ссылки текущего проверенного каталога; ext4 dirent не содержит generation inode.");
+            var report = NewExt4Report();
             try {
                 using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 1024 * 1024)) {
                     var c = new Context { Input = input, Root = root, Cancel = cancel, Limits = limits, Report = report };
@@ -205,10 +209,62 @@ namespace UsbRecovery
               catch { report.Failed = true; report.Status = "failed"; throw; }
             finally { File.WriteAllText(Path.Combine(root, "report.json"), new JavaScriptSerializer { MaxJsonLength = 64 * 1024 * 1024 }.Serialize(report), new UTF8Encoding(false)); }
         }
+        static void ValidateExt4Limits(Limits limits)
+        {
+            if (limits.MaximumVolumes < 1 || limits.MaximumGroups < 1 || limits.MaximumInodes < 1 || limits.MaximumCandidates < 1 ||
+                limits.MaximumExtents < 1 || limits.MaximumTreeBlocks < 1 || limits.MaximumFileBytes < 1 || limits.MaximumOutputBytes < 1 ||
+                limits.MaximumDirectories < 1 || limits.MaximumNames < 1 || limits.MaximumDirectoryBytes < 1 ||
+                limits.InodesPerCheckpoint < 1 || limits.InodesPerCheckpoint > 256 ||
+                limits.AllocationBlocksPerCheckpoint < 1 || limits.AllocationBlocksPerCheckpoint > MaximumAllocationUnitBlocks ||
+                limits.MaximumJournalBlocks < 1 || limits.MaximumJournalBytes < 1)
+                throw new ArgumentException("Неверные ограничения ext4");
+        }
+        static Report NewExt4Report()
+        {
+            var report = new Report { Status = "running" };
+            report.Warnings.Add("Восстанавливаются удалённые inode с полной инициализированной картой, включая зафиксированные транзакции JBD2. Replay выполняется только в памяти. Sparse/unwritten, inline data, fscrypt, bigalloc, meta_bg и fast commit не подменяются исходными байтами.");
+            report.Warnings.Add("Проверенные CRC метаданных и свободный bitmap не доказывают сохранность старого содержимого. Имена — ссылки текущего проверенного каталога; ext4 dirent не содержит generation inode.");
+            return report;
+        }
 
         static Volume OpenVolume(Context c, long offset)
         {
-            byte[] sb = Read(c, offset + 1024, 1024);
+            Volume v = OpenVolumeHeader(c, offset);
+            if (v == null || v.Report.Status != "header_ready") return v;
+            byte[] sb = v.Superblock;
+            VolumeReport vr = v.Report;
+            vr.Status = "rejected";
+            ulong groups = (ulong)vr.Groups, gdStart = v.FirstData + 1UL;
+            var fixedReserved = v.Reserved.ToList();
+            ReadGroups(c, v, groups, gdStart, fixedReserved);
+            if ((v.Incompat & 0x4) != 0)
+            {
+                JournalContext jc = LoadJournal(c, v, sb);
+                if (jc != null)
+                {
+                    ReplayJournal(c, jc);
+                    if (!v.JournalReplayApplied && jc.Start != 0 && v.Report.JournalStatus != "journal_transaction_uncommitted") {
+                        vr.Reason = v.Report.JournalStatus ?? "journal_replay_failed"; return v;
+                    }
+                    if (v.Overlay.Count > 0)
+                    {
+                        if (!ReplaySuperblockGeometry(c, v, sb)) { vr.Reason = vr.JournalStatus; return v; }
+                        v.Groups.Clear(); v.Reserved = fixedReserved.ToList();
+                        ReadGroups(c, v, groups, gdStart, fixedReserved);
+                    }
+                }
+                else { vr.Reason = vr.JournalStatus ?? "journal_unavailable_for_dirty_volume"; return v; }
+            }
+            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
+            vr.Status = "ready"; return v;
+        }
+
+        static Volume OpenVolumeHeader(Context c, long offset)
+        {
+            return ParseVolumeHeader(c, offset, Read(c, offset + 1024, 1024));
+        }
+        static Volume ParseVolumeHeader(Context c, long offset, byte[] sb)
+        {
             if (sb == null || U16(sb, 0x38) != 0xef53) return null;
             var vr = new VolumeReport { Offset = offset, Status = "rejected" }; c.Report.Volumes.Add(vr);
             var v = new Volume { Offset = offset, Report = vr, Inodes = U32(sb, 0), FirstData = U32(sb, 0x14),
@@ -247,29 +303,8 @@ namespace UsbRecovery
             for (uint g = 1; g < groups; g++) if (HasSuper(sb, v, g))
                 v.Reserved.Add(new Range { Start = v.FirstData + (ulong)g * v.BlocksPerGroup, Length = fixedLength });
             if (v.Reserved.Any(x => x.Start >= v.Blocks || x.Length > v.Blocks - x.Start)) { vr.Reason = "reserved_metadata_bounds"; return v; }
-            var fixedReserved = v.Reserved.ToList();
-            ReadGroups(c, v, groups, gdStart, fixedReserved);
-            if ((v.Incompat & 0x4) != 0)
-            {
-                JournalContext jc = LoadJournal(c, v, sb);
-                if (jc != null)
-                {
-                    ReplayJournal(c, jc);
-                    if (!v.JournalReplayApplied && jc.Start != 0 && v.Report.JournalStatus != "journal_transaction_uncommitted") {
-                        vr.Reason = v.Report.JournalStatus ?? "journal_replay_failed"; return v;
-                    }
-                    if (v.Overlay.Count > 0)
-                    {
-                        if (!ReplaySuperblockGeometry(c, v, sb)) { vr.Reason = vr.JournalStatus; return v; }
-                        v.Groups.Clear(); v.Reserved = fixedReserved.ToList();
-                        ReadGroups(c, v, groups, gdStart, fixedReserved);
-                    }
-                }
-                else { vr.Reason = vr.JournalStatus ?? "journal_unavailable_for_dirty_volume"; return v; }
-            }
             v.Superblock = sb;
-            vr.CheckedGroups = v.Groups.Count(x => x.Valid);
-            vr.Status = "ready"; return v;
+            vr.Status = "header_ready"; return v;
         }
 
         static byte[] GroupDescriptor(Context c, Volume v, ulong gdStart, uint group)
@@ -306,82 +341,17 @@ namespace UsbRecovery
 
         static void ReadGroups(Context c, Volume v, ulong groups, ulong gdStart, List<Range> fixedReserved)
         {
-            for (uint g = 0; g < groups; g++) {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] desc = GroupDescriptor(c, v, gdStart, g);
-                var group = new Group { Number = g, Descriptor = desc }; v.Groups.Add(group);
-                if (desc == null || !GroupChecksum(v, g, desc)) { Skip(c, "group_descriptor_checksum_invalid"); continue; }
-                group.BlockBitmap = Wide(desc, 0, 0x20); group.InodeBitmap = Wide(desc, 4, 0x24); group.InodeTable = Wide(desc, 8, 0x28); group.Flags = U16(desc, 0x12);
-                if ((group.Flags & ~7) != 0) { Skip(c, "group_flags_unsupported"); continue; }
-                ulong tableBlocks = ((ulong)v.InodesPerGroup * (uint)v.InodeBytes + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes;
-                if (group.BlockBitmap == 0 || group.InodeBitmap == 0 || group.InodeTable == 0 || !BlockRange(v, group.BlockBitmap, 1) || !BlockRange(v, group.InodeBitmap, 1) || !BlockRange(v, group.InodeTable, tableBlocks) ||
-                    group.BlockBitmap == group.InodeBitmap || (group.BlockBitmap >= group.InodeTable && group.BlockBitmap - group.InodeTable < tableBlocks) || (group.InodeBitmap >= group.InodeTable && group.InodeBitmap - group.InodeTable < tableBlocks)) { Skip(c, "group_metadata_bounds_or_overlap"); continue; }
-                if (fixedReserved.Any(x => Overlap(x, group.BlockBitmap, 1) || Overlap(x, group.InodeBitmap, 1) || Overlap(x, group.InodeTable, tableBlocks))) { Skip(c, "group_metadata_overlaps_super_or_gdt"); continue; }
-                group.Valid = true; v.Report.CheckedGroups++;
-                v.Reserved.Add(new Range { Start = group.BlockBitmap, Length = 1 }); v.Reserved.Add(new Range { Start = group.InodeBitmap, Length = 1 });
-                v.Reserved.Add(new Range { Start = group.InodeTable, Length = tableBlocks });
-                if ((group.Flags & 1) == 0) { group.Inodes = Block(c, v, group.InodeBitmap); group.InodeMapValid = BitmapChecksum(v, group, group.Inodes, true); }
-                if ((group.Flags & 2) == 0) { group.Blocks = Block(c, v, group.BlockBitmap); group.BlockMapValid = BitmapChecksum(v, group, group.Blocks, false); }
-                if (!group.InodeMapValid) Skip(c, "inode_bitmap_uninitialized_or_invalid");
-                if (!group.BlockMapValid) Skip(c, "block_bitmap_uninitialized_or_invalid");
-            }
-            var areas = new List<MetadataArea>();
-            foreach (Group group in v.Groups.Where(x => x.Valid)) {
-                areas.Add(new MetadataArea { Owner = group, Start = group.BlockBitmap, Length = 1 });
-                areas.Add(new MetadataArea { Owner = group, Start = group.InodeBitmap, Length = 1 });
-                areas.Add(new MetadataArea { Owner = group, Start = group.InodeTable, Length = ((ulong)v.InodesPerGroup * (uint)v.InodeBytes + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes });
-            }
-            MetadataArea previous = null;
-            foreach (MetadataArea area in areas.OrderBy(x => x.Start)) {
-                if (previous != null && area.Start < previous.Start + previous.Length) {
-                    area.Owner.Valid = previous.Owner.Valid = false; Skip(c, "cross_group_metadata_overlap");
-                }
-                if (previous == null || area.Start + area.Length > previous.Start + previous.Length) previous = area;
-            }
+            ReadGroupsCheckpointed(c, v, groups, gdStart, fixedReserved, null, null);
         }
 
         static void ScanVolume(Context c, Volume v, Action<string> progress)
         {
-            var deleted = new List<Inode>(); var directories = new Dictionary<uint, Inode>();
-            foreach (Group group in v.Groups) {
-                if (!group.Valid || !group.InodeMapValid) continue;
-                uint count = Math.Min(v.InodesPerGroup, v.Inodes - group.Number * v.InodesPerGroup);
-                for (uint at = 0; at < count; at++) {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    if (++c.InodesRead > c.Limits.MaximumInodes) { c.Report.Limited = true; Skip(c, "inode_limit"); break; }
-                    uint number = group.Number * v.InodesPerGroup + at + 1;
-                    ulong tableBlock = group.InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
-                    int offsetInBlock = (int)(((long)at * v.InodeBytes) % v.BlockBytes);
-                    byte[] tableData = Block(c, v, tableBlock);
-                    if (tableData == null || tableData.Length < offsetInBlock + v.InodeBytes) continue;
-                    byte[] bytes = new byte[v.InodeBytes];
-                    Buffer.BlockCopy(tableData, offsetInBlock, bytes, 0, v.InodeBytes);
-                    long position = v.Offset + (long)tableBlock * v.BlockBytes + (long)offsetInBlock;
-                    ushort mode = U16(bytes, 0); if ((mode & 0xf000) != 0x8000 && (mode & 0xf000) != 0x4000) continue;
-                    if (!InodeChecksum(v, number, bytes)) { Skip(c, "inode_checksum_invalid"); continue; }
-                    v.Report.CheckedInodes++;
-                    var inode = new Inode { Number = number, Offset = position, Mode = mode, Links = U16(bytes, 0x1a), Dtime = U32(bytes, 0x14),
-                        Flags = U32(bytes, 0x20), Generation = U32(bytes, 0x64), Size = U32(bytes, 4) | (ulong)U32(bytes, 0x6c) << 32,
-                        Allocated = Bit(group.Inodes, at), Bytes = bytes };
-                    if (inode.Allocated && inode.Links > 0 && inode.Dtime == 0) {
-                        v.Report.LiveInodes++;
-                        if ((mode & 0xf000) == 0x4000) {
-                            if (directories.Count >= c.Limits.MaximumDirectories) { c.Report.Limited = true; Skip(c, "directory_count_limit"); }
-                            else directories[number] = inode;
-                        }
-                        continue;
-                    }
-                    if ((mode & 0xf000) != 0x8000 || inode.Allocated || inode.Links != 0 || inode.Dtime == 0 || number < Math.Max(11, v.FirstInode)) continue;
-                    if (c.Report.Entries.Count + deleted.Count >= c.Limits.MaximumCandidates) { c.Report.Limited = true; Skip(c, "candidate_limit"); continue; }
-                    deleted.Add(inode);
-                }
-                if (progress != null) progress("ext4: inode " + Math.Min(c.InodesRead, c.Limits.MaximumInodes) + ", удалённых кандидатов " + deleted.Count);
-                if (c.InodesRead > c.Limits.MaximumInodes) break;
-            }
+            List<Inode> deleted; Dictionary<uint, Inode> directories;
+            ScanInodesCheckpointed(c, v, null, progress, out deleted, out directories);
 
             JournalContext jc = LoadJournal(c, v, v.Superblock);
             Dictionary<uint, HistoricalCandidate> historicalInodes = null;
-            List<Tuple<ulong, byte[]>> journalDirBlocks = null;
+            List<JournalDirectoryBlock> journalDirBlocks = null;
             if (jc != null)
             {
                 SweepJournalHistory(c, v, jc, out historicalInodes, out journalDirBlocks);
@@ -389,133 +359,25 @@ namespace UsbRecovery
             }
 
             var names = DirectoryNames(c, v, directories, journalDirBlocks);
-            foreach (Inode inode in deleted) {
-                c.Cancel.ThrowIfCancellationRequested(); c.Report.Candidates++;
-                var entry = new Entry { VolumeOffset = v.Offset, InodeOffset = inode.Offset, Inode = inode.Number, Generation = inode.Generation,
-                    DeletionTime = inode.Dtime, DeclaredSize = inode.Size > long.MaxValue ? long.MaxValue : (long)inode.Size,
-                    InodeChecksumVerified = v.Csum, Status = "not_recovered" };
-                c.Report.Entries.Add(entry);
-                List<NameLink> links; if (names.TryGetValue(inode.Number, out links)) entry.Names = links;
-                if (inode.Size == 0 || inode.Size > (ulong)c.Limits.MaximumFileBytes) {
-                    entry.Reason = "empty_or_file_size_limit";
-                    if (inode.Size > (ulong)c.Limits.MaximumFileBytes) { c.Report.Limited = true; Skip(c, "file_size_limit"); }
-                    continue;
-                }
-                Mapping map = Map(c, v, inode); entry.Mapping = map.Kind;
-                entry.MappingIntegrity = map.Kind == "direct_indirect" ? "inode_only_indirect_blocks_have_no_checksum" : v.Csum ? "inode_and_extent_nodes_crc32c" : "structural_only_no_metadata_checksum";
-                if (map.Failure != null) { entry.Reason = map.Failure; Skip(c, map.Failure); continue; }
-                foreach (BlockRun run in map.Runs) {
-                    long logical = (long)run.Logical * v.BlockBytes;
-                    entry.Extents.Add(new Extent { ImageOffset = v.Offset + (long)run.Physical * v.BlockBytes, LogicalOffset = logical,
-                        Length = Math.Min((long)run.Count * v.BlockBytes, (long)inode.Size - logical) });
-                }
-                string allocation = Allocation(c, v, map); entry.AllocationStatus = allocation;
-                if (allocation != "currently_free" && allocation != "currently_free_unchecksummed_bitmap") { entry.Reason = allocation; Skip(c, allocation); continue; }
-                if ((long)inode.Size > c.Limits.MaximumOutputBytes - c.Report.OutputBytes) { c.Report.Limited = true; entry.Reason = "output_limit"; continue; }
-                WriteFile(c, entry);
-            }
-
-            if (historicalInodes != null)
-            {
-                foreach (HistoricalCandidate cand in historicalInodes.Values)
-                {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    if (c.Report.Entries.Any(x => x.VolumeOffset == v.Offset && x.Inode == cand.Number && x.Output != null)) continue;
-                    if (!IsCandidateDeletedInLiveFs(c, v, cand)) continue;
-
-                    if (c.Report.Entries.Count >= c.Limits.MaximumCandidates)
-                    {
-                        c.Report.Limited = true;
-                        Skip(c, "candidate_limit");
-                        break;
-                    }
-
-                    var inode = new Inode
-                    {
-                        Number = cand.Number,
-                        Offset = v.Offset + (long)cand.TargetDiskBlock * v.BlockBytes + (long)cand.OffsetInBlock,
-                        Mode = cand.Mode,
-                        Links = cand.Links,
-                        Dtime = cand.Dtime,
-                        Flags = cand.Flags,
-                        Generation = cand.Generation,
-                        Size = cand.Size,
-                        Allocated = false,
-                        Bytes = cand.InodeBytes
-                    };
-
-                    c.Report.Candidates++;
-                    var entry = new Entry
-                    {
-                        VolumeOffset = v.Offset,
-                        InodeOffset = inode.Offset,
-                        Inode = inode.Number,
-                        Generation = inode.Generation,
-                        DeletionTime = inode.Dtime,
-                        DeclaredSize = inode.Size > long.MaxValue ? long.MaxValue : (long)inode.Size,
-                        InodeChecksumVerified = v.Csum,
-                        Status = "not_recovered",
-                        DeletionEvidence = "journal_transaction_pre_deletion_record",
-                        Note = "Историческая карта inode из транзакции журнала JBD2 (seq " + cand.TransactionSeq + "). Свободные блоки могли быть перезаписаны до снимка; контрольной суммы исходного содержимого в ext4 нет."
-                    };
-                    c.Report.Entries.Add(entry);
-
-                    List<NameLink> links;
-                    if (names.TryGetValue(inode.Number, out links)) entry.Names = links;
-
-                    Mapping map = Map(c, v, inode);
-                    entry.Mapping = map.Kind;
-                    entry.MappingIntegrity = map.Kind == "direct_indirect" ? "inode_only_indirect_blocks_have_no_checksum" : v.Csum ? "inode_and_extent_nodes_crc32c" : "structural_only_no_metadata_checksum";
-                    if (map.Failure != null) { entry.Reason = map.Failure; Skip(c, map.Failure); continue; }
-
-                    foreach (BlockRun run in map.Runs)
-                    {
-                        long logical = (long)run.Logical * v.BlockBytes;
-                        entry.Extents.Add(new Extent
-                        {
-                            ImageOffset = v.Offset + (long)run.Physical * v.BlockBytes,
-                            LogicalOffset = logical,
-                            Length = Math.Min((long)run.Count * v.BlockBytes, (long)inode.Size - logical)
-                        });
-                    }
-
-                    string allocation = Allocation(c, v, map);
-                    entry.AllocationStatus = allocation;
-                    if (allocation != "currently_free" && allocation != "currently_free_unchecksummed_bitmap")
-                    {
-                        entry.Reason = allocation;
-                        Skip(c, allocation);
-                        continue;
-                    }
-
-                    if ((long)inode.Size > c.Limits.MaximumOutputBytes - c.Report.OutputBytes)
-                    {
-                        c.Report.Limited = true;
-                        entry.Reason = "output_limit";
-                        continue;
-                    }
-
-                    WriteFile(c, entry);
-                }
-            }
+            ExportVolumeCandidatesLegacy(c, v, deleted, historicalInodes, names);
 
             v.Report.Status = c.Report.Limited ? "limited" : "complete";
         }
 
-        static Mapping Map(Context c, Volume v, Inode inode)
+        static Mapping Map(Context c, Volume v, Inode inode, Func<ulong, byte[]> readBlock = null)
         {
             var map = new Mapping { Kind = (inode.Flags & 0x80000) != 0 ? "extent_tree" : "direct_indirect" };
             if ((inode.Flags & (0x800U | 0x10000000U | 4U | 0x100000U | 0x200000U)) != 0) { map.Failure = "encrypted_inline_compressed_verity_or_ea_inode"; return map; }
             ulong needed = (inode.Size + (uint)v.BlockBytes - 1) / (uint)v.BlockBytes;
             if ((inode.Flags & 0x80000) != 0) {
                 byte[] root = new byte[60]; Buffer.BlockCopy(inode.Bytes, 0x28, root, 0, 60);
-                ExtentNode(c, v, inode, map, root, -1, 0, 0x100000000UL);
+                ExtentNode(c, v, inode, map, root, -1, 0, 0x100000000UL, readBlock);
             } else {
                 ulong logical = 0;
                 for (int i = 0; i < 12 && logical < needed; i++, logical++) AddRun(c, v, map, logical, U32(inode.Bytes, 0x28 + i * 4), 1, false);
                 for (int depth = 1; depth <= 3 && logical < needed && map.Failure == null; depth++) {
                     ulong capacity = 1; for (int i = 0; i < depth; i++) capacity *= (uint)(v.BlockBytes / 4);
-                    Indirect(c, v, map, U32(inode.Bytes, 0x28 + (11 + depth) * 4), depth, logical, needed);
+                    Indirect(c, v, map, U32(inode.Bytes, 0x28 + (11 + depth) * 4), depth, logical, needed, readBlock);
                     logical += capacity;
                 }
                 if (logical < needed && map.Failure == null) map.Failure = "indirect_mapping_size_limit";
@@ -534,7 +396,8 @@ namespace UsbRecovery
             return map;
         }
 
-        static void ExtentNode(Context c, Volume v, Inode inode, Mapping map, byte[] bytes, int expectedDepth, ulong lower, ulong upper)
+        static void ExtentNode(Context c, Volume v, Inode inode, Mapping map, byte[] bytes, int expectedDepth, ulong lower, ulong upper,
+            Func<ulong, byte[]> readBlock)
         {
             if (map.Failure != null) return; c.Cancel.ThrowIfCancellationRequested();
             int entries = U16(bytes, 2), maximum = U16(bytes, 4), depth = U16(bytes, 6);
@@ -556,22 +419,25 @@ namespace UsbRecovery
                     ulong next = i + 1 < entries ? U32(bytes, at + 12) : upper;
                     ulong block = U32(bytes, at + 4) | (ulong)U16(bytes, at + 8) << 32;
                     if (next <= logical || !TreeBlock(c, v, map, block)) { if (map.Failure == null) map.Failure = "extent_index_invalid"; return; }
-                    byte[] child = Block(c, v, block); if (child == null) { map.Failure = "extent_node_read_failed"; return; }
-                    ExtentNode(c, v, inode, map, child, depth - 1, logical, next); previous = next;
+                    byte[] child = readBlock == null ? Block(c, v, block) : readBlock(block);
+                    if (child == null) { map.Failure = "extent_node_read_failed"; return; }
+                    ExtentNode(c, v, inode, map, child, depth - 1, logical, next, readBlock); previous = next;
                 }
             }
         }
-        static void Indirect(Context c, Volume v, Mapping map, ulong block, int depth, ulong logical, ulong needed)
+        static void Indirect(Context c, Volume v, Mapping map, ulong block, int depth, ulong logical, ulong needed,
+            Func<ulong, byte[]> readBlock)
         {
             if (map.Failure != null || logical >= needed) return;
             if (block == 0) { map.Failure = "sparse_indirect_pointer"; return; }
             if (!TreeBlock(c, v, map, block)) return;
-            byte[] bytes = Block(c, v, block); if (bytes == null) { map.Failure = "indirect_block_read_failed"; return; }
+            byte[] bytes = readBlock == null ? Block(c, v, block) : readBlock(block);
+            if (bytes == null) { map.Failure = "indirect_block_read_failed"; return; }
             ulong stride = 1; for (int i = 1; i < depth; i++) stride *= (uint)(v.BlockBytes / 4);
             for (int i = 0; i < bytes.Length / 4 && logical < needed && map.Failure == null; i++, logical += stride) {
                 c.Cancel.ThrowIfCancellationRequested(); ulong pointer = U32(bytes, i * 4);
                 if (depth == 1) AddRun(c, v, map, logical, pointer, 1, false);
-                else Indirect(c, v, map, pointer, depth - 1, logical, needed);
+                else Indirect(c, v, map, pointer, depth - 1, logical, needed, readBlock);
             }
         }
         static bool TreeBlock(Context c, Volume v, Mapping map, ulong block)
@@ -593,15 +459,6 @@ namespace UsbRecovery
             if (map.Runs.Count >= c.Limits.MaximumExtents) { map.Failure = "extent_count_limit"; c.Report.Limited = true; return; }
             map.Runs.Add(new BlockRun { Logical = logical, Physical = physical, Count = count, Unwritten = unwritten });
         }
-        static string Allocation(Context c, Volume v, Mapping map)
-        {
-            foreach (ulong tree in map.TreeBlocks) { string failure = FreeBlock(v, tree); if (failure != null) return "mapping_" + failure; }
-            foreach (BlockRun run in map.Runs) for (ulong i = 0; i < run.Count; i++) {
-                if ((i & 4095) == 0) c.Cancel.ThrowIfCancellationRequested();
-                string failure = FreeBlock(v, run.Physical + i); if (failure != null) return failure;
-            }
-            return v.Csum ? "currently_free" : "currently_free_unchecksummed_bitmap";
-        }
         static string FreeBlock(Volume v, ulong block)
         {
             ulong index = (block - v.FirstData) / v.BlocksPerGroup;
@@ -611,163 +468,16 @@ namespace UsbRecovery
             return Bit(group.Blocks, (uint)((block - v.FirstData) % v.BlocksPerGroup)) ? "currently_allocated_block_conflict" : null;
         }
 
-        static Dictionary<uint, List<NameLink>> DirectoryNames(Context c, Volume v, Dictionary<uint, Inode> directories, List<Tuple<ulong, byte[]>> journalDirBlocks = null)
-        {
-            var links = new Dictionary<uint, List<NameLink>>(); var directoryPaths = new Dictionary<uint, string>(); directoryPaths[2] = "/";
-            foreach (Inode inode in directories.Values) {
-                c.Cancel.ThrowIfCancellationRequested(); if (++c.DirectoryCount > c.Limits.MaximumDirectories) { c.Report.Limited = true; break; }
-                if (inode.Size == 0 || inode.Size > 64L * 1024 * 1024) continue;
-                Mapping map = Map(c, v, inode); if (map.Failure != null) continue;
-                if (map.TreeBlocks.Any(x => FreeBlock(v, x) != "currently_allocated_block_conflict")) continue;
-                foreach (BlockRun run in map.Runs) for (ulong i = 0; i < run.Count; i++) {
-                    if (c.DirectoryBytes > c.Limits.MaximumDirectoryBytes - v.BlockBytes) { c.Report.Limited = true; Skip(c, "directory_byte_limit"); return links; }
-                    c.DirectoryBytes += v.BlockBytes;
-                    if (FreeBlock(v, run.Physical + i) != "currently_allocated_block_conflict") continue;
-                    c.Cancel.ThrowIfCancellationRequested(); byte[] bytes = Block(c, v, run.Physical + i); if (bytes == null) continue;
-                    int end = bytes.Length; bool checkedCsum = false;
-                    if (v.Csum) {
-                        int tail = bytes.Length - 12;
-                        if (U32(bytes, tail) != 0 || U16(bytes, tail + 4) != 12 || bytes[tail + 6] != 0 || bytes[tail + 7] != 0xde || Crc(InodeSeed(v, inode.Number, inode.Generation), bytes, 0, tail) != U32(bytes, tail + 8)) continue;
-                        checkedCsum = true; end = tail;
-                    }
-                    var blockLinks = new List<NameLink>(); int at = 0; bool valid = true;
-                    while (at < end) {
-                        if (at + 8 > end) { valid = false; break; }
-                        uint target = U32(bytes, at); int length = U16(bytes, at + 4), nameLength = (v.Incompat & 2) != 0 ? bytes[at + 6] : U16(bytes, at + 6);
-                        if (length < 8 || (length & 3) != 0 || length > end - at || nameLength > 255 || nameLength > length - 8) { valid = false; break; }
-                        if (target > 0 && target <= v.Inodes && nameLength > 0) {
-                            try {
-                                string name = Utf8.GetString(bytes, at + 8, nameLength);
-                                if (name != "." && name != ".." && name.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                    blockLinks.Add(new NameLink { DirectoryInode = inode.Number, TargetInode = target, Name = name,
-                                        EntryOffset = v.Offset + (long)(run.Physical + i) * v.BlockBytes + at, DirectoryChecksumVerified = checkedCsum });
-                            } catch (DecoderFallbackException) { }
-                        }
-                        int actual = (8 + nameLength + 3) & ~3;
-                        int slack = at + actual;
-                        while (slack + 8 <= at + length)
-                        {
-                            uint unlinkedTarget = U32(bytes, slack);
-                            int unlinkedLen = U16(bytes, slack + 4);
-                            int unlinkedNameLen = (v.Incompat & 2) != 0 ? bytes[slack + 6] : U16(bytes, slack + 6);
-                            if (unlinkedLen < 8 || (unlinkedLen & 3) != 0 || slack + unlinkedLen > at + length ||
-                                unlinkedNameLen == 0 || unlinkedNameLen > unlinkedLen - 8) break;
-                            if (unlinkedTarget > 0 && unlinkedTarget <= v.Inodes)
-                            {
-                                try
-                                {
-                                    string unlinkedName = Utf8.GetString(bytes, slack + 8, unlinkedNameLen);
-                                    if (unlinkedName != "." && unlinkedName != ".." && unlinkedName.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                    {
-                                        blockLinks.Add(new NameLink
-                                        {
-                                            DirectoryInode = inode.Number,
-                                            TargetInode = unlinkedTarget,
-                                            Name = unlinkedName,
-                                            EntryOffset = v.Offset + (long)(run.Physical + i) * v.BlockBytes + slack,
-                                            DirectoryChecksumVerified = checkedCsum,
-                                            Status = "unlinked_directory_slack_reference"
-                                        });
-                                    }
-                                }
-                                catch (DecoderFallbackException) { }
-                            }
-                            slack += unlinkedLen;
-                        }
-                        at += length;
-                    }
-                    if (!valid) continue;
-                    foreach (NameLink link in blockLinks) {
-                        if (++c.NameCount > c.Limits.MaximumNames) { c.Report.Limited = true; return links; }
-                        List<NameLink> existing; if (!links.TryGetValue(link.TargetInode, out existing)) { existing = new List<NameLink>(); links[link.TargetInode] = existing; }
-                        existing.Add(link);
-                    }
-                }
-            }
-            if (journalDirBlocks != null)
-            {
-                foreach (var jdb in journalDirBlocks)
-                {
-                    byte[] bytes = jdb.Item2;
-                    ulong diskBlock = jdb.Item1;
-                    if (bytes == null || bytes.Length < 12) continue;
-                    int end = bytes.Length;
-                    bool checkedCsum = false;
-                    if (v.Csum)
-                    {
-                        int tail = bytes.Length - 12;
-                        if (U32(bytes, tail) == 0 && U16(bytes, tail + 4) == 12 && bytes[tail + 6] == 0 && bytes[tail + 7] == 0xDE)
-                        {
-                            checkedCsum = true;
-                            end = tail;
-                        }
-                    }
-                    uint dirIno = 0;
-                    if (bytes.Length > 24 && bytes[6] == 1 && bytes[8] == '.')
-                    {
-                        dirIno = U32(bytes, 0);
-                    }
-                    int at = 0;
-                    while (at < end)
-                    {
-                        if (at + 8 > end) break;
-                        uint target = U32(bytes, at);
-                        int length = U16(bytes, at + 4);
-                        int nameLength = (v.Incompat & 2) != 0 ? bytes[at + 6] : U16(bytes, at + 6);
-                        if (length < 8 || (length & 3) != 0 || length > end - at || nameLength > 255 || nameLength > length - 8) break;
-                        if (target > 0 && target <= v.Inodes && nameLength > 0)
-                        {
-                            try
-                            {
-                                string name = Utf8.GetString(bytes, at + 8, nameLength);
-                                if (name != "." && name != ".." && name.IndexOfAny(new[] { '/', '\0' }) < 0)
-                                {
-                                    List<NameLink> existing;
-                                    if (!links.TryGetValue(target, out existing)) { existing = new List<NameLink>(); links[target] = existing; }
-                                    if (!existing.Any(x => x.TargetInode == target && x.Name == name))
-                                    {
-                                        existing.Add(new NameLink
-                                        {
-                                            DirectoryInode = dirIno,
-                                            TargetInode = target,
-                                            Name = name,
-                                            EntryOffset = v.Offset + (long)diskBlock * v.BlockBytes + at,
-                                            DirectoryChecksumVerified = checkedCsum,
-                                            Status = "historical_journal_directory_reference"
-                                        });
-                                    }
-                                }
-                            }
-                            catch (DecoderFallbackException) { }
-                        }
-                        at += length;
-                    }
-                }
-            }
-            // Only a connected, unambiguous current directory chain gets a path.
-            for (int depth = 0; depth < 128; depth++) {
-                bool changed = false;
-                foreach (uint number in directories.Keys) {
-                    if (directoryPaths.ContainsKey(number)) continue; List<NameLink> names;
-                    if (!links.TryGetValue(number, out names) || names.Count != 1 || !directoryPaths.ContainsKey(names[0].DirectoryInode)) continue;
-                    string path = directoryPaths[names[0].DirectoryInode] + names[0].Name + "/"; if (path.Length > 32768) continue;
-                    directoryPaths[number] = path; changed = true;
-                }
-                if (!changed) break;
-            }
-            foreach (List<NameLink> names in links.Values) foreach (NameLink name in names) { string path; if (directoryPaths.TryGetValue(name.DirectoryInode, out path)) name.DirectoryPath = path; }
-            return links;
-        }
-
         static void WriteFile(Context c, Entry entry)
         {
             byte[] header = Read(c, entry.Extents[0].ImageOffset, (int)Math.Min(32, entry.Extents[0].Length));
             string extension = SignatureExtension(header); entry.ContentTypeHint = extension == ".bin" ? null : extension.Substring(1) + "_signature_only";
             string name = "volume_" + entry.VolumeOffset + "_inode_" + entry.Inode + "_generation_" + entry.Generation + extension;
             string relative = "files/" + name, destination = Path.Combine(c.Root, "files", name), temporary = destination + ".partial";
-            NoLinks(destination); byte[] buffer = new byte[1024 * 1024];
+            NoLinks(destination); byte[] buffer = new byte[1024 * 1024]; bool ownsTemporary = false;
             try {
                 using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) using (var sha = SHA256.Create()) {
+                    ownsTemporary = true;
                     foreach (Extent extent in entry.Extents) {
                         c.Input.Position = extent.ImageOffset; long remaining = extent.Length;
                         while (remaining > 0) {
@@ -781,7 +491,7 @@ namespace UsbRecovery
                 c.Cancel.ThrowIfCancellationRequested(); File.Move(temporary, destination);
                 entry.Output = relative; entry.RecoveredBytes = entry.DeclaredSize; entry.Status = "deleted_inode_candidate";
                 c.Report.RecoveredFiles++; c.Report.OutputBytes += entry.RecoveredBytes;
-            } finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            } finally { if (ownsTemporary && File.Exists(temporary)) File.Delete(temporary); }
         }
 
         static bool InodeChecksum(Volume v, uint number, byte[] bytes)
@@ -905,6 +615,10 @@ namespace UsbRecovery
 
         static JournalContext LoadJournal(Context c, Volume v, byte[] sb)
         {
+            return LoadJournalWithReader(c, v, sb, number => Block(c, v, number));
+        }
+        static JournalContext LoadJournalWithReader(Context c, Volume v, byte[] sb, Func<ulong, byte[]> readBlock)
+        {
             if (v.JournalLoaded) return v.Journal;
             v.JournalLoaded = true;
             if (sb == null) return JournalFailure(c, v, "journal_superblock_unavailable");
@@ -916,7 +630,7 @@ namespace UsbRecovery
             if (groupIndex >= v.Groups.Count || !v.Groups[(int)groupIndex].Valid) return JournalFailure(c, v, "journal_inode_group_invalid");
             ulong tableBlock = v.Groups[(int)groupIndex].InodeTable + (ulong)(((long)at * v.InodeBytes) / v.BlockBytes);
             int offsetInBlock = (int)(((long)at * v.InodeBytes) % v.BlockBytes);
-            byte[] blockData = Block(c, v, tableBlock);
+            byte[] blockData = readBlock(tableBlock);
             if (blockData == null || blockData.Length < offsetInBlock + v.InodeBytes) return null;
             byte[] inodeBytes = new byte[v.InodeBytes];
             Buffer.BlockCopy(blockData, offsetInBlock, inodeBytes, 0, v.InodeBytes);
@@ -934,7 +648,7 @@ namespace UsbRecovery
                 Size = U32(inodeBytes, 4) | ((ulong)U32(inodeBytes, 0x6C) << 32)
             };
 
-            Mapping map = Map(c, v, journalInode);
+            Mapping map = Map(c, v, journalInode, readBlock);
             if (map.Failure != null || map.Runs.Count == 0) return JournalFailure(c, v, "journal_mapping_invalid");
             ulong journalBlocks = map.Runs.Aggregate(0UL, (total, run) => total + run.Count);
             if (journalBlocks > (ulong)c.Limits.MaximumJournalBlocks || journalInode.Size > (ulong)c.Limits.MaximumJournalBytes) {
@@ -948,7 +662,7 @@ namespace UsbRecovery
 
             if (jc.Blocks.Count < 2) return null;
 
-            byte[] jsb = Block(c, v, jc.Blocks[0]);
+            byte[] jsb = readBlock(jc.Blocks[0]);
             if (jsb == null || jsb.Length < 1024) return null;
             if (Be32(jsb, 0) != 0xC03B3998U) return null;
             uint blockType = Be32(jsb, 4);
@@ -1092,60 +806,7 @@ namespace UsbRecovery
         static bool TryJournalTransaction(Context c, JournalContext jc, uint start, out JournalTransaction trans,
             out uint next, out string failure, ref long budget)
         {
-            trans = new JournalTransaction(); next = start; failure = "journal_transaction_uncommitted";
-            var visited = new HashSet<uint>(); uint oldChecksum = 0xffffffff;
-            byte[] first = JournalBlock(c, jc, start);
-            if (first == null) return false;
-            trans.Sequence = Be32(first, 8);
-            while (true) {
-                c.Cancel.ThrowIfCancellationRequested();
-                if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
-                if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
-                byte[] block = JournalBlock(c, jc, next);
-                if (block == null || Be32(block, 0) != 0xc03b3998 || Be32(block, 8) != trans.Sequence) return false;
-                uint current = next, type = Be32(block, 4); next = NextJournalBlock(next, jc.First, jc.MaxLen);
-                if (type == 2) {
-                    if (!JournalMetadataChecksum(jc, block, 16) || (jc.HasCsumV1 &&
-                        !(block[12] == 1 && block[13] == 4 && Be32(block, 16) == oldChecksum))) {
-                        failure = "journal_commit_checksum_invalid"; return false;
-                    }
-                    trans.Committed = true; return true;
-                }
-                if (type == 5) {
-                    trans.HeaderBlocks.Add(current);
-                    if ((jc.Incompat & 1) == 0) { failure = "journal_revoke_feature_missing"; return false; }
-                    if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_revoke_checksum_invalid"; return false; }
-                    uint count = Be32(block, 12); int width = jc.Is64Bit ? 8 : 4;
-                    int limit = block.Length - (jc.HasCsumV2 || jc.HasCsumV3 ? 4 : 0);
-                    if (count < 16 || count > limit || (count - 16) % width != 0) { failure = "journal_revoke_bounds"; return false; }
-                    for (int at = 16; at < count; at += width) {
-                        ulong revoked = jc.Is64Bit ? Be64(block, at) : Be32(block, at);
-                        if (!BlockRange(jc.Volume, revoked, 1)) { failure = "journal_revoke_bounds"; return false; }
-                        trans.RevokedBlocks.Add(revoked);
-                    }
-                    continue;
-                }
-                if (type != 1) return false;
-                trans.HeaderBlocks.Add(current);
-                if (!JournalMetadataChecksum(jc, block, block.Length - 4)) { failure = "journal_descriptor_checksum_invalid"; return false; }
-                var tags = ParseDescriptorTags(block, jc);
-                if (tags == null || tags.Count == 0) { failure = "journal_descriptor_tags_invalid"; return false; }
-                if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, block);
-                foreach (JournalTag tag in tags) {
-                    if (--budget < 0) { c.Report.Limited = true; failure = "journal_work_limit"; return false; }
-                    if (!visited.Add(next)) { failure = "journal_transaction_cycle"; return false; }
-                    byte[] data = JournalBlock(c, jc, next);
-                    if (data == null) return false;
-                    if (jc.HasCsumV2 || jc.HasCsumV3) {
-                        byte[] sequence = { (byte)(trans.Sequence >> 24), (byte)(trans.Sequence >> 16), (byte)(trans.Sequence >> 8), (byte)trans.Sequence };
-                        uint checksum = Crc(Crc(jc.Seed, sequence, 0, 4), data, 0, data.Length);
-                        if ((jc.HasCsumV3 ? checksum : checksum & 65535) != tag.Checksum) { failure = "journal_data_checksum_invalid"; return false; }
-                    }
-                    if (jc.HasCsumV1) oldChecksum = Crc32BigEndian(oldChecksum, data);
-                    trans.DataBlocks.Add(Tuple.Create(tag, jc.Blocks[(int)next]));
-                    next = NextJournalBlock(next, jc.First, jc.MaxLen);
-                }
-            }
+            return TryJournalTransactionCheckpointed(c, jc, start, out trans, out next, out failure, ref budget, null, null);
         }
 
         static bool SequenceAtOrAfter(uint sequence, uint other) { return unchecked((int)(sequence - other)) >= 0; }
@@ -1162,69 +823,7 @@ namespace UsbRecovery
 
         static void ReplayJournal(Context c, JournalContext jc)
         {
-            Volume v = jc.Volume;
-            v.JournalReplayAttempted = true;
-            v.Report.JournalReplayAttempted = true;
-            if (jc.Start == 0 || jc.Start >= jc.MaxLen) return;
-
-            uint cur = jc.Start;
-            uint expectedSeq = jc.Sequence;
-            var committed = new List<JournalTransaction>();
-            int maxScan = (int)(jc.MaxLen - jc.First);
-            long budget = (long)maxScan * 2;
-
-            for (int step = 0; step < maxScan && cur < (uint)jc.Blocks.Count; step++)
-            {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] blk = JournalBlock(c, jc, cur);
-                if (blk == null || Be32(blk, 0) != 0xC03B3998U) break;
-                uint seq = Be32(blk, 8);
-                if (seq != expectedSeq) break;
-
-                JournalTransaction trans; string failure; uint next;
-                if (!TryJournalTransaction(c, jc, cur, out trans, out next, out failure, ref budget)) {
-                    Skip(c, failure); v.Report.JournalStatus = failure;
-                    // An unfinished tail is normal; a damaged committed log cannot
-                    // establish authoritative current allocation state.
-                    if (failure != "journal_transaction_uncommitted") { v.Overlay.Clear(); return; }
-                    break;
-                }
-                cur = next;
-                committed.Add(trans);
-                expectedSeq++;
-            }
-
-            if (committed.Count == 0) return;
-
-            var revokeTable = JournalRevokes(committed);
-
-            foreach (var trans in committed)
-            {
-                foreach (var item in trans.DataBlocks)
-                {
-                    ulong dest = item.Item1.DestinationBlock;
-                    uint flags = item.Item1.Flags;
-                    ulong phys = item.Item2;
-
-                    uint revSeq;
-                    if (revokeTable.TryGetValue(dest, out revSeq) && SequenceAtOrAfter(revSeq, trans.Sequence))
-                        continue;
-
-                    if (!BlockRange(v, dest, 1)) continue;
-                    byte[] data = Read(c, v.Offset + (long)phys * v.BlockBytes, v.BlockBytes);
-                    if (data == null) continue;
-
-                    byte[] replayed = (byte[])data.Clone();
-                    if ((flags & 1) != 0)
-                    {
-                        replayed[0] = 0xC0; replayed[1] = 0x3B; replayed[2] = 0x39; replayed[3] = 0x98;
-                    }
-                    v.Overlay[dest] = replayed;
-                }
-            }
-            v.JournalReplayApplied = true;
-            v.Report.JournalReplayApplied = true;
-            v.Report.JournalStatus = "committed_transactions_replayed_in_memory";
+            ReplayJournalCheckpointed(c, jc, null, null);
         }
 
         static Group FindInodeTableGroup(Volume v, ulong block)
@@ -1240,131 +839,13 @@ namespace UsbRecovery
 
         static void SweepJournalHistory(Context c, Volume v, JournalContext jc,
             out Dictionary<uint, HistoricalCandidate> historicalInodes,
-            out List<Tuple<ulong, byte[]>> journalDirBlocks)
+            out List<JournalDirectoryBlock> journalDirBlocks)
         {
             historicalInodes = new Dictionary<uint, HistoricalCandidate>();
-            journalDirBlocks = new List<Tuple<ulong, byte[]>>();
+            journalDirBlocks = new List<JournalDirectoryBlock>();
             if (jc == null || jc.Blocks.Count < 2) return;
 
-            var starts = new Dictionary<uint, List<uint>>();
-            for (uint logBlk = jc.First; logBlk < jc.MaxLen; logBlk++)
-            {
-                c.Cancel.ThrowIfCancellationRequested();
-                byte[] hblk = JournalBlock(c, jc, logBlk);
-                if (hblk == null || Be32(hblk, 0) != 0xc03b3998 || (Be32(hblk, 4) != 1 && Be32(hblk, 4) != 5)) continue;
-                uint sequence = Be32(hblk, 8); List<uint> positions;
-                if (!starts.TryGetValue(sequence, out positions)) starts[sequence] = positions = new List<uint>();
-                positions.Add(logBlk);
-            }
-            var transactions = new List<JournalTransaction>();
-            long budget = (long)(jc.MaxLen - jc.First) * 4;
-            foreach (var candidate in starts) {
-                foreach (uint start in candidate.Value) {
-                    JournalTransaction transaction; uint next; string failure;
-                    if (TryJournalTransaction(c, jc, start, out transaction, out next, out failure, ref budget) &&
-                        transaction.HeaderBlocks.SetEquals(candidate.Value)) {
-                        transactions.Add(transaction); break;
-                    }
-                    if (budget < 0) { Skip(c, "journal_work_limit"); return; }
-                    Skip(c, failure);
-                }
-            }
-            var revokes = JournalRevokes(transactions);
-            foreach (JournalTransaction transaction in transactions) {
-                uint seq = transaction.Sequence;
-
-                foreach (var item in transaction.DataBlocks)
-                {
-                    c.Cancel.ThrowIfCancellationRequested();
-                    JournalTag tag = item.Item1;
-                    ulong dataPhys = item.Item2;
-                    ulong targetDiskBlk = tag.DestinationBlock;
-                    uint revokedAt;
-                    if (revokes.TryGetValue(targetDiskBlk, out revokedAt) && SequenceAtOrAfter(revokedAt, seq)) continue;
-                    bool isEscaped = (tag.Flags & 1) != 0;
-
-                    Group ownerGroup = FindInodeTableGroup(v, targetDiskBlk);
-                    if (ownerGroup != null)
-                    {
-                        byte[] data = Read(c, v.Offset + (long)dataPhys * v.BlockBytes, v.BlockBytes);
-                        if (data == null) continue;
-                        if (isEscaped)
-                        {
-                            data = (byte[])data.Clone();
-                            data[0] = 0xC0; data[1] = 0x3B; data[2] = 0x39; data[3] = 0x98;
-                        }
-
-                        ulong blkOffset = targetDiskBlk - ownerGroup.InodeTable;
-                        uint inodesPerBlock = (uint)(v.BlockBytes / v.InodeBytes);
-                        uint firstIno = ownerGroup.Number * v.InodesPerGroup + (uint)blkOffset * inodesPerBlock + 1;
-                        uint count = Math.Min(inodesPerBlock, v.InodesPerGroup - (uint)blkOffset * inodesPerBlock);
-
-                        for (uint m = 0; m < count; m++)
-                        {
-                            uint inoNumber = firstIno + m;
-                            if (inoNumber < Math.Max(11, v.FirstInode) || inoNumber > v.Inodes) continue;
-
-                            int inoAt = (int)(m * v.InodeBytes);
-                            byte[] inoBytes = new byte[v.InodeBytes];
-                            Buffer.BlockCopy(data, inoAt, inoBytes, 0, v.InodeBytes);
-
-                            ushort mode = U16(inoBytes, 0);
-                            if ((mode & 0xF000) != 0x8000) continue;
-                            if (!InodeChecksum(v, inoNumber, inoBytes)) continue;
-
-                            ulong size = U32(inoBytes, 4) | ((ulong)U32(inoBytes, 0x6C) << 32);
-                            if (size == 0 || size > (ulong)c.Limits.MaximumFileBytes) continue;
-
-                            uint flags = U32(inoBytes, 0x20);
-                            if ((flags & (0x800U | 0x10000000U | 4U | 0x100000U | 0x200000U)) != 0) continue;
-
-                            bool hasExtents = (flags & 0x80000) != 0;
-                            if (hasExtents)
-                            {
-                                if (U16(inoBytes, 0x28) != 0xF30A || U16(inoBytes, 0x28 + 2) == 0) continue;
-                            }
-                            else
-                            {
-                                if (U32(inoBytes, 0x28) == 0) continue;
-                            }
-
-                            HistoricalCandidate existing;
-                            if (!historicalInodes.TryGetValue(inoNumber, out existing) || SequenceAtOrAfter(seq, existing.TransactionSeq))
-                            {
-                                historicalInodes[inoNumber] = new HistoricalCandidate
-                                {
-                                    Number = inoNumber,
-                                    TransactionSeq = seq,
-                                    JournalBlock = dataPhys,
-                                    TargetDiskBlock = targetDiskBlk,
-                                    OffsetInBlock = inoAt,
-                                    Mode = mode,
-                                    Links = U16(inoBytes, 0x1A),
-                                    Dtime = U32(inoBytes, 0x14),
-                                    Flags = flags,
-                                    Generation = U32(inoBytes, 0x64),
-                                    Size = size,
-                                    InodeBytes = inoBytes
-                                };
-                            }
-                        }
-                    }
-                    else
-                    {
-                        byte[] data = Read(c, v.Offset + (long)dataPhys * v.BlockBytes, v.BlockBytes);
-                        if (data == null) continue;
-                        if (isEscaped)
-                        {
-                            data = (byte[])data.Clone();
-                            data[0] = 0xC0; data[1] = 0x3B; data[2] = 0x39; data[3] = 0x98;
-                        }
-                        if (IsDirectoryBlock(data))
-                        {
-                            journalDirBlocks.Add(Tuple.Create(targetDiskBlk, data));
-                        }
-                    }
-                }
-            }
+            SweepJournalHistoryCheckpointed(c, v, jc, null, null, out historicalInodes, out journalDirBlocks);
         }
 
         static bool IsDirectoryBlock(byte[] bytes)

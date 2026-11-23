@@ -14,7 +14,7 @@ namespace UsbRecovery
     // https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT
     // Only fragmentation BETWEEN complete local-member records is supported.
     // Compressed bodies and central-directory+EOCD must each be contiguous.
-    public static class FragmentedZipRecovery
+    public static partial class FragmentedZipRecovery
     {
         public const int MaximumHeaders=30000,MaximumLocals=20000,MaximumDirectories=5000,MaximumEntries=1024,MaximumArchives=100;
         public const long MaximumMemberBytes=64L*1024*1024,MaximumArchiveBytes=128L*1024*1024,MaximumWorkBytes=512L*1024*1024,MaximumOutputBytes=512L*1024*1024;
@@ -42,7 +42,7 @@ namespace UsbRecovery
         {
             public string Status="incomplete";
             public int Schema=1,Headers,LocalRecords,Directories,Recovered;
-            public long InputBytes,ExpandedWorkBytes,OutputBytes;
+            public long InputBytes,ExpandedWorkBytes,OutputBytes,ChargedWorkBytes;
             public Dictionary<string,int> Skipped=new Dictionary<string,int>(StringComparer.Ordinal);
             public List<Result> Files=new List<Result>();
             public string Scope="Only between-member fragmentation. ZIP32 stored/deflate, known local sizes, no encryption, ZIP64, descriptors, SFX/padding or signed central directories. All members must pass CRC and length checks; ambiguous distinct raw records are not joined.";
@@ -76,7 +76,7 @@ namespace UsbRecovery
             public Slice(FileStream file,long offset,long count){input=file;start=offset;length=count;}
             public override bool CanRead{get{return true;}}public override bool CanSeek{get{return false;}}public override bool CanWrite{get{return false;}}
             public override long Length{get{return length;}}public override long Position{get{return position;}set{throw new NotSupportedException();}}
-            public override int Read(byte[] b,int at,int count){if(position>=length)return 0;input.Position=start+position;int n=input.Read(b,at,(int)Math.Min(count,length-position));if(n==0)throw new Reject("member_truncated");position+=n;return n;}
+            public override int Read(byte[] b,int at,int count){if(count==0||position>=length)return 0;input.Position=start+position;int n=input.Read(b,at,(int)Math.Min(count,length-position));if(n==0)throw new IOException("FRAGMENTED_ZIP_SOURCE_TRUNCATED");position+=n;return n;}
             public override void Flush(){}public override long Seek(long n,SeekOrigin o){throw new NotSupportedException();}public override void SetLength(long n){throw new NotSupportedException();}public override void Write(byte[] b,int at,int n){throw new NotSupportedException();}
         }
 
@@ -91,7 +91,7 @@ namespace UsbRecovery
         }
         static byte[] Read(FileStream input,long offset,int length)
         {
-            if(offset<0||length<0||offset>input.Length-length)throw new Reject("structure_bounds");input.Position=offset;byte[] bytes=new byte[length];int done=0,n;while(done<length&&(n=input.Read(bytes,done,length-done))>0)done+=n;if(done!=length)throw new Reject("structure_truncated");return bytes;
+            if(offset<0||length<0||offset>input.Length-length)throw new Reject("structure_bounds");input.Position=offset;byte[] bytes=new byte[length];int done=0,n;while(done<length&&(n=input.Read(bytes,done,length-done))>0)done+=n;if(done!=length)throw new IOException("FRAGMENTED_ZIP_SOURCE_TRUNCATED");return bytes;
         }
         static ushort U16(byte[] b,int at){return BitConverter.ToUInt16(b,at);}static uint U32(byte[] b,int at){return BitConverter.ToUInt32(b,at);}
         static bool Signature(byte[] b,uint value){return b.Length>=4&&U32(b,0)==value;}
@@ -138,15 +138,15 @@ namespace UsbRecovery
         }
         static string HashRange(FileStream input,long offset,long length,CancellationToken cancel)
         {
-            using(var sha=SHA256.Create()){byte[] block=new byte[65536];input.Position=offset;while(length>0){cancel.ThrowIfCancellationRequested();int n=input.Read(block,0,(int)Math.Min(length,block.Length));if(n==0)throw new Reject("range_truncated");sha.TransformBlock(block,0,n,null,0);length-=n;}sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();}
+            using(var sha=SHA256.Create()){byte[] block=new byte[65536];input.Position=offset;while(length>0){cancel.ThrowIfCancellationRequested();int n=input.Read(block,0,(int)Math.Min(length,block.Length));if(n==0)throw new IOException("FRAGMENTED_ZIP_SOURCE_TRUNCATED");sha.TransformBlock(block,0,n,null,0);length-=n;}sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();}
         }
-        static bool Verify(FileStream input,Local local,Report report,CancellationToken cancel)
+        static bool Verify(FileStream input,Local local,Report report,CancellationToken cancel,long allowance)
         {
             if(local.Checked)return local.Valid;local.Checked=true;uint crc=0xffffffff;long done=0;byte[] block=new byte[65536];
             try{
                 using(var slice=new Slice(input,local.DataOffset,local.Packed))
                 using(Stream stream=local.Method==0?(Stream)slice:new DeflateStream(slice,CompressionMode.Decompress,true)){
-                    int n;while((n=stream.Read(block,0,block.Length))>0){cancel.ThrowIfCancellationRequested();if(n>MaximumWorkBytes-report.ExpandedWorkBytes){report.Status="limited";throw new IOException("Поиск ZIP достиг общего предела проверки распаковки.");}report.ExpandedWorkBytes+=n;done+=n;if(done>local.Unpacked||done>MaximumMemberBytes)return false;for(int i=0;i<n;i++)crc=Crc[(crc^block[i])&255]^(crc>>8);}
+                    int n;while((n=stream.Read(block,0,block.Length))>0){cancel.ThrowIfCancellationRequested();if(n>allowance-done){report.Status="limited";throw new IOException("Поиск ZIP достиг общего предела проверки распаковки.");}report.ExpandedWorkBytes+=n;done+=n;if(done>local.Unpacked||done>MaximumMemberBytes)return false;for(int i=0;i<n;i++)crc=Crc[(crc^block[i])&255]^(crc>>8);}
                 }
                 if(done!=local.Unpacked||~crc!=local.ExpectedCrc)return false;local.RawSha=HashRange(input,local.Offset,local.RecordBytes,cancel);local.Valid=true;return true;
             }catch(InvalidDataException){return false;}catch(Reject){return false;}
@@ -157,66 +157,20 @@ namespace UsbRecovery
         }
         static void Copy(FileStream input,FileStream output,SHA256 sha,long offset,long length,CancellationToken cancel)
         {
-            input.Position=offset;byte[] b=new byte[65536];while(length>0){cancel.ThrowIfCancellationRequested();int n=input.Read(b,0,(int)Math.Min(b.Length,length));if(n==0)throw new Reject("range_truncated");output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);length-=n;}
+            input.Position=offset;byte[] b=new byte[65536];while(length>0){cancel.ThrowIfCancellationRequested();int n=input.Read(b,0,(int)Math.Min(b.Length,length));if(n==0)throw new IOException("FRAGMENTED_ZIP_SOURCE_TRUNCATED");output.Write(b,0,n);sha.TransformBlock(b,0,n,null,0);length-=n;}
         }
         static void Skip(Report report,string code){int n;report.Skipped.TryGetValue(code,out n);report.Skipped[code]=n+1;}
-        static void PublishReport(string path,Report report)
+        public static int Recover(string image, string runDirectory, CancellationToken cancel, Action<long, long> progress)
         {
-            string temporary=Path.Combine(Path.GetDirectoryName(path),".fz-"+Guid.NewGuid().ToString("N").Substring(0,8)+".partial");
-            try{byte[] bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer{MaxJsonLength=32*1024*1024}.Serialize(report));using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
+            return Recover(image, runDirectory, cancel, progress, null);
         }
-        public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress)
+
+        internal static int Recover(string image, string runDirectory, CancellationToken cancel,
+            Action<long, long> progress, RecoveryCheckpointContext checkpoint)
         {
-            cancel.ThrowIfCancellationRequested();string source=FullPath(image),run=FullPath(runDirectory),folder=Path.Combine(run,"fragmented-archives"),reportPath=Path.Combine(run,"fragmented-zip.json");
-            if(source.StartsWith("\\\\",StringComparison.Ordinal)||source.IndexOf(':',2)>=0||run.StartsWith("\\\\",StringComparison.Ordinal)||run.IndexOf(':',2)>=0||!File.Exists(source)||(File.GetAttributes(source)&FileAttributes.Directory)!=0)throw new IOException("Для сборки ZIP нужен обычный локальный образ и локальная папка.");NoLinks(source);NoLinks(run);NoLinks(folder);NoLinks(reportPath);
-            if(source.Equals(reportPath,StringComparison.OrdinalIgnoreCase)||source.Equals(folder,StringComparison.OrdinalIgnoreCase)||source.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||File.Exists(reportPath)||File.Exists(folder)||Directory.Exists(folder))throw new IOException("Нужна новая папка результата сборки ZIP, отдельно от исходного образа.");
-            Directory.CreateDirectory(run);Directory.CreateDirectory(folder);var report=new Report();
-            try{
-                using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
-                    report.InputBytes=input.Length;var locals=new Dictionary<string,List<Local>>(StringComparer.Ordinal);var ends=new List<long>();byte[] block=new byte[BlockBytes+3];int carry=0;long position=0;
-                    while(position<input.Length){
-                        cancel.ThrowIfCancellationRequested();input.Position=position;int expected=(int)Math.Min(BlockBytes,input.Length-position),count=0,n;while(count<expected&&(n=input.Read(block,carry+count,expected-count))>0)count+=n;if(count!=expected)throw new IOException("Образ изменился или обрезан во время поиска ZIP.");int total=carry+count;long start=position-carry;
-                        for(int at=0;at+3<total;at++){
-                            if(block[at]!=80||block[at+1]!=75)continue;int type=block[at+2]|block[at+3]<<8;if(type!=0x0403&&type!=0x0605)continue;
-                            if(++report.Headers>MaximumHeaders){report.Status="limited";throw new IOException("Достигнут предел проверяемых ZIP-заголовков.");}
-                            long offset=start+at;if(type==0x0605){if(ends.Count>=MaximumDirectories){report.Status="limited";throw new IOException("Достигнут предел каталогов ZIP.");}ends.Add(offset);continue;}
-                            try{Local item=LocalAt(input,offset);if(++report.LocalRecords>MaximumLocals){report.Status="limited";throw new IOException("Достигнут предел локальных ZIP-записей.");}List<Local> list;if(!locals.TryGetValue(item.Key,out list)){list=new List<Local>();locals.Add(item.Key,list);}list.Add(item);}catch(Reject error){Skip(report,error.Code);}
-                        }
-                        carry=Math.Min(3,total);Buffer.BlockCopy(block,total-carry,block,0,carry);position+=count;if(progress!=null)progress(position,input.Length);
-                    }
-                    var outputHashes=new HashSet<string>(StringComparer.Ordinal);
-                    foreach(long end in ends){
-                        cancel.ThrowIfCancellationRequested();DirectoryRecord central;
-                        try{central=DirectoryAt(input,end);}catch(Reject error){Skip(report,error.Code);continue;}report.Directories++;
-                        try{
-                            var ordered=central.Entries.OrderBy(e=>e.LogicalOffset).ToArray();var chosen=new List<Local>();var alternatives=new List<List<Local>>();long logical=0;
-                            for(int index=0;index<ordered.Length;index++){
-                                Entry entry=ordered[index];if(entry.LogicalOffset!=logical)throw new Reject("logical_gaps_or_overlap_unsupported");long next=index+1<ordered.Length?ordered[index+1].LogicalOffset:central.LogicalOffset,recordBytes=next-logical;if(recordBytes<30+entry.RawName.Length+entry.Packed||recordBytes>30+entry.RawName.Length+32768L+entry.Packed)throw new Reject("logical_record_bounds");
-                                List<Local> candidates;if(!locals.TryGetValue(entry.Key,out candidates))throw new Reject("member_missing");if(candidates.Count>256)throw new Reject("member_ambiguity_limit");var valid=new List<Local>();
-                                foreach(var item in candidates)if(item.RecordBytes==recordBytes&&Verify(input,item,report,cancel))valid.Add(item);
-                                if(valid.Count==0)throw new Reject("member_crc_or_length");if(valid.Select(x=>x.RawSha).Distinct(StringComparer.Ordinal).Take(2).Count()!=1)throw new Reject("member_ambiguous_raw_versions");
-                                Local selected=valid.OrderBy(x=>x.Offset).FirstOrDefault(v=>!chosen.Any(x=>v.Offset<x.Offset+x.RecordBytes&&x.Offset<v.Offset+v.RecordBytes)&&!(v.Offset<central.Offset+central.Bytes+central.EocdBytes&&central.Offset<v.Offset+v.RecordBytes));if(selected==null)throw new Reject("physical_overlap");
-                                chosen.Add(selected);alternatives.Add(valid);logical=next;
-                            }
-                            if(logical!=central.LogicalOffset)throw new Reject("logical_directory_offset");long length=logical+central.Bytes+central.EocdBytes;if(length>MaximumArchiveBytes)throw new Reject("archive_limit");
-                            bool contiguous=true;long physical=chosen[0].Offset;for(int i=0;i<chosen.Count;i++){if(chosen[i].Offset!=physical)contiguous=false;physical=chosen[i].Offset+chosen[i].RecordBytes;}if(physical!=central.Offset)contiguous=false;if(contiguous)throw new Reject("already_contiguous");
-                            if(report.Recovered>=MaximumArchives||length>MaximumOutputBytes-report.OutputBytes){report.Status="limited";throw new IOException("Достигнут предел вывода собранных ZIP.");}
-                            string name="reassembled-"+end.ToString("D16")+Extension(central.Entries),path=Path.Combine(folder,name),partial=path+".partial";string digest;
-                            try{
-                                using(var output=new FileStream(partial,FileMode.CreateNew,FileAccess.Write,FileShare.Read))using(var hash=SHA256.Create()){
-                                    foreach(var item in chosen)Copy(input,output,hash,item.Offset,item.RecordBytes,cancel);Copy(input,output,hash,central.Offset,central.Bytes+central.EocdBytes,cancel);hash.TransformFinalBlock(new byte[0],0,0);digest=BitConverter.ToString(hash.Hash).Replace("-","").ToLowerInvariant();output.Flush(true);
-                                }
-                                cancel.ThrowIfCancellationRequested();if(!outputHashes.Add(digest)){Skip(report,"duplicate_archive_bytes");File.Delete(partial);continue;}File.Move(partial,path);
-                            }catch{if(File.Exists(partial))File.Delete(partial);throw;}
-                            var result=new Result{Path="fragmented-archives/"+name,Sha256=digest,Bytes=length,CentralOffset=central.Offset,EocdOffset=central.EocdOffset,Members=chosen.Count};logical=0;
-                            for(int i=0;i<chosen.Count;i++){Local item=chosen[i];result.Extents.Add(new Extent{ImageOffset=item.Offset,LogicalOffset=logical,Length=item.RecordBytes});result.MemberSources.Add(new Member{Name=item.Name,Crc32=item.ExpectedCrc.ToString("x8"),RecordSha256=item.RawSha,LogicalOffset=logical,ImageOffset=item.Offset,CompressedBytes=item.Packed,Bytes=item.Unpacked,EquivalentRecordOffsets=alternatives[i].Select(x=>x.Offset).ToList()});logical+=item.RecordBytes;}
-                            result.Extents.Add(new Extent{ImageOffset=central.Offset,LogicalOffset=logical,Length=central.Bytes+central.EocdBytes});report.Files.Add(result);report.Recovered++;report.OutputBytes+=length;
-                        }catch(Reject error){Skip(report,error.Code);}
-                    }
-                }
-                report.Status="complete";return report.Recovered;
-            }catch(OperationCanceledException){report.Status="cancelled";throw;}catch(IOException){if(report.Status!="limited")report.Status="incomplete";throw;}finally{PublishReport(reportPath,report);}
+            return RecoverWithCheckpoints(image, runDirectory, cancel, progress, checkpoint);
         }
+
         static uint[] MakeCrc(){var table=new uint[256];for(uint n=0;n<256;n++){uint x=n;for(int b=0;b<8;b++)x=(x&1)==0?x>>1:(x>>1)^0xedb88320;table[n]=x;}return table;}
     }
 }

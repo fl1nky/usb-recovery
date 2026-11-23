@@ -70,6 +70,9 @@ namespace UsbRecovery
         sealed class Context
         {
             public FileStream Input;public Report Report;public Limits Limits;public CancellationToken Cancel;
+            public Func<long,int,byte[]> DurableRead = null;
+            public Func<Movie,string,List<Extent>,bool,string,Result> PublishCandidate = null;
+            public RecoveryVerifiedImage VerifiedImage = null;
             public List<Atom> Ftyp=new List<Atom>(),Moov=new List<Atom>(),Mdat=new List<Atom>(),Free=new List<Atom>();
             public List<Atom> Moof=new List<Atom>(),Mfra=new List<Atom>();
             public int Fmp4States,Fmp4MapExtents,Fmp4SampleClaims;
@@ -87,6 +90,7 @@ namespace UsbRecovery
             public byte[] Read(long at,int count,bool charge=false){
                 Cancel.ThrowIfCancellationRequested();if(at<0||count<0||at>Input.Length-count)throw new Reject("source_bounds");
                 if(charge){if(count>Limits.MaxVerifiedBytes-Report.VerifiedBytes)throw new Budget();Report.VerifiedBytes+=count;}
+                if(DurableRead!=null){byte[] saved=DurableRead(at,count);Report.SourceReadBytes+=saved.Length;return saved;}
                 Input.Position=at;byte[] b=new byte[count];int done=0,n;while(done<count&&(n=Input.Read(b,done,count-done))>0){done+=n;Report.SourceReadBytes+=n;}if(done!=count)throw new IOException("MEDIA_SOURCE_TRUNCATED");return b;
             }
         }
@@ -251,7 +255,10 @@ namespace UsbRecovery
         static string HashRange(Context c,long at,long bytes)
         {
             if(bytes>c.Limits.MaxVerifiedBytes-c.Report.VerifiedBytes)throw new Budget();c.Report.VerifiedBytes+=bytes;
-            using(var sha=SHA256.Create()){byte[] buffer=new byte[65536];c.Input.Position=at;while(bytes>0){c.Cancel.ThrowIfCancellationRequested();int n=c.Input.Read(buffer,0,(int)Math.Min(bytes,buffer.Length));if(n==0)throw new IOException("MEDIA_SOURCE_TRUNCATED");c.Report.SourceReadBytes+=n;sha.TransformBlock(buffer,0,n,null,0);bytes-=n;}sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();}
+            using(var sha=SHA256.Create()){
+                while(bytes>0){c.Cancel.ThrowIfCancellationRequested();int count=(int)Math.Min(bytes,65536);byte[] buffer=c.Read(at,count);sha.TransformBlock(buffer,0,count,null,0);at+=count;bytes-=count;}
+                sha.TransformFinalBlock(new byte[0],0,0);return BitConverter.ToString(sha.Hash).Replace("-","").ToLowerInvariant();
+            }
         }
         static List<Payload> FindPayload(Context c,Chunk chunk)
         {
@@ -335,6 +342,7 @@ namespace UsbRecovery
             long alternatives=extents.Sum(e=>(long)e.EquivalentOffsets.Count);if(extents.Count>MaximumHeaders-c.Report.SourceRangeCount||alternatives>4L*MaximumHeaders-c.Report.SourceAlternativeCount)throw new Budget();
             if(length>c.Limits.MaxOutputBytes-c.Report.OutputBytes||c.Report.Files.Count>=c.Limits.MaxFiles)throw new Budget();
             bool contiguous=true;long physical=extents[0].ImageOffset;foreach(var e in extents){if(e.ImageOffset!=physical)contiguous=false;physical=e.ImageOffset+e.Length;}if(contiguous)throw new Reject("already_contiguous");
+            if(c.PublishCandidate!=null)return c.PublishCandidate(movie,folder,extents,audioSyntax,expectedSha);
             string temporary=Path.Combine(folder,".media-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
             try{
                 string digest;using(var sha=SHA256.Create())using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){
@@ -342,9 +350,14 @@ namespace UsbRecovery
                 }
                 if(expectedSha!=null&&digest!=expectedSha)throw new IOException("MEDIA_SOURCE_CHANGED");
                 string name="candidate-"+digest+".mp4",target=Path.Combine(folder,name);if(File.Exists(target)){File.Delete(temporary);owned=false;throw new Reject("duplicate_output");}File.Move(temporary,target);owned=false;
-                var result=new Result{Path="fragmented-media/"+name,Sha256=digest,Bytes=length,MoovOffset=movie.Moov.Offset,Tracks=movie.Tracks,Chunks=movie.Chunks.Count,AudioChunks=audio.Length,AudioGeometryInferred=audio.Length>0,AudioSyntaxChecked=audioSyntax,AudioSearch=audio.Length==0?null:audioSyntax?"sector_and_video_delta_syntax":"two_anchor_geometry",Extents=extents};
-                if(audio.Length>0)result.Note+=audioSyntax?" AAC-LC sample syntax was walked completely without PCM synthesis. Only 512-byte aligned starts and surviving video/container affine offsets were searched; a unique non-overlapping byte assignment was found within that scope. This is not an audio checksum or proof of original ownership.":" AAC-LC bytes were copied only between agreeing surviving video/container anchors. AAC element boundaries were checked, not full AAC decoding; audio identity and original integrity remain unverified.";return result;
+                return CandidateResult(movie,extents,audioSyntax,digest,length);
             }finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
+        }
+        static Result CandidateResult(Movie movie,List<Extent> extents,bool audioSyntax,string digest,long length)
+        {
+            var audio=movie.Chunks.Where(x=>x.Codec=="mp4a").ToArray();
+                var result=new Result{Path="fragmented-media/candidate-"+digest+".mp4",Sha256=digest,Bytes=length,MoovOffset=movie.Moov.Offset,Tracks=movie.Tracks,Chunks=movie.Chunks.Count,AudioChunks=audio.Length,AudioGeometryInferred=audio.Length>0,AudioSyntaxChecked=audioSyntax,AudioSearch=audio.Length==0?null:audioSyntax?"sector_and_video_delta_syntax":"two_anchor_geometry",Extents=extents};
+                if(audio.Length>0)result.Note+=audioSyntax?" AAC-LC sample syntax was walked completely without PCM synthesis. Only 512-byte aligned starts and surviving video/container affine offsets were searched; a unique non-overlapping byte assignment was found within that scope. This is not an audio checksum or proof of original ownership.":" AAC-LC bytes were copied only between agreeing surviving video/container anchors. AAC element boundaries were checked, not full AAC decoding; audio identity and original integrity remain unverified.";return result;
         }
         static List<Extent> GeometryAudio(Context c,Movie movie,List<Extent> extents,Chunk[] audio)
         {
@@ -439,20 +452,20 @@ namespace UsbRecovery
         {
             string temporary=Path.Combine(Path.GetDirectoryName(path),".media-report-"+Guid.NewGuid().ToString("N")+".partial");bool owned=false;
             try{
-                var json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};object value=report;
-                if(report.BoundSourceSha256!=null){var row=json.Deserialize<Dictionary<string,object>>(json.Serialize(report));row["SourceSha256"]=report.BoundSourceSha256;row["SourceUnchanged"]=report.BoundSourceUnchanged;value=row;}
-                byte[] b=new UTF8Encoding(false).GetBytes(json.Serialize(value));using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}File.Move(temporary,path);owned=false;
+                byte[] b=ReportBytes(report);using(var output=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){owned=true;output.Write(b,0,b.Length);output.Flush(true);}File.Move(temporary,path);owned=false;
             }finally{if(owned&&File.Exists(temporary))File.Delete(temporary);}
         }
-        public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress){return Recover(image,runDirectory,cancel,progress,new Limits());}
-        public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress,Limits limits)
+        static byte[] ReportBytes(Report report)
         {
-            cancel.ThrowIfCancellationRequested();if(limits==null)throw new ArgumentNullException("limits");limits.Validate();string source=FullPath(image),run=FullPath(runDirectory),folder=Path.Combine(run,"fragmented-media"),reportPath=Path.Combine(run,"fragmented-media.json");Local(source);Local(run);Local(folder);Local(reportPath);
-            if(!File.Exists(source)||Directory.Exists(source)||source.Equals(reportPath,StringComparison.OrdinalIgnoreCase)||source.Equals(folder,StringComparison.OrdinalIgnoreCase)||source.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||File.Exists(reportPath)||Directory.Exists(folder)||File.Exists(folder))throw new IOException("MEDIA_FRESH_OUTPUT_REQUIRED");
-            Directory.CreateDirectory(run);Directory.CreateDirectory(folder);var report=new Report();
-            try{
-                using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
-                    report.InputBytes=input.Length;var c=new Context{Input=input,Report=report,Limits=limits,Cancel=cancel};Scan(c,progress);
+            var json=new JavaScriptSerializer{MaxJsonLength=32*1024*1024};object value=report;
+            if(report.BoundSourceSha256!=null){var row=json.Deserialize<Dictionary<string,object>>(json.Serialize(report));row["SourceSha256"]=report.BoundSourceSha256;row["SourceUnchanged"]=report.BoundSourceUnchanged;value=row;}
+            byte[] bytes=new UTF8Encoding(false,true).GetBytes(json.Serialize(value));
+            if(bytes.Length>32*1024*1024)throw new IOException("MEDIA_REPORT_LIMIT");return bytes;
+        }
+        static void Execute(Context c,string folder,Action<long,long> progress)
+        {
+            var cancel=c.Cancel;var report=c.Report;
+            Scan(c,progress);
                     if(c.Moov.Any(IsFmp4Init)){ScanFragmentAtoms(c);report.BoundSourceSha256=FragmentSourceHash(c);}
                     var nativeInitIdentities=new HashSet<string>(StringComparer.Ordinal);
                     foreach(var atom in c.Moov){cancel.ThrowIfCancellationRequested();try{
@@ -468,6 +481,16 @@ namespace UsbRecovery
                     }catch(Reject error){Skip(report,error.Code);}}
                     if(report.BoundSourceSha256!=null){report.BoundSourceUnchanged=report.BoundSourceSha256==FragmentSourceHash(c);if(!report.BoundSourceUnchanged)throw new IOException("MEDIA_SOURCE_CHANGED");}
                     if(report.Fmp4Incomplete)throw new Fmp4IncompleteException();
+        }
+        public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress){return Recover(image,runDirectory,cancel,progress,new Limits());}
+        public static int Recover(string image,string runDirectory,CancellationToken cancel,Action<long,long> progress,Limits limits)
+        {
+            cancel.ThrowIfCancellationRequested();if(limits==null)throw new ArgumentNullException("limits");limits.Validate();string source=FullPath(image),run=FullPath(runDirectory),folder=Path.Combine(run,"fragmented-media"),reportPath=Path.Combine(run,"fragmented-media.json");Local(source);Local(run);Local(folder);Local(reportPath);
+            if(!File.Exists(source)||Directory.Exists(source)||source.Equals(reportPath,StringComparison.OrdinalIgnoreCase)||source.Equals(folder,StringComparison.OrdinalIgnoreCase)||source.StartsWith(folder+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)||File.Exists(reportPath)||Directory.Exists(folder)||File.Exists(folder))throw new IOException("MEDIA_FRESH_OUTPUT_REQUIRED");
+            Directory.CreateDirectory(run);Directory.CreateDirectory(folder);var report=new Report();
+            try{
+                using(var input=new FileStream(source,FileMode.Open,FileAccess.Read,FileShare.Read,BlockBytes)){
+                    report.InputBytes=input.Length;var c=new Context{Input=input,Report=report,Limits=limits,Cancel=cancel};Execute(c,folder,progress);
                 }
                 report.Status="complete";return report.Candidates;
             }catch(OperationCanceledException){report.Status="cancelled";throw;}catch(Budget){report.Status="limited";throw new IOException("MEDIA_SEARCH_LIMIT_REACHED");}catch(Fmp4IncompleteException){report.Status="partial";throw;}catch{report.Status="failed";throw;}finally{Publish(reportPath,report);}

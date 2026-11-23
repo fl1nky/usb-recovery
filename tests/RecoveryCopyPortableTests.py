@@ -71,7 +71,7 @@ def run(executable):
     request['options']['resume'] = True
     invoke(request)
     assert sha(raw_output / 'working.dd') == raw_hash == sha(raw)
-    assert json.loads((raw_output / 'source-preparation.json').read_text())['resumed_bytes'] == 8*resumable_copy.CHUNK
+    assert json.loads((raw_output / 'source-preparation.json').read_text(encoding='utf-8'))['resumed_bytes'] == 8*resumable_copy.CHUNK
     invoke(request)
     with (raw_output / 'working.dd').open('r+b') as stream:
         stream.write(b'changed')
@@ -100,7 +100,7 @@ def run(executable):
     request['options']['resume'] = True
     invoke(request)
     assert (lvm_output / 'lvm.dd').read_bytes() == pv.read_bytes()[1024*1024:]
-    assert json.loads((lvm_output / 'lvm-report.json').read_text())['resumed_bytes'] == resumable_copy.CHUNK
+    assert json.loads((lvm_output / 'lvm-report.json').read_text(encoding='utf-8'))['resumed_bytes'] == resumable_copy.CHUNK
     before = sha(lvm_output / 'lvm.dd')
     invoke(request)
     assert sha(lvm_output / 'lvm.dd') == before
