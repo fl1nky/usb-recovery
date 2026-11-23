@@ -93,7 +93,7 @@ namespace UsbRecovery
         {
             return a != null && b != null && a.Name == b.Name && a.OriginalPath == b.OriginalPath &&
                 a.NameNote == b.NameNote && a.Start == b.Start && a.Length == b.Length &&
-                a.ValidLength == b.ValidLength && a.Contiguous == b.Contiguous;
+                a.ValidLength == b.ValidLength && a.Contiguous == b.Contiguous && a.LiveEntry == b.LiveEntry;
         }
         static bool SamePlan(FsCandidatePlan a, FsCandidatePlan b)
         {

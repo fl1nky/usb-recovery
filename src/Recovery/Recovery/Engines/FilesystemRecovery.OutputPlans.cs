@@ -26,7 +26,12 @@ namespace UsbRecovery
                 Candidate = candidate, FileSystem = v.Kind, VolumeOffset = v.Offset, Status = "candidate", Reason = "", Path = "" };
             if (candidate.Length <= 0 || candidate.Length > MaxFileBytes || candidate.Length > v.Length) plan.Reason = "invalid size";
             else if (v.Exfat && v.BitmapChain == null) plan.Reason = "allocation bitmap unavailable";
-            if (v.Exfat) plan.Method = contiguous ? "exfat-contiguous" : "exfat-fat-chain";
+            if (candidate.LiveEntry)
+            {
+                contiguous = false;
+                plan.Method = "live-fat-chain";
+            }
+            else if (v.Exfat) plan.Method = contiguous ? "exfat-contiguous" : "exfat-fat-chain";
             else
             {
                 contiguous = Fat(image, v, candidate.Start) == 0;
@@ -41,7 +46,9 @@ namespace UsbRecovery
                 foreach (uint cluster in chain)
                 {
                     cancel.ThrowIfCancellationRequested();
-                    if (v.LiveClusters.Contains(cluster)) { plan.Reason = "cluster currently owned by a live file/directory"; break; }
+                    if (candidate.LiveEntry && (!v.LiveClusters.Contains(cluster) || Fat(image, v, cluster) == 0))
+                    { plan.Reason = "live file chain contains an unallocated cluster"; break; }
+                    if (!candidate.LiveEntry && v.LiveClusters.Contains(cluster)) { plan.Reason = "cluster currently owned by a live file/directory"; break; }
                     if (v.Exfat && BitmapAllocated(image, v, cluster)) { plan.Reason = "cluster marked allocated in active exFAT bitmap"; break; }
                     if (!v.Exfat && contiguous && Fat(image, v, cluster) != 0)
                     { plan.Reason = "cluster currently allocated in FAT; contiguous reconstruction stopped"; break; }

@@ -15,7 +15,7 @@ namespace UsbRecovery
         public string Glyph;
         readonly MotionAnimator motion;
         bool selected,hover;double selectedAmount,hoverAmount;
-        public bool Selected { get { return selected; } set { if(selected==value)return;selected=value;Transition(); } }
+        public bool Selected { get { return selected; } set { if(selected==value)return;selected=value;selectedAmount=value?1D:0D;Transition();Invalidate(); } }
         public NavigationButton(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer|ControlStyles.AllPaintingInWmPaint,true);FlatStyle=FlatStyle.Flat;FlatAppearance.BorderSize=0;Cursor=Cursors.Hand;Height=46;motion=new MotionAnimator(this);}
         void Transition(){double startSelected=selectedAmount,startHover=hoverAmount,targetSelected=selected?1D:0D,targetHover=hover?1D:0D;motion.Start(170,p=>{selectedAmount=startSelected+(targetSelected-startSelected)*p;hoverAmount=startHover+(targetHover-startHover)*p;Invalidate();});}
         protected override void OnMouseEnter(EventArgs e){hover=true;Transition();base.OnMouseEnter(e);}
@@ -30,6 +30,12 @@ namespace UsbRecovery
                 pen.StartCap=pen.EndCap=LineCap.Round;pen.LineJoin=LineJoin.Round;float x=18,y=(Height-24)/2F;
                 if(Glyph=="USB"){
                     using(var shape=Round(new RectangleF(x+3,y+6,17,17),3))graphics.DrawPath(pen,shape);graphics.DrawRectangle(pen,x+7,y,9,6);graphics.DrawLine(pen,x+10,y+2,x+10,y+4);graphics.DrawLine(pen,x+13,y+2,x+13,y+4);graphics.DrawLine(pen,x+9,y+14,x+15,y+14);
+                }else if(Glyph=="RAID"){
+                    for (int row = 0; row < 2; row++) {
+                        float top = y + 3 + row * 10;
+                        using (var tray = Round(new RectangleF(x, top, 22, 8), 2)) graphics.DrawPath(pen, tray);
+                        graphics.DrawLine(pen, x + 4, top + 4, x + 6, top + 4);
+                    }
                 }else if(Glyph=="TG"){
                     graphics.DrawPolygon(pen,new[]{new PointF(x,y+10),new PointF(x+23,y+1),new PointF(x+18,y+23),new PointF(x+10,y+16)});graphics.DrawLine(pen,x+10,y+16,x+19,y+5);graphics.DrawLine(pen,x+10,y+16,x+8,y+21);
                 }else if(Glyph=="A"||Glyph=="iOS"){
@@ -40,11 +46,11 @@ namespace UsbRecovery
             }
         }
         protected override void OnPaint(PaintEventArgs e){
-            e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;e.Graphics.Clear(UiTheme.Sidebar);if(Width<18||Height<18)return;Color background=Blend(Blend(UiTheme.Sidebar,Color.FromArgb(34,42,57),hoverAmount),Color.FromArgb(43,54,78),selectedAmount);
+            e.Graphics.SmoothingMode=SmoothingMode.AntiAlias;e.Graphics.Clear(UiTheme.Sidebar);if(Width<18||Height<18)return;Color background=Blend(Blend(UiTheme.Sidebar,Color.FromArgb(35,54,51),hoverAmount),Color.FromArgb(41,70,63),selectedAmount);
             using(var shape=Round(new RectangleF(0,1,Width-1,Height-2),8))using(var brush=new SolidBrush(background))e.Graphics.FillPath(brush,shape);
             if(selectedAmount>0.01D)using(var brush=new SolidBrush(Blend(background,UiTheme.Accent,selectedAmount)))e.Graphics.FillRectangle(brush,0,12,3,Math.Max(1,Height-24));
             Color foreground=Enabled?Blend(Color.FromArgb(181,193,210),Color.White,selectedAmount):UiTheme.Muted;
-            DrawGlyph(e.Graphics,Blend(Color.FromArgb(119,139,165),Color.FromArgb(145,178,255),selectedAmount));
+            DrawGlyph(e.Graphics,Blend(Color.FromArgb(119,139,165),Color.FromArgb(157,219,192),selectedAmount));
             TextRenderer.DrawText(e.Graphics,Text,Font,new Rectangle(50,0,Math.Max(1,Width-54),Height),foreground,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
             if(Focused)ControlPaint.DrawFocusRectangle(e.Graphics,new Rectangle(5,5,Width-10,Height-10));
         }

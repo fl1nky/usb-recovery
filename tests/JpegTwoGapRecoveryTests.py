@@ -112,6 +112,22 @@ class TwoGapJpegs(unittest.TestCase):
         self.assertEqual(assembler.skipped["jpeg_gap_source_mapping_ambiguous"], 1)
         self.assertIn("physical placement is unknown", found[0][2])
 
+    def test_uniform_sector_fallback_reassembles_three_permuted_runs(self):
+        from jpeg_fragments import header
+        from jpeg_sector_runs import recover as recover_runs, sector_runs
+        image, offsets = scattered(self.raw)
+        self.source.write_bytes(image)
+        with self.source.open("rb") as stream:
+            assembler = PhotoAssembler(stream)
+            frame = header(assembler, offsets[0])
+            runs = sector_runs(assembler)
+            recipes = recover_runs(assembler, frame, runs)
+            self.assertEqual(len(recipes), 1)
+            self.assertEqual([at for at, _ in recipes[0]], offsets)
+            self.assertEqual(b"".join(data for _, data in recipes[0]), self.raw)
+            assembler.max_states = 1
+            self.assertEqual(recover_runs(assembler, frame, runs), [])
+
     def test_search_budget_is_incomplete_without_advancing_candidate(self):
         self.source.write_bytes(scattered(self.raw)[0])
         anchors = []

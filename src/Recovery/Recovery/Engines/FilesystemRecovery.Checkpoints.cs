@@ -99,15 +99,17 @@ namespace UsbRecovery
             readonly RecoveryOutputLedger<FsExportEvent> exports;
             readonly FsState state;
             readonly bool orphanDirectories;
+            readonly bool includeLiveFiles;
             readonly Dictionary<int, FsVolumeProgress> finished = new Dictionary<int, FsVolumeProgress>();
             readonly HashSet<string> knownOutputs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             FsMetadataView active, repairView;
             int repairVolume = -1;
 
             public FsRuntime(string source, string destination, ImageReader reader, IList<BootCandidate> discovered,
-                bool alternateFat, bool orphans, CancellationToken token, Action<string> observe, RecoveryCheckpointContext checkpoint)
+                bool alternateFat, bool orphans, bool includeLiveFiles, CancellationToken token, Action<string> observe, RecoveryCheckpointContext checkpoint)
             {
                 root = destination; image = reader; cancel = token; progress = observe; context = checkpoint; orphanDirectories = orphans;
+                this.includeLiveFiles = includeLiveFiles;
                 var notes = new List<string>();
                 var definitions = Discover(image, notes, cancel, discovered, alternateFat).Select(FsGeometry.From).ToList();
                 journal = new RecoveryMethodJournal<FsState>(source, new FsState { Volumes = definitions, DiscoveryNotes = notes }, context, cancel);
@@ -167,8 +169,9 @@ namespace UsbRecovery
                     throw new IOException("FAT_OUTPUT_PLAN_INVALID");
                 var v = state.Volumes[row.VolumeIndex].Create();
                 ValidateCandidate(v, plan.Candidate);
-                if (plan.FileSystem != v.Kind || plan.VolumeOffset != v.Offset || plan.Method == null ||
-                    !new[] { "contiguous-guess", "retained-fat-uncertain", "exfat-contiguous", "exfat-fat-chain",
+                if (plan.Candidate.LiveEntry != (plan.Method == "live-fat-chain") || (plan.Candidate.LiveEntry && (!includeLiveFiles || v.Exfat)) ||
+                    plan.FileSystem != v.Kind || plan.VolumeOffset != v.Offset || plan.Method == null ||
+                    !new[] { "live-fat-chain", "contiguous-guess", "retained-fat-uncertain", "exfat-contiguous", "exfat-fat-chain",
                         "orphan-contiguous-guess", "orphan-retained-fat-uncertain", "orphan-exfat-contiguous", "orphan-exfat-fat-chain" }.Contains(plan.Method))
                     throw new IOException("FAT_OUTPUT_PLAN_INVALID");
                 if (plan.Bytes == 0)
@@ -244,7 +247,7 @@ namespace UsbRecovery
                     foreach (string file in Directory.EnumerateFiles(directory)) throw new IOException("FAT_OUTPUT_UNEXPECTED");
                     foreach (string method in Directory.EnumerateDirectories(directory))
                     {
-                        if (!new[] { "contiguous-guess", "retained-fat-uncertain", "exfat-contiguous", "exfat-fat-chain", "orphan-contiguous-guess",
+                        if (!new[] { "live-fat-chain", "contiguous-guess", "retained-fat-uncertain", "exfat-contiguous", "exfat-fat-chain", "orphan-contiguous-guess",
                             "orphan-retained-fat-uncertain", "orphan-exfat-contiguous", "orphan-exfat-fat-chain" }.Contains(Path.GetFileName(method)))
                             throw new IOException("FAT_OUTPUT_UNEXPECTED");
                         RecoveryCatalog.SafeFile(root, method.Substring(root.TrimEnd('\\').Length + 1) + "/guard");
@@ -315,7 +318,7 @@ namespace UsbRecovery
                 {
                     p.MainVisited++;
                     if (active.Volume.Exfat) ExfatDirectory(image, active.Volume, bytes, task, active.Queue, ref p.MainEntries, cancel);
-                    else FatDirectory(image, active.Volume, bytes, task, active.Queue, ref p.MainEntries, cancel);
+                    else FatDirectory(image, active.Volume, bytes, task, active.Queue, ref p.MainEntries, cancel, includeLiveFiles);
                 }
                 p.QueueCursor++; SaveMetadata();
                 Observe("FAT/exFAT: каталоги " + p.MainVisited + "; потерянные " + p.OrphanVisited + "; записи " + active.Volume.Candidates.Count);
@@ -341,7 +344,7 @@ namespace UsbRecovery
                 }
                 if (v.Exfat && v.BitmapChain == null) { v.AllocationComplete = false; p.Notes.Add("exFAT: no valid active allocation bitmap; deleted candidates will be skipped."); }
                 if (!v.AllocationComplete) p.Notes.Add(v.Kind + ": current allocation ownership could not be completely enumerated.");
-                p.Notes.Add(v.Kind + " at offset " + v.Offset + ": " + p.MainVisited + " directories, " + v.Candidates.Count + " deleted file records.");
+                p.Notes.Add(v.Kind + " at offset " + v.Offset + ": " + p.MainVisited + " directories, " + v.Candidates.Count + " candidate file records.");
                 if (!v.AllocationComplete) state.Limited = true;
                 if (orphanDirectories && !v.Exfat && v.AllocationComplete) p.Phase = "orphan";
                 else
@@ -460,7 +463,7 @@ namespace UsbRecovery
         }
 
         static int RecoverCheckpointed(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress,
-            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories, RecoveryCheckpointContext checkpoint)
+            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories, RecoveryCheckpointContext checkpoint, bool includeLiveFiles = false)
         {
             cancel.ThrowIfCancellationRequested();
             string imageFull = Path.GetFullPath(imagePath), runFull = Path.GetFullPath(runDirectory);
@@ -475,7 +478,7 @@ namespace UsbRecovery
                 throw new IOException("Filesystem output directory already exists; choose a fresh recovery run.");
             Directory.CreateDirectory(folder);
             using (var image = new ImageReader(imageFull, cancel))
-                return new FsRuntime(imageFull, runFull, image, discovered, alternateFat, orphanDirectories, cancel, progress, checkpoint).Run();
+                return new FsRuntime(imageFull, runFull, image, discovered, alternateFat, orphanDirectories, includeLiveFiles, cancel, progress, checkpoint).Run();
         }
     }
 }

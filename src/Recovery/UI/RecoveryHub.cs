@@ -98,7 +98,7 @@ namespace UsbRecovery
             Localization.LanguageChanged += refresh;
             Disposed += delegate { Localization.LanguageChanged -= refresh; };
 
-            UiTheme.ApplyTree(this); Highlight("Telegram");
+            UiTheme.ApplyTree(this); Highlight("usb");
             Shown+=delegate{Navigate("usb");};
             FormClosing += delegate(object sender, FormClosingEventArgs e) {
                 if (storage.IsBusy || logical.IsBusy || archive.IsBusy || (disks != null && disks.IsBusy)) { e.Cancel = true; MessageBox.Show(this, "Заверши или останови текущую операцию.", "Идёт обработка"); }
@@ -131,8 +131,22 @@ namespace UsbRecovery
             return lbl;
         }
         void Link(FlowLayoutPanel parent, string key, string text) {
-            var button = new NavigationButton { Text = text,Glyph=key=="usb"||key=="storage"?"USB":key=="Telegram"?"TG":key=="Android"?"A":key=="iPhone"?"iOS":"DIR", Width = 190, Height = 46, TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 2, 0, 2), Tag = "nav", Name = "nav-" + key };
-            if(key=="storage")button.Font=new Font("Segoe UI",9F);button.Click += delegate { Navigate(key); }; parent.Controls.Add(button); navigation.Add(key, button);
+            string glyph;
+            switch (key)
+            {
+                case "usb": glyph = "USB"; break;
+                case "storage": glyph = "RAID"; break;
+                case "Telegram": glyph = "TG"; break;
+                case "Android": glyph = "A"; break;
+                case "iPhone": glyph = "iOS"; break;
+                default: glyph = "DIR"; break;
+            }
+            var button = new NavigationButton { Text = text, Glyph = glyph, Width = 190, Height = 46,
+                TextAlign = ContentAlignment.MiddleLeft, Margin = new Padding(0, 2, 0, 2), Tag = "nav", Name = "nav-" + key };
+            if (key == "storage") button.Font = new Font("Segoe UI", 9F);
+            button.Click += delegate { Navigate(key); };
+            parent.Controls.Add(button);
+            navigation.Add(key, button);
         }
         void Highlight(string key) {
             foreach (var item in navigation) {var button=item.Value as NavigationButton;if(button!=null){button.Selected=item.Key==key;button.Invalidate();}}

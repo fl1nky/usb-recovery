@@ -7,6 +7,11 @@ namespace UsbRecovery
     // documented .build/app or .build/tests layout, never arbitrary ancestors.
     public static class ApplicationPaths
     {
+        public static string DefaultResultsDirectory
+        {
+            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "USB-Recovery-Results"); }
+        }
+
         public static string RuntimeRoot { get { return Resolve(AppDomain.CurrentDomain.BaseDirectory); } }
         public static string Resolve(string baseDirectory)
         {

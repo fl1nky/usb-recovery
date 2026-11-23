@@ -1,5 +1,5 @@
 using System.Threading;
-#if NETFRAMEWORK
+#if !NET8_0_OR_GREATER
 using System.Windows.Forms;
 #endif
 
@@ -26,7 +26,7 @@ namespace UsbRecovery
                 System.Environment.ExitCode=CommandLineHandler.Run(args);
                 return;
             }
-#if NETFRAMEWORK
+#if !NET8_0_OR_GREATER
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new RecoveryHub());

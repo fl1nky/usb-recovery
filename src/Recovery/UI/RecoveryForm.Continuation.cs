@@ -13,7 +13,7 @@ namespace UsbRecovery
 
         Control BuildRunStatus()
         {
-            var panel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
+            var panel = new Panel { Visible = false, Dock = DockStyle.Fill, Margin = new Padding(0, 0, 0, 10) };
             progress.Dock = DockStyle.Top;
             progress.Height = 4;
             runStatusCard.Dock = DockStyle.Fill;
@@ -23,6 +23,16 @@ namespace UsbRecovery
             // Detailed messages remain available in the expandable operation journal.
             status.Text = "Готово. Для первого запуска подходит стандартный профиль.";
             return panel;
+        }
+
+        void ShowRunStatus()
+        {
+            var layout = runStatusCard.Parent.Parent as TableLayoutPanel;
+            if (layout != null && layout.RowStyles[5].Height == 0)
+            {
+                layout.RowStyles[5].Height = 118;
+                runStatusCard.Parent.Visible = true;
+            }
         }
 
         void RequestRecoveryStop()

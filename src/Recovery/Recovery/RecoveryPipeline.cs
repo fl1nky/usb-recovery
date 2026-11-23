@@ -273,9 +273,9 @@ namespace UsbRecovery
                             methods.Add(new Work { Key = "fat", Name = "Записи удалённых файлов FAT/exFAT", Run = () => FilesystemRecovery.Recover(image, directory, cancel, progress,
                                 options.LostPartitions ? bootCandidates : null, options.AlternateFat, options.OrphanDirectories,
                                 new RecoveryCheckpointContext { Directory = directory, Method = "fat", SourceSha256 = expected,
-                                    Settings = new JavaScriptSerializer().Serialize(new { alternateFat = options.AlternateFat,
+                                    Settings = (options.IncludeLiveFatFiles ? "include-live-fat/" : "") + new JavaScriptSerializer().Serialize(new { alternateFat = options.AlternateFat,
                                         orphanDirectories = options.OrphanDirectories, discovered = options.LostPartitions ? bootCandidates : null }),
-                                    Resume = session.MethodCheckpoint("fat"), Commit = value => session.CaptureMethodCheckpoint("fat", value) }) });
+                                    Resume = session.MethodCheckpoint("fat"), Commit = value => session.CaptureMethodCheckpoint("fat", value) }, options.IncludeLiveFatFiles) });
                         if (options.NtfsMetadata && !unsafeMetadata)
                             methods.Add(new Work { Key = "ntfs", Name = "Записи удалённых файлов NTFS", Run = () => AdvancedEngines.RecoverNtfsCheckpointed(image, directory, cancel, progress,
                                 options.LostPartitions ? bootCandidates : null,new RecoveryCheckpointContext {Directory=directory,Method="ntfs",SourceSha256=expected,

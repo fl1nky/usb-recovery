@@ -21,6 +21,19 @@ namespace UsbRecovery
                 " /d " + Quote(Path.Combine(directory, "files")) + " /cmd " + Quote(image) + " " + command;
         }
 
+        private static Process StartImageScanner(ProcessStartInfo start)
+        {
+            try
+            {
+                return Process.Start(start);
+            }
+            catch (System.ComponentModel.Win32Exception error)
+            {
+                if (error.NativeErrorCode != 740) throw;
+                throw new IOException("Windows требует права администратора для PhotoRec. Для этого метода открой программу от имени администратора и продолжи сохранённый поиск.", error);
+            }
+        }
+
         static string Quote(string path)
         {
             if (path.Contains("\"") || path.EndsWith("\\", StringComparison.Ordinal))
@@ -53,7 +66,7 @@ namespace UsbRecovery
                 if (source.Length == 0) throw new IOException("Образ пуст.");
                 RecoveryCore.CheckRecoveryReserve(directory);
                 using (var job = ProcessJob.ForLifetimeOnly())
-                using (var process = Process.Start(start))
+                using (var process = StartImageScanner(start))
                 {
                     job.Attach(process);
                     try

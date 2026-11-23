@@ -1,5 +1,7 @@
 # USB-Recovery 🔬💾
 
+**[Download the Windows x64 ZIP](https://github.com/fl1nky/usb-recovery/releases/latest/download/USB-Recovery-Windows-x64.zip)** · Extract the entire archive, then open `USB-Recovery.exe`.
+
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Zero Telemetry](https://img.shields.io/badge/Telemetry-0%25%20Air--Gapped-success.svg)](README.md)
 [![Forensic Grade](https://img.shields.io/badge/Forensic-Chain%20of%20Custody-orange.svg)](README.md)

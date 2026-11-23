@@ -14,7 +14,8 @@ namespace UsbRecovery
 {
     public sealed partial class RecoveryForm : Form
     {
-        public bool IsBusy { get { return busy || loading; } }
+        // Drive discovery runs in the background and has no results to preserve on close.
+        public bool IsBusy { get { return busy; } }
         public void RefreshSources() { RefreshDisks(); }
         ComboBox disks = new ComboBox();
         Button refresh = new Button(), choose = new Button(), start = new Button(), resume = new Button(), stop = new Button(), open = new Button(), gallery = new Button();
@@ -64,7 +65,9 @@ namespace UsbRecovery
             if(update.Key=="finished"){activityView.IsActive=false;activityView.IsComplete=true;}
         }
         void BeginActivity(string title,string detail)
-        {if(!busy){runPresentation.Reset();lastOperationCancelled=false;}runPresentation.StartPhase(title,detail);runStatusCard.Present(runPresentation);activityView.CandidateCaption="НАЙДЕНО НА ЭТАПЕ";activityView.ClearProgress();activityView.FoundCandidates=-1;activityView.SetPhase(title,detail);activityView.IsActive=true;}
+        {
+            ShowRunStatus();
+            if(!busy){runPresentation.Reset();lastOperationCancelled=false;}runPresentation.StartPhase(title,detail);runStatusCard.Present(runPresentation);activityView.CandidateCaption="НАЙДЕНО НА ЭТАПЕ";activityView.ClearProgress();activityView.FoundCandidates=-1;activityView.SetPhase(title,detail);activityView.IsActive=true;}
         public RecoveryForm(bool autoDiscover)
         {
             Text = "Флешки и образы"; Font = new Font("Segoe UI", 10F);
@@ -72,33 +75,29 @@ namespace UsbRecovery
             BackColor = UiTheme.Background; AutoScroll = true;
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, AutoSize = false, Padding = new Padding(24,18,24,18), ColumnCount = 1, RowCount = 7, BackColor = UiTheme.Background };
             Controls.Add(layout);layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));
-            foreach(int height in new[]{88,132,64,0,48,118,140})layout.RowStyles.Add(height==0?new RowStyle(SizeType.Percent,100):new RowStyle(SizeType.Absolute,height));
+            foreach(int height in new[]{88,150,64,0,48,118,140})layout.RowStyles.Add(height==0?new RowStyle(SizeType.Percent,100):new RowStyle(SizeType.Absolute,height));
             var header=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=3,Margin=Padding.Empty};header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));header.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,156));header.RowStyles.Add(new RowStyle(SizeType.Absolute,32));header.RowStyles.Add(new RowStyle(SizeType.Absolute,20));header.RowStyles.Add(new RowStyle(SizeType.Absolute,36));
             header.Controls.Add(new Label{Text="Восстановление с флешки",Font=new Font("Segoe UI",20F,FontStyle.Bold),AutoSize=true,Margin=Padding.Empty},0,0);
-            header.Controls.Add(new Label{Text="Выбери источник. Остальное — по шагам.",AutoSize=true,Tag="muted",Margin=new Padding(0,3,0,0)},0,1);
+            header.Controls.Add(new Label{Text="Найди фотографии, видео и документы на флешке или в образе.",AutoSize=true,Tag="muted",Margin=new Padding(0,3,0,0)},0,1);
             var badge=new Label{Text="ТОЛЬКО ЧТЕНИЕ",TextAlign=ContentAlignment.MiddleCenter,Dock=DockStyle.Fill,BackColor=Color.FromArgb(231,243,237),ForeColor=Color.FromArgb(41,117,85),Font=new Font("Segoe UI",8F,FontStyle.Bold),Margin=new Padding(8,5,0,5),Tag="safe-badge"};header.Controls.Add(badge,1,0);
             workflow.Dock=DockStyle.Fill;header.Controls.Add(workflow,0,2);
             Configure(verifyVideo,"Проверить видео…",delegate{VerifyLocalVideo();});verifyVideo.Name="verify-local-video";header.Controls.Add(verifyVideo,1,2);layout.Controls.Add(header,0,0);
-            var sourceCard=new SurfaceCard{Dock=DockStyle.Fill,Padding=new Padding(16),Margin=new Padding(0,4,0,10)};
-            var sourceLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=3,Margin=Padding.Empty};sourceLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sourceLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,50));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,24));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,36));sourceLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));sourceCard.Controls.Add(sourceLayout);
-            sourceLayout.Controls.Add(new Label{Text="01  ИСТОЧНИК",Font=new Font("Segoe UI",8F,FontStyle.Bold),ForeColor=UiTheme.Muted,AutoSize=true},0,0);sourceLayout.Controls.Add(new Label{Text="02  ПАПКА РЕЗУЛЬТАТОВ",Font=new Font("Segoe UI",8F,FontStyle.Bold),ForeColor=UiTheme.Muted,AutoSize=true},1,0);
-            var left=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Margin=new Padding(0,0,18,0)};left.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));left.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,100));disks.DropDownStyle=ComboBoxStyle.DropDownList;disks.Dock=DockStyle.Fill;disks.Margin=new Padding(0,3,8,0);left.Controls.Add(disks,0,0);Configure(refresh,"Обновить",delegate{RefreshDisks();});left.Controls.Add(refresh,1,0);sourceLayout.Controls.Add(left,0,1);
-            var right=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,Margin=Padding.Empty};right.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));right.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,88));destination.Text=Path.GetPathRoot(Environment.SystemDirectory).TrimEnd('\\')+@"\USB-Recovery-Results";destination.ReadOnly=true;destination.Dock=DockStyle.Fill;destination.Font=new Font("Consolas",9F);destination.Margin=new Padding(0,4,8,0);right.Controls.Add(destination,0,0);Configure(choose,"Папка…",delegate{ChooseDirectory();});right.Controls.Add(choose,1,0);sourceLayout.Controls.Add(right,1,1);
-            sourceHelp.Text="Подключи флешку и обнови список.";sourceHelp.AutoSize=false;sourceHelp.AutoEllipsis=true;sourceHelp.Dock=DockStyle.Fill;sourceHelp.Font=new Font("Segoe UI",8.5F);sourceHelp.ForeColor=UiTheme.Muted;sourceHelp.Margin=new Padding(0,5,18,0);sourceLayout.Controls.Add(sourceHelp,0,2);
-            sourceLayout.Controls.Add(new Label{Text="Другой физический диск · около 4 объёмов + 1 ГБ",Font=new Font("Segoe UI",8.5F),ForeColor=UiTheme.Muted,Dock=DockStyle.Fill,Margin=new Padding(0,5,0,0)},1,2);layout.Controls.Add(sourceCard,0,1);
+            layout.Controls.Add(BuildSourceCard(), 0, 1);
             var profileRow=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,Margin=new Padding(0,6,0,6)};profileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,150));profileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,225));profileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));profileRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,142));profileRow.Controls.Add(new Label{Text="Профиль поиска",AutoSize=true,Anchor=AnchorStyles.Left,Font=new Font("Segoe UI",10F,FontStyle.Bold)},0,0);
             profile.DropDownStyle=ComboBoxStyle.DropDownList;profile.Dock=DockStyle.Fill;profile.Margin=new Padding(0,12,12,0);profile.Items.AddRange(new object[]{"Стандартный","Быстрый · по записям","Фотографии","После форматирования","Максимальный","Свои настройки"});profile.SelectedIndex=0;profileRow.Controls.Add(profile,1,0);profileHint.Text="Сбалансированный поиск. Дополнительные методы можно включить ниже.";profileHint.AutoEllipsis=true;profileHint.Dock=DockStyle.Fill;profileHint.ForeColor=UiTheme.Muted;profileHint.Font=new Font("Segoe UI",9F);profileHint.Padding=new Padding(8,8,0,0);profileRow.Controls.Add(profileHint,2,0);Configure(expertButton,"Все методы…",delegate{SetExpertMode(!ExpertMode);});expertButton.Name="usb-expert-toggle";expertButton.Margin=new Padding(8,8,0,4);profileRow.Controls.Add(expertButton,3,0);layout.Controls.Add(profileRow,0,2);
             profile.SelectedIndexChanged+=delegate{if(applyingProfile||profile.SelectedIndex==5)return;applyingProfile=true;try{string[] codes={"standard","quick","photos","format","maximum"};searchSettings.ApplyProfile(codes[Math.Max(0,profile.SelectedIndex)]);profileHint.Text=profile.SelectedIndex==4?"Долгий поиск, включая фрагменты JPEG. Ошибки чтения включаются отдельно.":profile.SelectedIndex==1?"Только метаданные FAT/NTFS. При отсутствии результата выбери другой профиль.":profile.SelectedIndex==3?"Разделы, резервные записи, вторая FAT и потерянные каталоги.":profile.SelectedIndex==2?"По содержимому ищутся фотографии. Метаданные сохраняют все типы.":"Сбалансированный поиск. Дополнительные методы можно включить ниже.";UpdateSearchSummary();}finally{applyingProfile=false;}};
             searchSettings.SelectionChanged+=delegate{if(!applyingProfile){applyingProfile=true;profile.SelectedIndex=5;applyingProfile=false;profileHint.Text="Индивидуальный набор методов. Наведи на настройку для подробностей.";}UpdateSearchSummary();};
             settingsHost.Dock=DockStyle.Fill;settingsHost.Margin=new Padding(0,0,0,10);searchSettings.Dock=DockStyle.Fill;searchSettings.Margin=Padding.Empty;settingsHost.Controls.Add(searchSettings);
             basicSummary.Dock=DockStyle.Fill;basicSummary.Margin=Padding.Empty;basicSummary.Padding=Padding.Empty;activityView.Dock=DockStyle.Fill;activityView.Name="recovery-activity";basicSummary.Controls.Add(activityView);settingsHost.Controls.Add(basicSummary);layout.Controls.Add(settingsHost,0,3);UpdateSearchSummary();SetExpertMode(false);
-            var actions=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,Margin=new Padding(0,0,0,8)};actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,174));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,136));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,110));
-            Configure(start,"Начать восстановление",delegate{StartCapture();});start.Tag="primary";actions.Controls.Add(start,0,0);Configure(resume,"Открыть образ…",delegate{ResumeImage();});actions.Controls.Add(resume,1,0);Configure(stop,"Остановить",delegate{RequestRecoveryStop();});stop.Enabled=false;actions.Controls.Add(stop,2,0);var guide=new Button();Configure(guide,"Справка",delegate{OpenPath(ApplicationPaths.Document("guides/recovery.md"));});actions.Controls.Add(guide,3,0);layout.Controls.Add(actions,0,4);
+            var actions=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=3,Margin=new Padding(0,0,0,8)};actions.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,136));actions.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,110));
+            Configure(start,"Начать восстановление",delegate{StartCapture();});start.Tag="primary";actions.Controls.Add(start,0,0);Configure(stop,"Остановить",delegate{RequestRecoveryStop();});stop.Enabled=false;actions.Controls.Add(stop,1,0);var guide=new Button();Configure(guide,"Справка",delegate{OpenPath(ApplicationPaths.Document("guides/recovery.md"));});actions.Controls.Add(guide,2,0);layout.Controls.Add(actions,0,4);
             layout.Controls.Add(BuildRunStatus(),0,5);
+            layout.RowStyles[5].Height = 0;
             var footer=new SurfaceCard{Dock=DockStyle.Fill,Padding=new Padding(14),Margin=Padding.Empty};var footerLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=4,RowCount=3};for(int i=0;i<4;i++)footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,23));footerLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));footerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,38));footer.Controls.Add(footerLayout);journalToggle.Text="Подробности операции";journalToggle.AutoSize=true;journalToggle.Name="operation-details";journalToggle.Font=new Font("Segoe UI",9F);footerLayout.Controls.Add(journalToggle,0,0);footerLayout.SetColumnSpan(journalToggle,4);
             log.Multiline=true;log.ReadOnly=true;log.Text=IdleLogText;log.ScrollBars=ScrollBars.Vertical;log.Dock=DockStyle.Fill;log.Font=new Font("Consolas",8.5F);log.Margin=new Padding(0,0,0,8);var journalBody=new Panel{Dock=DockStyle.Fill,Padding=new Padding(0,0,0,8),Margin=Padding.Empty};journalBody.Controls.Add(log);footerLayout.Controls.Add(journalBody,0,1);footerLayout.SetColumnSpan(journalBody,4);log.Visible=false;var journalHint=new Label{Text="Сначала выбери источник. Здесь появятся сведения о ходе поиска.",Dock=DockStyle.Fill,ForeColor=UiTheme.Muted,Font=new Font("Segoe UI",9F),Name="operation-hint"};journalBody.Controls.Add(journalHint);journalToggle.CheckedChanged+=delegate{log.Visible=journalToggle.Checked;journalHint.Visible=!journalToggle.Checked;if(journalToggle.Checked)log.BringToFront();else journalHint.BringToFront();};status.TextChanged+=delegate{journalHint.Text=status.Text;};Resize+=delegate{if(!ExpertMode)SetExpertMode(false);};
             Configure(open,"Папка результатов",delegate{OpenPath(lastDirectory);});open.Enabled=false;footerLayout.Controls.Add(open,0,2);Configure(gallery,"Фотографии",delegate{OpenPath(lastGallery);});gallery.Enabled=false;footerLayout.Controls.Add(gallery,1,2);Configure(fileList,"Все файлы и экспорт",delegate{ShowRecoveredFiles();});fileList.Enabled=true;footerLayout.Controls.Add(fileList,2,2);Configure(continueJob,"Продолжить…",delegate{ContinueLastJobOrChoose();});continueJob.Name="continue-recovery-job";footerLayout.Controls.Add(continueJob,3,2);layout.Controls.Add(footer,0,6);
             UiTheme.ApplyTree(this);badge.BackColor=Color.FromArgb(231,243,237);badge.ForeColor=Color.FromArgb(41,117,85);
+            start.Enabled = disks.SelectedItem is DiskInfo;
             sourceHelp.AutoEllipsis=true;disks.SelectedIndexChanged+=delegate{var selected=disks.SelectedItem as DiskInfo;if(!busy&&!loading)start.Enabled=selected!=null;if(selected!=null)sourceHelp.Text=String.Format("{0:0.0} ГБ · {1} · только чтение",selected.Size/1000000000.0,String.IsNullOrEmpty(selected.Letters)?"без буквы диска":selected.Letters);};
             if(autoDiscover)Shown+=delegate{RefreshDisks();};
             FormClosing+=delegate(object sender,FormClosingEventArgs e){if(busy){e.Cancel=true;MessageBox.Show(this,"Сначала нажми «Остановить» и дождись завершения чтения.","Идёт восстановление");}};
@@ -197,10 +196,10 @@ namespace UsbRecovery
             string requested = destination.Text;
             if (!Directory.Exists(requested))
             {
-                // Only the built-in folder on the system disk may be created before source validation.
-                string defaultPath = Path.GetPathRoot(Environment.SystemDirectory).TrimEnd('\\') + @"\USB-Recovery-Results";
+                // Validate the disk containing the default folder before creating it.
+                string defaultPath = ApplicationPaths.DefaultResultsDirectory;
                 if (!String.Equals(requested, defaultPath, StringComparison.OrdinalIgnoreCase)) throw new IOException("Выбери существующую папку.");
-                string parent = Path.GetPathRoot(Environment.SystemDirectory);
+                string parent = Path.GetDirectoryName(defaultPath);
                 var selected = disks.SelectedItem as DiskInfo;
                 if (selected != null) RecoveryCore.ValidateDestination(selected, RecoveryCore.DiskForDirectory(parent));
                 Directory.CreateDirectory(requested);
@@ -213,6 +212,11 @@ namespace UsbRecovery
             if (busy || loading) return;
             var selected = disks.SelectedItem as DiskInfo;
             if (selected == null) { MessageBox.Show(this, "Подключи флешку, обнови список и выбери её.", "Выбери флешку"); return; }
+            if (!HasDeviceAccess())
+            {
+                OfferElevatedWindow();
+                return;
+            }
             BeginRecovery(selected, null);
         }
         void ResumeImage()
@@ -337,7 +341,9 @@ namespace UsbRecovery
             finally
             {
                 activityView.IsActive=false;activityView.IsComplete=searchFinished;activityView.SetPhase(searchFinished?(searchWarnings?"Поиск завершён с замечаниями":"Поиск завершён"):"Поиск не завершён",searchFinished?"Открой «Все файлы и экспорт», проверь и сохрани нужное":"Подробности — в ходе операции");busy = false; cancellation.Dispose(); cancellation = null;
-                start.Enabled = resume.Enabled = refresh.Enabled = choose.Enabled = disks.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = verifyVideo.Enabled=continueJob.Enabled= true; stop.Enabled = false;
+                resume.Enabled = refresh.Enabled = choose.Enabled = searchSettings.Enabled = profile.Enabled = expertButton.Enabled = verifyVideo.Enabled = continueJob.Enabled = true;
+                disks.Enabled = disks.Items.Count > 0;
+                start.Enabled = disks.SelectedItem is DiskInfo; stop.Enabled = false;
                 progress.Style = ProgressBarStyle.Continuous; open.Enabled = lastDirectory != null && Directory.Exists(lastDirectory); gallery.Enabled = lastGallery != null && File.Exists(lastGallery);
                 fileList.Enabled=true;CompletePresentation(searchFinished,searchWarnings);UpdateResultAction();
             }

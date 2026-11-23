@@ -1526,6 +1526,17 @@ def progressive_paths(assembler, frame, markers, allow_gaps=False, allow_partial
     return list(solutions.values())
 
 
+def sparse_fallback(assembler, frame):
+    """Try a different fragment model only when a bounded primary search stopped."""
+    import jpeg_sector_runs
+    if not hasattr(assembler, "sparse_sector_runs"):
+        assembler.sparse_sector_runs = jpeg_sector_runs.sector_runs(assembler)
+    for recipe in jpeg_sector_runs.recover(assembler, frame, assembler.sparse_sector_runs):
+        yield (recipe, "jpeg_gap_structural_candidate",
+               "Sector runs separated by uniform fill. Huffman counts, restart order, padding, "
+               "EOI and decoding agree within the bounded search. Source ownership is unknown.")
+
+
 def recover_jpegs(assembler):
     """Yield (recipe, status, note); publication remains with the caller."""
     if not assembler.jpeg_starts:
@@ -1567,7 +1578,10 @@ def recover_jpegs(assembler):
                         yield (recipe,'jpeg_gap_structural_candidate',
                                'Byte-identical source alias from the complete bounded one-gap search; physical placement and original ownership are unknown and not authenticated.')
                 continue
+            prior_limits = assembler.skipped["jpeg_search_incomplete"]
             recipes = restart_paths(assembler, frame, baseline_markers)
+            if not recipes and assembler.skipped["jpeg_search_incomplete"] > prior_limits:
+                yield from sparse_fallback(assembler, frame)
             for recipe in recipes:
                 if len(recipe) < 2:
                     continue
@@ -1575,6 +1589,8 @@ def recover_jpegs(assembler):
                        "Baseline Huffman MCU counts, RST sequence, padding and JPEG decoding agree for a unique minimum-jump island path. This is structural evidence only; payload ownership, original integrity and deletion are not authenticated. New islands start at known restart or 512-byte boundaries.")
         except InvalidJpeg as error:
             assembler.skipped[str(error)] += 1
+            if str(error) == "jpeg_stream_entropy_search_incomplete":
+                yield from sparse_fallback(assembler, frame)
             if str(error) == "jpeg_gap_ambiguous":
                 for recipe in error.recipes:
                     yield (recipe, "jpeg_gap_ambiguous_candidate",

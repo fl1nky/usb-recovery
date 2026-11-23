@@ -18,7 +18,7 @@ namespace UsbRecovery
             public string Name, OriginalPath, NameNote;
             public uint Start;
             public long Length, ValidLength;
-            public bool Contiguous;
+            public bool Contiguous, LiveEntry;
         }
         sealed class DirectoryTask
         {
@@ -390,7 +390,7 @@ namespace UsbRecovery
                 }
             return text.Length > 0 && text.Length <= 255 ? text.ToString() : null;
         }
-        static void FatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, DirectoryQueue queue, ref int entries, CancellationToken cancel)
+        static void FatDirectory(ImageReader image, Volume v, byte[] bytes, DirectoryTask parent, DirectoryQueue queue, ref int entries, CancellationToken cancel, bool includeLiveFiles = false)
         {
             var lfn = new List<int>();
             for (int at = 0; at + 32 <= bytes.Length; at += 32)
@@ -423,16 +423,17 @@ namespace UsbRecovery
                     else if (parent.Depth >= 64 || queue.Count >= MaxDirectories || !deleted && !parent.Deleted) v.AllocationComplete = false;
                     continue;
                 }
-                if (!deleted && !parent.Deleted)
+                bool live = !deleted && !parent.Deleted;
+                if (live)
                 {
-                    if (!parent.Deleted) MarkLive(image, v, start, length, false, cancel);
-                    continue;
+                    bool complete = MarkLive(image, v, start, length, false, cancel);
+                    if (!includeLiveFiles || !complete) continue;
                 }
                 if (length > 0)
                 {
                     if (v.Candidates.Count >= MaxCandidates) v.AllocationComplete = false;
                     else v.Candidates.Add(new Candidate { Name = name, OriginalPath = original, Start = start, Length = length, ValidLength = length,
-                        NameNote = parent.Deleted ? "from removed/unlinked directory; original parent and file deletion state unknown" : longName == null ? "short name: first character lost" : "surviving long name; deleted LFN order inferred" });
+                        LiveEntry = live, NameNote = live ? "current directory entry; not deleted" : parent.Deleted ? "from removed/unlinked directory; original parent and file deletion state unknown" : longName == null ? "short name: first character lost" : "surviving long name; deleted LFN order inferred" });
                 }
             }
         }
@@ -558,9 +559,9 @@ namespace UsbRecovery
             return RecoverCheckpointed(imagePath, runDirectory, cancel, progress, discovered, alternateFat, orphanDirectories, null);
         }
         internal static int Recover(string imagePath, string runDirectory, CancellationToken cancel, Action<string> progress,
-            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories, RecoveryCheckpointContext checkpoint)
+            IList<BootCandidate> discovered, bool alternateFat, bool orphanDirectories, RecoveryCheckpointContext checkpoint, bool includeLiveFiles = false)
         {
-            return RecoverCheckpointed(imagePath, runDirectory, cancel, progress, discovered, alternateFat, orphanDirectories, checkpoint);
+            return RecoverCheckpointed(imagePath, runDirectory, cancel, progress, discovered, alternateFat, orphanDirectories, checkpoint, includeLiveFiles);
         }
     }
 }

@@ -41,6 +41,16 @@ public static class MediaBenchmark
                 foreach(string field in new[]{"FragmentedPhotos","FragmentedMedia","FragmentedVideo"}){
                     var property=typeof(RecoveryOptions).GetField(field);if(property!=null&&property.FieldType==typeof(bool))property.SetValue(options,true);
                 }
+                if (args.Length > 4)
+                {
+                    if (args.Length != 5 || args[4] != "--include-surviving-records")
+                        throw new ArgumentException("Unknown benchmark option");
+                    foreach (string nameOfOption in new[] { "UnknownNtfsAllocation", "IncludeLiveFatFiles" })
+                    {
+                        var field = typeof(RecoveryOptions).GetField(nameOfOption);
+                        if (field != null && field.FieldType == typeof(bool)) field.SetValue(options, true);
+                    }
+                }
                 var clock=Stopwatch.StartNew();string failure=null;var candidates=new List<object>();
                 try{
                     using(var cancel=new CancellationTokenSource(TimeSpan.FromMinutes(5)))RecoveryPipeline.Run(image,run,options,cancel.Token,s=>{},baseline);

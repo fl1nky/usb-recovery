@@ -847,6 +847,7 @@ def _cached_image_valid(payload,name,status):
 
 def recover(image, destination, options=None, progress=None, checkpoint_progress=None):
     import jpeg_fragments
+    import jpeg_sector_runs
     import png_fragments
     import recovery_checkpoint as checkpoint
     import png_sector_index
@@ -888,7 +889,7 @@ def recover(image, destination, options=None, progress=None, checkpoint_progress
                 sector_index = png_sector_index.SectorPrefixIndex(index_directory, identity.st_size, create=anchor is None)
                 assembler.sector_index = sector_index
             binding = dict(SourceSha256=input_sha256,SourceBytes=identity.st_size,Options=normalized,
-                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,png_fragments,checkpoint,
+                           CodeSha256=checkpoint.fingerprint([sys.modules[__name__],jpeg_fragments,jpeg_sector_runs,png_fragments,checkpoint,
                                                               png_sector_index,png_streaming]),
                            Runtime=dict(Python=list(sys.version_info[:3]),Pillow=pillow_version,Zlib=zlib.ZLIB_RUNTIME_VERSION))
             journal = checkpoint.Journal(state_directory,binding,anchor,checkpoint_progress)

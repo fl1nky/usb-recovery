@@ -78,7 +78,11 @@ jobs:
             'ext4' { ./scripts/test-ext4-checkpoints.ps1 -Python $python }
             'refs' { ./scripts/test-refs-checkpoints.ps1 -Python $python }
             'apfs' { ./scripts/test-apfs-checkpoints.ps1 -Python $python }
-            'media' { ./scripts/test-media-checkpoints.ps1 -Python $python }
+            'media' {
+              python tests/JpegTwoGapRecoveryTests.py
+              if ($LASTEXITCODE -ne 0) { throw 'JPEG reconstruction regression' }
+              ./scripts/test-media-checkpoints.ps1 -Python $python
+            }
           }
       - name: Upload small validation receipts and logs
         if: always()
