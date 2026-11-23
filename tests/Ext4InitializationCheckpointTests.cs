@@ -51,10 +51,12 @@ public static class Ext4InitializationCheckpointTests
         public override int Read(byte[] data,int offset,int count)
         { Phases.Add(File.Exists(Parent(root)) ? Convert.ToInt32(Payload(Anchor(root).Path)["Phase"]) : -1); return ZeroNext ? 0 : base.Read(data,offset,count); }
     }
-    static string Image(string label,out string root,string fixture = "native-journal-v3-replay")
+    static string Image(string label,out string root,string fixture = "native-journal-v3-replay", bool privateImage = false)
     {
         root = Path.Combine(work,label+"-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
-        string image = Path.Combine(root,"owned.dd"); File.Copy(Path.Combine(fixtures,fixture+".dd"),image);
+        string source = Path.Combine(fixtures,fixture+".dd");
+        if (!privateImage) return source;
+        string image = Path.Combine(root,"owned.dd"); File.Copy(source,image);
         File.SetAttributes(image,File.GetAttributes(image)&~FileAttributes.ReadOnly); return image;
     }
     static string Snapshot(object volume,Ext4Recovery.Report report)
@@ -141,7 +143,7 @@ public static class Ext4InitializationCheckpointTests
     }
     static void Tamper(string kind)
     {
-        string root,image = Image("tamper",out root),sha = Hash(image); Cancel(image,root,sha,kind == "child" ? "groups" : "header");
+        string root,image = Image("tamper",out root, privateImage: kind == "source"),sha = Hash(image); Cancel(image,root,sha,kind == "child" ? "groups" : "header");
         string target = kind == "source" ? image : Anchor(root).Path;
         if (kind == "header") target = Path.Combine(root,"ext4.state","group-blobs","blob-"+(string)State(root)["Header"]+".json");
         if (kind == "child") { var children = (Dictionary<string,object>)State(root)["Children"]; target = Path.Combine(root,(string)((Dictionary<string,object>)children["groups-before"])["Path"]); }

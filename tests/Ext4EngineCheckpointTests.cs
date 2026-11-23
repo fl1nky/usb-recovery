@@ -52,10 +52,12 @@ public static class Ext4EngineCheckpointTests
             if (File.Exists(Parent(root))) File.Replace(temporary,Parent(root),null); else File.Move(temporary,Parent(root));
         } finally { if (own && File.Exists(temporary)) File.Delete(temporary); }
     }
-    static string Image(string name,out string root,string fixture = "extent-deleted")
+    static string Image(string name,out string root,string fixture = "extent-deleted", bool privateImage = false)
     {
         root = Path.Combine(work,name+"-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
-        string image = Path.Combine(root,"owned.dd"); File.Copy(Path.Combine(fixtures,fixture+".dd"),image);
+        string source = Path.Combine(fixtures,fixture+".dd");
+        if (!privateImage) return source;
+        string image = Path.Combine(root,"owned.dd"); File.Copy(source,image);
         File.SetAttributes(image,File.GetAttributes(image)&~FileAttributes.ReadOnly); return image;
     }
     static bool Same(object left,object right)
@@ -152,7 +154,7 @@ public static class Ext4EngineCheckpointTests
     }
     static void SourceFailure(bool zero)
     {
-        string root,image = Image("source-io",out root),sha = Hash(image); bool failed = false; FileStream held = null;
+        string root,image = Image("source-io",out root, privateImage: true),sha = Hash(image); bool failed = false; FileStream held = null;
         try { Run(image,root,sha,CancellationToken.None,m => {
             if (!zero && held == null && m == "ext4: volume 0 initialize complete")
             { held = new FileStream(image,FileMode.Open,FileAccess.Read,FileShare.Read); held.Lock(0,held.Length); }
@@ -207,7 +209,7 @@ public static class Ext4EngineCheckpointTests
     }
     static void Tamper(string kind)
     {
-        string root,image = Image("tamper-"+kind,out root),sha = Hash(image); CancelAt(image,root,sha,"reports pending");
+        string root,image = Image("tamper-"+kind,out root, privateImage: kind == "source"),sha = Hash(image); CancelAt(image,root,sha,"reports pending");
         string target = kind == "source" ? image : Anchor(root).Path;
         if (kind == "output") target = RecoveryCore.RecoveredFiles(root).Single();
         if (kind == "ledger") target = Path.Combine(root,(string)((Dictionary<string,object>)State(root)["Finished"])["Path"]);
@@ -276,7 +278,7 @@ public static class Ext4EngineCheckpointTests
     }
     static void Relocated()
     {
-        string root,image = Image("relocate",out root),sha = Hash(image); CancelAt(image,root,sha,"reports pending"); var anchor = Anchor(root);
+        string root,image = Image("relocate",out root, privateImage: true),sha = Hash(image); CancelAt(image,root,sha,"reports pending"); var anchor = Anchor(root);
         string destination = Path.Combine(work,"moved-"+Guid.NewGuid().ToString("N")),prefix = Path.GetFullPath(work)+Path.DirectorySeparatorChar;
         Check(Path.GetFullPath(root).StartsWith(prefix,StringComparison.OrdinalIgnoreCase) && Path.GetFullPath(destination).StartsWith(prefix,StringComparison.OrdinalIgnoreCase) && !Directory.Exists(destination),"recursive move is limited to unique owned paths under the verified workspace");
         Directory.Move(root,destination); anchor.Path = Path.Combine(destination,"ext4.state",Path.GetFileName(anchor.Path)); SaveAnchor(destination,anchor);

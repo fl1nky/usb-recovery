@@ -1,9 +1,10 @@
-﻿$ErrorActionPreference='Stop'
+﻿param([ValidateRange(0, [long]::MaxValue)][long]$MaximumPreviousPackageBytes = 2GB)
+$ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ProjectPaths.ps1')
 $taskLayout=Get-RecoveryLayout
 $taskRoot=$taskLayout.Root
 $taskReady=$taskLayout.Portable
-$taskStage=Join-Path $taskRoot ('.build\packages\stage-'+[Guid]::NewGuid().ToString('N')+'\USB-Recovery')
+$taskStage=Join-Path $taskRoot ('.build\packages\stage-'+[Guid]::NewGuid().ToString('N'))
 function Assert-RecoveryPath([string]$Path){
  $full=[IO.Path]::GetFullPath($Path)
  if(-not $full.StartsWith($taskRoot.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'Package path outside repository.'}
@@ -18,6 +19,15 @@ function Copy-RecoveryTree([string]$Source,[string]$Target){
  & (Join-Path $env:WINDIR 'System32\robocopy.exe') $Source $Target /E /XJ /R:1 /W:1 /MT:16 /NFL /NDL /NJH /NJS /NP /XD .git __pycache__ .pytest_cache bin obj|Out-Null
  if($LASTEXITCODE-ge8){throw 'Package copying failed.'}
 }
+. (Join-Path $PSScriptRoot 'PackageBudget.ps1')
+$taskArchive = Assert-RecoveryPath (Join-Path $taskRoot '.build\previous-packages')
+$taskPackageDir = Assert-RecoveryPath (Join-Path $taskRoot '.build\packages')
+$null = [IO.Directory]::CreateDirectory($taskPackageDir)
+$taskLockPath = Assert-RecoveryPath (Join-Path $taskPackageDir 'package.lock')
+$taskLock = [IO.File]::Open($taskLockPath, 'OpenOrCreate', 'ReadWrite', 'None')
+try {
+    # The current portable folder will move to previous-packages on success.
+    Assert-PackageBackupBudget @($taskArchive, $taskPackageDir, (Assert-RecoveryPath $taskReady)) $MaximumPreviousPackageBytes
 foreach($relative in '.build\app\USB-Recovery.exe','.build\app\USB-Recovery.exe.config','tools\recovery-helper\recovery-helper.exe','tools\platform-tools\adb.exe','tools\testdisk-7.2\photorec_win.exe','tools\native-recovery\runtime.json'){
  if(-not(Test-Path -LiteralPath (Join-Path $taskRoot $relative) -PathType Leaf)){throw ('Missing dependency: '+$relative)}
 }
@@ -63,4 +73,5 @@ if(Test-Path -LiteralPath $taskReady){
 Move-Item -LiteralPath $taskStage -Destination $taskReady
 Write-Output ('Packaged: '+$taskReady)
 Write-Output ('Runtime files hashed: '+@($taskHashes).Count)
+} finally { $taskLock.Dispose() }
 exit 0

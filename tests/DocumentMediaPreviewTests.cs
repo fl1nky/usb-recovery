@@ -92,6 +92,29 @@ public static class DocumentMediaPreviewTests
         if(failure!=null)throw new InvalidOperationException("PDF modal viewer check failed",failure);
         Check(escapeHandled,"Escape closes the separate PDF viewer");
     }
+    static void RasterReuse()
+    {
+        using (var panel = new DocumentMediaPreviewPanel()) {
+            var flags = BindingFlags.NonPublic | BindingFlags.Instance;
+            var type = panel.GetType();
+            var picture = Field<PictureBox>(panel,"image");
+            var bitmap = new Bitmap(24,12);
+            bitmap.SetPixel(0,0,Color.Red);
+            picture.Image = bitmap;
+            type.GetField("pdf",flags).SetValue(panel,true);
+            type.GetField("fitPage",flags).SetValue(panel,false);
+            for (int i=0; i<25; i++) {
+                type.GetField("rotation",flags).SetValue(panel,i%4*90);
+                type.GetMethod("ShowRaster",flags).Invoke(panel,null);
+                Check(Object.ReferenceEquals(bitmap,picture.Image),"PDF layout reuses the decoded page");
+                Check(bitmap.Width==(i%2==0?24:12),"rotation keeps the expected dimensions");
+                Check(picture.Width==(i%2==0?1200:600),"zoom uses the original page width");
+            }
+            Check(bitmap.GetPixel(0,0).ToArgb()==Color.Red.ToArgb(),"four rotations preserve pixels");
+            panel.Stop();
+            Check(picture.Image==null,"stopping releases the displayed page");
+        }
+    }
     static void UiCases(string pdf)
     {
         using(var form=new Form{ClientSize=new Size(700,600),ShowInTaskbar=false,StartPosition=FormStartPosition.Manual,Location=new Point(-12000,-12000)})
@@ -282,6 +305,9 @@ public static class DocumentMediaPreviewTests
             return MediaDecodeWorker.RunConsole(args);
 
         try{
+            if (args.Length==1 && args[0]=="--raster-reuse") {
+                RasterReuse(); Console.WriteLine("PASS PDF raster reuse: "+checks+" checks"); return 0;
+            }
             Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);string project=Path.GetFullPath(args[0]);work=Path.Combine(project,".build","document-media-preview-tests-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(work);string pdf=Pdf(Path.Combine(work,"multipage.pdf")),catalog=Catalog(pdf,Path.GetFullPath(args[1]));if(args.Length>2&&args[2]=="--show"){using(var form=new RecoveryFilesForm(catalog)){form.Text="Preview verification — controlled local fixtures";Application.Run(form);}return 0;}PdfCases(pdf);UiCases(pdf);VideoCases(Path.GetFullPath(args[1]));Integration(catalog);File.WriteAllText(Path.Combine(work,"evidence.json"),new JavaScriptSerializer{MaxJsonLength=4*1024*1024}.Serialize(new{checks=checks,evidence=evidence}),new UTF8Encoding(false));Console.WriteLine(work);Console.WriteLine("PASS DocumentMediaPreview: "+checks+" checks; actual OS PDF pixels, multipage UI/rotation/zoom, isolated native playback/pause/seek/end/volume/audio/cleanup and catalog integration. Windows OS-codec evidence.");return 0;
         }catch(Exception error){Console.WriteLine("FAIL "+error);if(work!=null)File.WriteAllText(Path.Combine(work,"failure.txt"),error.ToString());return 1;}
         finally{

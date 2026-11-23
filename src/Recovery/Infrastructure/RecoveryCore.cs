@@ -143,6 +143,15 @@ namespace UsbRecovery
             if (available < (ulong)needed) throw new IOException(String.Format("Недостаточно места. Для копии и нескольких способов поиска нужно примерно {0:0.0} ГБ; свободно {1:0.0} ГБ. Выбери другой диск.", needed / 1000000000.0, available / 1000000000.0));
         }
 
+        internal static void CheckRecoveryReserve(string directory)
+        {
+            ulong available, capacity, free;
+            if (!GetDiskFreeSpaceEx(directory, out available, out capacity, out free))
+                throw WindowsError("Не удалось проверить свободное место для найденных файлов.");
+            if (available < 1024UL * 1024 * 1024)
+                throw new IOException("Менее 1 ГиБ свободного места на диске результатов. Поиск остановлен. Уже записанные файлы сохранены.");
+        }
+
         public static void ValidateDestination(DiskInfo source, int destinationDisk)
         {
             if (!source.Eligible) throw new IOException("Разрешены только USB-диски, с которых не запущена Windows.");

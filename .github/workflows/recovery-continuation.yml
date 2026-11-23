@@ -58,6 +58,14 @@ jobs:
               foreach ($name in 'RecoveryRestartTests','SessionCheckpointSaveTests','TextCheckpointTests','TextUnicodeRecoveryTests','RecoveryContinuityTests','PhotoCheckpointSessionTests','RecoveryStageProgressTests','RecoveryRunPresentationTests') {
                 ./tests/run_test.ps1 $name
               }
+              ./tests/run_test.ps1 DocumentMediaPreviewTests -TestArguments @('--raster-reuse')
+              ./tests/run_test.ps1 SourceRecoveryTests
+              ./tests/run_test.ps1 NativeNtfsCheckpointTests -TestArguments @('.build/ntfs-cache-budget', 'Cache')
+              $env:PYTHONPATH = (Resolve-Path helpers/recovery_engine).Path
+              python tests/EngineTests.py EngineTests.test_many_wal_commits_use_one_replay_file EngineTests.test_nested_archives_share_one_disk_budget EngineTests.test_html_keeps_template_tokens_and_escapes_user_text
+              if ($LASTEXITCODE -ne 0) { throw 'Archive resource regressions failed' }
+              python tests/TelegramAutoTests.py TelegramAutoTests.test_copy_budget_counts_each_working_layout_once
+              if ($LASTEXITCODE -ne 0) { throw 'Telegram copy budget regression failed' }
               python tests/ResumableCopyTests.py
               if ($LASTEXITCODE -ne 0) { throw 'Copy regressions failed' }
               python tests/ForensicImageTests.py

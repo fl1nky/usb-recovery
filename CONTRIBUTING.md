@@ -31,3 +31,9 @@ $env:__COMPAT_LAYER = 'RunAsInvoker'
 Describe the input that used to fail and how someone can reproduce the result. For recovery changes, include the expected file contents or SHA256 and the result of an interrupted run. Use a small generated image or a redistributable fixture. Keep personal data, recovered files and generated builds out of Git.
 
 For performance or competitor claims, record the versions, settings, reference files and results on the same images. Existing comparisons include the scope of each experiment. [Comparison reports](docs/guides/comparison.md)
+
+Windows packaging moves the current portable folder into `.build/previous-packages`.
+Before staging another build, the packager checks that the current folder, archived
+packages and leftover staging files together fit the 2 GiB backup budget. If the
+check fails, review those folders. To select a different budget, run
+`.\scripts\package.ps1 -MaximumPreviousPackageBytes 4GB`.

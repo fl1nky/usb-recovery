@@ -392,6 +392,22 @@ class TelegramAutoTests(unittest.TestCase):
         self.assertFalse(any(p == fake_home for p, _ in roots))
         self.assertFalse(any(p == app / "tdata" for p, _ in roots))
 
+    def test_copy_budget_counts_each_working_layout_once(self):
+        scanner = auto.Analyzer({"destination": str(self.base / "out")}, engine.Importer, lambda *a, **k: None)
+        scanner.worker = engine.Importer(self.input, scanner.output)
+        source = self.input / "attachment"
+        source.write_bytes(b"1234")
+        first, second, excess = [self.base / name / "copy" for name in ("first", "second", "excess")]
+        with patch.object(auto, "MAX_COPY_BYTES", 8):
+            scanner.copy(source, first)
+            scanner.copy(source, second)
+            scanner.copy(source, second)
+            with self.assertRaisesRegex(auto.AutoError, "TELEGRAM_SOURCE_LIMIT"):
+                scanner.copy(source, excess)
+        self.assertEqual(scanner.bytes, 8)
+        self.assertFalse(excess.exists())
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+
     def test_source_limit_bounded(self):
         export(self.input / "first.json")
         export(self.input / "second.json", chat=222)

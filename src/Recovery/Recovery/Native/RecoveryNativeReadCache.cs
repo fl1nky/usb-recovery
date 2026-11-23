@@ -21,7 +21,7 @@ namespace UsbRecovery
             public long Begin, Length, MaximumBytes, Bytes;
             public RecoveryOutputHead Pages;
         }
-        sealed class Page { public long Offset; public int Length; public string Sha256; }
+        sealed class Page { public long Offset; public int Length; public string Sha256; public bool ImplicitZero; }
         readonly FileStream source;
         readonly RecoveryVerifiedImage verified;
         readonly RecoveryCheckpointContext context;
@@ -82,7 +82,13 @@ namespace UsbRecovery
         }
         byte[] ReadPage(Page page)
         {
-            Guard(); string path = FileFor(page);
+            Guard();
+            if (page.ImplicitZero) {
+                byte[] zeros = new byte[page.Length];
+                if (Hash(zeros) != page.Sha256) throw new IOException("NATIVE_CACHE_PAGE_CHANGED");
+                return zeros;
+            }
+            string path = FileFor(page);
             using (var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 if (input.Length != page.Length) throw new IOException("NATIVE_CACHE_PAGE_CHANGED");
                 byte[] bytes = new byte[page.Length]; int done = 0;
@@ -105,24 +111,36 @@ namespace UsbRecovery
                 if (n == 0) throw new IOException("NATIVE_SOURCE_SHORT_READ");
                 done += n; PhysicalReadBytes += n;
             }
-            var page = new Page { Offset = offset, Length = count, Sha256 = Hash(bytes) };
-            string path = FileFor(page); Directory.CreateDirectory(Path.GetDirectoryName(path));
-            if (File.Exists(path)) {
-                // An orphan from a failed parent commit is usable only after
-                // independent verification against the freshly read source.
-                ReadPage(page);
-            } else {
-                string pending = RecoveryCatalog.SafeFile(root, method + ".state/read-cache/" + Guid.NewGuid().ToString("N") + ".partial");
-                using (var output = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) {
-                    Guard(); output.Write(bytes, 0, bytes.Length); output.Flush(true);
-                }
-                Guard(); File.Move(pending, path);
-            }
+            var page = new Page { Offset = offset, Length = count, Sha256 = Hash(bytes),
+                ImplicitZero = Array.TrueForAll(bytes, value => value == 0) };
+            if (!page.ImplicitZero) PersistPage(page, bytes);
             var added = new List<Page> { page };
             var next = new State { Begin = begin, Length = length, MaximumBytes = maximum, Bytes = state.Bytes + count,
                 Pages = ledger.Append(state.Pages, added) };
             Guard(); journal.Save(next); ledger.Accept(added); state = next; pages.Add(offset, page);
             return bytes;
+        }
+        void PersistPage(Page page, byte[] bytes)
+        {
+            string path = FileFor(page);
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            if (File.Exists(path)) {
+                // An orphan from a failed parent commit must match the fresh source read.
+                ReadPage(page);
+                return;
+            }
+            string pending = RecoveryCatalog.SafeFile(root, method + ".state/read-cache/" + Guid.NewGuid().ToString("N") + ".partial");
+            bool owned = false;
+            try {
+                using (var output = new FileStream(pending, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) {
+                    owned = true;
+                    Guard(); output.Write(bytes, 0, bytes.Length); output.Flush(true);
+                }
+                Guard(); File.Move(pending, path);
+                owned = false;
+            } finally {
+                if (owned) File.Delete(pending);
+            }
         }
         internal byte[] Read(long offset, int count)
         {

@@ -513,14 +513,14 @@ namespace UsbRecovery
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
-        static string HashFile(string path, CancellationToken cancel)
+        static string HashFile(string path, byte[] data, CancellationToken cancel)
         {
             SourcePaths.NoLinks(path);
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var hash = SHA256.Create())
             {
-                byte[] data = new byte[1024 * 1024]; int read;
-                while ((read = stream.Read(data, 0, data.Length)) > 0) { cancel.ThrowIfCancellationRequested(); hash.TransformBlock(data, 0, read, data, 0); }
+                int read;
+                while ((read = stream.Read(data, 0, data.Length)) > 0) { cancel.ThrowIfCancellationRequested(); hash.TransformBlock(data, 0, read, null, 0); }
                 hash.TransformFinalBlock(new byte[0], 0, 0);
                 return BitConverter.ToString(hash.Hash).Replace("-", "").ToLowerInvariant();
             }
@@ -545,6 +545,7 @@ namespace UsbRecovery
             AtomicJson(manifestPath, manifest);
             var identities = new HashSet<string>(StringComparer.Ordinal);
             var outputPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            byte[] data = new byte[1024 * 1024];
             int count = 0, failed = 0, successiveFailures = 0;
             try
             {
@@ -580,7 +581,7 @@ namespace UsbRecovery
                     if (File.Exists(checkpoint) && new FileInfo(checkpoint).Length <= 131072)
                     {
                         AcquisitionFile old = Serializer().Deserialize<AcquisitionFile>(File.ReadAllText(checkpoint, Encoding.UTF8));
-                        if (old != null && old.Status == "complete" && old.Id == record.Id && old.RelativePath == relative && old.LocalPath == record.LocalPath && old.Size == entry.Size && old.Modified == record.Modified && entry.Size >= 0 && !String.IsNullOrEmpty(record.Modified) && File.Exists(output) && new FileInfo(output).Length == old.CopiedBytes && HashFile(output, cancel) == old.Sha256)
+                        if (old != null && old.Status == "complete" && old.Id == record.Id && old.RelativePath == relative && old.LocalPath == record.LocalPath && old.Size == entry.Size && old.Modified == record.Modified && entry.Size >= 0 && !String.IsNullOrEmpty(record.Modified) && File.Exists(output) && new FileInfo(output).Length == old.CopiedBytes && HashFile(output, data, cancel) == old.Sha256)
                         {
                             record.CopiedBytes = old.CopiedBytes; record.Sha256 = old.Sha256; record.Status = "complete";
                             successiveFailures = 0; if (progress != null) progress("Проверена готовая копия: " + relative); continue;
@@ -598,13 +599,13 @@ namespace UsbRecovery
                         using (var hash = SHA256.Create())
                         {
                             if (input == null || !input.CanRead) throw new IOException("Источник не открыл поток чтения.");
-                            byte[] data = new byte[1024 * 1024]; int read;
+                            int read;
                             var timer = Stopwatch.StartNew();
                             while ((read = input.Read(data, 0, data.Length)) > 0)
                             {
                                 cancel.ThrowIfCancellationRequested();
                                 if (read > data.Length || record.CopiedBytes > SourceLimits.MaximumFileBytes - read || (entry.Size >= 0 && record.CopiedBytes > entry.Size - read)) throw new IOException("Размер файла изменился во время чтения.");
-                                target.Write(data, 0, read); hash.TransformBlock(data, 0, read, data, 0); record.CopiedBytes += read;
+                                target.Write(data, 0, read); hash.TransformBlock(data, 0, read, null, 0); record.CopiedBytes += read;
                                 if (timer.ElapsedMilliseconds >= 1000) { if (progress != null) progress("Копирование " + relative + ": " + record.CopiedBytes.ToString(CultureInfo.InvariantCulture) + " байт"); timer.Restart(); }
                             }
                             cancel.ThrowIfCancellationRequested();

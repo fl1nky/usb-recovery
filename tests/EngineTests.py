@@ -186,6 +186,60 @@ class EngineTests(unittest.TestCase):
         worker = self.run_import(expected="partial")
         self.assertTrue(any(x.get("code") == "WAL_CHECKSUM_INVALID" for x in worker.sources))
 
+    def test_nested_archives_share_one_disk_budget(self):
+        from unittest.mock import patch
+        child = io.BytesIO()
+        with zipfile.ZipFile(child, "w", zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("large.txt", b"x" * 65536)
+        with zipfile.ZipFile(self.source / "outer.zip", "w") as archive:
+            archive.writestr("child.zip", child.getvalue())
+        with patch.object(engine, "MAX_ZIP", 65536):
+            worker = self.run_import(expected="partial")
+        self.assertIn("ZIP_LIMIT", [r.get("code") for r in worker.sources])
+        self.assertEqual(worker.zip_budget.bytes_left, 65536 - len(child.getvalue()))
+        self.assertFalse(any("large.txt" in str(r.get("source")) for r in worker.sources))
+
+    def test_many_wal_commits_use_one_replay_file(self):
+        from contextlib import closing
+        from unittest.mock import patch
+        db = self.source / "history.db"
+        database(db)
+        with closing(sqlite3.connect(db)) as live:
+            live.executescript("CREATE TABLE padding(value BLOB); INSERT INTO padding VALUES(zeroblob(262144));")
+            live.execute("PRAGMA journal_mode=WAL")
+            live.execute("PRAGMA wal_autocheckpoint=0")
+            for n in range(24):
+                live.execute("UPDATE messages SET data=?", (str(n),))
+                live.commit()
+            worker = engine.Importer(self.source, self.destination)
+            worker.work = self.root / "scratch"
+            worker.work.mkdir()
+            observed = []
+            def inspect_snapshot(path, *args, **kwargs):
+                with closing(sqlite3.connect(path.as_uri() + "?immutable=1", uri=True)) as con:
+                    observed.append(con.execute("SELECT data FROM messages").fetchone()[0])
+                self.assertEqual(list(worker.work.rglob("*.db")), [path])
+            with patch.object(worker, "_read_chat_database", side_effect=inspect_snapshot):
+                worker.sqlite_wal_history(db)
+            self.assertEqual(observed, list(map(str, range(23))))
+            self.assertEqual(list(worker.work.iterdir()), [])
+            with patch.object(worker, "_read_chat_database", side_effect=OSError("interrupted")):
+                with self.assertRaises(OSError):
+                    worker.sqlite_wal_history(db)
+            self.assertIsNone(worker.snapshot)
+            self.assertEqual(list(worker.work.iterdir()), [])
+
+    def test_html_keeps_template_tokens_and_escapes_user_text(self):
+        worker = engine.Importer(self.source, self.destination)
+        self.destination.mkdir()
+        text = "@@SCRIPT@@ </script> 🥧\u2028"
+        worker.message("Telegram", text)
+        worker.write_html()
+        html = (self.destination / "Переписки.html").read_text(encoding="utf-8")
+        data = html.split('id="data">', 1)[1].split("</script>", 1)[0]
+        self.assertEqual(json.loads(data)[0]["text"], text)
+        self.assertNotIn("<", data)
+
     def test_free_pages_are_fragments_with_unknown_relationships(self):
         db = self.source / "unknown.db"
         con = sqlite3.connect(db)

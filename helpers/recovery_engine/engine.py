@@ -13,6 +13,7 @@ import html
 import io
 import json
 import logging
+import mmap
 import os
 from pathlib import Path, PurePosixPath
 import plistlib
@@ -233,14 +234,26 @@ class TelegramHTML(HTMLParser):
             self.current["sender_name"] += data
 
 
-def safe_unzip(source, target):
-    count = size = 0
+class ZipExtractionBudget:
+    def __init__(self):
+        self.bytes_left = MAX_ZIP
+        self.entries_left = MAX_ZIP_FILES
+
+    def reserve(self, entries):
+        size = sum(info.file_size for info in entries)
+        if len(entries) > self.entries_left or size > self.bytes_left:
+            raise RecoveryError("ZIP_LIMIT")
+        self.entries_left -= len(entries)
+        self.bytes_left -= size
+
+
+def safe_unzip(source, target, budget):
     with zipfile.ZipFile(source) as z:
-        for info in z.infolist():
-            count += 1
-            size += info.file_size
-            if count > MAX_ZIP_FILES or size > MAX_ZIP:
-                raise RecoveryError("ZIP_LIMIT")
+        entries = z.infolist()
+        # Extracted children can themselves be archives. Account for the full
+        # expansion across the import, including interrupted extractions.
+        budget.reserve(entries)
+        for info in entries:
             if info.flag_bits & 1:
                 raise RecoveryError("ZIP_ENCRYPTED_UNSUPPORTED")
             if stat.S_ISLNK(info.external_attr >> 16):
@@ -255,7 +268,7 @@ def safe_unzip(source, target):
             p.parent.mkdir(parents=True, exist_ok=True)
             with z.open(info) as inp, p.open("xb") as out:
                 shutil.copyfileobj(inp, out, 1024 * 1024)
-    return count
+    return len(entries)
 
 
 class Importer:
@@ -278,6 +291,7 @@ class Importer:
         self.attachments = {}
         self.snapshot = None
         self.source_label = None
+        self.zip_budget = ZipExtractionBudget()
         self.extracted_roots = []
         self.work = None
         self.source_count = 0
@@ -526,10 +540,8 @@ class Importer:
                 im.verify()
             with Image.open(io.BytesIO(content)) as im:
                 im.load()
-                preview = im.copy()
-                preview.thumbnail((640, 640))
-                if preview.mode not in ("RGB", "L"):
-                    preview = preview.convert("RGB")
+                im.thumbnail((640, 640))
+                preview = im if im.mode in ("RGB", "L") else im.convert("RGB")
                 ext = {"JPEG": ".jpg", "PNG": ".png", "WEBP": ".webp", "HEIF": ".heic",
                        "HEIC": ".heic", "GIF": ".gif", "BMP": ".bmp", "TIFF": ".tif"}.get(fmt, ".bin")
                 target = self.output / self.attachment_map[h] if h in self.attachment_map else self.output / "media" / f"{h}{ext}"
@@ -608,6 +620,7 @@ class Importer:
                       (b"\x89PNG\r\n\x1a\n", b"IEND\xaeB`\x82"), (b"RIFF", None))
         count, position, overlap = 0, 0, b""
         with path.open("rb") as scan, path.open("rb") as candidate:
+            file_size = os.fstat(candidate.fileno()).st_size
             while block := scan.read(8 * 1024 * 1024):
                 window = overlap + block
                 window_start = position - len(overlap)
@@ -618,19 +631,30 @@ class Importer:
                         start = found + len(signature)
                         # The preceding window processed signatures beginning
                         # before this boundary; retain only new occurrences.
-                        if offset < max(0, position - 11):
+                        if offset + len(signature) <= position:
                             continue
-                        candidate.seek(offset)
-                        data = candidate.read(MAX_IMAGE)
+                        available = min(MAX_IMAGE, file_size - offset)
                         if trailer:
-                            end = jpeg_end(data) if signature == b"\xff\xd8\xff" else data.find(trailer, len(signature))
-                            if end is not None and end >= 0:
-                                boundary = end if signature == b"\xff\xd8\xff" else end + len(trailer)
-                                self.photo(data[:boundary], self.source_label or path, offset, offset != 0)
-                        elif data[8:12] == b"WEBP":
-                            size = int.from_bytes(data[4:8], "little") + 8
-                            if 12 <= size <= len(data):
-                                self.photo(data[:size], self.source_label or path, offset, offset != 0)
+                            # Map only the candidate window. False signatures no
+                            # longer allocate/read 128 MiB into a Python bytes object.
+                            aligned = offset - offset % mmap.ALLOCATIONGRANULARITY
+                            start_in_view = offset - aligned
+                            with mmap.mmap(candidate.fileno(), start_in_view + available,
+                                           access=mmap.ACCESS_READ, offset=aligned) as view:
+                                if signature == b"\\xff\\xd8\\xff":
+                                    end = jpeg_end(view, start_in_view)
+                                else:
+                                    marker = view.find(trailer, start_in_view + len(signature))
+                                    end = marker + len(trailer) if marker >= 0 else None
+                                if end is not None:
+                                    self.photo(view[start_in_view:end], self.source_label or path, offset, offset != 0)
+                        else:
+                            candidate.seek(offset)
+                            header = candidate.read(12)
+                            size = int.from_bytes(header[4:8], "little") + 8
+                            if header[8:12] == b"WEBP" and 12 <= size <= available:
+                                candidate.seek(offset)
+                                self.photo(candidate.read(size), self.source_label or path, offset, offset != 0)
                         count += 1
                         if count >= 1000:
                             self.remark("CONTAINER_CANDIDATE_LIMIT", self.source_label)
@@ -877,15 +901,20 @@ class Importer:
     def sqlite_whatsapp(self, path, evidence="backup", do_deep=True, media_base=None):
         if path.stat().st_size > MAX_DB:
             raise RecoveryError("DATABASE_LIMIT")
-        temp = self.work / ("sqlite-" + hashlib.sha256(str(path).encode()).hexdigest()[:16])
-        temp.mkdir(exist_ok=True)
-        copied = temp / path.name
-        shutil.copyfile(path, copied)
-        for suffix in ("-wal", "-shm"):
-            peer = Path(str(path) + suffix)
-            if peer.exists() and not reparse(peer):
-                shutil.copyfile(peer, Path(str(copied) + suffix))
-        con = sqlite3.connect(copied.as_uri() + "?mode=ro", uri=True)
+        with tempfile.TemporaryDirectory(prefix="sqlite-", dir=self.work) as directory:
+            copied = Path(directory) / path.name
+            shutil.copyfile(path, copied)
+            for suffix in ("-wal", "-shm"):
+                peer = Path(str(path) + suffix)
+                if peer.exists() and not reparse(peer):
+                    if peer.stat().st_size > MAX_DB:
+                        raise RecoveryError("DATABASE_LIMIT")
+                    shutil.copyfile(peer, Path(str(copied) + suffix))
+            return self._read_chat_database(copied, evidence, do_deep, media_base or path.parent)
+
+    def _read_chat_database(self, copied, evidence, do_deep, media_base, immutable=False):
+        options = "?mode=ro&immutable=1" if immutable else "?mode=ro"
+        con = sqlite3.connect(copied.as_uri() + options, uri=True)
         con.row_factory = sqlite3.Row
         con.text_factory = lambda b: b.decode("utf-8", "replace")
         imported = False
@@ -911,7 +940,7 @@ class Importer:
                 collection.set_system("jid_map_exists", check_jid_map(con))
                 collection.set_system("transcription_selection", get_transcription_selection(con))
             try:
-                handler.messages(con, collection, str(media_base or path.parent), Timing(0), None, (None, None), False, True)
+                handler.messages(con, collection, str(media_base), Timing(0), None, (None, None), False, True)
                 for chatid, chat in collection.items():
                     for rowid, m in chat.items():
                         self.message("WhatsApp", plain_markup(m.data) if m.safe else str(m.data or ""), evidence,
@@ -924,12 +953,12 @@ class Importer:
                 imported = self.sqlite_schema_adapter(con, tables, evidence)
             # Associate media from concrete database paths without upstream file
             # manipulation. No HTML or upstream CLI is used.
-            self.sqlite_attachments(con, tables, media_base or path.parent)
+            self.sqlite_attachments(con, tables, media_base)
         finally:
             con.close()
         if do_deep and self.deep:
             self.sqlite_fragments(copied, "WhatsApp" if imported else "Unknown")
-            self.sqlite_wal_history(path)
+            self.sqlite_wal_history(copied)
         return imported
 
     def sqlite_schema_adapter(self, con, tables, evidence):
@@ -1005,118 +1034,142 @@ class Importer:
                 message["attachments"] = list(dict.fromkeys(message["attachments"] + relations.get(message["source_record"], [])))
 
     def sqlite_fragments(self, path, app):
-        data = path.read_bytes()
-        if len(data) < 100 or data[:16] != b"SQLite format 3\x00":
-            return
-        page_size = int.from_bytes(data[16:18], "big")
-        page_size = 65536 if page_size == 1 else page_size
-        if page_size < 512 or page_size > 65536 or page_size & (page_size - 1):
-            self.remark("SQLITE_PAGE_SIZE_INVALID", self.source_label)
-            return
-        page_count = len(data) // page_size
-        freelist = int.from_bytes(data[32:36], "big")
-        seen = set()
-        pages = []
-        while freelist and len(seen) < page_count:
-            if freelist in seen or freelist > page_count:
-                self.remark("SQLITE_FREELIST_INVALID", self.source_label)
-                break
-            seen.add(freelist)
-            start = (freelist - 1) * page_size
-            trunk = data[start:start + page_size]
-            count = int.from_bytes(trunk[4:8], "big")
-            if count > (page_size - 8) // 4:
-                break
-            for n in range(count):
-                page = int.from_bytes(trunk[8 + 4*n:12 + 4*n], "big")
-                if 0 < page <= page_count and page not in seen:
-                    seen.add(page)
-                    pages.append((page, data[(page - 1)*page_size:page*page_size]))
-            # Unused trunk bytes can still retain strings, but not page pointers.
-            pages.append((freelist, trunk[8 + 4*count:]))
-            freelist = int.from_bytes(trunk[:4], "big")
-        count = 0
-        for page, payload in pages:
-            # Only human-readable UTF-8 spans; no guessed chat IDs/authors/dates.
-            for match in re.finditer(rb"(?:[\x20-\x7e]|[\xc2-\xf4][\x80-\xbf]+){12,}", payload):
-                try:
-                    text = match.group().decode("utf-8").strip()
-                except UnicodeDecodeError:
-                    continue
-                if not text or not any(c.isalpha() for c in text):
-                    continue
-                self.message(app, text, "fragment", source_record=f"freelist:page={page}:offset={match.start()}",
-                             confidence="fragment_only", relationships_unknown=True)
-                count += 1
-                if count >= 10000:
-                    self.remark("FRAGMENT_LIMIT", self.source_label)
+        def free_pages(stream):
+            header = stream.read(100)
+            if len(header) < 100 or header[:16] != b"SQLite format 3\x00":
+                return
+            size = int.from_bytes(header[16:18], "big")
+            size = 65536 if size == 1 else size
+            if not 512 <= size <= 65536 or size & (size - 1):
+                self.remark("SQLITE_PAGE_SIZE_INVALID", self.source_label)
+                return
+            page_count = os.fstat(stream.fileno()).st_size // size
+            trunk_page = int.from_bytes(header[32:36], "big")
+            visited = bytearray((page_count + 7) // 8)
+
+            def first_visit(page):
+                if not 1 <= page <= page_count:
+                    return False
+                index, bit = divmod(page - 1, 8)
+                mask = 1 << bit
+                if visited[index] & mask:
+                    return False
+                visited[index] |= mask
+                return True
+
+            while trunk_page:
+                if not first_visit(trunk_page):
+                    self.remark("SQLITE_FREELIST_INVALID", self.source_label)
                     return
+                stream.seek((trunk_page - 1) * size)
+                trunk = stream.read(size)
+                count = int.from_bytes(trunk[4:8], "big")
+                if count > (size - 8) // 4:
+                    return
+                for (page,) in struct.iter_unpack(">I", trunk[8:8 + 4 * count]):
+                    if first_visit(page):
+                        stream.seek((page - 1) * size)
+                        yield page, stream.read(size)
+                yield trunk_page, trunk[8 + 4 * count:]
+                trunk_page = int.from_bytes(trunk[:4], "big")
+
+        count = 0
+        with path.open("rb") as stream:
+            for page, payload in free_pages(stream):
+                # Only human-readable UTF-8 spans; no guessed chat IDs/authors/dates.
+                for match in re.finditer(rb"(?:[\x20-\x7e]|[\xc2-\xf4][\x80-\xbf]+){12,}", payload):
+                    try:
+                        text = match.group().decode("utf-8").strip()
+                    except UnicodeDecodeError:
+                        continue
+                    if not text or not any(c.isalpha() for c in text):
+                        continue
+                    self.message(app, text, "fragment", source_record=f"freelist:page={page}:offset={match.start()}",
+                                 confidence="fragment_only", relationships_unknown=True)
+                    count += 1
+                    if count >= 10000:
+                        self.remark("FRAGMENT_LIMIT", self.source_label)
+                        return
 
     def sqlite_wal_history(self, path):
         wal = Path(str(path) + "-wal")
         if not wal.exists() or wal.stat().st_size > MAX_DB:
             return
-        raw = wal.read_bytes()
-        if len(raw) < 32:
-            self.remark("WAL_INVALID", self.source_label)
-            return
-        magic, version, page_size, sequence, salt1, salt2, c1, c2 = struct.unpack(">8I", raw[:32])
-        if magic not in (0x377f0682, 0x377f0683) or version != 3007000 or not 512 <= page_size <= 65536 or page_size & (page_size-1):
-            self.remark("WAL_INVALID", self.source_label)
-            return
-        order = "<" if magic == 0x377f0682 else ">"
-        def checksum(block, a=0, b=0):
-            words = struct.unpack(order + str(len(block)//4) + "I", block)
-            for n in range(0, len(words), 2):
-                a = (a + words[n] + b) & 0xffffffff
-                b = (b + words[n + 1] + a) & 0xffffffff
-            return a, b
-        if checksum(raw[:24]) != (c1, c2):
-            self.remark("WAL_CHECKSUM_INVALID", self.source_label)
-            return
-        if (len(raw) - 32) % (24 + page_size):
-            self.remark("WAL_INCOMPLETE_TAIL", self.source_label)
-        base = bytearray(path.read_bytes())
-        if len(base) < 100 or int.from_bytes(base[16:18], "big") not in (page_size, 1 if page_size == 65536 else page_size):
-            self.remark("WAL_DATABASE_MISMATCH", self.source_label)
-            return
-        commits = []
-        count = 0
-        for offset in range(32, len(raw) - 24 - page_size + 1, 24 + page_size):
-            header = raw[offset:offset+24]
-            page, size, s1, s2, a, b = struct.unpack(">6I", header)
-            payload = raw[offset+24:offset+24+page_size]
-            if not page or page > MAX_DB//page_size or (s1, s2) != (salt1, salt2):
-                self.remark("WAL_FRAME_INVALID", self.source_label)
-                break
-            c1, c2 = checksum(header[:8] + payload, c1, c2)
-            if (c1, c2) != (a, b):
+        with wal.open("rb") as log:
+            header = log.read(32)
+            if len(header) != 32:
+                self.remark("WAL_INVALID", self.source_label)
+                return
+            magic, version, page_size, _, salt1, salt2, c1, c2 = struct.unpack(">8I", header)
+            if (magic not in (0x377f0682, 0x377f0683) or version != 3007000
+                    or not 512 <= page_size <= 65536 or page_size & (page_size - 1)):
+                self.remark("WAL_INVALID", self.source_label)
+                return
+            word_pair = struct.Struct(("<" if magic == 0x377f0682 else ">") + "II")
+
+            def checksum(data, a=0, b=0):
+                for first, second in word_pair.iter_unpack(data):
+                    a = (a + first + b) & 0xffffffff
+                    b = (b + second + a) & 0xffffffff
+                return a, b
+
+            if checksum(header[:24]) != (c1, c2):
                 self.remark("WAL_CHECKSUM_INVALID", self.source_label)
-                break
-            end = page * page_size
-            if end > len(base):
-                base.extend(b"\x00" * (end - len(base)))
-            base[(page-1)*page_size:end] = payload
-            if size:
-                if size * page_size > MAX_DB:
+                return
+            if (os.fstat(log.fileno()).st_size - 32) % (24 + page_size):
+                self.remark("WAL_INCOMPLETE_TAIL", self.source_label)
+            with path.open("rb") as database:
+                head = database.read(100)
+            if len(head) < 100 or int.from_bytes(head[16:18], "big") != (1 if page_size == 65536 else page_size):
+                self.remark("WAL_DATABASE_MISMATCH", self.source_label)
+                return
+
+            # Validate the private WAL before replay. Keep only commit boundaries.
+            commits = []
+            while frame := log.read(24):
+                payload = log.read(page_size)
+                if len(frame) != 24 or len(payload) != page_size:
                     break
-                snapshot = self.work / f"wal-{digest(path)[:12]}-{count}.db"
-                snapshot.write_bytes(base[:size*page_size])
-                commits.append(snapshot)
-                count += 1
-                if count >= 50:
-                    self.remark("WAL_HISTORY_LIMIT", self.source_label)
+                page, size, s1, s2, a, b = struct.unpack(">6I", frame)
+                if not 0 < page <= MAX_DB // page_size or (s1, s2) != (salt1, salt2):
+                    self.remark("WAL_FRAME_INVALID", self.source_label)
                     break
-        if commits:
-            self.remark("WAL_CHECKED_COMMITS", self.source_label, commits=len(commits))
-            old = self.snapshot
-            for n, snapshot in enumerate(commits[:-1]):
-                self.snapshot = f"{old}:wal:{n}"
+                c1, c2 = checksum(payload, *checksum(frame[:8], c1, c2))
+                if (c1, c2) != (a, b):
+                    self.remark("WAL_CHECKSUM_INVALID", self.source_label)
+                    break
+                if size:
+                    if size > MAX_DB // page_size:
+                        break
+                    commits.append((log.tell(), size))
+                    if len(commits) >= 50:
+                        self.remark("WAL_HISTORY_LIMIT", self.source_label)
+                        break
+            if commits:
+                self.remark("WAL_CHECKED_COMMITS", self.source_label, commits=len(commits))
+            if len(commits) < 2:
+                return
+            # One reusable database, independent of the number of transactions.
+            with tempfile.TemporaryDirectory(prefix="wal-", dir=self.work) as directory:
+                replay = Path(directory) / "snapshot.db"
+                shutil.copyfile(path, replay)
+                log.seek(32)
+                old = self.snapshot
                 try:
-                    self.sqlite_whatsapp(snapshot, "previous", False)
-                except sqlite3.DatabaseError:
-                    self.remark("WAL_SNAPSHOT_INCOMPLETE", self.source_label)
-            self.snapshot = old
+                    for n, (end, pages) in enumerate(commits[:-1]):
+                        with replay.open("r+b") as out:
+                            while log.tell() < end:
+                                page = struct.unpack_from(">I", log.read(24))[0]
+                                out.seek((page - 1) * page_size)
+                                out.write(log.read(page_size))
+                            out.truncate(pages * page_size)
+                        self.snapshot = f"{old}:wal:{n}"
+                        try:
+                            self._read_chat_database(replay, "previous", False, replay.parent, immutable=True)
+                        except sqlite3.DatabaseError:
+                            self.remark("WAL_SNAPSHOT_INCOMPLETE", self.source_label)
+                finally:
+                    self.snapshot = old
 
     def signal(self, path, modern=False, media_root=None):
         path = Path(path)
@@ -1214,7 +1267,7 @@ class Importer:
             if name.endswith(".zip"):
                 extraction = self.work / f"zip-{self.snapshot[:16]}"
                 extraction.mkdir()
-                safe_unzip(path, extraction)
+                safe_unzip(path, extraction, self.zip_budget)
                 if digest(path) != self.snapshot:
                     raise RecoveryError("SOURCE_CHANGED")
                 container = self.current_origin
@@ -1337,23 +1390,37 @@ class Importer:
         with messages.open("w", encoding="utf-8", newline="\n") as f:
             for m in self.messages:
                 f.write(json.dumps(m, ensure_ascii=False) + "\n")
-        (self.output / "photo-metadata.json").write_text(json.dumps({"photos": list(self.photos.values())}, ensure_ascii=False, indent=2), encoding="utf-8")
-        (self.output / "attachment-metadata.json").write_text(json.dumps({"attachments": list(self.attachments.values())}, ensure_ascii=False, indent=2), encoding="utf-8")
-        (self.output / "sources.json").write_text(json.dumps({"protocol": 1, "sources": self.sources}, ensure_ascii=False, indent=2), encoding="utf-8")
-        con = sqlite3.connect(self.output / "chat-index.sqlite")
-        con.execute("CREATE TABLE messages(id INTEGER PRIMARY KEY, app TEXT, chat_id TEXT, sender TEXT, timestamp TEXT, evidence TEXT, text TEXT, json TEXT)")
-        con.execute("CREATE VIRTUAL TABLE search USING fts5(text,app,sender,content='messages',content_rowid='id')")
-        for n, m in enumerate(self.messages, 1):
-            con.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?)", (n, m["app"], str(m["chat_id"]) if m["chat_id"] is not None else None,
-                         m["sender_name"] or m["sender_id"], m["timestamp"], m["evidence_kind"], m["text"], json.dumps(m, ensure_ascii=False)))
-        con.execute("INSERT INTO search(search) VALUES('rebuild')")
-        con.commit()
-        con.close()
+        for filename, metadata in (
+                ("photo-metadata.json", {"photos": list(self.photos.values())}),
+                ("attachment-metadata.json", {"attachments": list(self.attachments.values())}),
+                ("sources.json", {"protocol": 1, "sources": self.sources})):
+            with (self.output / filename).open("w", encoding="utf-8") as handle:
+                json.dump(metadata, handle, ensure_ascii=False, indent=2)
+        with contextlib.closing(sqlite3.connect(self.output / "chat-index.sqlite")) as con:
+            con.execute("CREATE TABLE messages(id INTEGER PRIMARY KEY, app TEXT, chat_id TEXT, sender TEXT, timestamp TEXT, evidence TEXT, text TEXT, json TEXT)")
+            con.execute("CREATE VIRTUAL TABLE search USING fts5(text,app,sender,content='messages',content_rowid='id')")
+            for n, m in enumerate(self.messages, 1):
+                con.execute("INSERT INTO messages VALUES(?,?,?,?,?,?,?,?)", (n, m["app"], str(m["chat_id"]) if m["chat_id"] is not None else None,
+                             m["sender_name"] or m["sender_id"], m["timestamp"], m["evidence_kind"], m["text"], json.dumps(m, ensure_ascii=False)))
+            con.execute("INSERT INTO search(search) VALUES('rebuild')")
+            con.commit()
         self.write_html()
         self.write_photos()
 
+    def _write_archive_page(self, name, markup, script, script_hash, records):
+        before, after = markup.replace("@@HASH@@", script_hash).split("@@DATA@@", 1)
+        with (self.output / name).open("w", encoding="utf-8") as page:
+            page.write(before)
+            page.write("[")
+            for index, record in enumerate(records):
+                if index:
+                    page.write(", ")
+                raw = json.dumps(record, ensure_ascii=False)
+                page.write(raw.replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
+            page.write("]")
+            page.write(after.replace("@@SCRIPT@@", script))
+
     def write_html(self):
-        payload = json.dumps(self.messages, ensure_ascii=False).replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
         script = """const data=JSON.parse(document.getElementById('data').textContent);let page=0;const size=100;
 const labels={export:'из экспорта',backup:'из резервной копии',previous:'предыдущая версия',fragment:'текстовый фрагмент'};
 const cacheNote='Медиакэш Telegram: сохранившаяся подпись и ссылка на фото. Байты фотографии из этой записи не извлечены. Факт удаления сообщения не установлен.';
@@ -1387,10 +1454,9 @@ document.getElementById('q').oninput=()=>{page=0;draw()};document.getElementById
 <title>Переписки — локальный архив</title><style>body{font:16px system-ui;max-width:1100px;margin:30px auto;padding:0 20px;background:#f7f8fb;color:#18233a}input,select,button{font:inherit;padding:10px;margin:4px}input{width:45%}article{background:white;padding:18px;margin:12px 0;border-radius:10px}small{display:block;color:#68768e;overflow-wrap:anywhere}pre{white-space:pre-wrap;font:inherit}a{display:block;margin:8px 0}</style>
 <h1>Переписки</h1><p>Локальный архив доступных источников. Фрагменты не подтверждают автора, чат или факт удаления.</p><a href="Фотографии.html">Фотографии</a><input id="q" placeholder="Поиск текста, автора или чата"><select id="cat"><option value="">Все категории</option><option value="export">Из экспорта</option><option value="backup">Из резервной копии</option><option value="previous">Предыдущая версия</option><option value="fragment">Текстовые фрагменты</option><option value="deleted">Удалённые записи (остатки)</option></select>
 <div id="count"></div><button id="prev">Назад</button><button id="next">Дальше</button><main id="messages"></main><script type="application/json" id="data">@@DATA@@</script><script>@@SCRIPT@@</script></html>"""
-        (self.output / "Переписки.html").write_text(markup.replace("@@HASH@@", script_hash).replace("@@DATA@@", payload).replace("@@SCRIPT@@", script), encoding="utf-8")
+        self._write_archive_page("Переписки.html", markup, script, script_hash, self.messages)
 
     def write_photos(self):
-        payload = json.dumps(list(self.photos.values()), ensure_ascii=False).replace("<", "\\u003c").replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
         script = """const data=JSON.parse(document.getElementById('data').textContent);let page=0;const size=100;
 function draw(){const q=document.getElementById('q').value.toLocaleLowerCase(),kind=document.getElementById('kind').value,w=Number(document.getElementById('w').value)||0,h=Number(document.getElementById('h').value)||0;
 const list=data.filter(p=>(!kind||p.kind===kind)&&p.width>=w&&p.height>=h&&[p.format,p.path,...p.sources.map(s=>s.source_file)].some(x=>String(x??'').toLocaleLowerCase().includes(q)));
@@ -1405,7 +1471,7 @@ for(const id of ['q','kind','w','h'])document.getElementById(id).oninput=()=>{pa
 <h1>Фотографии</h1><a href="Переписки.html">Переписки</a><p>Проверенные изображения и отдельные повреждённые кандидаты. Оригиналы сохранены в папке media.</p>
 <input id="q" placeholder="Поиск по источнику, имени или формату"><select id="kind"><option value="">Все виды</option><option value="photo">Фотографии</option><option value="thumbnail">Небольшие / миниатюры</option><option value="embedded">Встроенные</option><option value="damaged">Повреждённые кандидаты</option></select><label>Ширина от <input id="w" type="number" min="0"></label><label>Высота от <input id="h" type="number" min="0"></label>
 <div id="count"></div><button id="prev">Назад</button><button id="next">Дальше</button><main id="photos"></main><script type="application/json" id="data">@@DATA@@</script><script>@@SCRIPT@@</script></html>"""
-        (self.output / "Фотографии.html").write_text(markup.replace("@@HASH@@", script_hash).replace("@@DATA@@", payload).replace("@@SCRIPT@@", script), encoding="utf-8")
+        self._write_archive_page("Фотографии.html", markup, script, script_hash, self.photos.values())
 
     def run(self, photos_only=False):
         if not self.source.exists():

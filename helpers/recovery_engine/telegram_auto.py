@@ -324,9 +324,20 @@ class Analyzer:
                 raise AutoError("TELEGRAM_SOURCE_CHANGED")
             target.parent.mkdir(parents=True, exist_ok=True)
             if previous.resolve() != target.resolve():
-                shutil.copyfile(previous, target)
-                if _hash(target) != origin["Sha256"]:
-                    raise AutoError("TELEGRAM_SOURCE_CHANGED")
+                if target.exists():
+                    if _hash(target) != origin["Sha256"]:
+                        raise AutoError("TELEGRAM_SOURCE_CHANGED")
+                else:
+                    size = previous.stat().st_size
+                    if self.bytes + size > MAX_COPY_BYTES:
+                        raise AutoError("TELEGRAM_SOURCE_LIMIT")
+                    # The sibling layout consumes real space even for a source
+                    # already seen in another export. Charge before writing.
+                    self.bytes += size
+                    with previous.open("rb") as inp, target.open("xb") as out:
+                        shutil.copyfileobj(inp, out, 1024 * 1024)
+                    if _hash(target) != origin["Sha256"]:
+                        raise AutoError("TELEGRAM_SOURCE_CHANGED")
             self.worker.origins[str(target.resolve())] = origin
             return target
         before = source.stat()
@@ -336,6 +347,7 @@ class Analyzer:
         partial = Path(str(target) + ".partial")
         h = hashlib.sha256()
         copied_bytes = 0
+        self.bytes += before.st_size
         with source.open("rb") as inp, partial.open("xb") as out:
             while chunk := inp.read(1024 * 1024):
                 copied_bytes += len(chunk)
@@ -355,7 +367,6 @@ class Analyzer:
             partial.unlink(missing_ok=True)
             raise AutoError("TELEGRAM_SOURCE_CHANGED")
         partial.replace(target)
-        self.bytes += before.st_size
         record = {"Id": hashlib.sha256(str(source).encode()).hexdigest(), "OriginalPath": str(source),
                   "RelativePath": source.name, "Size": before.st_size, "Modified": before.st_mtime_ns,
                   "Sha256": actual_hash, "Status": "complete"}
@@ -1320,6 +1331,10 @@ class Analyzer:
 
     def sqlite_pair(self, copied, original):
         """Stage prior snapshots before SQLite may replay/remove working WAL."""
+        with tempfile.TemporaryDirectory(prefix="sqlite-pair-", dir=self.worker.work) as history_dir:
+            return self._read_sqlite_pair(copied, original, history_dir)
+
+    def _read_sqlite_pair(self, copied, original, history_dir):
         from sqlite_history import iter_committed_snapshots, HistoryError
         wal = Path(str(copied) + "-wal")
         self.confirmed_tl_bodies = set()
@@ -1336,7 +1351,7 @@ class Analyzer:
                 except DeletedError as error:
                     self.remark("TELEGRAM_WAL_RESIDUALS_UNAVAILABLE", original, reason=error.code)
             try:
-                histories = list(iter_committed_snapshots(copied, wal, self.worker.work,
+                histories = list(iter_committed_snapshots(copied, wal, history_dir,
                     report=report, cancel=lambda: self.stop, base_policy="wal_only", include_latest_on_incomplete_tail=True))
             except HistoryError as error:
                 self.remark("TELEGRAM_WAL_HISTORY_UNAVAILABLE", original, reason=error.code)

@@ -51,6 +51,7 @@ namespace UsbRecovery
             using (var source = new FileStream(image, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 if (source.Length == 0) throw new IOException("Образ пуст.");
+                RecoveryCore.CheckRecoveryReserve(directory);
                 using (var job = ProcessJob.ForLifetimeOnly())
                 using (var process = Process.Start(start))
                 {
@@ -59,10 +60,19 @@ namespace UsbRecovery
                     {
                         Task output = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
                         Task errors = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
+                        var clock = Stopwatch.StartNew();
+                        long nextCount = 0;
                         while (!process.WaitForExit(1000))
                         {
                             cancel.ThrowIfCancellationRequested();
-                            if (progress != null) progress(CountCandidates(directory, cancel));
+                            RecoveryCore.CheckRecoveryReserve(directory);
+                            if (progress != null && clock.ElapsedMilliseconds >= nextCount)
+                            {
+                                long startCount = clock.ElapsedMilliseconds;
+                                progress(CountCandidates(directory, cancel));
+                                long elapsed = clock.ElapsedMilliseconds - startCount;
+                                nextCount = clock.ElapsedMilliseconds + Math.Max(1000, 10 * elapsed);
+                            }
                         }
                         cancel.ThrowIfCancellationRequested();
                         Task.WaitAll(new[] { output, errors }, cancel);

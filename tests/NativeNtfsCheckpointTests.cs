@@ -123,6 +123,32 @@ public static class NativeNtfsCheckpointTests
     static RecoveryCheckpointContext Context(string root, string sourceHash, RecoveryMethodCheckpoint resume,
         Action<RecoveryMethodCheckpoint> save)
     { return new RecoveryCheckpointContext { Directory = root, Method = "ntfs", SourceSha256 = sourceHash, Settings = "native-cache-test-v1", Resume = resume, Commit = save }; }
+    static void ZeroCachePages()
+    {
+        const int page = RecoveryNativeReadCache.PageBytes;
+        string image = Path.Combine(evidence, "mostly-empty.dd");
+        byte[] bytes = new byte[16 * page + 13];
+        bytes[5 * page] = 7;
+        File.WriteAllBytes(image, bytes);
+        string hash = Hash(image), output = Path.Combine(evidence, "mostly-empty-cache");
+        RecoveryMethodCheckpoint anchor = null;
+        using (var input = File.OpenRead(image))
+        using (var verified = new RecoveryVerifiedImage(input, hash, CancellationToken.None)) {
+            var cache = new RecoveryNativeReadCache(input, verified, Context(output, hash, null, a => anchor = a),
+                0, bytes.Length, 2 * 1024 * 1024, CancellationToken.None);
+            for (int offset = 0; offset < bytes.Length; offset += page)
+                cache.Read(offset, Math.Min(page, bytes.Length - offset));
+            var blobs = Directory.GetFiles(Path.Combine(output, "ntfs.state", "read-cache"), "*.bin");
+            Check(blobs.Length == 1 && new FileInfo(blobs[0]).Length == page, "only nonzero payload occupies a cache file");
+            var resumed = new RecoveryNativeReadCache(input, verified, Context(output, hash, anchor, a => anchor = a),
+                0, bytes.Length, 2 * 1024 * 1024, CancellationToken.None);
+            for (int offset = bytes.Length - 13; offset >= 0; offset -= page) {
+                int length = Math.Min(page, bytes.Length - offset);
+                Check(resumed.Read(offset, length).SequenceEqual(bytes.Skip(offset).Take(length)), "exact resumed page");
+            }
+            Check(resumed.PhysicalReadBytes == 0 && resumed.CachedBytes == bytes.Length, "zero pages retain logical bounds");
+        }
+    }
     static void CacheCases()
     {
         string image = Path.Combine(evidence,"cache-source.dd"), output = Path.Combine(evidence,"cache");
@@ -474,8 +500,12 @@ public static class NativeNtfsCheckpointTests
         try {
             evidence=Path.GetFullPath(args[0]); if(Directory.Exists(evidence))throw new IOException("Fresh evidence directory required");Directory.CreateDirectory(evidence);
             string group=args.Length>6?args[6]:"All";
+            if (args.Length == 2 && args[1] == "Cache") {
+                CacheCases(); ZeroCachePages();
+                Console.WriteLine("PASS cache: "+checks+" checks"); return 0;
+            }
             if(group=="All") {
-                DecoderCases();CacheCases();FileCases();NativeScan(Path.GetFullPath(args[1]),Path.GetFullPath(args[2]));VolumeCases(Path.GetFullPath(args[1]),Path.GetFullPath(args[2]));
+                DecoderCases();CacheCases();ZeroCachePages();FileCases();NativeScan(Path.GetFullPath(args[1]),Path.GetFullPath(args[2]));VolumeCases(Path.GetFullPath(args[1]),Path.GetFullPath(args[2]));
                 LargeVolumeCases(Path.GetFullPath(args[1]),Path.GetFullPath(args[3]),Path.GetFullPath(args[4]));
             }
             PipelineCases(Path.GetFullPath(args[1]),Path.GetFullPath(args[5]),Path.GetFullPath(args[4]));

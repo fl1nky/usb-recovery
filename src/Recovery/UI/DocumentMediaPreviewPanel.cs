@@ -10,7 +10,7 @@ namespace UsbRecovery
     public sealed class DocumentMediaPreviewPanel : UserControl
     {
         readonly FlowLayoutPanel tools=new FlowLayoutPanel();readonly Panel viewport=new Panel();readonly PictureBox image=new PictureBox();readonly Label pageLabel=new Label(),status=new Label();readonly Button previous=new Button(),next=new Button(),fit=new Button(),rotate=new Button(),expand=new Button();readonly NumericUpDown pageInput=new NumericUpDown();readonly ComboBox zoom=new ComboBox();
-        string source,sha;long bytes;bool pdf,fitPage=true,changing,fullscreen,arranging;int page,pages,generation,rotation;double zoomFactor=1;Image raster;CancellationTokenSource cancellation;LocalMediaPreviewSession video;
+        string source,sha;long bytes;bool pdf,fitPage=true,changing,fullscreen,arranging;int page,pages,generation,rotation;double zoomFactor=1;int rasterRotation;CancellationTokenSource cancellation;LocalMediaPreviewSession video;
         public event Action<string> MessageChanged;
         public DocumentMediaPreviewPanel()
         {
@@ -55,7 +55,7 @@ namespace UsbRecovery
         }
         public void Stop()
         {
-            generation++;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();cancellation=null;}if(video!=null){video.Dispose();video=null;}if(image.Image!=null){image.Image.Dispose();image.Image=null;}if(raster!=null){raster.Dispose();raster=null;}source=null;pdf=false;
+            generation++;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();cancellation=null;}if(video!=null){video.Dispose();video=null;}ClearRaster();source=null;pdf=false;
         }
         void SetPdfView(DocumentMediaPreviewPanel view)
         {
@@ -99,7 +99,7 @@ namespace UsbRecovery
         async void RenderPage()
         {
             int current=++generation;if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();}cancellation=new CancellationTokenSource();CancellationToken token=cancellation.Token;previous.Enabled=next.Enabled=pageInput.Enabled=false;
-            if(image.Image!=null){image.Image.Dispose();image.Image=null;}if(raster!=null){raster.Dispose();raster=null;}Message("Проверка SHA256 и отрисовка страницы PDF…");
+            ClearRaster();Message("Проверка SHA256 и отрисовка страницы PDF…");
             DocumentPreviewWorker.Result result;
             try{string path=source,digest=sha;long length=bytes;int requested=page;result=await Task.Run(()=>DocumentPreviewWorker.Read(path,length,digest,requested,900,token)).ConfigureAwait(false);}catch(OperationCanceledException){return;}catch{result=new DocumentPreviewWorker.Result{Code="PREVIEW_WORKER_FAILED"};}
             if(IsDisposed||!IsHandleCreated||current!=generation)return;
@@ -111,17 +111,42 @@ namespace UsbRecovery
             try{
                 byte[] png=Convert.FromBase64String(result.Png);
                 if(png.Length<24||png[0]!=137||png[1]!=80||png[2]!=78||png[3]!=71||Read32(png,16)!=result.Width||Read32(png,20)!=result.Height)throw new IOException();
-                using(var memory=new MemoryStream(png,false))using(var original=Image.FromStream(memory,true,true))raster=new Bitmap(original);
+                using(var memory=new MemoryStream(png,false))using(var original=Image.FromStream(memory,true,true))image.Image=new Bitmap(original);
                 pages=result.Pages;UpdatePdfControls();ShowRaster();Message("Страница "+(page+1)+" из "+pages+" · SHA256 совпал. Отрисовка не доказывает исходную полноту.");
             }catch{Message("Не удалось прочитать отрисованную страницу. Кандидат сохранён.");}
         }
         static int Read32(byte[] data,int at){return (data[at]<<24)|(data[at+1]<<16)|(data[at+2]<<8)|data[at+3];}
+        void ClearRaster()
+        {
+            var old=image.Image;
+            image.Image=null;
+            if(old!=null)old.Dispose();
+            rasterRotation=0;
+        }
         void ShowRaster()
         {
-            if(raster==null||!pdf||arranging)return;arranging=true;try{var display=new Bitmap(raster);if(rotation==90)display.RotateFlip(RotateFlipType.Rotate90FlipNone);else if(rotation==180)display.RotateFlip(RotateFlipType.Rotate180FlipNone);else if(rotation==270)display.RotateFlip(RotateFlipType.Rotate270FlipNone);
-            double factor=fitPage?Math.Min(Math.Max(1,viewport.ClientSize.Width-20)/(double)display.Width,Math.Max(1,viewport.ClientSize.Height-20)/(double)display.Height):zoomFactor*1200.0/raster.Width;
-            int width=Math.Max(1,(int)Math.Round(display.Width*factor)),height=Math.Max(1,(int)Math.Round(display.Height*factor));var old=image.Image;image.Image=display;image.Size=new Size(width,height);image.Location=new Point(Math.Max(0,(viewport.ClientSize.Width-width)/2),Math.Max(0,(viewport.ClientSize.Height-height)/2));viewport.AutoScrollMinSize=new Size(width,height);if(old!=null)old.Dispose();
-            }finally{arranging=false;}
+            Image display=image.Image;
+            if(display==null||!pdf||arranging)return;
+            arranging=true;
+            try {
+                int delta=(rotation-rasterRotation+360)%360;
+                if(delta==90)display.RotateFlip(RotateFlipType.Rotate90FlipNone);
+                else if(delta==180)display.RotateFlip(RotateFlipType.Rotate180FlipNone);
+                else if(delta==270)display.RotateFlip(RotateFlipType.Rotate270FlipNone);
+                rasterRotation=rotation;
+                int originalWidth=rotation%180==0?display.Width:display.Height;
+                double factor=fitPage
+                    ?Math.Min(Math.Max(1,viewport.ClientSize.Width-20)/(double)display.Width,
+                              Math.Max(1,viewport.ClientSize.Height-20)/(double)display.Height)
+                    :zoomFactor*1200.0/originalWidth;
+                int width=Math.Max(1,(int)Math.Round(display.Width*factor));
+                int height=Math.Max(1,(int)Math.Round(display.Height*factor));
+                image.Size=new Size(width,height);
+                image.Location=new Point(Math.Max(0,(viewport.ClientSize.Width-width)/2),
+                                         Math.Max(0,(viewport.ClientSize.Height-height)/2));
+                viewport.AutoScrollMinSize=image.Size;
+                image.Invalidate();
+            } finally { arranging=false; }
         }
         LocalMediaPreviewState ReadyVideoState()
         {
@@ -146,8 +171,8 @@ namespace UsbRecovery
                 };
                 window.FormClosing+=delegate{
                     try{
-                        if(isPdf&&panel.raster!=null&&!IsDisposed&&generation==openedGeneration&&source==path){
-                            bool samePage=page==panel.page&&raster!=null;
+                        if(isPdf&&panel.image.Image!=null&&!IsDisposed&&generation==openedGeneration&&source==path){
+                            bool samePage=page==panel.page&&image.Image!=null;
                             SetPdfView(panel);
                             if(samePage)ShowRaster();else RenderPage();
                         }
