@@ -38,6 +38,14 @@ jobs:
           python-version: '3.12'
       - name: Install fixture image dependency
         run: python -m pip install Pillow==11.3.0
+      - name: Restore checksum-pinned PhotoRec control and licenses
+        if: matrix.group == 'flash'
+        shell: powershell
+        run: |
+          python tests/BootstrapNativeToolsTests.py
+          if ($LASTEXITCODE -ne 0) { throw 'Native input boundary checks failed' }
+          python scripts/bootstrap-build.py --native-only
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned native inputs unavailable' }
       - name: Run continuation checks without UI or devices
         shell: powershell
         env:

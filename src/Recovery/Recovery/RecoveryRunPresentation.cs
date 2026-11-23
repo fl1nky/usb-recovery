@@ -59,6 +59,17 @@ namespace UsbRecovery
                 : "Источник доступен только для чтения";
         }
 
+        public void StartPhase(string title, string detail)
+        {
+            if (finished || StopRequested) return;
+            stageKey = null;
+            Percent = null;
+            Heading = title;
+            ProgressText = "Объём текущего этапа пока неизвестен";
+            SaveText = "Новая точка продолжения ещё не подтверждена";
+            ActionText = detail;
+        }
+
         public void RequestStop()
         {
             if (finished) return;
