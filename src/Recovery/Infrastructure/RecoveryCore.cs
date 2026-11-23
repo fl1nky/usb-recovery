@@ -313,14 +313,7 @@ namespace UsbRecovery
         }
         public static string PhotoRecArguments(string image, string runDirectory, bool deep)
         {
-            // No physical device is ever passed to PhotoRec. Scan the entire regular image.
-            return "/log /logname " + Quote(Path.Combine(runDirectory, "photorec.log")) + " /d " + Quote(Path.Combine(runDirectory, "files")) + " /cmd " + Quote(image) + " " + (deep ? AdvancedEngines.DeepPhotoRecCommand : "partition_none,fileopt,everything,enable,wholespace,search");
-        }
-
-        static string Quote(string value)
-        {
-            if (value.IndexOf('"') >= 0 || value.EndsWith("\\")) throw new IOException("Недопустимый путь.");
-            return "\"" + value + "\"";
+            return PhotoRecRunner.Arguments(image, runDirectory, deep, null);
         }
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel, Action<int> progress)
@@ -331,48 +324,7 @@ namespace UsbRecovery
         { return Recover(image, runDirectory, deep, cancel, progress, null); }
         public static int Recover(string image, string runDirectory, bool deep, CancellationToken cancel, Action<int> progress, RecoveryOptions options)
         {
-            cancel.ThrowIfCancellationRequested();
-            if (!File.Exists(ToolPath)) throw new IOException("Не найден PhotoRec. Скопируй всю папку программы вместе с tools.");
-            if (!File.Exists(image) || new FileInfo(image).Length == 0 || image.StartsWith(@"\\.\") || image.StartsWith(@"\\?\"))
-                throw new IOException("Для поиска нужна обычная непустая копия usb.dd.");
-            string arguments = options == null ? PhotoRecArguments(image, runDirectory, deep) : "/log /logname " + Quote(Path.Combine(runDirectory,"photorec.log")) + " /d " + Quote(Path.Combine(runDirectory,"files")) + " /cmd " + Quote(image) + " " + options.PhotoRecCommand();
-            var start = new ProcessStartInfo(ToolPath, arguments);
-            start.UseShellExecute = false; start.CreateNoWindow = true; start.WorkingDirectory = runDirectory;
-            start.RedirectStandardOutput = start.RedirectStandardError = true;
-            // Old Cygwin argv/glob handling otherwise retains quotes around paths with spaces.
-            start.EnvironmentVariables["CYGWIN"] = "noglob";
-            start.EnvironmentVariables["LANG"] = "C.UTF-8";
-            start.EnvironmentVariables["LC_ALL"] = "C.UTF-8";
-            using (var process = Process.Start(start))
-            {
-                // Keep the legacy console UI inside the modern application.
-                // Drain both streams without accumulating terminal output.
-                Task stdout=Task.Run(()=>{char[] data=new char[4096];while(process.StandardOutput.Read(data,0,data.Length)>0){};});
-                Task stderr=Task.Run(()=>{char[] data=new char[4096];while(process.StandardError.Read(data,0,data.Length)>0){};});
-                try
-                {
-                    while (!process.WaitForExit(1000))
-                    {
-                        cancel.ThrowIfCancellationRequested();
-                        progress(PhotoRecFiles(runDirectory).Count());
-                    }
-                    cancel.ThrowIfCancellationRequested();
-                    if (process.ExitCode != 0) throw new IOException("PhotoRec завершился с кодом " + process.ExitCode + ". См. photorec.log в папке результата.");
-                }
-                catch { if (!process.HasExited) { process.Kill(); process.WaitForExit(); } throw; }
-                finally {try{Task.WaitAll(new[]{stdout,stderr},3000);}catch(AggregateException){}}
-            }
-            string logPath = Path.Combine(runDirectory, "photorec.log");
-            bool normalExit = false, hasSummary = false;
-            if (File.Exists(logPath)) foreach (string line in File.ReadLines(logPath, Encoding.UTF8)) { if (line.Contains("PhotoRec exited normally.")) normalExit = true; if (line.StartsWith("Total: ")) hasSummary = true; }
-            if (File.Exists(Path.Combine(runDirectory, "photorec.ses")) || !normalExit || !hasSummary)
-                throw new IOException("Полное завершение поиска не подтверждено. Уже найденные файлы сохранены; для нового поиска выбери полную usb.dd.");
-            return PhotoRecFiles(runDirectory).Count();
-        }
-
-        static IEnumerable<string> PhotoRecFiles(string runDirectory)
-        {
-            return Directory.EnumerateDirectories(runDirectory, "files.*").SelectMany(d => Directory.EnumerateFiles(d, "*", SearchOption.AllDirectories)).Where(p => !Path.GetFileName(p).Equals("report.xml", StringComparison.OrdinalIgnoreCase));
+            return PhotoRecRunner.Run(image, runDirectory, deep, options, cancel, progress);
         }
 
         public static IEnumerable<string> RecoveredFiles(string runDirectory)

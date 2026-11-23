@@ -63,7 +63,10 @@ jobs:
               python tests/ForensicImageTests.py
               if ($LASTEXITCODE -ne 0) { throw 'Image regressions failed' }
             }
-            'flash' { ./scripts/test-flash-checkpoints.ps1 -Python312 $python }
+            'flash' {
+              ./tests/run_test.ps1 PhotoRecRunnerTests
+              ./scripts/test-flash-checkpoints.ps1 -Python312 $python
+            }
             'ext4' { ./scripts/test-ext4-checkpoints.ps1 -Python $python }
             'refs' { ./scripts/test-refs-checkpoints.ps1 -Python $python }
             'apfs' { ./scripts/test-apfs-checkpoints.ps1 -Python $python }

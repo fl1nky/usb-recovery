@@ -174,12 +174,23 @@ namespace UsbRecovery
         [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
         [DllImport("kernel32.dll")] static extern bool TerminateJobObject(IntPtr job, uint code);
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
-        public ProcessJob(long maximumProcessBytes=1536L*1024*1024)
+        internal static ProcessJob ForLifetimeOnly()
+        {
+            return new ProcessJob(null);
+        }
+        public ProcessJob(long maximumProcessBytes=1536L*1024*1024) : this((long?)maximumProcessBytes) { }
+        private ProcessJob(long? maximumProcessBytes)
         {
             if(maximumProcessBytes<32L*1024*1024||maximumProcessBytes>8L*1024*1024*1024)throw new ArgumentOutOfRangeException("maximumProcessBytes");
             handle = CreateJobObject(IntPtr.Zero, null);
             if (handle == IntPtr.Zero) throw new IOException("HELPER_START_FAILED");
-            var limits = new Limits { Basic = new Basic { Flags = 0x2000|0x100 },ProcessMemory=new UIntPtr((ulong)maximumProcessBytes) };
+            const uint killOnJobClose = 0x2000, limitProcessMemory = 0x100;
+            var limits = new Limits { Basic = new Basic { Flags = killOnJobClose } };
+            if (maximumProcessBytes.HasValue)
+            {
+                limits.Basic.Flags |= limitProcessMemory;
+                limits.ProcessMemory = new UIntPtr((ulong)maximumProcessBytes.Value);
+            }
             IntPtr data = Marshal.AllocHGlobal(Marshal.SizeOf(limits));
             try { Marshal.StructureToPtr(limits, data, false); if (!SetInformationJobObject(handle, 9, data, (uint)Marshal.SizeOf(limits))) throw new IOException("HELPER_START_FAILED"); }
             catch {CloseHandle(handle);handle=IntPtr.Zero;throw;}

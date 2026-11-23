@@ -1,36 +1,33 @@
-# Contributing to USB-Recovery
+# Contributing to USB Recovery
 
-Thank you for your interest in contributing to **USB-Recovery**, the premier free and open-source data recovery project!
+Build the Windows application from the repository root using PowerShell and the .NET Framework 4.8 compiler.
 
-## Guiding Principles
-
-1. **100% Free & Open Source**: No paywalls, no file-size caps, no feature gating. All algorithms remain free under the GNU AGPLv3.
-2. **Zero Telemetry & Offline Verification**: USB-Recovery never phones home, uses telemetry, or makes outbound network requests. All tests run in isolated, offline network environments blocked by firewall policies.
-3. **Reproducible & Deterministic**: File recovery engines must be backed by synthetic test fixtures with verifiable SHA-256 assertions.
-4. **Safety First**: Non-destructive read-only access to storage sources. Never write to the source media.
-
-## Development Setup
-
-### Prerequisites
-- Windows 10/11 x64 or Windows Server 2016+
-- .NET Framework 4.8 developer pack (built-in `csc.exe` in `C:\Windows\Microsoft.NET\Framework64\v4.0.30319`)
-- PowerShell 5.1+
-
-### Building the Project
-From the repository root:
 ```powershell
 .\scripts\build-app.ps1
+.\tests\run_test.ps1 RecoveryRestartTests
 ```
-The compiled executable will be placed in `.build\app\USB-Recovery.exe`.
 
-### Running Offline Quality Tests
-To run the automated suite:
+The application is written to `.build\app\USB-Recovery.exe`. The restart test uses generated files. A portable release also includes external engines, their dependencies and licenses.
+
+## Find the code
+
+| If you are changing | Start here |
+|---|---|
+| Scan order, retry or cancellation | [RecoveryPipeline](src/Recovery/Recovery/RecoveryPipeline.cs) and [session persistence](src/Recovery/Recovery/RecoverySession.cs) |
+| PhotoRec arguments, process lifetime or scan completion | [PhotoRecRunner](src/Recovery/Recovery/Engines/PhotoRecRunner.cs) and its [integration test](tests/PhotoRecRunnerTests.cs) |
+| NTFS record and stream recovery | [Native component build and validation](docs/development/native-ntfs-build.md) |
+| Another engine, the UI or export | [Architecture map](docs/development/architecture.md) |
+
+To run the PhotoRec integration test on a fresh checkout, restore the pinned tools using Python 3.12+ and run the test at your current Windows privilege level.
+
 ```powershell
+python scripts/bootstrap-build.py --native-only
 $env:__COMPAT_LAYER = 'RunAsInvoker'
-.\tests\QualityOfflineTests.ps1 -ApplicationDirectory .build\app
+.\tests\run_test.ps1 PhotoRecRunnerTests
 ```
 
-## Pull Request Guidelines
-- Ensure all tests pass without errors.
-- Do not check in large binary disk images to Git; use synthetic image generators or fixtures.
-- Keep comments and documentation clear and accurate.
+## Submit a change
+
+Describe the input that used to fail and how someone can reproduce the result. For recovery changes, include the expected file contents or SHA256 and the result of an interrupted run. Use a small generated image or a redistributable fixture. Keep personal data, recovered files and generated builds out of Git.
+
+For performance or competitor claims, record the versions, settings, reference files and results on the same images. Existing comparisons include the scope of each experiment. [Comparison reports](docs/guides/comparison.md)
