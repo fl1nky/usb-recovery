@@ -4,7 +4,7 @@
 
 Восстановление файлов с флешек и образов дисков для Windows x64. Поиск в сохранившихся локальных данных Telegram.
 
-**[Скачать актуальный ZIP для Windows x64](https://github.com/fl1nky/usb-recovery/releases/latest)**
+**[Скачать актуальный ZIP для Windows x64](https://github.com/fl1nky/usb-recovery/releases/latest/download/USB-Recovery-Windows-x64.zip)**
 
 Распакуй ZIP целиком и запусти `USB-Recovery.exe`. Оставь остальные папки рядом с ним. Отдельно устанавливать Python не требуется.
 

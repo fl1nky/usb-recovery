@@ -4,7 +4,7 @@
 
 Recover files from USB drives and disk images on Windows x64, and search surviving local Telegram data.
 
-**[Download the latest Windows x64 ZIP](https://github.com/fl1nky/usb-recovery/releases/latest)**
+**[Download the latest Windows x64 ZIP](https://github.com/fl1nky/usb-recovery/releases/latest/download/USB-Recovery-Windows-x64.zip)**
 
 Extract the whole ZIP and run `USB-Recovery.exe`. Keep its folders together. No separate Python installation is required.
 
