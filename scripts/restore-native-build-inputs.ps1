@@ -10,8 +10,11 @@ if(-not $cache.StartsWith($buildRoot,[StringComparison]::OrdinalIgnoreCase)){thr
 $lock=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'native-recovery-packages.json') -Raw|ConvertFrom-Json
 if($lock.schema-ne 1){throw 'Unknown native package lock.'}
 $rows=@()
+# Official HTTPS mirrors. Size and SHA512 from the package lock still identify each archive.
+$cygwinMirrors = @('https://cygwin.osuosl.org/', 'https://mirror.csclub.uwaterloo.ca/cygwin/', 'https://mirrors.kernel.org/sourceware/cygwin/')
+$preferredMirror = 0
 foreach($entry in @($lock.packages.PSObject.Properties.Value)+@($lock.runtime_sources.PSObject.Properties.Value)){
-    $rows+=@{path=$entry.path;uri=('https://mirrors.kernel.org/sourceware/cygwin/'+$entry.path);algorithm='SHA512';sha=$entry.sha512;bytes=[long]$entry.bytes}
+    $rows+=@{path=$entry.path;cygwin=$true;algorithm='SHA512';sha=$entry.sha512;bytes=[long]$entry.bytes}
 }
 $rows+=@(
     @{path='upstream/testdisk-7.2-source.tar.bz2';uri='https://www.cgsecurity.org/testdisk-7.2.tar.bz2';algorithm='SHA256';sha='f8343be20cb4001c5d91a2e3bcd918398f00ae6d8310894a5a9f2feb813c283f';bytes=0L},
@@ -27,15 +30,18 @@ foreach($row in $rows){
         New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent)|Out-Null
         for($attempt=1;$attempt-le3;$attempt++){
             $pending=$target+'.'+[Guid]::NewGuid().ToString('N')+'.partial'
+            $mirror = ($preferredMirror + $attempt - 1) % $cygwinMirrors.Count
+            $uri = if ($row.cygwin) { $cygwinMirrors[$mirror] + $row.path } else { $row.uri }
             try{
                 Write-Output ('Downloading pinned native input: '+$row.path+' (attempt '+$attempt+')')
                 # Certificate verification stays enabled. Failed partials remain
                 # separate; a retry cannot publish unverified or stale bytes.
-                Invoke-WebRequest -Uri $row.uri -OutFile $pending -TimeoutSec 120 -MaximumRedirection 5
+                Invoke-WebRequest -Uri $uri -OutFile $pending -TimeoutSec 120 -MaximumRedirection 5
                 $size=(Get-Item -LiteralPath $pending).Length
                 if($size-lt 1-or $size-gt 256MB-or $row.bytes-gt 0-and $size-ne $row.bytes-or
                     (Get-FileHash -LiteralPath $pending -Algorithm $row.algorithm).Hash.ToLowerInvariant()-ne $row.sha){throw ('Native archive validation failed: '+$row.path)}
                 Move-Item -LiteralPath $pending -Destination $target
+                if ($row.cygwin) { $preferredMirror = $mirror }
                 break
             }catch{
                 $detail='Native input '+$row.path+': '+$_.Exception.Message
