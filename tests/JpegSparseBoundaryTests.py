@@ -33,6 +33,19 @@ def align_marker(raw, marker):
 
 def layout(which):
     raw = sample()
+    if which in ("header-two-parts", "header-three-parts", "header-missing-table"):
+        # Keep the opaque comment non-uniform. Split through the header itself,
+        # then through entropy bytes that are well past the start of scan.
+        padding = 300 if which == "header-two-parts" else 810
+        body = random.Random(563).randbytes(padding)
+        raw = raw[:2] + b"\xff\xfe" + (padding+2).to_bytes(2, "big") + body + raw[2:]
+        cuts = [0, 512, 1024, 2048, len(raw)]
+        offsets = [4103, 32775, 18439, 49159]
+        disk = bytearray(128 * 1024)
+        for n, (at, a, b) in enumerate(zip(offsets, cuts, cuts[1:])):
+            if which != "header-missing-table" or n != 2:
+                disk[at:at+b-a] = raw[a:b]
+        return bytes(disk), raw, offsets
     first_restart = raw.index(b"\xff\xd0")
     if which in ("restart-split", "marker-noise", "missing-tail", "window-end"):
         raw, cut = align_marker(raw, first_restart)
@@ -69,8 +82,8 @@ class SparseBoundaries(unittest.TestCase):
             else:
                 assembler.index()
                 recipes = [r for r, _, _ in recover_jpegs(assembler)]
-        if case == "missing-tail":
-            self.assertFalse(recipes, "a missing EOI byte must not be recreated")
+        if case in ("missing-tail", "header-missing-table"):
+            self.assertFalse(recipes, "missing source bytes must not be synthesized")
             return
         found = [recipe for recipe in recipes if b"".join(data for _, data in recipe) == original]
         self.assertEqual(len(found), 1, (case, assembler.skipped))
@@ -86,6 +99,19 @@ class SparseBoundaries(unittest.TestCase):
     def test_global_marker_saturation(self): self.check("marker-noise")
     def test_truncated_final_marker(self): self.check("missing-tail")
     def test_partial_last_sector_after_large_offset(self): self.check("window-end", method=True)
+    def test_header_in_two_extents(self): self.check("header-two-parts")
+    def test_header_in_three_extents(self): self.check("header-three-parts")
+    def test_missing_header_and_entropy_extent(self): self.check("header-missing-table")
+
+    def test_short_extent_cannot_be_an_interior_sector(self):
+        original = sample()
+        runs = [(0, original[:1024]), (8192, original[1024:1283]), (24576, original[1283:])]
+        with tempfile.TemporaryFile() as source:
+            for at, part in runs:
+                source.seek(at)
+                source.write(part)
+            assembler = PhotoAssembler(source)
+            self.assertEqual(join_runs(assembler, header(assembler, 0), runs), [])
 
     def test_distinct_decodable_tails_remain_ambiguous(self):
         from JpegTwoGapRecoveryTests import encoded, scattered

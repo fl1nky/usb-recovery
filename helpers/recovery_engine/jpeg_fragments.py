@@ -45,6 +45,10 @@ class InvalidJpeg(Exception):
     pass
 
 
+class IncompleteHeader(InvalidJpeg):
+    """The supplied prefix ended inside an otherwise legal header segment."""
+
+
 def u16(raw, at):
     return struct.unpack_from(">H", raw, at)[0]
 
@@ -74,23 +78,33 @@ def huffman(counts, values):
 
 def header(assembler, start, allow_progressive=False):
     raw = assembler.read(start, min(MAX_HEADER, assembler.size - start))
+    return parse_header_bytes(raw, start, allow_progressive)
+
+
+def parse_header_bytes(raw, start, allow_progressive=False):
     if not raw.startswith(b"\xff\xd8"):
         raise InvalidJpeg("jpeg_soi")
     p, frame, tables, quant, interval = 2, None, {}, set(), 0
     for _ in range(256):
-        if p >= len(raw) or raw[p] != 255:
+        if p >= len(raw):
+            raise IncompleteHeader("jpeg_header_torn")
+        if raw[p] != 255:
             raise InvalidJpeg("jpeg_header_torn")
         while p < len(raw) and raw[p] == 255:
             p += 1
         if p >= len(raw):
-            raise InvalidJpeg("jpeg_header_torn")
+            raise IncompleteHeader("jpeg_header_torn")
         marker = raw[p]
         p += 1
-        if marker in {0, 1, 0xd8, 0xd9} or 0xd0 <= marker <= 0xd7 or len(raw) - p < 2:
+        if marker in {0, 1, 0xd8, 0xd9} or 0xd0 <= marker <= 0xd7:
             raise InvalidJpeg("jpeg_header_marker")
+        if len(raw) - p < 2:
+            raise IncompleteHeader("jpeg_header_marker")
         length = u16(raw, p)
-        if length < 2 or length > len(raw) - p:
+        if length < 2:
             raise InvalidJpeg("jpeg_header_bounds")
+        if length > len(raw) - p:
+            raise IncompleteHeader("jpeg_header_bounds")
         body = raw[p + 2:p + length]
         end = p + length
         if marker == 0xc0 or marker == 0xc2 and allow_progressive:
@@ -1532,16 +1546,21 @@ def sparse_fallback(assembler, frame):
     start, _ = frame["prefix"]
     runs = jpeg_sector_runs.sector_runs(assembler, start, frame["scan"])
     recipes = jpeg_sector_runs.recover(assembler, frame, runs)
+    yield from sparse_candidates(assembler, recipes)
+
+
+def sparse_candidates(assembler, recipes, header_split=False):
+    origin = " The header was joined from the listed source extents." if header_split else ""
     if len(recipes) > 1:
         assembler.skipped["jpeg_sparse_ambiguous"] += 1
     for recipe in recipes:
         if len(recipes) > 1:
             yield (recipe, "jpeg_gap_ambiguous_candidate",
-                   "Multiple distinct Huffman- and decoder-valid sector paths. Original order and ownership are unknown.")
+                   "Multiple distinct Huffman- and decoder-valid sector paths. Original order and ownership are unknown." + origin)
         else:
             yield (recipe, "jpeg_gap_structural_candidate",
                    "Sector runs separated by uniform fill. Huffman counts, restart order, padding, "
-                   "EOI and decoding agree within the bounded search. Other bytes and physical aliases may exist.")
+                   "EOI and decoding agree within the bounded search. Other bytes and physical aliases may exist." + origin)
 
 
 def recover_jpegs(assembler):
@@ -1551,7 +1570,15 @@ def recover_jpegs(assembler):
     markers = marker_index(assembler, ALL_MARKERS)
     for start in assembler.jpeg_starts:
         try:
-            frame = header(assembler, start, allow_progressive=True)
+            try:
+                frame = header(assembler, start, allow_progressive=True)
+            except InvalidJpeg as error:
+                import jpeg_sector_runs
+                recipes = jpeg_sector_runs.recover_header(assembler, start)
+                if not recipes:
+                    assembler.skipped[str(error)] += 1
+                yield from sparse_candidates(assembler, recipes, header_split=True)
+                continue
             if markers is None:
                 # Noise anywhere on the disk can fill the global marker index.
                 # A validated baseline header still has a bounded local search;

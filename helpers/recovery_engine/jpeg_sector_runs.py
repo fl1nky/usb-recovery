@@ -13,6 +13,14 @@ MAX_RUNS = 96
 MARKER = re.compile(rb"\xff+([\x00-\xfe]|\Z)")
 MAX_JOIN_BYTES = 32 * 1024 * 1024
 MAX_ENTROPY_BYTES = 8 * 1024 * 1024
+HEADER_BYTES = 8192
+HEADER_ATTEMPTS = 64
+
+
+class JoinBudget:
+    def __init__(self):
+        self.states = self.joined = self.entropy = 0
+        self.exhausted = False
 
 
 def _ranges(assembler, low, high):
@@ -85,7 +93,7 @@ def sector_runs(assembler, anchor, scan_start=None):
     return tuple(runs)
 
 
-def recover(assembler, frame, runs):
+def recover(assembler, frame, runs, header_parts=(), budget=None):
     """Return structural candidates only, within the sparse-sector hypothesis."""
     from jpeg_fragments import InvalidJpeg, entropy
     start, header = frame["prefix"]
@@ -96,15 +104,13 @@ def recover(assembler, frame, runs):
     # An interior run need not contain a marker. A marker, a stuffed byte and
     # even the terminating EOI can straddle any physical join.
     solutions = {}
-    attempts = joined_bytes = checked_bytes = 0
-    exhausted = False
+    budget = budget or JoinBudget()
 
     @lru_cache(maxsize=64)
     def valid(raw, count):
-        nonlocal checked_bytes, exhausted
-        checked_bytes += len(raw)
-        if checked_bytes > MAX_ENTROPY_BYTES:
-            exhausted = True
+        budget.entropy += len(raw)
+        if budget.entropy > MAX_ENTROPY_BYTES:
+            budget.exhausted = True
             return False
         try:
             entropy(raw, blocks, count)
@@ -113,17 +119,16 @@ def recover(assembler, frame, runs):
             return False
 
     def extend(at, path, carry, done):
-        nonlocal attempts, joined_bytes, exhausted
         skip = len(header) if at == start else 0
         size = len(carry) + len(by_offset[at]) - skip
-        if attempts >= assembler.max_states or joined_bytes + size > MAX_JOIN_BYTES:
-            exhausted = True
+        if budget.states >= assembler.max_states or budget.joined + size > MAX_JOIN_BYTES:
+            budget.exhausted = True
             return
-        if attempts % 64 == 0:
+        if budget.states % 64 == 0:
             assembler.read(0, 0)
             assembler.progress(assembler.size, assembler.size)
-        attempts += 1
-        joined_bytes += size
+        budget.states += 1
+        budget.joined += size
         scan = carry + by_offset[at][skip:]
         previous = 0
         for match in MARKER.finditer(scan):
@@ -138,24 +143,104 @@ def recover(assembler, frame, runs):
             done += count
             previous = match.end()
             if final:
-                if path:
+                if path or header_parts:
                     # Only the part of this run up to and including the true EOI.
                     end = skip + previous - len(carry)
                     recipe = [(pos, by_offset[pos]) for pos in path] + [(at, by_offset[at][:end])]
+                    if header_parts:
+                        remaining = len(recipe[0][1])
+                        mapped = []
+                        for position, part in header_parts:
+                            take = min(remaining, len(part))
+                            if take:
+                                mapped.append((position, part[:take]))
+                                remaining -= take
+                        recipe = mapped + recipe[1:]
                     payload = b"".join(raw for _, raw in recipe)
                     if payload not in solutions and assembler.decode(payload, "JPEG"):
                         solutions[payload] = recipe
                 return
+        # A partial physical sector can contain the final EOI. It cannot be
+        # followed by another sector jump on this alignment grid.
+        if len(by_offset[at]) % SECTOR:
+            return
         carry = scan[previous:]
         path += (at,)
         for pos in by_offset:
-            if exhausted or len(solutions) == 2:
+            if budget.exhausted or len(solutions) == 2:
                 break
             if pos not in path:
                 extend(pos, path, carry, done)
 
     extend(start, (), b"", 0)
-    if exhausted:
+    if budget.exhausted:
         assembler.skipped["jpeg_sparse_search_incomplete"] += 1
+        return []
+    return list(solutions.values())
+
+
+def recover_header(assembler, start):
+    """Join up to three physical header pieces before validating baseline entropy."""
+    from jpeg_fragments import IncompleteHeader, InvalidJpeg, parse_header_bytes
+
+    # Require a run that ends at a uniformly filled sector and an actually
+    # unfinished JPEG segment before doing the larger neighbourhood read.
+    probe = assembler.read(start, min(HEADER_BYTES + SECTOR, assembler.size - start))
+    for cut in range(SECTOR, len(probe) - SECTOR + 1, SECTOR):
+        sector = probe[cut:cut + SECTOR]
+        if sector.count(sector[:1]) == SECTOR:
+            break
+    else:
+        return []
+    if cut >= HEADER_BYTES:
+        return []
+    try:
+        parse_header_bytes(probe[:cut], start)
+    except IncompleteHeader:
+        pass
+    except InvalidJpeg:
+        return []
+    else:
+        return []
+
+    runs = dict(sector_runs(assembler, start))
+    if runs.get(start) != probe[:cut]:
+        return []
+    attempts = 0
+    budget = JoinBudget()
+    solutions = {}
+
+    def append(parts, prefix):
+        nonlocal attempts
+        for at, part in runs.items():
+            if any(used == at for used, _ in parts):
+                continue
+            if len(solutions) >= 2 or budget.exhausted:
+                return
+            if attempts >= min(assembler.max_states, HEADER_ATTEMPTS):
+                budget.exhausted = True
+                return
+            attempts += 1
+            joined = parts + ((at, part),)
+            sample = prefix + part[:HEADER_BYTES - len(prefix)]
+            try:
+                frame = parse_header_bytes(sample, start)
+            except IncompleteHeader:
+                if len(joined) < 3 and len(sample) < HEADER_BYTES and len(part) % SECTOR == 0:
+                    append(joined, sample)
+                continue
+            except InvalidJpeg:
+                continue
+            used = {pos for pos, _ in joined}
+            logical = [(start, b"".join(data for _, data in joined))]
+            logical.extend((pos, data) for pos, data in runs.items() if pos not in used)
+            for recipe in recover(assembler, frame, logical, header_parts=joined, budget=budget):
+                solutions.setdefault(b"".join(data for _, data in recipe), recipe)
+                if len(solutions) == 2:
+                    return
+
+    append(((start, runs[start]),), runs[start])
+    if budget.exhausted:
+        assembler.skipped["jpeg_header_search_incomplete"] += 1
         return []
     return list(solutions.values())
