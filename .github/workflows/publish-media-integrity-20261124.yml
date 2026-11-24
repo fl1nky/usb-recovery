@@ -25,10 +25,13 @@ jobs:
           BUILD_RUN: 45398296396
           TAG: v2026.11.24-media-integrity
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+          stage='source revision'
+          trap 'echo "::error title=Release gate::$stage failed at script line $LINENO (code $?)"' ERR
           test "$GITHUB_REPOSITORY" = "$GH_REPO"
           api="repos/$GH_REPO"
           test "$(gh api "$api/git/ref/tags/$TAG" --jq .object.sha)" = "$PRODUCT"
+          stage='source CI'
           status_file="$RUNNER_TEMP/source-runs.json"
           checked=false
           for iteration in $(seq 1 25); do
@@ -38,9 +41,11 @@ jobs:
             sleep 30
           done
           test "$checked" = true
+          stage='portable artifact'
           gh api "$api/actions/runs/$BUILD_RUN" | jq -e --arg sha "$BUILD_SHA" '.head_sha == $sha and .conclusion == "success" and .name == "Build verified media release"' >/dev/null
           gh run download "$BUILD_RUN" --repo "$GH_REPO" -n verified-portable --dir release
           cp .github/media-integrity-20261124/media-regression.json release/media-regression.json
+          stage='portable checksum and validation'
           (cd release && sha256sum --check SHA256SUMS.txt)
           digest=$(sha256sum release/USB-Recovery-Windows-x64.zip | cut -d ' ' -f 1)
           jq -e --arg sha "$PRODUCT" --arg h "$digest" '.commit == $sha and .zip_sha256 == $h and .managed_cases_passed == 20 and (.jpeg_cases | length) == 9 and all(.jpeg_cases[]; .expected_result and .source_unchanged)' release/portable-validation.json > /dev/null
@@ -48,22 +53,27 @@ jobs:
           cp "$RUNNER_TEMP/receipt.json" release/portable-validation.json
           jq -e --arg sha "$PRODUCT" '.source_commit == $sha and all(.managed[]; .after.exact_layout) and all(.additional_fixed_seeds[]; .current.correct)' release/media-regression.json > /dev/null
           test "$(gh api "$api/releases/latest" --jq .id)" = '456101921'
-          release_id=$(gh api "$api/releases?per_page=100" | jq -r --arg tag "$TAG" '.[] | select(.tag_name == $tag) | .id')
+          stage='locate draft'
+          title='USB Recovery Ч восстановление фото, видео и PDF'
+          release_id=$(gh api --paginate "$api/releases?per_page=100" | jq -sr --arg tag "$TAG" --arg sha "$PRODUCT" --arg title "$title" '[.[][] | select(.tag_name==$tag or (.draft and .target_commitish==$sha and .name==$title)) | .id] | unique | if length>1 then error("Multiple matching releases") else .[0] // empty end')
           if [[ -z "$release_id" ]]; then
-            gh release create "$TAG" --repo "$GH_REPO" --draft --verify-tag --target "$PRODUCT" --title 'USB Recovery Ч восстановление фото, видео и PDF' --notes-file .github/media-integrity-20261124/release-notes.md
-            release_id=$(gh api "$api/releases?per_page=100" | jq -er --arg tag "$TAG" '.[] | select(.tag_name == $tag) | .id')
+            stage='create draft'
+            release_id=$(gh api --method POST "$api/releases" -f tag_name="$TAG" -f target_commitish="$PRODUCT" -f name="$title" -F body=@.github/media-integrity-20261124/release-notes.md -F draft=true -F prerelease=false --jq .id)
           fi
-          gh api "$api/releases/$release_id" | jq -e --arg tag "$TAG" --arg sha "$PRODUCT" '.draft == true and .tag_name == $tag and .target_commitish == $sha' >/dev/null
+          stage="verify draft $release_id"
+          gh api "$api/releases/$release_id" | jq -e --arg tag "$TAG" --arg sha "$PRODUCT" --arg title "$title" '.draft == true and .target_commitish == $sha and .name==$title and (.tag_name == $tag or (.tag_name | startswith("untagged-")))' >/dev/null
           for name in USB-Recovery-Windows-x64.zip SHA256SUMS.txt portable-validation.json media-regression.json; do
+            stage="upload $name"
             hash="sha256:$(sha256sum "release/$name" | cut -d ' ' -f 1)"
             existing=$(gh api "$api/releases/$release_id/assets" | jq -r --arg n "$name" '.[] | select(.name == $n) | .digest')
             if [[ -z "$existing" ]]; then
-              gh release upload "$TAG" --repo "$GH_REPO" "release/$name"
+              gh api --method POST -H 'Content-Type: application/octet-stream' "https://uploads.github.com/repos/$GH_REPO/releases/$release_id/assets?name=$name" --input "release/$name" | jq -e --arg hash "$hash" '.state=="uploaded" and .digest==$hash' >/dev/null
             else
               test "$hash" = "$existing"
             fi
             gh api "$api/releases/$release_id/assets" | jq -e --arg name "$name" --arg hash "$hash" 'any(.[]; .name == $name and .digest == $hash and .state == "uploaded")' >/dev/null
           done
           test "$(gh api "$api/releases/$release_id/assets" --jq length)" = 4
+          stage='publish and verify latest'
           gh api --method PATCH "$api/releases/$release_id" -f tag_name="$TAG" -f target_commitish="$PRODUCT" -F draft=false -F prerelease=false -f make_latest=true >/dev/null
           test "$(gh api "$api/releases/latest" --jq .id)" = "$release_id"
