@@ -1,0 +1,60 @@
+name: Build verified media release
+on:
+  push:
+    branches: [release/media-integrity-20261124]
+    paths:
+      - '.github/workflows/build-media-integrity-20261124.yml'
+      - '.github/media-integrity-20261124/portable.py'
+      - '.github/media-integrity-20261124/zipcheck.py'
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      __COMPAT_LAYER: RunAsInvoker
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: product
+          ref: 9448116d8daab735f30d3c30aeeeca1ae2339b95
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: operations
+          persist-credentials: false
+          sparse-checkout: .github/media-integrity-20261124
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore pinned offline build inputs
+        shell: pwsh
+        run: |
+          $base = 'https://github.com/fl1nky/usb-recovery/releases/download/v2026.11.24-media-wallet/USB-Recovery-Windows-x64.zip'
+          curl.exe --fail --location --silent --show-error --retry 2 --output previous.zip $base
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python operations/.github/media-integrity-20261124/portable.py prepare product previous.zip .
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build application and offline helper from tested sources
+        working-directory: product
+        shell: pwsh
+        run: |
+          ./scripts/build-app.ps1 -OutputDirectory .build/qa
+          ./scripts/build-helper.ps1 -Python312 (Get-Command python).Source -SkipTests
+      - name: Validate zip hashes, recovered files and source extents
+        shell: pwsh
+        run: |
+          python operations/.github/media-integrity-20261124/portable.py package product previous.zip release
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & product/.build/engine-env/Scripts/python.exe operations/.github/media-integrity-20261124/zipcheck.py product release/USB-Recovery-Windows-x64.zip check
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Copy-Item -LiteralPath check/receipt.json -Destination release/portable-validation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-portable
+          path: release/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 2
