@@ -31,14 +31,15 @@ layouts=json.loads((fixtures/'manifest.json').read_text());target_count=len(layo
 assert managed.splitlines()[-1]==f'{target_count}/{target_count} layouts passed',managed[-1500:]
 print(managed.splitlines()[-1],flush=True)
 rows=[]
-for case in ('restart-split','stuffed-split','eoi-split','missing-tail','marker-noise','window-end'):
+for case in ('restart-split','stuffed-split','eoi-split','missing-tail','marker-noise','window-end',
+             'header-two-parts','header-three-parts','header-missing-table'):
     data,original,offsets=layout(case); input_hash=hashlib.sha256(data).hexdigest()
     source=scratch/'input.dd';source.write_bytes(data);dest=scratch/case
     req=dict(operation='fragmented_photos',protocol=1,source=str(source),destination=str(dest),options={})
     run([str(helper)],input=(json.dumps(req)+'\n').encode())
     r=json.loads((dest/'report.json').read_text('utf-8-sig'))
     assert r['SourceUnchanged'] and r['SourceSha256']==input_hash==digest(source)
-    expected=case!='missing-tail'
+    expected=case not in ('missing-tail','header-missing-table')
     assert len(r['Files'])==int(expected),(case,r['Skipped'])
     assert r['Status']==('limited' if case=='marker-noise' else 'complete')
     if expected:

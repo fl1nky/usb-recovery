@@ -18,8 +18,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: product
-          ref: 9448116d8daab735f30d3c30aeeeca1ae2339b95
-          fetch-depth: 2
+          ref: 761dec7342dce1bae4dea3583491ed4840502147
+          fetch-depth: 3
           persist-credentials: false
       - uses: actions/checkout@v4
         with:

@@ -8,7 +8,7 @@ import sys
 import zipfile
 
 PARENT = 'd679e038f48e84e510a3abfbbdee0e3d6905d5e7'
-TARGET = '9448116d8daab735f30d3c30aeeeca1ae2339b95'
+TARGET = '761dec7342dce1bae4dea3583491ed4840502147'
 OLD_DIGEST = 'f2b71918f960d960961ce368610d8d4b1996a440f7e2984625549df9f03b4109'
 PREFIX = 'tools/recovery-helper/'
 
