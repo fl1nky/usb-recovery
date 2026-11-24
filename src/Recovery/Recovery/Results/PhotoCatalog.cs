@@ -22,7 +22,6 @@ namespace UsbRecovery
         public const int MaximumDimension = 32768;
         static readonly HashSet<string> RasterExtensions = new HashSet<string>(new[] { ".jpg", ".jpeg", ".jpe", ".png", ".gif", ".bmp", ".tif", ".tiff" }, StringComparer.OrdinalIgnoreCase);
         static readonly HashSet<string> ViewerExtensions = new HashSet<string>(new[] { ".heic", ".heif", ".avif", ".webp", ".cr2", ".cr3", ".nef", ".nrw", ".arw", ".sr2", ".srf", ".dng", ".raf", ".rw2", ".orf", ".pef", ".raw", ".kdc", ".mos", ".mrw", ".x3f" }, StringComparer.OrdinalIgnoreCase);
-        static readonly uint[] CrcTable = MakeCrcTable();
 
         public sealed class Item
         {
@@ -295,44 +294,9 @@ namespace UsbRecovery
 
         static Probe PngProbe(FileStream stream, CancellationToken cancel)
         {
-            var result = new Probe { Format = "PNG", EndChecked = true, Detail = "Нет корректного завершающего блока PNG IEND." };
-            stream.Position = 8;
-            bool first = true, hasIdat = false;
-            byte[] header = new byte[8], buffer = new byte[65536], crcBytes = new byte[4];
-            while (stream.Position + 12 <= stream.Length)
-            {
-                cancel.ThrowIfCancellationRequested();
-                if (!ReadFully(stream, header, 0, 8)) return result;
-                uint count = Big32(header, 0);
-                if (count > Int32.MaxValue || stream.Position + count + 4 > stream.Length) { result.Detail = "Оборван блок PNG."; return result; }
-                string type = Encoding.ASCII.GetString(header, 4, 4);
-                if (first && (type != "IHDR" || count != 13)) return result;
-                uint crc = 0xffffffff;
-                for (int i = 4; i < 8; i++) crc = CrcTable[(crc ^ header[i]) & 255] ^ (crc >> 8);
-                uint remaining = count;
-                bool headRead = false;
-                while (remaining > 0)
-                {
-                    cancel.ThrowIfCancellationRequested();
-                    int chunk = (int)Math.Min(remaining, (uint)buffer.Length);
-                    if (!ReadFully(stream, buffer, 0, chunk)) return result;
-                    if (type == "IHDR" && !headRead && chunk >= 8)
-                    {
-                        uint width = Big32(buffer, 0), height = Big32(buffer, 4);
-                        result.Width = width > Int32.MaxValue ? 0 : (int)width;
-                        result.Height = height > Int32.MaxValue ? 0 : (int)height;
-                        headRead = true;
-                    }
-                    for (int i = 0; i < chunk; i++) crc = CrcTable[(crc ^ buffer[i]) & 255] ^ (crc >> 8);
-                    remaining -= (uint)chunk;
-                }
-                if (!ReadFully(stream, crcBytes, 0, 4)) return result;
-                if ((crc ^ 0xffffffff) != Big32(crcBytes, 0)) { result.Detail = "Контрольная сумма блока PNG не совпадает."; return result; }
-                if (type == "IDAT") hasIdat = true;
-                if (type == "IEND") { result.HasEnd = count == 0 && hasIdat && result.Width > 0 && result.Height > 0; return result; }
-                first = false;
-            }
-            return result;
+            var png = PngStructure.Read(stream, 0, stream.Length, cancel);
+            return new Probe { Format = "PNG", EndChecked = true, HasEnd = png.End >= 0,
+                Width = png.Width, Height = png.Height, Detail = png.Detail };
         }
 
         static Probe TiffProbe(FileStream stream, byte[] header, CancellationToken cancel)
@@ -368,12 +332,7 @@ namespace UsbRecovery
         }
         static uint Little32(byte[] bytes, int offset) { return (uint)(bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24); }
         static uint Big32(byte[] bytes, int offset) { return (uint)(bytes[offset] << 24 | bytes[offset + 1] << 16 | bytes[offset + 2] << 8 | bytes[offset + 3]); }
-        static uint[] MakeCrcTable()
-        {
-            uint[] table = new uint[256];
-            for (uint i = 0; i < table.Length; i++) { uint value = i; for (int bit = 0; bit < 8; bit++) value = (value & 1) == 1 ? 0xedb88320 ^ (value >> 1) : value >> 1; table[i] = value; }
-            return table;
-        }
+
         static string CaptureDate(Image image)
         {
             foreach (int id in new[] { 36867, 36868, 306 })

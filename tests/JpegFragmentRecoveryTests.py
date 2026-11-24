@@ -241,9 +241,12 @@ class JpegFragments(unittest.TestCase):
         with patch("jpeg_fragments.baseline_stream_paths", return_value=[]) as one_gap, \
                 patch("jpeg_fragments.baseline_gap_paths", return_value=[]) as two_gap:
             found, _ = self.run_recovery(path)
-        self.assertEqual(found, [])
         one_gap.assert_called_once()
         two_gap.assert_called_once()
+        self.assertEqual(len(found), 1)
+        recipe, status, _ = found[0]
+        self.assertEqual(status, "jpeg_gap_structural_candidate")
+        self.assertEqual(recipe, [(32768, raw[:512]), (8192, raw[512:])])
 
     def test_single_sector_aligned_gap_without_restart(self):
         rng = random.Random(17)

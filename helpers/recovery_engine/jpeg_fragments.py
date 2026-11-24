@@ -1530,11 +1530,18 @@ def sparse_fallback(assembler, frame):
     """Try a different fragment model only when a bounded primary search stopped."""
     import jpeg_sector_runs
     start, _ = frame["prefix"]
-    runs = jpeg_sector_runs.sector_runs(assembler, start)
-    for recipe in jpeg_sector_runs.recover(assembler, frame, runs):
-        yield (recipe, "jpeg_gap_structural_candidate",
-               "Sector runs separated by uniform fill. Huffman counts, restart order, padding, "
-               "EOI and decoding agree within the bounded search. Source ownership is unknown.")
+    runs = jpeg_sector_runs.sector_runs(assembler, start, frame["scan"])
+    recipes = jpeg_sector_runs.recover(assembler, frame, runs)
+    if len(recipes) > 1:
+        assembler.skipped["jpeg_sparse_ambiguous"] += 1
+    for recipe in recipes:
+        if len(recipes) > 1:
+            yield (recipe, "jpeg_gap_ambiguous_candidate",
+                   "Multiple distinct Huffman- and decoder-valid sector paths. Original order and ownership are unknown.")
+        else:
+            yield (recipe, "jpeg_gap_structural_candidate",
+                   "Sector runs separated by uniform fill. Huffman counts, restart order, padding, "
+                   "EOI and decoding agree within the bounded search. Other bytes and physical aliases may exist.")
 
 
 def recover_jpegs(assembler):
@@ -1542,11 +1549,16 @@ def recover_jpegs(assembler):
     if not assembler.jpeg_starts:
         return
     markers = marker_index(assembler, ALL_MARKERS)
-    if markers is None:
-        return
     for start in assembler.jpeg_starts:
         try:
             frame = header(assembler, start, allow_progressive=True)
+            if markers is None:
+                # Noise anywhere on the disk can fill the global marker index.
+                # A validated baseline header still has a bounded local search;
+                # retain jpeg_marker_limit to report incomplete global coverage.
+                if not frame["progressive"]:
+                    yield from sparse_fallback(assembler, frame)
+                continue
             if frame["progressive"]:
                 recipes = progressive_paths(assembler, frame, markers)
                 if not recipes:
@@ -1580,8 +1592,9 @@ def recover_jpegs(assembler):
                         yield (recipe,'jpeg_gap_structural_candidate',
                                'Byte-identical source alias from the complete bounded one-gap search; physical placement and original ownership are unknown and not authenticated.')
                 continue
+            ambiguous = assembler.skipped["jpeg_restart_ambiguous"]
             recipes = restart_paths(assembler, frame, baseline_markers)
-            if not recipes:
+            if not recipes and assembler.skipped["jpeg_restart_ambiguous"] == ambiguous:
                 yield from sparse_fallback(assembler, frame)
             for recipe in recipes:
                 if len(recipe) < 2:

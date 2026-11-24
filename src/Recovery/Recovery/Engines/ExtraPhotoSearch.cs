@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace UsbRecovery
@@ -13,7 +12,6 @@ namespace UsbRecovery
     {
         const long MaximumPhoto = 128L * 1024 * 1024;
         static readonly byte[] PngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-        static readonly uint[] CrcTable = CreateCrcTable();
 
         public static int Recover(string image, string runDirectory, CancellationToken cancel, Action<long, long> progress)
         {
@@ -61,7 +59,7 @@ namespace UsbRecovery
                         bool png = i + 7 < length && IsPng(block, i);
                         if (!jpeg && !png) continue;
                         long offset = state.Position + i;
-                        long end = jpeg ? JpegEnd(parser, offset, cancel) : PngEnd(parser, offset, cancel);
+                        long end = jpeg ? JpegEnd(parser, offset, cancel) : PngStructure.Read(parser, offset, offset + Math.Min(MaximumPhoto, parser.Length - offset), cancel).End;
                         if (end <= offset) continue;
                         if (ledger.Records.Count + pending.Count >= 100000)
                         {
@@ -96,7 +94,7 @@ namespace UsbRecovery
                 maximumFileBytes = MaximumPhoto, resumedFromCheckpoint = resumed,
                 files = records.Select(r => new { path = r.Path, offset = r.Offset, size = r.Bytes,
                     sha256 = r.Sha256, method = "byte-offset-structural",
-                    check = r.Format == ".jpg" ? "JPEG markers and EOI" : "PNG chunks and CRC32" }).ToList() });
+                    check = r.Format == ".jpg" ? "JPEG markers and EOI" : "PNG critical chunks, CRC32 and zlib header" }).ToList() });
         }
 
         static bool IsPng(byte[] data, int index)
@@ -159,60 +157,11 @@ namespace UsbRecovery
 
         static bool IsFrame(int marker) { return marker >= 192 && marker <= 207 && marker != 196 && marker != 200 && marker != 204; }
         static int ReadBig16(Stream stream) { int a = stream.ReadByte(), b = stream.ReadByte(); return a < 0 || b < 0 ? -1 : (a << 8) | b; }
-        static uint ReadBig32(byte[] bytes, int offset) { return ((uint)bytes[offset] << 24) | ((uint)bytes[offset + 1] << 16) | ((uint)bytes[offset + 2] << 8) | bytes[offset + 3]; }
-
-        static long PngEnd(FileStream stream, long start, CancellationToken cancel)
-        {
-            stream.Position = start + 8;
-            long limit = Math.Min(stream.Length, start + MaximumPhoto);
-            byte[] header = new byte[8], chunk = new byte[65536], expected = new byte[4];
-            bool first = true, data = false;
-            int chunks = 0;
-            while (stream.Position + 12 <= limit && chunks++ < 100000)
-            {
-                cancel.ThrowIfCancellationRequested();
-                if (!ReadExact(stream, header, 8)) return -1;
-                uint length = ReadBig32(header, 0);
-                if (length > MaximumPhoto || stream.Position + length + 4 > limit) return -1;
-                for (int i = 4; i < 8; i++) if (!((header[i] >= 65 && header[i] <= 90) || (header[i] >= 97 && header[i] <= 122))) return -1;
-                string type = Encoding.ASCII.GetString(header, 4, 4);
-                if (first && (type != "IHDR" || length != 13)) return -1;
-                if (!first && type == "IHDR") return -1;
-                uint crc = 0xffffffff;
-                for (int i = 4; i < 8; i++) crc = CrcTable[(crc ^ header[i]) & 255] ^ (crc >> 8);
-                uint remaining = length;
-                while (remaining > 0)
-                {
-                    cancel.ThrowIfCancellationRequested();
-                    int count = (int)Math.Min((uint)chunk.Length, remaining);
-                    if (!ReadExact(stream, chunk, count)) return -1;
-                    if (first)
-                    {
-                        uint width = ReadBig32(chunk, 0), height = ReadBig32(chunk, 4);
-                        if (width == 0 || height == 0 || (ulong)width * height > 100000000UL) return -1;
-                    }
-                    for (int i = 0; i < count; i++) crc = CrcTable[(crc ^ chunk[i]) & 255] ^ (crc >> 8);
-                    remaining -= (uint)count;
-                }
-                if (!ReadExact(stream, expected, 4) || (crc ^ 0xffffffff) != ReadBig32(expected, 0)) return -1;
-                first = false;
-                if (type == "IDAT") data = true;
-                if (type == "IEND") return length == 0 && data ? stream.Position : -1;
-            }
-            return -1;
-        }
-
         static bool ReadExact(Stream stream, byte[] buffer, int length)
         {
             int total = 0;
             while (total < length) { int read = stream.Read(buffer, total, length - total); if (read == 0) return false; total += read; }
             return true;
-        }
-        static uint[] CreateCrcTable()
-        {
-            var table = new uint[256];
-            for (uint n = 0; n < 256; n++) { uint c = n; for (int bit = 0; bit < 8; bit++) c = (c & 1) != 0 ? 0xedb88320 ^ (c >> 1) : c >> 1; table[n] = c; }
-            return table;
         }
     }
 }

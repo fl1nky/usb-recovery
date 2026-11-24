@@ -87,6 +87,11 @@ jobs:
             'media' {
               python tests/JpegTwoGapRecoveryTests.py
               if ($LASTEXITCODE -ne 0) { throw 'JPEG reconstruction regression' }
+              python tests/JpegSparseBoundaryTests.py
+              if ($LASTEXITCODE -ne 0) { throw 'JPEG sector boundary regression' }
+              python tests/build_media_boundary_fixtures.py .build/media-boundary-fixtures
+              if ($LASTEXITCODE -ne 0) { throw 'Media fixture generation failed' }
+              ./tests/run_test.ps1 MediaBoundaryRecoveryTests -TestArguments @('.build/media-boundary-fixtures', '.build/media-boundary-results')
               ./scripts/test-media-checkpoints.ps1 -Python $python
             }
           }

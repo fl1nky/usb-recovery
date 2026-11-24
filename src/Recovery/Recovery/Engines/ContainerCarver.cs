@@ -9,7 +9,7 @@ namespace UsbRecovery
 {
     // Independent byte-offset pass for contiguous containers. Structure is not
     // proof of intact payload; no source archive/script is executed or unpacked.
-    public static class ContainerCarver
+    public static partial class ContainerCarver
     {
         const long Maximum = 512L * 1024 * 1024;
         static byte[] Read(FileStream s, long at, int count) { if (at < 0 || count < 0 || at > s.Length-count) return null; byte[] b=new byte[count]; s.Position=at; int done=0,n; while(done<count && (n=s.Read(b,done,count-done))>0) done+=n; return done==count?b:null; }
@@ -38,17 +38,6 @@ namespace UsbRecovery
             }
             return -1;
         }
-        static long PdfEnd(FileStream stream,long start,CancellationToken cancel)
-        {
-            byte[] header=Read(stream,start,8);if(!Is(header,0,"%PDF-") || header[5]<'1' || header[5]>'2' || header[6]!='.')return -1;
-            byte[] block=new byte[1024*1024+5];int carry=0;long at=start,limit=Math.Min(stream.Length,start+128L*1024*1024);bool objectFound=false;
-            while(at<limit) {
-                cancel.ThrowIfCancellationRequested();stream.Position=at;int n=stream.Read(block,carry,(int)Math.Min(block.Length-carry,limit-at));if(n==0)break;int size=n+carry;long baseOffset=at-carry;
-                for(int i=0;i+5<=size;i++){if(Is(block,i," obj"))objectFound=true;if(objectFound && Is(block,i,"%%EOF"))return baseOffset+i+5;}
-                at+=n;carry=Math.Min(5,size);Buffer.BlockCopy(block,size-carry,block,0,carry);
-            }
-            return -1;
-        }
         static long RiffEnd(FileStream stream,long start,out string extension)
         {
             extension=null;byte[] h=Read(stream,start,12);if(!Is(h,0,"RIFF"))return -1;long length=BitConverter.ToUInt32(h,4)+8L;
@@ -63,21 +52,6 @@ namespace UsbRecovery
                 at=end;
             }
             return payload && at==start+length ? at : -1;
-        }
-        static long BmffEnd(FileStream stream,long start,CancellationToken cancel,out string extension)
-        {
-            extension=".mp4";byte[] first=Read(stream,start,16);if(!Is(first,4,"ftyp"))return -1;
-            string brand=Encoding.ASCII.GetString(first,8,4);bool photo=new[]{"heic","heix","hevc","hevx","mif1","msf1","avif","avis"}.Contains(brand);
-            if(photo)extension=brand.StartsWith("avi",StringComparison.Ordinal)?".avif":".heic";else if(brand=="qt  ")extension=".mov";else if(brand.StartsWith("M4A",StringComparison.Ordinal))extension=".m4a";
-            long at=start,limit=Math.Min(stream.Length,start+Maximum);bool media=false,metadata=false;int boxes=0;
-            while(at+8<=limit && ++boxes<=100000) {
-                cancel.ThrowIfCancellationRequested();byte[] box=Read(stream,at,8);if(box==null)break;long size=BE(box,0);int header=8;
-                if(size==1){box=Read(stream,at,16);if(box==null)break;ulong wide=((ulong)BE(box,8)<<32)|BE(box,12);if(wide>Int64.MaxValue)break;size=(long)wide;header=16;}
-                if(size==0 || size<header || size>limit-at)break;
-                string kind=Encoding.ASCII.GetString(box,4,4);if(!new[]{"ftyp","moov","mdat","free","skip","wide","meta","uuid","pdin","moof","mfra","sidx","styp","emsg","prft"}.Contains(kind))break;
-                if(kind=="mdat")media=true;if(kind==(photo?"meta":"moov"))metadata=true;at+=size;
-            }
-            return media && metadata ? at : -1;
         }
         public static int Recover(string image,string directory,RecoveryOptions options,CancellationToken cancel,Action<long,long> progress)
         {

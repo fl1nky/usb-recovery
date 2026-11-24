@@ -8,25 +8,29 @@ SECTOR = 512
 WINDOW_BYTES = 64 * 1024 * 1024
 MAX_CONTENT = 256 * 1024
 MAX_RUNS = 96
-# FF00 is a stuffed data byte. Other marker segments cannot occur inside this scan.
-MARKER = re.compile(b"\\xff+(?!\\xff)([\\x01-\\xfe])")
+# Match every FF run once, including stuffing (00) and an unfinished run at EOF.
+# The trailing FFs are carried to the next physical fragment.
+MARKER = re.compile(rb"\xff+([\x00-\xfe]|\Z)")
+MAX_JOIN_BYTES = 32 * 1024 * 1024
+MAX_ENTROPY_BYTES = 8 * 1024 * 1024
 
 
 def _ranges(assembler, low, high):
     """Yield physical extents without retaining their payloads."""
     start = None
     for base in range(low, high, 65536):
-        page = assembler.read(base, min(65536, high - base))
-        if not page:
-            return
-        if page.count(page[:1]) == len(page):
+        count = min(65536, high - base)
+        page = assembler.read(base, count)
+        if len(page) != count:
+            raise OSError("JPEG_SOURCE_TRUNCATED")
+        if len(page) % SECTOR == 0 and page.count(page[:1]) == len(page):
             if start is not None:
                 yield start, base
                 start = None
             continue
         for index in range(0, len(page), SECTOR):
             sector = page[index:index + SECTOR]
-            if sector.count(sector[:1]) == len(sector):
+            if len(sector) == SECTOR and sector.count(sector[:1]) == SECTOR:
                 if start is not None:
                     yield start, base + index
                     start = None
@@ -36,19 +40,34 @@ def _ranges(assembler, low, high):
         yield start, high
 
 
-def sector_runs(assembler, anchor):
+def sector_runs(assembler, anchor, scan_start=None):
     """Search a bounded neighbourhood on the sector grid of this JPEG header."""
     phase = anchor % SECTOR
     low = max(phase, min(anchor - WINDOW_BYTES // 2, assembler.size - WINDOW_BYTES))
-    low -= (low - phase) % SECTOR
+    # Round toward the anchor so the final partial sector stays inside an end-clamped window.
+    low += (phase - low) % SECTOR
     high = min(assembler.size, low + WINDOW_BYTES)
 
     def eligible():
         for start, end in _ranges(assembler, low, high):
             if start <= anchor < end:
                 start = anchor
-            if end - start <= MAX_CONTENT:
-                yield start, end
+            if end - start > MAX_CONTENT:
+                # An EOI can precede unrelated allocated data in the very same
+                # sector. Only the bounded entropy prefix can belong to a photo.
+                if start == anchor and scan_start is None:
+                    continue
+                prefix = assembler.read(start, MAX_CONTENT)
+                if len(prefix) != MAX_CONTENT:
+                    raise OSError("JPEG_SOURCE_TRUNCATED")
+                footer = prefix.find(b"\xff\xd9", scan_start - start if start == anchor else 0)
+                if footer >= 0:
+                    end = start + footer + 2
+                elif start != anchor and prefix[0] == 0xd9:
+                    end = start + 1  # only a preceding FF can establish an EOI
+                else:
+                    continue
+            yield start, end
 
     # A large unrelated extent cannot be part of a solution under this model.
     # Budget only the selected extents, so such an extent cannot erase prior hits.
@@ -59,9 +78,10 @@ def sector_runs(assembler, anchor):
         length = end - start
         if length <= remaining:
             data = assembler.read(start, length)
-            if len(data) == length:
-                runs.append((start, data))
-                remaining -= length
+            if len(data) != length:
+                raise OSError("JPEG_SOURCE_TRUNCATED")
+            runs.append((start, data))
+            remaining -= length
     return tuple(runs)
 
 
@@ -73,31 +93,17 @@ def recover(assembler, frame, runs):
     if start not in by_offset or frame["scan"] > start + len(by_offset[start]):
         return []
     blocks, total, interval = frame["blocks"], frame["mcus"], frame["interval"]
-    # A restart interval is independently checkable; arbitrary streams without
-    # such anchors need a much smaller permutation bound.
-    if not interval and len(runs) > 6:
-        return []
-    pieces = {}
-    for at, data in runs:
-        scan = data[len(header):] if at == start else data
-        markers = list(MARKER.finditer(scan))
-        end = next((m.end() for m in markers if m[1] == b"\xd9"), len(scan))
-        markers = [m for m in markers if m.start() < end]
-        if any(not 0xd0 <= m[1][0] <= 0xd7 and m[1][0] != 0xd9 for m in markers):
-            continue
-        if interval and not markers:
-            continue
-        pieces[at] = (scan[:end], markers)
-    if start not in pieces:
-        return []
-    checked_bytes = 0
+    # An interior run need not contain a marker. A marker, a stuffed byte and
+    # even the terminating EOI can straddle any physical join.
+    solutions = {}
+    attempts = joined_bytes = checked_bytes = 0
     exhausted = False
 
     @lru_cache(maxsize=64)
     def valid(raw, count):
         nonlocal checked_bytes, exhausted
         checked_bytes += len(raw)
-        if checked_bytes > 8 * 1024 * 1024:
+        if checked_bytes > MAX_ENTROPY_BYTES:
             exhausted = True
             return False
         try:
@@ -106,43 +112,50 @@ def recover(assembler, frame, runs):
         except InvalidJpeg:
             return False
 
-    solutions = {}
-    attempts = 0
-    limit = assembler.max_states
     def extend(at, path, carry, done):
-        nonlocal attempts
-        attempts += 1
-        if attempts > limit:
+        nonlocal attempts, joined_bytes, exhausted
+        skip = len(header) if at == start else 0
+        size = len(carry) + len(by_offset[at]) - skip
+        if attempts >= assembler.max_states or joined_bytes + size > MAX_JOIN_BYTES:
+            exhausted = True
             return
-        scan, markers = pieces[at]
+        if attempts % 64 == 0:
+            assembler.read(0, 0)
+            assembler.progress(assembler.size, assembler.size)
+        attempts += 1
+        joined_bytes += size
+        scan = carry + by_offset[at][skip:]
         previous = 0
-        for marker in markers:
+        for match in MARKER.finditer(scan):
+            code = match[1]
+            if not code or code == b"\0":
+                continue
             count = min(interval or total, total - done)
             final = done + count == total
             expected = 0xd9 if final else 0xd0 + (done // interval) % 8
-            if marker[1][0] != expected or not valid(carry + scan[previous:marker.start()], count):
+            if code[0] != expected or not valid(scan[previous:match.start()], count):
                 return
-            carry = b""
             done += count
-            previous = marker.end()
+            previous = match.end()
             if final:
                 if path:
-                    offsets = path + (at,)
-                    recipe = [(pos, by_offset[pos] if pos != at else by_offset[pos][:previous])
-                              for pos in offsets]
+                    # Only the part of this run up to and including the true EOI.
+                    end = skip + previous - len(carry)
+                    recipe = [(pos, by_offset[pos]) for pos in path] + [(at, by_offset[at][:end])]
                     payload = b"".join(raw for _, raw in recipe)
-                    if assembler.decode(payload, "JPEG"):
-                        solutions.setdefault(payload, recipe)
+                    if payload not in solutions and assembler.decode(payload, "JPEG"):
+                        solutions[payload] = recipe
                 return
-        carry += scan[previous:]
+        carry = scan[previous:]
         path += (at,)
-        if len(path) < len(pieces):
-            for pos in pieces:
-                if exhausted or attempts >= limit or len(solutions) >= 2:
-                    break
-                if pos not in path:
-                    extend(pos, path, carry, done)
+        for pos in by_offset:
+            if exhausted or len(solutions) == 2:
+                break
+            if pos not in path:
+                extend(pos, path, carry, done)
+
     extend(start, (), b"", 0)
-    if exhausted or attempts >= limit or len(solutions) > 1:
+    if exhausted:
+        assembler.skipped["jpeg_sparse_search_incomplete"] += 1
         return []
     return list(solutions.values())
