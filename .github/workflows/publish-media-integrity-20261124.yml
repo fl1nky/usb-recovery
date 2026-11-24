@@ -1,0 +1,69 @@
+name: Publish verified media integrity release
+on:
+  push:
+    branches: [release/media-integrity-20261124]
+    paths: ['.github/workflows/publish-media-integrity-20261124.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/media-integrity-20261124
+          persist-credentials: false
+      - name: Verify source CI and publish tested archive
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: fl1nky/usb-recovery
+          PRODUCT: 761dec7342dce1bae4dea3583491ed4840502147
+          BUILD_SHA: d9f425682fbbeed625d52951b1cdb9dbed311d43
+          BUILD_RUN: 45398296396
+          TAG: v2026.11.24-media-integrity
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$GH_REPO"
+          api="repos/$GH_REPO"
+          test "$(gh api "$api/git/ref/tags/$TAG" --jq .object.sha)" = "$PRODUCT"
+          status_file="$RUNNER_TEMP/source-runs.json"
+          checked=false
+          for iteration in $(seq 1 25); do
+            gh api "$api/actions/runs?head_sha=$PRODUCT&per_page=40" | jq --arg sha "$PRODUCT" --arg tag "$TAG" '[.workflow_runs[] | select(.head_sha==$sha and (.head_branch==$tag or .head_branch=="feat/recovery-media-integrity-20261124")) | {id,name,ref:.head_branch,status,conclusion,url:.html_url}]' > "$status_file"
+            if jq -e 'any(.[]; .status=="completed" and .conclusion!="success")' "$status_file" >/dev/null; then cat "$status_file"; exit 1; fi
+            if jq -e --arg tag "$TAG" 'any(.[]; .ref=="feat/recovery-media-integrity-20261124" and .id==45398209115) and ([.[]|select(.ref==$tag)|.name]|unique|sort)==(["Recovery continuation","Native NTFS checkpoints","Telegram evidence boundaries"]|sort) and all(.[]; .status=="completed" and .conclusion=="success")' "$status_file" >/dev/null; then checked=true; break; fi
+            sleep 30
+          done
+          test "$checked" = true
+          gh api "$api/actions/runs/$BUILD_RUN" | jq -e --arg sha "$BUILD_SHA" '.head_sha == $sha and .conclusion == "success" and .name == "Build verified media release"' >/dev/null
+          gh run download "$BUILD_RUN" --repo "$GH_REPO" -n verified-portable --dir release
+          cp .github/media-integrity-20261124/media-regression.json release/media-regression.json
+          (cd release && sha256sum --check SHA256SUMS.txt)
+          digest=$(sha256sum release/USB-Recovery-Windows-x64.zip | cut -d ' ' -f 1)
+          jq -e --arg sha "$PRODUCT" --arg h "$digest" '.commit == $sha and .zip_sha256 == $h and .managed_cases_passed == 20 and (.jpeg_cases | length) == 9 and all(.jpeg_cases[]; .expected_result and .source_unchanged)' release/portable-validation.json > /dev/null
+          jq --slurpfile source "$status_file" --arg build "$BUILD_RUN" '. + {source_ci_runs: $source[0], portable_build_run: $build}' release/portable-validation.json > "$RUNNER_TEMP/receipt.json"
+          cp "$RUNNER_TEMP/receipt.json" release/portable-validation.json
+          jq -e --arg sha "$PRODUCT" '.source_commit == $sha and all(.managed[]; .after.exact_layout) and all(.additional_fixed_seeds[]; .current.correct)' release/media-regression.json > /dev/null
+          test "$(gh api "$api/releases/latest" --jq .id)" = '456101921'
+          release_id=$(gh api "$api/releases?per_page=100" | jq -r --arg tag "$TAG" '.[] | select(.tag_name == $tag) | .id')
+          if [[ -z "$release_id" ]]; then
+            gh release create "$TAG" --repo "$GH_REPO" --draft --verify-tag --target "$PRODUCT" --title 'USB Recovery Ч восстановление фото, видео и PDF' --notes-file .github/media-integrity-20261124/release-notes.md
+            release_id=$(gh api "$api/releases?per_page=100" | jq -er --arg tag "$TAG" '.[] | select(.tag_name == $tag) | .id')
+          fi
+          gh api "$api/releases/$release_id" | jq -e --arg tag "$TAG" --arg sha "$PRODUCT" '.draft == true and .tag_name == $tag and .target_commitish == $sha' >/dev/null
+          for name in USB-Recovery-Windows-x64.zip SHA256SUMS.txt portable-validation.json media-regression.json; do
+            hash="sha256:$(sha256sum "release/$name" | cut -d ' ' -f 1)"
+            existing=$(gh api "$api/releases/$release_id/assets" | jq -r --arg n "$name" '.[] | select(.name == $n) | .digest')
+            if [[ -z "$existing" ]]; then
+              gh release upload "$TAG" --repo "$GH_REPO" "release/$name"
+            else
+              test "$hash" = "$existing"
+            fi
+            gh api "$api/releases/$release_id/assets" | jq -e --arg name "$name" --arg hash "$hash" 'any(.[]; .name == $name and .digest == $hash and .state == "uploaded")' >/dev/null
+          done
+          test "$(gh api "$api/releases/$release_id/assets" --jq length)" = 4
+          gh api --method PATCH "$api/releases/$release_id" -f tag_name="$TAG" -f target_commitish="$PRODUCT" -F draft=false -F prerelease=false -f make_latest=true >/dev/null
+          test "$(gh api "$api/releases/latest" --jq .id)" = "$release_id"
